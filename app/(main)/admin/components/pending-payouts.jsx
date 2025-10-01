@@ -187,8 +187,8 @@ export function PendingPayouts({ payouts }) {
               {/* Doctor Information */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Stethoscope className="h-5 w-5 text-emerald-400" />
-                  <h3 className="text-white font-medium">Doctor Information</h3>
+                  <User className="h-5 w-5 text-emerald-400" />
+                  <h3 className="text-white font-medium">Talent Information</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

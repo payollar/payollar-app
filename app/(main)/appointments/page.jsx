@@ -20,8 +20,8 @@ export default async function PatientAppointmentsPage() {
       <PageHeader
         icon={<Calendar />}
         title="My Appointments"
-        backLink="/doctors"
-        backLabel="Find Doctors"
+        backLink="/talents"
+        backLabel="Find Talents"
       />
 
       <Card className="border-emerald-900/20">

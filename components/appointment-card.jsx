@@ -224,7 +224,7 @@ export function AppointmentCard({
     userRole === "DOCTOR" ? appointment.patient : appointment.doctor;
 
   const otherPartyLabel = userRole === "DOCTOR" ? "Patient" : "Doctor";
-  const otherPartyIcon = userRole === "DOCTOR" ? <User /> : <Stethoscope />;
+  const otherPartyIcon = userRole === "DOCTOR" ? <User /> : <User />;
 
   return (
     <>
@@ -239,7 +239,7 @@ export function AppointmentCard({
                 <h3 className="font-medium text-white">
                   {userRole === "DOCTOR"
                     ? otherParty.name
-                    : `Dr. ${otherParty.name}`}
+                    : ` ${otherParty.name}`}
                 </h3>
                 {userRole === "DOCTOR" && (
                   <p className="text-sm text-muted-foreground">
@@ -337,7 +337,7 @@ export function AppointmentCard({
                   <p className="text-white font-medium">
                     {userRole === "DOCTOR"
                       ? otherParty.name
-                      : `Dr. ${otherParty.name}`}
+                      : ` ${otherParty.name}`}
                   </p>
                   {userRole === "DOCTOR" && (
                     <p className="text-muted-foreground text-sm">

@@ -24,6 +24,8 @@ import {
   AlertCircle,
   Coins,
   Plus,
+  UserRoundPen ,
+  Images ,
 } from "lucide-react";
 import {
   Dialog,
@@ -40,6 +42,7 @@ import { requestPayout } from "@/actions/payout";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
 import { useAuth } from "@clerk/nextjs"; 
+import { PieChart } from "lucide-react";
 
 export function OverviewPage({ earnings, payouts, doctor, initialSkills = [] }) {
   const [showPayoutDialog, setShowPayoutDialog] = useState(false);
@@ -178,11 +181,11 @@ export function OverviewPage({ earnings, payouts, doctor, initialSkills = [] }) 
   
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  ${availablePayout.toFixed(2)} available for payout
+                  {/* ${availablePayout.toFixed(2)} available for payout */}
                 </p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
-                <Coins className="h-6 w-6 text-emerald-400" />
+                <UserRoundPen  className="h-6 w-6 text-emerald-400" />
               </div>
             </div>
           </CardContent>
@@ -243,7 +246,7 @@ export function OverviewPage({ earnings, payouts, doctor, initialSkills = [] }) 
               <div>
               <p className="text-3xl font-bold text-white">performance sats</p>
                 <p className="text-3xl font-bold text-white">
-                  ${averageEarningsPerMonth.toFixed(2)}
+                  {/* ${averageEarningsPerMonth.toFixed(2)} */}
                 </p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
@@ -259,11 +262,11 @@ export function OverviewPage({ earnings, payouts, doctor, initialSkills = [] }) 
               <div>
               <p className="text-3xl font-bold text-white">Analytics</p>
                 <p className="text-3xl font-bold text-white">
-                  ${averageEarningsPerMonth.toFixed(2)}
+                  {/* ${averageEarningsPerMonth.toFixed(2)} */}
                 </p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
-                <BarChart3 className="h-6 w-6 text-emerald-400" />
+                <PieChart className="h-6 w-6 text-emerald-400" />
               </div>
             </div>
           </CardContent>
@@ -273,7 +276,7 @@ export function OverviewPage({ earnings, payouts, doctor, initialSkills = [] }) 
 
   <CardHeader>
     <CardTitle className="text-xl font-bold text-white flex items-center">
-      <CreditCard className="h-5 w-5 mr-2 text-emerald-400" />
+      <Images  className="h-5 w-5 mr-2 text-emerald-400" />
       Portfolio
     </CardTitle>
   </CardHeader>
