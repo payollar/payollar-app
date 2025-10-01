@@ -9,7 +9,7 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <nav className="border-b border-border">
+      {/* <nav className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2">
@@ -28,7 +28,7 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
-      </nav>
+      </nav> */}
 
       {/* Header */}
       <section className="py-16 bg-muted/20">

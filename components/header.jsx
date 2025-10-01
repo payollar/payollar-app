@@ -1,166 +1,121 @@
-import React from "react";
-import { Button } from "./ui/button";
-import {
-  Calendar,
-  CreditCard,
-  ShieldCheck,
-  Stethoscope,
-  Zap,
-  User,
-} from "lucide-react";
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
-import { checkUser } from "@/lib/checkUser";
-import { Badge } from "./ui/badge";
-import { checkAndAllocateCredits } from "@/actions/credits";
 import Image from "next/image";
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Zap, CreditCard } from "lucide-react";
+import { checkUser } from "@/lib/checkUser";
+import { checkAndAllocateCredits } from "@/actions/credits";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import HeaderAuthButtons from "./HeaderAuthButtons";
+import MobileMenu from "./MobileMenu";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 export default async function Header() {
   const user = await checkUser();
+
   if (user?.role === "PATIENT") {
     await checkAndAllocateCredits(user);
   }
 
+  // Role-based nav
+  const roleNavItems = [
+    { href: "/appointments", label: "Appointments", show: user?.role === "PATIENT" },
+    { href: "/pricing", label: "Pricing", show: user?.role === "PATIENT" },
+    { href: "/doctor", label: "Talent Dashboard", show: user?.role === "DOCTOR" },
+    { href: "/admin", label: "Admin Dashboard", show: user?.role === "ADMIN" },
+    { href: "/onboarding", label: "Complete Profile", show: user?.role === "UNASSIGNED" },
+  ].filter(item => item.show);
+
+  // Public nav (always shown)
+  const publicNavItems = [
+    { href: "/media", label: "For Company" },
+    { href: "/", label: "For Creators" },
+  ];
+
+  const mediaSubItems = [
+    { href: "/products/tv-media", label: "Book TV media" },
+    { href: "/products/radio", label: "Book Radio media" },
+    { href: "/product/digital-media", label: "Digital Marketing" },
+    { href: "/product/billboard-media", label: "Billboard Marketing" },
+  ];
+
   return (
-    <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-10 supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-20">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Sidebar trigger button right beside logo */}
-          {/* <SidebarTrigger /> */}
-        
-        <Link href="/" className="flex items-center gap-2 cursor-pointer">
-        <Zap className="h-6 w-6 text-primary" />
-          <Image
-            src="/logo-single.png"
-            alt="et Logo"
-            width={200}
-            height={60}
-            className="w-full h-30 object-contain"
-          />
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <Zap className="h-6 w-6 text-primary" />
+          <Image src="/logo-single.png" alt="Logo" width={160} height={50} />
         </Link>
 
-        <Link href="/" className="flex items-center gap-2 cursor-pointer">
-        <Button
-                  variant="outline"
-                  className=" md:inline-flex items-center gap-2"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Media
-                </Button>
-                </Link>
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-6">
+          {/* Media dropdown */}
+          <NavigationMenu>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Media</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid gap-3 p-4 w-[200px]">
+                    {mediaSubItems.map((item) => (
+                      <li key={item.href}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={item.href}
+                            className="block rounded-md px-3 py-2 text-sm hover:bg-muted hover:text-primary"
+                          >
+                            {item.label}
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
 
+          {/* Public */}
+          {publicNavItems.map((item) => (
+            <Link key={item.href} href={item.href} className="text-sm font-medium hover:text-primary transition">
+              {item.label}
+            </Link>
+          ))}
 
-        {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
-          <SignedIn>
-            {/* Admin Links */}
-            {user?.role === "ADMIN" && (
-              <Link href="/admin">
-                <Button
-                  variant="outline"
-                  className="hidden md:inline-flex items-center gap-2"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin Dashboard
-                </Button>
-                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                  <ShieldCheck className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
+          {/* Role-based */}
+          {roleNavItems.map((item) => (
+            <Link key={item.href} href={item.href} className="text-sm font-medium hover:text-primary transition">
+              {item.label}
+            </Link>
+          ))}
 
-            {/* Doctor Links */}
-            {user?.role === "DOCTOR" && (
-              <Link href="/doctor">
-                <Button
-                  variant="outline"
-                  className="hidden md:inline-flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Talent Dashboard
-                </Button>
-                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                  <User className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-
-            {/* Patient Links */}
-            {user?.role === "PATIENT" && (
-              <Link href="/appointments">
-                <Button
-                  variant="outline"
-                  className="hidden md:inline-flex items-center gap-2"
-                >
-                  <Calendar className="h-4 w-4" />
-                  My Appointments
-                </Button>
-                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                  <Calendar className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-
-            {/* Unassigned Role */}
-            {user?.role === "UNASSIGNED" && (
-              <Link href="/onboarding">
-                <Button
-                  variant="outline"
-                  className="hidden md:inline-flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Complete Profile
-                </Button>
-                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                  <User className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-          </SignedIn>
-
+          {/* Credits */}
           {(!user || user?.role !== "ADMIN") && (
             <Link href={user?.role === "PATIENT" ? "/pricing" : "/doctor"}>
-              <Badge
-                variant="outline"
-                className="h-9 bg-emerald-900/20 border-emerald-700/30 px-3 py-1 flex items-center gap-2"
-              >
+              <Badge className="h-9 bg-emerald-900/20 border-emerald-700/30 px-3 py-1 flex items-center gap-2">
                 <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
                 <span className="text-emerald-400">
-                  {user && user.role !== "ADMIN" ? (
-                    <>
-                      {user.credits}{" "}
-                      <span className="hidden md:inline">
-                        {user?.role === "PATIENT"
-                          ? "Credits"
-                          : "Earned Credits"}
-                      </span>
-                    </>
-                  ) : (
-                    <>Pricing</>
-                  )}
+                  {user
+                    ? `${user.credits} ${user.role === "PATIENT" ? "Credits" : "Earned"}`
+                    : "Pricing"}
                 </span>
               </Badge>
             </Link>
           )}
 
-          <SignedOut>
-            <SignInButton>
-              <Button variant="secondary">Sign In</Button>
-            </SignInButton>
-          </SignedOut>
+          {/* Auth */}
+          <HeaderAuthButtons />
+        </div>
 
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "w-10 h-10",
-                  userButtonPopoverCard: "shadow-xl",
-                  userPreviewMainIdentifier: "font-semibold",
-                },
-              }}
-              afterSignOutUrl="/"
-            />
-          </SignedIn>
+        {/* Mobile Menu */}
+        <div className="md:hidden flex items-center gap-2">
+          <MobileMenu publicNavItems={publicNavItems} mediaSubItems={mediaSubItems} roleNavItems={roleNavItems} user={user} />
         </div>
       </nav>
     </header>
