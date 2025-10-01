@@ -35,7 +35,7 @@ export default async function Header() {
   // Public nav (always shown)
   const publicNavItems = [
     { href: "/media", label: "For Company" },
-    { href: "/", label: "For Creators" },
+    { href: "/talents", label: "For Creators" },
   ];
 
   const mediaSubItems = [
