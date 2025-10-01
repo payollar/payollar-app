@@ -244,7 +244,7 @@ export function OverviewPage({ earnings, payouts, doctor, initialSkills = [] }) 
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-              <p className="text-3xl font-bold text-white">performance sats</p>
+              <p className="text-3xl font-bold text-white">Stats</p>
                 <p className="text-3xl font-bold text-white">
                   {/* ${averageEarningsPerMonth.toFixed(2)} */}
                 </p>

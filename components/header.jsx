@@ -39,6 +39,17 @@ export default async function Header() {
           />
         </Link>
 
+        <Link href="/" className="flex items-center gap-2 cursor-pointer">
+        <Button
+                  variant="outline"
+                  className=" md:inline-flex items-center gap-2"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Media
+                </Button>
+                </Link>
+
+
         {/* Action Buttons */}
         <div className="flex items-center space-x-2">
           <SignedIn>
