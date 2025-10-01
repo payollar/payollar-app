@@ -123,7 +123,7 @@ export default function OnboardingPage() {
                   Processing...
                 </>
               ) : (
-                "Continue as Patient"
+                "Continue as Client "
               )}
             </Button>
           </CardContent>
@@ -135,7 +135,7 @@ export default function OnboardingPage() {
         >
           <CardContent className="pt-6 pb-6 flex flex-col items-center text-center">
             <div className="p-4 bg-emerald-900/20 rounded-full mb-4">
-              <Stethoscope className="h-8 w-8 text-emerald-400" />
+              <User className="h-8 w-8 text-emerald-400" />
             </div>
             <CardTitle className="text-xl font-semibold text-white mb-2">
               Join as a Talent
@@ -162,7 +162,7 @@ export default function OnboardingPage() {
         <CardContent className="pt-6">
           <div className="mb-6">
             <CardTitle className="text-2xl font-bold text-white mb-2">
-              Complete Your Doctor Profile
+              Complete Your Talent Profile
             </CardTitle>
             <CardDescription>
               Please provide your professional details for verification
@@ -173,7 +173,7 @@ export default function OnboardingPage() {
            encType="multipart/form-data"
            className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="specialty">Medical Specialty</Label>
+              <Label htmlFor="specialty">Talent Specialty</Label>
               <Select
                 value={specialtyValue}
                 onValueChange={(value) => setValue("specialty", value)}
@@ -230,7 +230,7 @@ export default function OnboardingPage() {
                 </p>
               )}
               <p className="text-sm text-muted-foreground">
-                Please provide a link to your medical degree or certification
+                Please provide a link to your social media for vertification
               </p>
             </div>
                   

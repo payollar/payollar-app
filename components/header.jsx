@@ -34,15 +34,17 @@ export default async function Header() {
 
   // Public nav (always shown)
   const publicNavItems = [
-    { href: "/media", label: "For Company" },
+    { href: "/media", label: "Campaigns" },
     { href: "/talents", label: "For Creators" },
   ];
 
   const mediaSubItems = [
     { href: "/products/tv-media", label: "Book TV media" },
-    { href: "/products/radio", label: "Book Radio media" },
-    { href: "/product/digital-media", label: "Digital Marketing" },
-    { href: "/product/billboard-media", label: "Billboard Marketing" },
+    { href: "/products/radio-media", label: "Book Radio media" },
+    { href: "/products/digital-media", label: "Digital Marketing" },
+    { href: "/products/billboard-media", label: "Billboard Marketing" },
+    { href: "/products/influencer-marketing", label: "Influencer Marketing" },
+    { href: "/products/video-clipping", label: "Video-clipping" },
   ];
 
   return (
