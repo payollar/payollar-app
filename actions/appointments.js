@@ -3,7 +3,6 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { deductCreditsForAppointment } from "@/actions/credits";
 import { Vonage } from "@vonage/server-sdk";
 import { addDays, addMinutes, format, isBefore, endOfDay } from "date-fns";
 import { Auth } from "@vonage/auth";
@@ -63,11 +62,6 @@ export async function bookAppointment(formData) {
       throw new Error("Talents not found or not verified");
     }
 
-    // Check if the patient has enough credits (2 credits per appointment)
-    if (patient.credits < 2) {
-      throw new Error("Insufficient credits to book an appointment");
-    }
-
     // Check if the requested time slot is available
     const overlappingAppointment = await db.appointment.findFirst({
       where: {
@@ -111,16 +105,6 @@ export async function bookAppointment(formData) {
 
     // Create a new Vonage Video API session
     const sessionId = await createVideoSession();
-
-    // Deduct credits from patient and add to doctor
-    const { success, error } = await deductCreditsForAppointment(
-      patient.id,
-      doctor.id
-    );
-
-    if (!success) {
-      throw new Error(error || "Failed to deduct credits");
-    }
 
     // Create the appointment with the video session ID
     const appointment = await db.appointment.create({
@@ -265,7 +249,27 @@ export async function getDoctorById(doctorId) {
         verificationStatus: "VERIFIED",
       },
       include: {
-        skills: true,  portfolios: true // ✅ include skills
+        skills: true,
+        portfolios: true,
+        digitalProducts: {
+          where: {
+            status: "ACTIVE",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            _count: {
+              select: {
+                sales: {
+                  where: {
+                    status: "COMPLETED",
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 

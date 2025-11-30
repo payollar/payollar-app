@@ -1,8 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, CreditCard } from "lucide-react";
+import { Zap } from "lucide-react";
 import { checkUser } from "@/lib/checkUser";
-import { checkAndAllocateCredits } from "@/actions/credits";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import HeaderAuthButtons from "./HeaderAuthButtons";
@@ -19,26 +18,23 @@ import {
 export default async function Header() {
   const user = await checkUser();
 
-  if (user?.role === "PATIENT") {
-    await checkAndAllocateCredits(user);
-  }
-
   // Role-based nav
   const roleNavItems = [
-    { href: "/appointments", label: "Appointments", show: user?.role === "PATIENT" },
-    { href: "/pricing", label: "Pricing", show: user?.role === "PATIENT" },
-    { href: "/doctor", label: "Talent Dashboard", show: user?.role === "DOCTOR" },
+    { href: "/client", label: "Client Dashboard", show: user?.role === "PATIENT" },
+    { href: "/creator", label: "Creator Dashboard", show: user?.role === "DOCTOR" },
     { href: "/admin", label: "Admin Dashboard", show: user?.role === "ADMIN" },
     { href: "/onboarding", label: "Complete Profile", show: user?.role === "UNASSIGNED" },
   ].filter(item => item.show);
 
   // Public nav (always shown)
   const publicNavItems = [
-    { href: "/media", label: "Campaigns" },
+    { href: "/store", label: "Store" },
+    { href: "/campaigns", label: "Campaigns" },
     { href: "/talents", label: "For Creators" },
   ];
 
   const mediaSubItems = [
+    { href: "/media", label: "Media page" },
     { href: "/products/tv-media", label: "Book TV media" },
     { href: "/products/radio-media", label: "Book Radio media" },
     { href: "/products/digital-media", label: "Digital Marketing" },
@@ -96,20 +92,6 @@ export default async function Header() {
               {item.label}
             </Link>
           ))}
-
-          {/* Credits */}
-          {(!user || user?.role !== "ADMIN") && (
-            <Link href={user?.role === "PATIENT" ? "/pricing" : "/doctor"}>
-              <Badge className="h-9 bg-emerald-900/20 border-emerald-700/30 px-3 py-1 flex items-center gap-2">
-                <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-emerald-400">
-                  {user
-                    ? `${user.credits} ${user.role === "PATIENT" ? "Credits" : "Earned"}`
-                    : "Pricing"}
-                </span>
-              </Badge>
-            </Link>
-          )}
 
           {/* Auth */}
           <HeaderAuthButtons />

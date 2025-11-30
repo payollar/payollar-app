@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, CreditCard } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Menu } from "lucide-react";
 import HeaderAuthButtons from "./HeaderAuthButtons";
 
 export default function MobileMenu({ publicNavItems, mediaSubItems, roleNavItems, user }) {
@@ -74,22 +73,6 @@ export default function MobileMenu({ publicNavItems, mediaSubItems, roleNavItems
                 ))}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Credits at bottom */}
-        <div className="mt-6">
-          {(!user || user?.role !== "ADMIN") && (
-            <Link href={user?.role === "PATIENT" ? "/pricing" : "/doctor"}>
-              <Badge className="h-9 w-fit bg-emerald-900/20 border-emerald-700/30 px-3 py-1 flex items-center gap-2">
-                <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-emerald-400">
-                  {user
-                    ? `${user.credits} ${user.role === "PATIENT" ? "Credits" : "Earned"}`
-                    : "Pricing"}
-                </span>
-              </Badge>
-            </Link>
           )}
         </div>
       </SheetContent>

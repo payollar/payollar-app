@@ -1,10 +1,7 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CreditCard, Shield, Check } from "lucide-react";
-import { PricingTable } from "@clerk/nextjs";
+import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import Pricing from "@/components/pricing";
 
 export default async function PricingPage() {
   return (
@@ -25,23 +22,35 @@ export default async function PricingPage() {
           variant="outline"
           className="bg-emerald-900/30 border-emerald-700/30 px-4 py-1 text-emerald-400 text-sm font-medium mb-4"
         >
-          Affordable Healthcare
+          Coming Soon
         </Badge>
 
         <h1 className="text-4xl md:text-5xl font-bold gradient-title mb-4">
-          Simple, Transparent Pricing
+          Subscription Plans Coming Soon
         </h1>
 
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Choose the perfect consultation package that fits your healthcare
-          needs with no hidden fees or long-term commitments
+          We're currently transitioning to a subscription model. Subscription plans will be available soon. 
+          In the meantime, you can book sessions directly with our talented creators.
         </p>
       </div>
 
-      {/* Pricing Table Section */}
-      <Pricing />
+      {/* Coming Soon Message */}
+      <Card className="border-emerald-900/30 shadow-lg bg-gradient-to-b from-emerald-950/30 to-transparent max-w-2xl mx-auto">
+        <CardContent className="p-12 text-center">
+          <div className="space-y-4">
+            <p className="text-muted-foreground text-lg">
+              Our subscription plans are currently under development. 
+              We'll notify you as soon as they're available!
+            </p>
+            <p className="text-sm text-muted-foreground">
+              For now, you can book sessions directly with creators through their profiles.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* FAQ Section - Optional */}
+      {/* FAQ Section */}
       <div className="max-w-3xl mx-auto mt-16 text-center">
         <h2 className="text-2xl font-bold text-white mb-2">
           Questions? We're Here to Help

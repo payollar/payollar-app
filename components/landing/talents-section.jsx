@@ -208,20 +208,26 @@ export function TalentsSection() {
   }
 
   return (
-    <section className="py-16 md:py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 md:py-24 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/2 left-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <Badge variant="secondary" className="mb-4 px-4 py-2">
+          <Badge className="mb-4 px-4 py-2 bg-emerald-500/20 border-emerald-500/30 text-emerald-400">
             🎭 Featured Talents
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Meet Our{" "}
-            <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               Top Performers
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             Discover verified professionals ready to bring your projects to life
           </p>
         </div>
@@ -235,16 +241,16 @@ export function TalentsSection() {
                 onClick={() => setActiveCategory(category.id)}
                 className={`group p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
                   activeCategory === category.id
-                    ? "border-purple-500 bg-purple-50 shadow-lg"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-500/20 shadow-lg shadow-emerald-500/20"
+                    : "border-emerald-900/30 bg-slate-800/50 hover:border-emerald-700/40"
                 }`}
               >
                 <div className="flex flex-col items-center text-center space-y-3">
                   <div
                     className={`p-3 rounded-lg transition-colors duration-300 ${
                       activeCategory === category.id
-                        ? "bg-purple-500 text-white"
-                        : "bg-gray-100 text-gray-600 group-hover:bg-gray-200"
+                        ? "bg-emerald-500 text-white"
+                        : "bg-emerald-900/30 text-emerald-400 group-hover:bg-emerald-900/50"
                     }`}
                   >
                     <category.icon className="w-6 h-6" />
@@ -252,12 +258,14 @@ export function TalentsSection() {
                   <div>
                     <h3
                       className={`font-semibold text-sm transition-colors duration-300 ${
-                        activeCategory === category.id ? "text-purple-700" : "text-gray-900"
+                        activeCategory === category.id ? "text-white" : "text-gray-300"
                       }`}
                     >
                       {category.label}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">{category.description}</p>
+                    <p className={`text-xs mt-1 transition-colors duration-300 ${
+                      activeCategory === category.id ? "text-gray-300" : "text-gray-500"
+                    }`}>{category.description}</p>
                   </div>
                 </div>
               </button>
@@ -269,12 +277,12 @@ export function TalentsSection() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
                 {activeCategory === "all"
                   ? "Popular talents"
                   : `${categories.find((c) => c.id === activeCategory)?.label}`}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 {filteredTalents.length} {filteredTalents.length === 1 ? "talent" : "talents"} available
               </p>
             </div>
@@ -285,7 +293,7 @@ export function TalentsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("left")}
-                className="rounded-full w-10 h-10 p-0 bg-white border-gray-300 hover:bg-gray-50"
+                className="rounded-full w-10 h-10 p-0 bg-slate-800/50 border-emerald-700/30 text-white hover:bg-emerald-900/30"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -293,7 +301,7 @@ export function TalentsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("right")}
-                className="rounded-full w-10 h-10 p-0 bg-white border-gray-300 hover:bg-gray-50"
+                className="rounded-full w-10 h-10 p-0 bg-slate-800/50 border-emerald-700/30 text-white hover:bg-emerald-900/30"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -309,7 +317,7 @@ export function TalentsSection() {
             >
               {filteredTalents.map((talent) => (
                 <div key={talent.id} className="flex-shrink-0 w-80">
-                  <Card className="group hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border-0 shadow-lg overflow-hidden">
+                  <Card className="group hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 transform hover:-translate-y-2 border-emerald-900/20 bg-slate-800/50 backdrop-blur-sm hover:border-emerald-700/40 overflow-hidden">
                     <div className="relative">
                       <img
                         src={talent.image || "/placeholder.svg"}
@@ -322,7 +330,7 @@ export function TalentsSection() {
                       <div className="absolute top-4 right-4">
                         <Badge
                           className={`${
-                            talent.availability === "Available" ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
+                            talent.availability === "Available" ? "bg-emerald-500 text-white" : "bg-yellow-500 text-white"
                           }`}
                         >
                           <Clock className="w-3 h-3 mr-1" />
@@ -339,10 +347,10 @@ export function TalentsSection() {
 
                       {/* Rating overlay */}
                       <div className="absolute bottom-4 left-4 flex items-center space-x-2">
-                        <div className="flex items-center space-x-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                          <span className="text-sm font-bold text-gray-900">{talent.rating}</span>
-                          <span className="text-xs text-gray-600">({talent.reviews})</span>
+                        <div className="flex items-center space-x-1 bg-black/80 backdrop-blur-sm rounded-full px-3 py-1.5">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          <span className="text-sm font-bold text-white">{talent.rating}</span>
+                          <span className="text-xs text-gray-300">({talent.reviews})</span>
                         </div>
                       </div>
                     </div>
@@ -351,18 +359,18 @@ export function TalentsSection() {
                       <div className="space-y-4">
                         {/* Name and title */}
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">{talent.name}</h3>
-                          <p className="text-gray-600">{talent.title}</p>
+                          <h3 className="text-xl font-bold text-white mb-1">{talent.name}</h3>
+                          <p className="text-gray-400">{talent.title}</p>
                         </div>
 
                         {/* Location and rate */}
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <div className="flex items-center space-x-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-1 text-gray-400">
                             <MapPin className="w-4 h-4" />
                             <span>{talent.location}</span>
                           </div>
-                          <div className="flex items-center space-x-1 font-semibold text-gray-900">
-                            <DollarSign className="w-4 h-4" />
+                          <div className="flex items-center space-x-1 font-semibold text-white">
+                            <DollarSign className="w-4 h-4 text-emerald-400" />
                             <span>{talent.rate}</span>
                           </div>
                         </div>
@@ -370,7 +378,11 @@ export function TalentsSection() {
                         {/* Specialties */}
                         <div className="flex flex-wrap gap-2">
                           {talent.specialties.map((specialty, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
+                            <Badge 
+                              key={index} 
+                              variant="outline" 
+                              className="text-xs bg-emerald-900/30 border-emerald-700/30 text-emerald-300"
+                            >
                               {specialty}
                             </Badge>
                           ))}
@@ -378,15 +390,24 @@ export function TalentsSection() {
 
                         {/* Action buttons */}
                         <div className="flex space-x-2 pt-2">
-                          <Button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                            Book Now
+                          <Button 
+                            asChild
+                            className="flex-1 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white"
+                          >
+                            <Link href={`/talents/all/${talent.id}`}>
+                              Book Now
+                            </Link>
                           </Button>
-                          <Link href={`/talent/${talent.id}`} className="flex-1">
-                            <Button variant="outline" className="w-full bg-transparent">
+                          <Button 
+                            asChild
+                            variant="outline" 
+                            className="flex-1 border-emerald-700/30 text-white hover:bg-emerald-900/30 bg-transparent"
+                          >
+                            <Link href={`/talents/all/${talent.id}`}>
                               <Eye className="w-4 h-4 mr-1" />
                               View Profile
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -401,7 +422,7 @@ export function TalentsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("left")}
-                className="rounded-full w-10 h-10 p-0 bg-white border-gray-300"
+                className="rounded-full w-10 h-10 p-0 bg-slate-800/50 border-emerald-700/30 text-white hover:bg-emerald-900/30"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -409,7 +430,7 @@ export function TalentsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("right")}
-                className="rounded-full w-10 h-10 p-0 bg-white border-gray-300"
+                className="rounded-full w-10 h-10 p-0 bg-slate-800/50 border-emerald-700/30 text-white hover:bg-emerald-900/30"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -420,11 +441,14 @@ export function TalentsSection() {
         {/* View All Button */}
         <div className="text-center">
           <Button
+            asChild
             variant="outline"
             size="lg"
-            className="px-8 py-3 text-lg font-semibold hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 hover:text-white hover:border-transparent transition-all duration-300 bg-transparent"
+            className="px-8 py-3 text-lg font-semibold border-emerald-700/30 text-white hover:bg-gradient-to-r hover:from-emerald-600 hover:to-cyan-600 hover:text-white hover:border-transparent transition-all duration-300 bg-transparent"
           >
-            View All Talents
+            <Link href="/talents">
+              View All Talents
+            </Link>
           </Button>
         </div>
       </div>

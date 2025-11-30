@@ -75,7 +75,7 @@ export async function setAvailabilitySlots(formData) {
       },
     });
 
-    revalidatePath("/doctor");
+    revalidatePath("/creator");
     return { success: true, slot: newSlot };
   } catch (error) {
     console.error("Failed to set availability slots:", error);
@@ -211,65 +211,19 @@ export async function cancelAppointment(formData) {
       throw new Error("You are not authorized to cancel this appointment");
     }
 
-    // Perform cancellation in a transaction
-    await db.$transaction(async (tx) => {
-      // Update the appointment status to CANCELLED
-      await tx.appointment.update({
-        where: {
-          id: appointmentId,
-        },
-        data: {
-          status: "CANCELLED",
-        },
-      });
-
-      // Always refund credits to patient and deduct from doctor
-      // Create credit transaction for patient (refund)
-      await tx.creditTransaction.create({
-        data: {
-          userId: appointment.patientId,
-          amount: 2,
-          type: "APPOINTMENT_DEDUCTION",
-        },
-      });
-
-      // Create credit transaction for doctor (deduction)
-      await tx.creditTransaction.create({
-        data: {
-          userId: appointment.doctorId,
-          amount: -2,
-          type: "APPOINTMENT_DEDUCTION",
-        },
-      });
-
-      // Update patient's credit balance (increment)
-      await tx.user.update({
-        where: {
-          id: appointment.patientId,
-        },
-        data: {
-          credits: {
-            increment: 2,
-          },
-        },
-      });
-
-      // Update doctor's credit balance (decrement)
-      await tx.user.update({
-        where: {
-          id: appointment.doctorId,
-        },
-        data: {
-          credits: {
-            decrement: 2,
-          },
-        },
-      });
+    // Update the appointment status to CANCELLED
+    await db.appointment.update({
+      where: {
+        id: appointmentId,
+      },
+      data: {
+        status: "CANCELLED",
+      },
     });
 
     // Determine which path to revalidate based on user role
     if (user.role === "DOCTOR") {
-      revalidatePath("/doctor");
+      revalidatePath("/creator");
     } else if (user.role === "PATIENT") {
       revalidatePath("/appointments");
     }
@@ -332,7 +286,7 @@ export async function addAppointmentNotes(formData) {
       },
     });
 
-    revalidatePath("/doctor");
+    revalidatePath("/creator");
     return { success: true, appointment: updatedAppointment };
   } catch (error) {
     console.error("Failed to add appointment notes:", error);
@@ -408,7 +362,7 @@ export async function markAppointmentCompleted(formData) {
       },
     });
 
-    revalidatePath("/doctor");
+    revalidatePath("/creator");
     return { success: true, appointment: updatedAppointment };
   } catch (error) {
     console.error("Failed to mark appointment as completed:", error);
@@ -444,6 +398,61 @@ export async function getPublicDoctorProfile(doctorId) {
   } catch (error) {
     console.error("Failed to fetch public doctor profile:", error);
     throw new Error("Failed to fetch profile: " + error.message);
+  }
+}
+
+/**
+ * Update creator/talent profile information
+ */
+export async function updateCreatorProfile(formData) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    // Get the creator/talent
+    const creator = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+        role: "DOCTOR",
+      },
+    });
+
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+
+    // Get form data
+    const name = formData.get("name");
+    const specialty = formData.get("specialty");
+    const description = formData.get("description");
+    const imageUrl = formData.get("imageUrl");
+
+    // Validate required fields
+    if (!name || !description) {
+      throw new Error("Name and description are required");
+    }
+
+    // Update the creator profile
+    const updatedCreator = await db.user.update({
+      where: {
+        id: creator.id,
+      },
+      data: {
+        name: name.trim(),
+        specialty: specialty?.trim() || null,
+        description: description.trim(),
+        imageUrl: imageUrl || creator.imageUrl, // Keep existing if not provided
+      },
+    });
+
+    revalidatePath("/creator");
+    return { success: true, creator: updatedCreator };
+  } catch (error) {
+    console.error("Failed to update creator profile:", error);
+    throw new Error("Failed to update profile: " + error.message);
   }
 }
 

@@ -78,7 +78,7 @@ export async function requestPayout(formData) {
       },
     });
 
-    revalidatePath("/doctor");
+    revalidatePath("/creator");
     return { success: true, payout };
   } catch (error) {
     console.error("Failed to request payout:", error);
@@ -124,7 +124,7 @@ export async function getDoctorPayouts() {
 }
 
 /**
- * Get doctor's earnings summary
+ * Get doctor's earnings summary (from product sales only)
  */
 export async function getDoctorEarnings() {
   const { userId } = await auth();
@@ -139,54 +139,58 @@ export async function getDoctorEarnings() {
         clerkUserId: userId,
         role: "DOCTOR",
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!doctor) {
       throw new Error("Doctor not found");
     }
 
-    // Get all completed appointments for this doctor
-    const completedAppointments = await db.appointment.findMany({
+    // Get all completed product sales for this creator
+    const allSales = await db.digitalProductSale.findMany({
       where: {
-        doctorId: doctor.id,
+        sellerId: doctor.id,
         status: "COMPLETED",
       },
     });
 
-    // Calculate this month's completed appointments
+    // Calculate this month's sales
     const currentMonth = new Date();
     currentMonth.setDate(1);
     currentMonth.setHours(0, 0, 0, 0);
 
-    const thisMonthAppointments = completedAppointments.filter(
-      (appointment) => new Date(appointment.createdAt) >= currentMonth
+    const thisMonthSales = allSales.filter(
+      (sale) => new Date(sale.createdAt) >= currentMonth
     );
 
-    // Use doctor's actual credits from the user model
-    const totalEarnings = doctor.credits * DOCTOR_EARNINGS_PER_CREDIT; // $8 per credit to doctor
+    // Calculate earnings from product sales
+    const totalEarnings = allSales.reduce((sum, sale) => sum + sale.creatorEarnings, 0);
+    const totalRevenue = allSales.reduce((sum, sale) => sum + sale.amount, 0);
+    const thisMonthEarnings = thisMonthSales.reduce((sum, sale) => sum + sale.creatorEarnings, 0);
+    const thisMonthRevenue = thisMonthSales.reduce((sum, sale) => sum + sale.amount, 0);
 
-    // Calculate this month's earnings (2 credits per appointment * $8 per credit)
-    const thisMonthEarnings =
-      thisMonthAppointments.length * 2 * DOCTOR_EARNINGS_PER_CREDIT;
+    // Calculate average per month
+    const monthsSinceFirstSale = allSales.length > 0
+      ? Math.max(1, Math.floor((new Date().getTime() - new Date(allSales[allSales.length - 1].createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30)))
+      : 1;
+    const averageEarningsPerMonth = totalEarnings / monthsSinceFirstSale;
 
-    // Simple average per month calculation
-    const averageEarningsPerMonth =
-      totalEarnings > 0
-        ? totalEarnings / Math.max(1, new Date().getMonth() + 1)
-        : 0;
-
-    // Get current credit balance for payout calculations
-    const availableCredits = doctor.credits;
-    const availablePayout = availableCredits * DOCTOR_EARNINGS_PER_CREDIT;
+    // Available for payout (all earnings from completed sales)
+    const availableForPayout = totalEarnings;
 
     return {
       earnings: {
         totalEarnings,
+        totalRevenue,
         thisMonthEarnings,
-        completedAppointments: completedAppointments.length,
+        thisMonthRevenue,
+        completedAppointments: 0, // Keep for backwards compatibility but set to 0
         averageEarningsPerMonth,
-        availableCredits,
-        availablePayout,
+        totalSales: allSales.length,
+        thisMonthSales: thisMonthSales.length,
+        availableForPayout,
       },
     };
   } catch (error) {

@@ -7,12 +7,12 @@ export async function generateMetadata({ params }) {
 
   const { doctor } = await getDoctorById(id);
   return {
-    title: `${doctor.name} - et`,
-    description: `Book an appointment with  ${doctor.name}, ${doctor.specialty} specialist with ${doctor.experience} years of experience.`,
+    title: `${doctor.name} - Creator Profile`,
+    description: `Book a session with ${doctor.name}, ${doctor.specialty} creator with ${doctor.experience} years of experience.`,
   };
 }
 
-export default async function DoctorProfileLayout({ children, params }) {
+export default async function CreatorProfileLayout({ children, params }) {
   const { id } = await params;
   const { doctor } = await getDoctorById(id);
 

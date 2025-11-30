@@ -15,11 +15,11 @@ export default async function OnboardingLayout({ children }) {
     if (user.role === "PATIENT") {
       redirect("/talents");
     } else if (user.role === "DOCTOR") {
-      // Check verification status for doctors
+      // Check verification status for creators/talents
       if (user.verificationStatus === "VERIFIED") {
-        redirect("/doctor");
+        redirect("/creator");
       } else {
-        redirect("/doctor/verification");
+        redirect("/creator/verification");
       }
     } else if (user.role === "ADMIN") {
       redirect("/admin");

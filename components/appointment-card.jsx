@@ -223,7 +223,7 @@ export function AppointmentCard({
   const otherParty =
     userRole === "DOCTOR" ? appointment.patient : appointment.doctor;
 
-  const otherPartyLabel = userRole === "DOCTOR" ? "Patient" : "Doctor";
+  const otherPartyLabel = userRole === "DOCTOR" ? "Client" : "Creator";
   const otherPartyIcon = userRole === "DOCTOR" ? <User /> : <User />;
 
   return (
@@ -399,7 +399,7 @@ export function AppointmentCard({
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground">
                   {userRole === "DOCTOR"
-                    ? "Patient Description"
+                    ? "Client Description"
                     : "Your Description"}
                 </h4>
                 <div className="p-3 rounded-md bg-muted/20 border border-emerald-900/20">
@@ -444,7 +444,7 @@ export function AppointmentCard({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium text-muted-foreground">
-                  Doctor Notes
+                  Creator Notes
                 </h4>
                 {userRole === "DOCTOR" &&
                   action !== "notes" &&
@@ -466,7 +466,7 @@ export function AppointmentCard({
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Enter your clinical notes here..."
+                    placeholder="Enter your session notes here..."
                     className="bg-background border-emerald-900/20 min-h-[100px]"
                   />
                   <div className="flex justify-end space-x-2">

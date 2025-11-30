@@ -15,6 +15,11 @@ import {
   AlertCircle,
   Award,
   GalleryVertical,
+  ShoppingBag,
+  ExternalLink,
+  DollarSign,
+  Link2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,7 +118,7 @@ export function DoctorProfile({ doctor, availableDays }) {
                     </>
                   ) : (
                     <>
-                      Book Appointment
+                      Book Session
                       <ChevronDown className="ml-2 h-4 w-4" />
                     </>
                   )}
@@ -213,12 +218,125 @@ export function DoctorProfile({ doctor, availableDays }) {
   )}
 </div>
 
-
-      
-
-
-    
       <Separator className="bg-emerald-900/20" />
+
+      {/* Portfolio/Social Links Section */}
+      {doctor.portfolioUrls && doctor.portfolioUrls.length > 0 && (
+        <>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-emerald-400" />
+              <h3 className="text-white font-medium">Social Links & Portfolio</h3>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {doctor.portfolioUrls.map((url, index) => {
+                // Extract domain name for display
+                try {
+                  const urlObj = new URL(url);
+                  const domain = urlObj.hostname.replace("www.", "");
+                  return (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-900/20 border border-emerald-700/30 rounded-lg text-emerald-400 hover:bg-emerald-900/30 transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="text-sm font-medium">{domain}</span>
+                    </a>
+                  );
+                } catch {
+                  return (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-900/20 border border-emerald-700/30 rounded-lg text-emerald-400 hover:bg-emerald-900/30 transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="text-sm font-medium">Link {index + 1}</span>
+                    </a>
+                  );
+                }
+              })}
+            </div>
+          </div>
+          <Separator className="bg-emerald-900/20" />
+        </>
+      )}
+
+      {/* Digital Products Section */}
+      {doctor.digitalProducts && doctor.digitalProducts.length > 0 && (
+        <>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-emerald-400" />
+              <h3 className="text-white font-medium">Digital Products</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {doctor.digitalProducts.map((product) => (
+                <Card
+                  key={product.id}
+                  className="border-emerald-900/20 hover:border-emerald-700/40 transition-all overflow-hidden"
+                >
+                  <div className="relative h-40 w-full">
+                    {product.imageUrl ? (
+                      <Image
+                        src={product.imageUrl}
+                        alt={product.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-500/20 to-purple-500/20 flex items-center justify-center">
+                        <ShoppingBag className="h-12 w-12 text-emerald-400/50" />
+                      </div>
+                    )}
+                    {product.category && (
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-black/60 text-white text-xs">
+                          {product.category}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4 space-y-2">
+                    <h4 className="font-semibold text-white line-clamp-1">
+                      {product.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4 text-emerald-400" />
+                        <span className="font-bold text-white">
+                          ${product.price.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {product._count?.sales || 0} sales
+                      </div>
+                    </div>
+                    <Button
+                      asChild
+                      className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      <a href={`/store?product=${product.id}`}>
+                        <Download className="h-4 w-4 mr-2" />
+                        View & Purchase
+                      </a>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+          <Separator className="bg-emerald-900/20" />
+        </>
+      )}
 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -252,10 +370,10 @@ export function DoctorProfile({ doctor, availableDays }) {
             <Card className="border-emerald-900/20">
               <CardHeader>
                 <CardTitle className="text-xl font-bold text-white">
-                  Book an Appointment
+                  Book a Session
                 </CardTitle>
                 <CardDescription>
-                  Select a time slot and provide details for your consultation
+                  Select a time slot and provide details for your booking
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -286,9 +404,9 @@ export function DoctorProfile({ doctor, availableDays }) {
                       No available slots
                     </h3>
                     <p className="text-muted-foreground">
-                      This doctor doesn&apos;t have any available appointment
-                      slots for the next 4 days. Please check back later or try
-                      another doctor.
+                    This creator doesn&apos;t have any available booking
+                    slots for the next 4 days. Please check back later or try
+                    another creator.
                     </p>
                   </div>
                 )}

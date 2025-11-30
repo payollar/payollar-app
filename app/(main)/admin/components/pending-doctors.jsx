@@ -136,7 +136,7 @@ export function PendingDoctors({ doctors }) {
                 Talents Verification Details
               </DialogTitle>
               <DialogDescription>
-                Review the doctor&apos;s information carefully before making a
+                Review the creator&apos;s information carefully before making a
                 decision
               </DialogDescription>
             </DialogHeader>

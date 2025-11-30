@@ -32,6 +32,13 @@ model User {
   description       String?   @db.Text
   verificationStatus VerificationStatus?  @default(PENDING)
   
+  // Creator bank account info for product sales payouts
+  bankAccountName   String?   // Account holder name
+  bankAccountNumber String?   // Bank account number
+  bankName          String?   // Bank name
+  bankRoutingNumber String?   // Routing/Sort code
+  bankCountry       String?   // Country code
+  
   // Relations
   patientAppointments Appointment[] @relation("PatientAppointments")
   doctorAppointments  Appointment[] @relation("DoctorAppointments")
@@ -40,6 +47,11 @@ model User {
   payouts             Payout[]
   skills              Skill[]   //
   portfolios         Portfolio[] 
+  campaigns           Campaign[]
+  campaignApplications CampaignApplication[]
+  digitalProducts     DigitalProduct[]
+  productSales        DigitalProductSale[] @relation("ProductBuyer")
+  productPurchases    DigitalProductSale[] @relation("ProductSeller")
 }
 
 model Skill {
@@ -159,4 +171,122 @@ model Payout {
 enum PayoutStatus {
   PROCESSING
   PROCESSED
+}
+
+model Campaign {
+  id            String   @id @default(uuid())
+  clientId      String   // Client who created the campaign
+  client        User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title         String
+  brand         String   // Brand/Company name
+  description   String   @db.Text
+  category      String   // e.g., "Digital Media", "TV Media", "Influencer Marketing"
+  budgetMin     Float?   // Minimum budget
+  budgetMax     Float?   // Maximum budget
+  location      String   // e.g., "Accra", "Kumasi", "Nationwide"
+  deadline      DateTime
+  requirements  String[] // Array of requirement strings
+  imageUrl      String?  // Campaign image URL
+  status        CampaignStatus @default(DRAFT)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  applications  CampaignApplication[]
+  
+  @@index([status, createdAt])
+  @@index([clientId])
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+model CampaignApplication {
+  id            String   @id @default(uuid())
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  talentId      String   // Talent/Creator applying
+  talent        User     @relation(fields: [talentId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  phone         String?
+  location      String?
+  portfolio     String?  @db.Text // Portfolio/social media links
+  experience    String?  @db.Text // Relevant experience
+  rate          Float?   // Expected compensation
+  availability  String?  @db.Text
+  additionalInfo String? @db.Text
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([campaignId, talentId]) // Prevent duplicate applications
+  @@index([campaignId, status])
+  @@index([talentId])
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model DigitalProduct {
+  id              String   @id @default(uuid())
+  creatorId       String   // Creator who owns the product
+  creator         User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title           String
+  description     String   @db.Text
+  price           Float    // Price in USD
+  category        String?  // e.g., "Music", "Video", "Course", "Template", "Art"
+  imageUrl        String?  // Product thumbnail/cover image
+  fileUrl         String?  // Digital file URL (protected)
+  fileType        String?  // e.g., "mp3", "mp4", "pdf", "zip"
+  downloadCount   Int      @default(0) // Number of times downloaded
+  status          ProductStatus @default(DRAFT)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  sales           DigitalProductSale[]
+  
+  @@index([creatorId, status])
+  @@index([status, createdAt])
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model DigitalProductSale {
+  id                String   @id @default(uuid())
+  productId         String
+  product           DigitalProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  buyerId           String   // Client who purchased
+  buyer             User     @relation("ProductBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId          String   // Creator who sold the product
+  seller            User     @relation("ProductSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  amount            Float    // Sale amount
+  platformFee       Float    // Platform fee (1% of sale)
+  creatorEarnings   Float    // Amount creator receives (99% of sale)
+  status            SaleStatus @default(PENDING)
+  downloadUrl       String?  // Temporary download URL
+  downloadExpiresAt DateTime? // When download link expires
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([buyerId, createdAt])
+  @@index([sellerId, createdAt])
+  @@index([productId])
+  @@index([status])
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
 }

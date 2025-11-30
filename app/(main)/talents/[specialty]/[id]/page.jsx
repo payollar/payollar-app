@@ -2,11 +2,11 @@ import { getDoctorById, getAvailableTimeSlots } from "@/actions/appointments";
 import { DoctorProfile } from "./_components/doctor-profile";
 import { redirect } from "next/navigation";
 
-export default async function DoctorProfilePage({ params }) {
+export default async function CreatorProfilePage({ params }) {
   const { id } = await params;
 
   try {
-    // Fetch doctor data and available slots in parallel
+    // Fetch creator/talent data and available slots in parallel
     const [doctorData, slotsData] = await Promise.all([
       getDoctorById(id),
       getAvailableTimeSlots(id),
@@ -19,7 +19,7 @@ export default async function DoctorProfilePage({ params }) {
       />
     );
   } catch (error) {
-    console.error("Error loading doctor profile:", error);
+    console.error("Error loading creator profile:", error);
     redirect("/talents");
   }
 }
