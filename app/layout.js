@@ -47,12 +47,12 @@ export default function RootLayout({ children }) {
                   
                   {children}
                 </main>
-
+{/* 
                 <footer className="bg-muted/50 py-12">
                   <div className="container mx-auto px-4 text-center text-gray-200">
                     <p>Payollar 2025 All right reserved!</p>
                   </div>
-                </footer>
+                </footer> */}
               </div>
             {/* </SidebarProvider> */}
 
