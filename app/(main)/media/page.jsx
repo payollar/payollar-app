@@ -18,9 +18,12 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
+import { getHeaderImage } from "@/lib/getHeaderImage"
 
 
 export default function LandingPage() {
+  const headerImage = getHeaderImage("/media")
+  
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
@@ -116,15 +119,16 @@ export default function LandingPage() {
       </section>
 
 
-      <section className="relative h-64 w-full">
+      <section className="relative h-64 md:h-80 w-full">
         <img
-          src="/design.jpg"
+          src={headerImage}
           alt="Media Banner"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
           <h1 className="text-3xl md:text-5xl font-bold text-white">
-          
+            Media Channels
           </h1>
         </div>
       </section>
@@ -160,6 +164,52 @@ export default function LandingPage() {
                 <DollarSign className="h-3 w-3 mr-1" />
                 Any Budget
               </Badge>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Media Agency Registration CTA */}
+      <section className="py-12 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-y">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-card border border-emerald-500/20 rounded-lg p-8 md:p-12">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="space-y-4">
+                <Badge variant="secondary" className="w-fit">
+                  <Zap className="h-3 w-3 mr-1" />
+                  For Media Agencies
+                </Badge>
+                <h2 className="text-2xl md:text-3xl font-bold">List Your Media Channels</h2>
+                <p className="text-muted-foreground text-lg">
+                  Join our platform as a media agency and start receiving booking inquiries from clients. 
+                  List your TV stations, radio channels, billboards, and digital platforms in one place.
+                </p>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                    Reach thousands of potential clients
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                    Monitor booking inquiries and performance
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                    Manage all your media listings in one dashboard
+                  </li>
+                </ul>
+              </div>
+              <div className="flex flex-col gap-4">
+                <Link href="/media/register">
+                  <Button size="lg" className="w-full text-lg h-14">
+                    Register Your Agency
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <p className="text-sm text-muted-foreground text-center">
+                  Free registration • Verified agencies only • Start receiving bookings immediately
+                </p>
+              </div>
             </div>
           </div>
         </div>

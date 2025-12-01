@@ -9,10 +9,12 @@ import { Users, Search, MapPin, Heart, Star, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import InquiryFormModal from "@/components/InquiryFormModal"
+import { getHeaderImage } from "@/lib/getHeaderImage"
 
 export default function InfluencerMarketingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
+  const headerImage = getHeaderImage("/products/influencer-marketing")
 
   const handlePackageClick = (influencerName, pkg) => {
     setSelectedPackage({
@@ -188,6 +190,24 @@ export default function InfluencerMarketingPage() {
           </div>
         </div>
       </nav>
+
+      {/* Header Cover */}
+      <section className="relative h-64 md:h-80 w-full">
+        <img
+          src={headerImage}
+          alt="Influencer Marketing Cover"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center text-white px-4">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">Influencer Marketing</h1>
+            <p className="text-lg md:text-xl max-w-3xl mx-auto opacity-90">
+              Partner with Ghana's top influencers to reach engaged audiences authentically
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className="py-12 bg-gradient-to-r from-pink-500/10 to-purple-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

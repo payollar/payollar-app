@@ -112,7 +112,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="border-t border-gray-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-gray-400 text-sm">© 2024 PAYOLA. All rights reserved.</div>
+            <div className="text-gray-400 text-sm">© 2025 PAYOLA. All rights reserved.</div>
             <div className="flex space-x-6 text-sm">
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Privacy Policy</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Terms of Service</a>

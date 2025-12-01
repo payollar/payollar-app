@@ -9,10 +9,12 @@ import { Radio, Search, MapPin, Users, Clock, Star, ArrowLeft } from "lucide-rea
 import Link from "next/link"
 import { useState } from "react"
 import InquiryFormModal from "@/components/InquiryFormModal"
+import { getHeaderImage } from "@/lib/getHeaderImage"
 
 export default function RadioMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
+  const headerImage = getHeaderImage("/products/radio-media")
 
   const handlePackageClick = (stationName, pkg) => {
     setSelectedPackage({
@@ -151,6 +153,24 @@ export default function RadioMediaPage() {
           </div>
         </div>
       </nav>
+
+      {/* Header Cover */}
+      <section className="relative h-64 md:h-80 w-full">
+        <img
+          src={headerImage}
+          alt="Radio Media Cover"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center text-white px-4">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">Radio Advertising</h1>
+            <p className="text-lg md:text-xl max-w-3xl mx-auto opacity-90">
+              Connect with audiences through AM/FM radio stations nationwide
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Header */}
       <section className="py-12 bg-gradient-to-r from-green-500/10 to-emerald-500/10">

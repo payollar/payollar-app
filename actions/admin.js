@@ -261,3 +261,146 @@ export async function approvePayout(formData) {
     throw new Error(`Failed to approve payout: ${error.message}`);
   }
 }
+
+/**
+ * Gets all pending media agencies
+ */
+export async function getPendingMediaAgencies() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const pendingAgencies = await db.mediaAgency.findMany({
+      where: {
+        verificationStatus: "PENDING",
+      },
+      include: {
+        listings: {
+          orderBy: { createdAt: "desc" },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return { agencies: pendingAgencies };
+  } catch (error) {
+    console.error("Failed to fetch pending media agencies:", error);
+    throw new Error("Failed to fetch pending media agencies");
+  }
+}
+
+/**
+ * Gets all verified media agencies
+ */
+export async function getVerifiedMediaAgencies() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const verifiedAgencies = await db.mediaAgency.findMany({
+      where: {
+        verificationStatus: "VERIFIED",
+      },
+      include: {
+        listings: {
+          where: { status: "ACTIVE" },
+          orderBy: { createdAt: "desc" },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            listings: true,
+            bookings: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return { agencies: verifiedAgencies };
+  } catch (error) {
+    console.error("Failed to fetch verified media agencies:", error);
+    throw new Error("Failed to fetch verified media agencies");
+  }
+}
+
+/**
+ * Updates a media agency's verification status
+ */
+export async function updateMediaAgencyStatus(formData) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const agencyId = formData.get("agencyId");
+  const status = formData.get("status");
+
+  if (!agencyId || !["VERIFIED", "REJECTED"].includes(status)) {
+    throw new Error("Invalid input");
+  }
+
+  try {
+    await db.mediaAgency.update({
+      where: {
+        id: agencyId,
+      },
+      data: {
+        verificationStatus: status,
+      },
+    });
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update media agency status:", error);
+    throw new Error(`Failed to update media agency status: ${error.message}`);
+  }
+}
+
+/**
+ * Updates a media listing's status
+ */
+export async function updateMediaListingStatus(formData) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const listingId = formData.get("listingId");
+  const status = formData.get("status");
+
+  if (!listingId || !["ACTIVE", "INACTIVE", "ARCHIVED"].includes(status)) {
+    throw new Error("Invalid input");
+  }
+
+  try {
+    await db.mediaListing.update({
+      where: {
+        id: listingId,
+      },
+      data: {
+        status: status,
+      },
+    });
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update media listing status:", error);
+    throw new Error(`Failed to update media listing status: ${error.message}`);
+  }
+}

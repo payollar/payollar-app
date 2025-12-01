@@ -52,6 +52,7 @@ model User {
   digitalProducts     DigitalProduct[]
   productSales        DigitalProductSale[] @relation("ProductBuyer")
   productPurchases    DigitalProductSale[] @relation("ProductSeller")
+  mediaAgency         MediaAgency?
 }
 
 model Skill {
@@ -289,4 +290,111 @@ enum SaleStatus {
   PENDING
   COMPLETED
   REFUNDED
+}
+
+model MediaAgency {
+  id                String   @id @default(uuid())
+  userId            String?  @unique // Optional: linked to User account if authenticated
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agencyName        String
+  contactName       String
+  email             String
+  phone             String?
+  website           String?
+  address           String?
+  city              String?
+  region            String?
+  country           String   @default("Ghana")
+  description       String?  @db.Text
+  logoUrl           String?  // Agency logo
+  verificationStatus MediaAgencyStatus @default(PENDING)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  listings          MediaListing[]
+  bookings          MediaBooking[]
+  
+  @@index([verificationStatus, createdAt])
+}
+
+enum MediaAgencyStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model MediaListing {
+  id                String   @id @default(uuid())
+  agencyId          String
+  agency            MediaAgency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  listingType       MediaType // TV, Radio, Billboard, Digital, etc.
+  name              String   // Station/Channel name (e.g., "Joy FM", "TV3")
+  network           String?  // Network/Group name
+  location          String   // City, Region
+  frequency         String?  // For radio: "99.7 FM", for TV: "Channel 3"
+  description       String?  @db.Text
+  reach             String?  // e.g., "2M+ listeners", "5M+ households"
+  demographics      String[] // Target demographics
+  imageUrl          String?  // Station logo or image
+  priceRange        String?  // e.g., "₵250-1,500"
+  timeSlots         String[] // Available time slots
+  rating            Float?   @default(0) // Average rating
+  status            ListingStatus @default(DRAFT)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  bookings          MediaBooking[]
+  
+  @@index([agencyId, status])
+  @@index([listingType, status, location])
+  @@index([status, createdAt])
+}
+
+enum MediaType {
+  TV
+  RADIO
+  BILLBOARD
+  DIGITAL
+  INFLUENCER_MARKETING
+  VIDEO_CLIPPING
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model MediaBooking {
+  id                String   @id @default(uuid())
+  listingId         String
+  listing           MediaListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  agencyId          String
+  agency            MediaAgency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  clientName        String
+  clientEmail       String
+  clientPhone       String?
+  packageName       String?  // Selected package name
+  packagePrice      Float?
+  startDate         DateTime?
+  endDate           DateTime?
+  duration          String?  // e.g., "30 seconds", "60 seconds"
+  slots             Int?     // Number of spots/slots
+  totalAmount       Float?
+  status            BookingStatus @default(PENDING)
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([listingId, status])
+  @@index([agencyId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
 }

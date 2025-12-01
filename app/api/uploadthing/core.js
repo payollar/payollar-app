@@ -21,5 +21,10 @@ export const ourFileRouter = {
         size: file.size,
       };
     }),
+  mediaAgencyImage: f({ image: { maxFileSize: "8MB" } })
+    .onUploadComplete(async ({ file }) => {
+      console.log("Uploaded media agency image:", file.url);
+      return { url: file.url };
+    }),
 };
 
