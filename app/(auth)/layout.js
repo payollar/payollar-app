@@ -1,5 +1,9 @@
 const AuthLayout = ({ children }) => {
-  return <div className="flex justify-center pt-40">{children}</div>;
+  return (
+    <div data-auth-page="true" className="auth-page">
+      {children}
+    </div>
+  );
 };
 
 export default AuthLayout;

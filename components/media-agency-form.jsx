@@ -29,17 +29,12 @@ export default function MediaAgencyForm() {
   const { loading, data, fn: submitForm } = useFetch(submitMediaAgencyForm)
   
   const [formData, setFormData] = useState({
-    agencyName: "",
     contactName: "",
     email: "",
     phone: "",
-    website: "",
-    address: "",
     city: "",
     region: "",
     country: "Ghana",
-    description: "",
-    logoUrl: "",
   })
 
   const [listings, setListings] = useState([])
@@ -134,7 +129,7 @@ export default function MediaAgencyForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.agencyName || !formData.contactName || !formData.email) {
+    if (!formData.contactName || !formData.email) {
       toast.error("Please fill in all required fields")
       return
     }
@@ -182,39 +177,26 @@ export default function MediaAgencyForm() {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
       <div className="mb-8 text-center space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">Register Your Media Agency</h1>
+        <h1 className="text-3xl md:text-4xl font-bold">Register as Media Agency</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          List your media channels (TV, Radio, Billboard, Digital) and start receiving booking inquiries from clients.
+          Provide your personal details and list your media channels to start receiving booking inquiries from clients.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Agency Information */}
+        {/* Personal Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />
-              Agency Information
+              Personal Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="agencyName">
-                  Agency Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="agencyName"
-                  placeholder="Joy FM Network"
-                  value={formData.agencyName}
-                  onChange={(e) => handleInputChange("agencyName", e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="contactName">
-                  Contact Person <span className="text-destructive">*</span>
+                  Full Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="contactName"
@@ -224,9 +206,7 @@ export default function MediaAgencyForm() {
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">
                   Email <span className="text-destructive">*</span>
@@ -234,13 +214,15 @@ export default function MediaAgencyForm() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="contact@agency.com"
+                  placeholder="your@email.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   required
                 />
               </div>
+            </div>
 
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
@@ -251,47 +233,7 @@ export default function MediaAgencyForm() {
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                 />
               </div>
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  type="url"
-                  placeholder="https://www.agency.com"
-                  value={formData.website}
-                  onChange={(e) => handleInputChange("website", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Agency Logo</Label>
-                <UploadButton
-                  endpoint="mediaAgencyImage"
-                  onClientUploadComplete={(res) => {
-                    if (res && res[0]?.url) {
-                      handleInputChange("logoUrl", res[0].url)
-                      toast.success("Logo uploaded successfully")
-                    }
-                  }}
-                  onUploadError={(error) => {
-                    toast.error(`Upload failed: ${error.message}`)
-                  }}
-                />
-                {formData.logoUrl && (
-                  <div className="mt-2">
-                    <img
-                      src={formData.logoUrl}
-                      alt="Agency logo preview"
-                      className="w-20 h-20 rounded-lg object-cover border border-border"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
                 <Input
@@ -301,7 +243,9 @@ export default function MediaAgencyForm() {
                   onChange={(e) => handleInputChange("city", e.target.value)}
                 />
               </div>
+            </div>
 
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="region">Region</Label>
                 <Input
@@ -320,27 +264,6 @@ export default function MediaAgencyForm() {
                   onChange={(e) => handleInputChange("country", e.target.value)}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                placeholder="123 Main Street"
-                value={formData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Agency Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Tell us about your media agency..."
-                rows={4}
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-              />
             </div>
           </CardContent>
         </Card>

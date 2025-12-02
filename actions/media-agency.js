@@ -9,17 +9,12 @@ import { checkUser } from "@/lib/checkUser"
 export async function submitMediaAgencyForm(data) {
   try {
     const {
-      agencyName,
       contactName,
       email,
       phone,
-      website,
-      address,
       city,
       region,
       country,
-      description,
-      logoUrl,
       listings, // Array of media listings
     } = data
 
@@ -36,17 +31,13 @@ export async function submitMediaAgencyForm(data) {
     const agency = await db.mediaAgency.create({
       data: {
         userId,
-        agencyName,
+        agencyName: contactName || "Media Agency", // Use contact name as agency name
         contactName,
         email,
         phone,
-        website,
-        address,
         city,
         region,
         country: country || "Ghana",
-        description,
-        logoUrl,
         verificationStatus: "PENDING",
         listings: listings && listings.length > 0 ? {
           create: listings.map(listing => ({

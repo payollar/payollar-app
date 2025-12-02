@@ -2,6 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher([
+  "/",
   "/talents(.*)",
   "/onboarding(.*)",
   "/creator(.*)",
@@ -9,17 +10,41 @@ const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/video-call(.*)",
   "/appointments(.*)",
+  "/store(.*)",
+  "/campaigns(.*)",
+  "/media(.*)",
+  "/products(.*)",
+]);
+
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
+  const pathname = req.nextUrl.pathname;
 
-  if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
+  // Allow public routes (sign-in, sign-up) without authentication
+  if (isPublicRoute(req)) {
+    if (userId) {
+      // If user is already signed in, redirect to landing page
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Redirect unauthenticated users to sign-in for protected routes
+  if (!userId && isProtectedRoute(req)) {
+    const signInUrl = new URL("/sign-in", req.url);
+    signInUrl.searchParams.set("redirect_url", pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  // Add pathname to headers for layout to check
+  const response = NextResponse.next();
+  response.headers.set("x-pathname", pathname);
+  return response;
 });
 
 export const config = {
