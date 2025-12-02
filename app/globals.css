@@ -121,6 +121,11 @@
   }
 }
 
+/* Hide header on auth pages */
+body:has([data-auth-page]) header {
+  display: none;
+}
+
 @utility gradient {
   @apply bg-gradient-to-b from-emerald-500 to-teal-400;
 }

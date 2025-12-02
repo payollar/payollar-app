@@ -16,7 +16,7 @@ export default function Page() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
         <div className="absolute inset-0 flex items-center justify-center p-12 z-10">
           <div className="text-white max-w-md">
-            <h1 className="text-4xl font-bold mb-4">Join PayOLLAR</h1>
+            <h1 className="text-4xl font-bold mb-4">Join Payollar</h1>
             <p className="text-lg text-gray-200">
               Start your journey today. Connect with clients, showcase your talents, and grow your media business.
             </p>

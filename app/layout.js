@@ -3,7 +3,6 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import Header from "@/components/header";
-import ConditionalHeaderWrapper from "@/components/conditional-header-wrapper";
 import { ThemeProvider } from "@/components/theme-provider";
 
 // import sidebar components
@@ -68,9 +67,7 @@ export default function RootLayout({ children }) {
             {/* <AppSidebar /> */}
 
               <div className="flex flex-col min-h-screen">
-                <ConditionalHeaderWrapper>
-                  <Header />
-                </ConditionalHeaderWrapper>
+                <Header />
 
                 <main className="flex-1">
 

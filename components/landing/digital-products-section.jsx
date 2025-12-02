@@ -78,7 +78,7 @@ export function CreatorsSection() {
               <h2 className="text-4xl md:text-5xl font-bold text-white">
                 Join as a{" "}
                 <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                  PayOLLAR Creator
+                  Payollar Creator
                 </span>
               </h2>
               <p className="text-xl text-gray-400 leading-relaxed">
