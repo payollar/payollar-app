@@ -91,7 +91,7 @@ export function Footer() {
             <ul className="space-y-4">
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-purple-400" />
-                <span className="text-gray-400">hello@payola.com</span>
+                <span className="text-gray-400">hello@payollar.com</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-purple-400" />
@@ -100,9 +100,9 @@ export function Footer() {
               <li className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-purple-400 mt-0.5" />
                 <span className="text-gray-400">
-                  123 Music Street
+                  osabu link 
                   <br />
-                  Los Angeles, CA 90210
+                  Accra Ghana, Adenta
                 </span>
               </li>
             </ul>
