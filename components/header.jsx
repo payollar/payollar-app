@@ -30,7 +30,7 @@ export default async function Header() {
   const publicNavItems = [
     { href: "/store", label: "Store" },
     { href: "/campaigns", label: "Campaigns" },
-    { href: "/talents", label: "For Creators" },
+    { href: "/talents", label: "Find Talents" },
     { href: "/chat", label: "AI Chat" },
   ];
 
