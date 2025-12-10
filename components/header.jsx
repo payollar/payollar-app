@@ -31,6 +31,7 @@ export default async function Header() {
     { href: "/store", label: "Store" },
     { href: "/campaigns", label: "Campaigns" },
     { href: "/talents", label: "For Creators" },
+    { href: "/chat", label: "AI Chat" },
   ];
 
   const mediaSubItems = [

@@ -1,11 +1,7 @@
-import { createOpenAI } from "@ai-sdk/openai"
+import { groq } from "@ai-sdk/groq"
 import { consumeStream, convertToModelMessages, streamText } from "ai"
 
 export const maxDuration = 30
-
-const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-})
 
 const systemPrompt = `You are an expert marketing and advertising consultant with deep knowledge in:
 
@@ -28,31 +24,46 @@ const systemPrompt = `You are an expert marketing and advertising consultant wit
 - Be conversational, friendly, and encouraging
 
 **Context:**
-You're assisting users of MediaConnect, a platform that offers TV, radio, billboard, digital media, influencer marketing, and video clipping services in Ghana. When relevant, you can suggest how these services might fit into their marketing strategy.
+You're assisting users of Payollar, a platform that offers TV, radio, billboard, digital media, influencer marketing, and video clipping services in Ghana. When relevant, you can suggest how these services might fit into their marketing strategy.
 
 Always be helpful, insightful, and focused on delivering real value to marketers and business owners.`
 
 export async function POST(req) {
-  const body = await req.json()
-  const messages = body.messages || []
+  try {
+    const body = await req.json()
+    const messages = body.messages || []
 
-  const prompt = convertToModelMessages(messages)
+    if (!process.env.GROQ_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "GROQ_API_KEY is not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      )
+    }
 
-  const result = streamText({
-    model: openai("gpt-4o"),
-    system: systemPrompt,
-    messages: prompt,
-    abortSignal: req.signal,
-    temperature: 0.7,
-    maxOutputTokens: 2000,
-  })
+    const prompt = convertToModelMessages(messages)
 
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      if (isAborted) {
-        console.log("[v0] Chat request aborted")
-      }
-    },
-    consumeSseStream: consumeStream,
-  })
+    const result = streamText({
+      model: groq("llama-3.3-70b-versatile"),
+      system: systemPrompt,
+      messages: prompt,
+      abortSignal: req.signal,
+      temperature: 0.7,
+      maxTokens: 2000,
+    })
+
+    return result.toUIMessageStreamResponse({
+      onFinish: async ({ isAborted }) => {
+        if (isAborted) {
+          console.log("[Chat] Request aborted")
+        }
+      },
+      consumeSseStream: consumeStream,
+    })
+  } catch (error) {
+    console.error("[Chat] Error:", error)
+    return new Response(
+      JSON.stringify({ error: error.message || "An error occurred" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    )
+  }
 }

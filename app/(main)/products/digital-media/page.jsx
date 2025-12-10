@@ -9,11 +9,13 @@ import { Smartphone, Search, Users, Target, Star, ArrowLeft, Facebook, Instagram
 import Link from "next/link"
 import { useState } from "react"
 import InquiryFormModal from "@/components/InquiryFormModal"
+import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 
 export default function DigitalMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
+  const [showCustomBuilder, setShowCustomBuilder] = useState(false)
   const headerImage = getHeaderImage("/products/digital-media")
 
   const handlePackageClick = (platformName, pkg) => {
@@ -239,6 +241,43 @@ export default function DigitalMediaPage() {
               </Select>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Custom Package Builder Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4">Build Your Custom Package</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Create a personalized advertising package by selecting digital services across different days of the week.
+              Choose from social media postings, ads, and campaigns with flexible scheduling.
+            </p>
+            <Button
+              onClick={() => setShowCustomBuilder(!showCustomBuilder)}
+              className="mt-6"
+              variant={showCustomBuilder ? "outline" : "default"}
+            >
+              {showCustomBuilder ? "Hide Custom Builder" : "Show Custom Package Builder"}
+            </Button>
+          </div>
+
+          {showCustomBuilder && (
+            <div className="mt-8">
+              <CustomPackageBuilder
+                mediaType="digital"
+                onPackageSubmit={(packageData) => {
+                  setSelectedPackage({
+                    name: "Custom Digital Package",
+                    price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
+                    details: `${packageData.calculations.totalQuantity} items over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
+                    customData: packageData,
+                  })
+                  setIsModalOpen(true)
+                }}
+              />
+            </div>
+          )}
         </div>
       </section>
 
