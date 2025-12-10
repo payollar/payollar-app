@@ -7,23 +7,30 @@ export const metadata = {
 };
 
 export default async function OnboardingLayout({ children }) {
-  // Get complete user profile
-  const user = await getCurrentUser();
+  try {
+    // Get complete user profile
+    const user = await getCurrentUser();
 
-  // Redirect users who have already completed onboarding
-  if (user) {
-    if (user.role === "CLIENT") {
-      redirect("/talents");
-    } else if (user.role === "CREATOR") {
-      // Check verification status for creators/talents
-      if (user.verificationStatus === "VERIFIED") {
-        redirect("/creator");
-      } else {
-        redirect("/creator/verification");
+    // Redirect users who have already completed onboarding
+    if (user) {
+      if (user.role === "CLIENT") {
+        redirect("/talents");
+      } else if (user.role === "CREATOR") {
+        // Check verification status for creators/talents
+        if (user.verificationStatus === "VERIFIED") {
+          redirect("/creator");
+        } else {
+          redirect("/creator/verification");
+        }
+      } else if (user.role === "ADMIN") {
+        redirect("/admin");
       }
-    } else if (user.role === "ADMIN") {
-      redirect("/admin");
+      // If role is UNASSIGNED, continue to onboarding
     }
+  } catch (error) {
+    // Log error but don't break the page
+    console.error("Error in onboarding layout:", error);
+    // Continue to show onboarding page even if there's an error
   }
 
   return (

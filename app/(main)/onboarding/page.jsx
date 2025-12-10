@@ -73,8 +73,11 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (data && data?.success) {
       router.push(data.redirect);
+    } else if (data && data?.error) {
+      // Error is already shown via toast in useFetch
+      console.error("Onboarding error:", data.error);
     }
-  }, [data]);
+  }, [data, router]);
 
   // Added missing onDoctorSubmit function
   const onDoctorSubmit = async (data) => {
