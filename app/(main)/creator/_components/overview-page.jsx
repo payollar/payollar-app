@@ -1,421 +1,264 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { UploadButton } from "@uploadthing/react";
-import {  X } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import {
-  TrendingUp,
-  Calendar,
-  BarChart3,
-  CreditCard,
-  Loader2,
-  AlertCircle,
-  Plus,
-  UserRoundPen,
-  Images,
   DollarSign,
+  Calendar,
+  UserSearch,
+  TrendingUp,
+  Zap,
+  Calendar as CalendarIcon,
+  Users,
+  BarChart3,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import { format } from "date-fns";
-import { requestPayout } from "@/actions/payout";
-import useFetch from "@/hooks/use-fetch";
-import { toast } from "sonner";
-import { useAuth } from "@clerk/nextjs"; 
-import { PieChart } from "lucide-react";
 
-export function OverviewPage({ earnings = {}, payouts = [], doctor, initialSkills = [] }) {
-  const [showPayoutDialog, setShowPayoutDialog] = useState(false);
-  const [paypalEmail, setPaypalEmail] = useState("");
-  const [skills, setSkills] = useState(initialSkills);
-  const [newSkill, setNewSkill] = useState("");
-  const [portfolio, setPortfolio] = useState([]);
-
-  const {
-    thisMonthEarnings = 0,
-    completedAppointments = 0,
-    averageEarningsPerMonth = 0,
-    availableCredits = 0,
-    availablePayout = 0,
-  } = earnings;
-
-  // Custom hook for payout request
-  const { loading, data, fn: submitPayoutRequest } = useFetch(requestPayout);
-
-  // Check if there's any pending payout
-  const pendingPayout = payouts.find(
-    (payout) => payout.status === "PROCESSING"
-  );
-
-  const handlePayoutRequest = async (e) => {
-    e.preventDefault();
-
-    if (!paypalEmail) {
-      toast.error("PayPal email is required");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("paypalEmail", paypalEmail);
-
-    await submitPayoutRequest(formData);
-  };
-
-  useEffect(() => {
-    if (data?.success) {
-      setShowPayoutDialog(false);
-      setPaypalEmail("");
-      toast.success("Payout request submitted successfully!");
-    }
-  }, [data]);
-
-  const { getToken } = useAuth();
-
-  useEffect(() => {
-    (async () => {
-      const token = await getToken();
-      const res = await fetch("/api/skills", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSkills(data);
-      }
-    })();
-  }, []);
+// Simple bar chart component
+function BarChart({ data }) {
+  const maxValue = Math.max(...data.map((d) => Math.max(d.earnings, d.bookings)));
   
-  const addSkill = async () => {
-    if (!newSkill.trim()) return;
-    const token = await getToken();
-  
-    const res = await fetch("/api/skills", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // 👈 only token
-      },
-      body: JSON.stringify({ name: newSkill }),
-    });
-
-  
-    if (res.ok) {
-      const skill = await res.json();
-      setSkills((prev) => [...prev, skill]);
-      setNewSkill("");
-    }
-  };
-
-  const deleteSkill = async (id) => {
-    const token = await getToken();
-  
-    const res = await fetch(`/api/skills?id=${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-    });
-  
-    if (res.ok) {
-      setSkills((prev) => prev.filter((s) => s.id !== id));
-    }
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const token = await getToken();
-        const res = await fetch("/api/portfolio", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        console.log("Fetched portfolio:", data); // 👈 check this
-        if (res.ok) {
-          setPortfolio(data);
-        } else {
-          console.error("Portfolio fetch failed:", data);
-        }
-      } catch (err) {
-        console.error("Failed to load portfolio:", err);
-      }
-    })();
-  }, [getToken]);
-  
-
-  
-
-  const platformFee = availableCredits * 2; // $2 per credit
-
   return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="border-emerald-900/20 hover:border-emerald-700/40 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Earnings</p>
-                <p className="text-2xl font-bold text-white">
-                  ${(earnings?.totalEarnings || 0).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  All time
-                </p>
-              </div>
-              <div className="bg-emerald-900/20 p-3 rounded-full">
-                <DollarSign className="h-6 w-6 text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-900/20 hover:border-emerald-700/40 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">This Month</p>
-                <p className="text-2xl font-bold text-white">
-                  ${(earnings?.thisMonthEarnings || 0).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date().toLocaleString('default', { month: 'long' })}
-                </p>
-              </div>
-              <div className="bg-emerald-900/20 p-3 rounded-full">
-                <TrendingUp className="h-6 w-6 text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-900/20 hover:border-emerald-700/40 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Completed Sessions</p>
-                <p className="text-2xl font-bold text-white">
-                  {earnings?.completedAppointments || 0}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total bookings
-                </p>
-              </div>
-              <div className="bg-emerald-900/20 p-3 rounded-full">
-                <Calendar className="h-6 w-6 text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
-
-      {/* Skills and Profile Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-emerald-900/20">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-white flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-emerald-400" />
-              Skills & Expertise
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Skill badges */}
-            <div className="flex flex-wrap gap-2">
-              {skills.length > 0 ? (
-                skills.map((skill) => (
-                  <Badge
-                    key={skill.id}
-                    className="bg-emerald-800 text-white flex items-center gap-2 px-3 py-1"
-                  >
-                    {skill.name}
-                    <button
-                      onClick={() => deleteSkill(skill.id)}
-                      className="ml-1 text-gray-300 hover:text-red-400 transition-colors"
-                      aria-label={`Remove ${skill.name}`}
-                    >
-                      ✕
-                    </button>
-                  </Badge>
-                ))
-              ) : (
-                <p className="text-gray-400 text-sm">No skills added yet. Add your expertise to attract more clients!</p>
-              )}
-            </div>
-
-            {/* Add skill input */}
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Enter a skill (e.g., Video Editing, Voice Acting)..."
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addSkill();
-                  }
+    <div className="space-y-4">
+      <div className="flex items-end justify-between h-48 gap-2">
+        {data.map((item, index) => (
+          <div key={index} className="flex-1 flex flex-col items-center gap-2">
+            <div className="w-full flex flex-col items-center justify-end h-full gap-1">
+              <div
+                className="w-full bg-primary/60 rounded-t"
+                style={{
+                  height: `${(item.earnings / maxValue) * 100}%`,
+                  minHeight: "4px",
                 }}
-                className="bg-background border-emerald-900/20 text-white"
               />
-              <Button 
-                onClick={addSkill} 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={!newSkill.trim()}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add
-              </Button>
+              <div
+                className="w-full bg-primary/30 rounded-t"
+                style={{
+                  height: `${(item.bookings / maxValue) * 100}%`,
+                  minHeight: "4px",
+                }}
+              />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-900/20">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-white flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2 text-emerald-400" />
-              Performance Analytics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-muted-foreground">Average per Month</span>
-                <span className="text-white font-semibold">
-                  ${(earnings?.averageEarningsPerMonth || 0).toFixed(2)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-muted-foreground">Sessions Completed</span>
-                <span className="text-white font-semibold">
-                  {earnings?.completedAppointments || 0}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs text-muted-foreground">{item.month}</span>
+          </div>
+        ))}
       </div>
-      <Card className="border-emerald-900/20">
+      <div className="flex items-center gap-4 justify-center text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-primary/60 rounded" />
+          <span className="text-muted-foreground">earnings</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-primary/30 rounded" />
+          <span className="text-muted-foreground">bookings</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  <CardHeader>
-    <CardTitle className="text-xl font-bold text-white flex items-center">
-      <Images  className="h-5 w-5 mr-2 text-emerald-400" />
-      Portfolio
-    </CardTitle>
-  </CardHeader>
-
-  <CardContent className="p-6 space-y-4">
-  <UploadButton
-  endpoint="portfolioUploader"
-  onClientUploadComplete={async (res) => {
-    const files = res.map((file) => ({
-      name: file.name,
-      key: file.key,
-      url: file.ufsUrl, // ✅ always use ufsUrl
-      fileType: file.type || file.fileType || "", // ✅ ensure type is saved
-      size: file.size,
+export function OverviewPage({ user, earnings = {}, payouts = [], appointments = [] }) {
+  // Extract first name from user name
+  const firstName = user?.name?.split(" ")[0] || "Creator";
+  
+  // Calculate metrics
+  const totalEarnings = earnings?.totalEarnings || 0;
+  const bookingsCount = earnings?.completedAppointments || appointments.length || 0;
+  const profileViews = 1240; // Mock data - you can replace with actual data
+  const conversionRate = 3.4; // Mock data - you can replace with actual calculation
+  
+  // Calculate trends
+  const earningsTrend = 12; // +12% from last month
+  const bookingsTrend = 8; // +8 this month
+  const viewsTrend = 18; // +18% growth
+  const conversionTrend = 0.5; // +0.5% improvement
+  
+  // Generate chart data (last 6 months)
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  const chartData = months.map((month, index) => ({
+    month,
+    earnings: Math.floor(Math.random() * 8000) + 2000,
+    bookings: Math.floor(Math.random() * 20) + 5,
+  }));
+  
+  // Get recent bookings (last 5)
+  const recentBookings = appointments
+    .filter((apt) => apt.status === "CONFIRMED" || apt.status === "COMPLETED")
+    .slice(0, 5)
+    .map((apt) => ({
+      id: apt.id,
+      title: apt.title || `Booking #${apt.id.slice(0, 8)}`,
+      dueDate: apt.scheduledAt ? format(new Date(apt.scheduledAt), "MMM d, yyyy") : "N/A",
+      amount: apt.price || 0,
+      status: apt.status,
     }));
 
-    const token = await getToken();
-    const response = await fetch("/api/portfolio", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ files }),
-    });
-
-    if (response.ok) {
-      const saved = await response.json();
-      setPortfolio((prev) => [...prev, ...saved]);
-    } else {
-      console.error("Failed to save portfolio:", await response.json());
-    }
-  }}
-  onUploadError={(error) => console.error("Upload error:", error)}
-/>
-
-
-{/* Uploaded items */}
-<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-  {portfolio.length > 0 ? (
-    portfolio.map((file, i) => (
-      <div
-        key={i}
-        className="relative rounded-lg overflow-hidden border border-emerald-900/30 group"
-      >
-       {file.fileType?.startsWith("image/") ? (
-  <img
-    src={file.url}
-    alt={`portfolio-${i}`}
-    className="w-full h-60 object-cover"
-  />
-) : file.fileType?.startsWith("video/") ? (
-  <video
-    src={file.url}
-    controls
-    preload="metadata"
-    className="w-full h-60 object-cover bg-black"
-  >
-    Sorry, your browser doesn’t support embedded videos.
-  </video>
-) : (
-  <a
-    href={file.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="block p-4 text-center text-emerald-400 hover:underline"
-  >
-    {file.name || "View File"}
-  </a>
-)}
-        {/* Delete button */}
-        <button
-          onClick={async () => {
-            const token = await getToken();
-            const res = await fetch(`/api/portfolio?id=${file.id}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              setPortfolio((prev) =>
-                prev.filter((item) => item.id !== file.id)
-              );
-            }
-          }}
-          className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
+  return (
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold">Welcome back, {firstName}!</h1>
+        <p className="text-muted-foreground">Here's your performance overview.</p>
       </div>
-    ))
-  ) : (
-    <p className="text-gray-400 text-sm">
-      No portfolio items uploaded yet.
-    </p>
-  )}
-  </div>
-</CardContent>
-</Card>
-</div>
-  
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Total Earnings</p>
+                <p className="text-2xl font-bold">${totalEarnings.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  +{earningsTrend}% from last month
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Bookings</p>
+                <p className="text-2xl font-bold">{bookingsCount}</p>
+                <p className="text-xs text-muted-foreground">
+                  +{bookingsTrend} this month
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Profile Views</p>
+                <p className="text-2xl font-bold">{profileViews.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  +{viewsTrend}% growth
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <UserSearch className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                <p className="text-2xl font-bold">{conversionRate}%</p>
+                <p className="text-xs text-muted-foreground">
+                  +{conversionTrend}% improvement
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Earnings & Bookings Trend Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Earnings & Bookings Trend</CardTitle>
+          <p className="text-sm text-muted-foreground">Last 6 months performance</p>
+        </CardHeader>
+        <CardContent>
+          <BarChart data={chartData} />
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link
+              href="/creator/profile"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Zap className="h-5 w-5 text-primary" />
+              <span>Update Profile</span>
+            </Link>
+            <Link
+              href="/creator/availability"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+            >
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <span>Manage Availability</span>
+            </Link>
+            <Link
+              href="/creator/bookings"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Users className="h-5 w-5 text-primary" />
+              <span>View Pending Requests</span>
+            </Link>
+            <Link
+              href="/creator/analytics"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+            >
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <span>View Full Analytics</span>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Recent Bookings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Bookings</CardTitle>
+            <p className="text-sm text-muted-foreground">Your latest confirmed bookings</p>
+          </CardHeader>
+          <CardContent>
+            {recentBookings.length > 0 ? (
+              <div className="space-y-4">
+                {recentBookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium">{booking.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Due: {booking.dueDate}
+                      </p>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <p className="font-semibold">${booking.amount.toLocaleString()}</p>
+                      <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                        {booking.status === "COMPLETED" ? "Completed" : "Confirmed"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No recent bookings</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCreatorProducts, getCreatorProductEarnings } from "@/actions/products";
+import { CreatorProducts } from "../_components/products";
 
 export default async function CreatorProductsPage() {
   const user = await getCurrentUser();
@@ -13,17 +14,16 @@ export default async function CreatorProductsPage() {
     redirect("/creator/verification");
   }
 
+  const [productsData, productEarningsData] = await Promise.all([
+    getCreatorProducts().catch(() => ({ products: [] })),
+    getCreatorProductEarnings().catch(() => ({ earnings: {}, recentSales: [] })),
+  ]);
+
   return (
-    <div className="p-8 bg-black min-h-screen">
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-white">Digital Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400">Digital products management coming soon...</p>
-        </CardContent>
-      </Card>
-    </div>
+    <CreatorProducts 
+      products={productsData.products || []}
+      productEarnings={productEarningsData.earnings || {}}
+    />
   );
 }
 

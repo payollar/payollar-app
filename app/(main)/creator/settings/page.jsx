@@ -14,16 +14,14 @@ export default async function CreatorSettingsPage() {
   }
 
   return (
-    <div className="p-8 bg-black min-h-screen">
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-white">Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400">Settings page coming soon...</p>
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Settings</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground">Settings page coming soon...</p>
+      </CardContent>
+    </Card>
   );
 }
 

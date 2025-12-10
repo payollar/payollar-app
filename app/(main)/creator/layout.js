@@ -1,5 +1,5 @@
-import { User } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { CreatorSidebar } from "./_components/creator-sidebar";
 
 export const metadata = {
   title: "Creator Dashboard - Payollar",
@@ -8,9 +8,16 @@ export const metadata = {
 
 export default async function CreatorDashboardLayout({ children }) {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader icon={<User />} title="Creator Dashboard" />
-      {children}
-    </div>
+    <SidebarProvider>
+      <CreatorSidebar />
+      <SidebarInset className="bg-background">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+        </header>
+        <div className="flex-1 p-6">
+          {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

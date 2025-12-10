@@ -14,16 +14,14 @@ export default async function CreatorServicesPage() {
   }
 
   return (
-    <div className="p-8 bg-black min-h-screen">
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-white">Services</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400">Services management coming soon...</p>
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Services</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground">Services management coming soon...</p>
+      </CardContent>
+    </Card>
   );
 }
 
