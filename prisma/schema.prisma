@@ -16,15 +16,15 @@ model User {
   email             String    @unique
   name              String?
   imageUrl          String?
-  role              UserRole  @default(UNASSIGNED) // UNASSIGNED, PATIENT, DOCTOR, ADMIN
+  role              UserRole  @default(UNASSIGNED) // UNASSIGNED, CLIENT, CREATOR, ADMIN
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
  
   
-  // Patient-specific fields
+  // Client-specific fields
   credits           Int       @default(2) // Accumulated credit balance
   
-  // Doctor-specific fields
+  // Creator-specific fields
   specialty         String? // e.g., Musician, Actor, Influencer
   portfolioUrls     String[]  // Links to media, reels, SoundCloud, YouTube
   experience        Int?      // Years of experience
@@ -40,8 +40,8 @@ model User {
   bankCountry       String?   // Country code
   
   // Relations
-  patientAppointments Appointment[] @relation("PatientAppointments")
-  doctorAppointments  Appointment[] @relation("DoctorAppointments")
+  clientAppointments Appointment[] @relation("ClientAppointments")
+  creatorAppointments  Appointment[] @relation("CreatorAppointments")
   availabilities      Availability[]
   transactions        CreditTransaction[]
   payouts             Payout[]
@@ -77,8 +77,8 @@ model Portfolio {
 
 enum UserRole {
   UNASSIGNED
-  PATIENT
-  DOCTOR
+  CLIENT
+  CREATOR
   ADMIN
 }
 
@@ -90,13 +90,13 @@ enum VerificationStatus {
 
 model Availability {
   id        String   @id @default(uuid())
-  doctorId  String
-  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  creatorId  String
+  creator    User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   startTime DateTime
   endTime   DateTime
   status    SlotStatus @default(AVAILABLE)
   
-  @@index([doctorId, startTime])
+  @@index([creatorId, startTime])
 }
 
 enum SlotStatus {
@@ -107,15 +107,15 @@ enum SlotStatus {
 
 model Appointment {
   id                String   @id @default(uuid())
-  patientId         String
-  patient           User     @relation("PatientAppointments", fields: [patientId], references: [id])
-  doctorId          String
-  doctor            User     @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  clientId         String
+  client           User     @relation("ClientAppointments", fields: [clientId], references: [id])
+  creatorId          String
+  creator            User     @relation("CreatorAppointments", fields: [creatorId], references: [id])
   startTime         DateTime // Start time of appointment
   endTime           DateTime // End time of appointment
   status            AppointmentStatus @default(SCHEDULED)
   notes             String?  @db.Text
-  patientDescription String? @db.Text
+  clientDescription String? @db.Text
     
   // Video session fields
   videoSessionId    String?  // Vonage Video API Session ID
@@ -125,7 +125,7 @@ model Appointment {
   updatedAt         DateTime @updatedAt
 
   @@index([status, startTime])
-  @@index([doctorId, startTime])
+  @@index([creatorId, startTime])
 }
 
 enum AppointmentStatus {
@@ -152,13 +152,13 @@ enum TransactionType {
 
 model Payout {
   id              String        @id @default(uuid())
-  doctorId        String
-  doctor          User          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  creatorId        String
+  creator          User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   amount          Float         // Total payout amount in USD
   credits         Int           // Number of credits being paid out
   platformFee     Float         // Platform fee deducted (2 USD per credit)
-  netAmount       Float         // Amount doctor receives (8 USD per credit)
-  paypalEmail     String        // Doctor's PayPal email for payout
+  netAmount       Float         // Amount creator receives (8 USD per credit)
+  paypalEmail     String        // Creator's PayPal email for payout
   status          PayoutStatus  @default(PROCESSING)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -166,7 +166,7 @@ model Payout {
   processedBy     String?       // Admin who processed it
 
   @@index([status, createdAt])
-  @@index([doctorId, status])
+  @@index([creatorId, status])
 }
 
 enum PayoutStatus {

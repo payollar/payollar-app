@@ -3,19 +3,21 @@ import { getDoctorAppointments, getDoctorAvailability } from "@/actions/doctor";
 import { AvailabilitySettings } from "./_components/availability-settings";
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { Calendar, Clock, DollarSign, TrendingUp, User as UserIcon, ShoppingBag } from "lucide-react";
+import { Calendar, Clock, DollarSign, TrendingUp, User as UserIcon, ShoppingBag, Link2 } from "lucide-react";
 import CreatorAppointmentsList from "./_components/appointments-list";
 import { getDoctorEarnings, getDoctorPayouts } from "@/actions/payout";
 import { CreatorEarnings } from "./_components/doctor-earnings";
 import { OverviewPage } from "./_components/overview-page";
 import { ProfilePage } from "./_components/profile-page";
+import { PublicProfile } from "./_components/public-profile";
 import { CreatorProducts } from "./_components/products";
 import { getCreatorProducts, getCreatorProductEarnings } from "@/actions/products";
+import { getCreatorSkills } from "@/actions/creator";
 
 export default async function CreatorDashboardPage() {
   const user = await getCurrentUser();
 
-  if (user?.role !== "DOCTOR") {
+  if (user?.role !== "CREATOR") {
     redirect("/onboarding");
   }
 
@@ -23,7 +25,7 @@ export default async function CreatorDashboardPage() {
     redirect("/creator/verification");
   }
 
-  const [appointmentsData, availabilityData, earningsData, payoutsData, productsData, productEarningsData] =
+  const [appointmentsData, availabilityData, earningsData, payoutsData, productsData, productEarningsData, skillsData] =
     await Promise.all([
       getDoctorAppointments(),
       getDoctorAvailability(),
@@ -31,6 +33,7 @@ export default async function CreatorDashboardPage() {
       getDoctorPayouts(),
       getCreatorProducts().catch(() => ({ products: [] })),
       getCreatorProductEarnings().catch(() => ({ earnings: {}, recentSales: [] })),
+      getCreatorSkills().catch(() => ({ skills: [] })),
     ]);
 
   return (
@@ -55,6 +58,13 @@ export default async function CreatorDashboardPage() {
             >
               <UserIcon className="h-4 w-4 flex-shrink-0" />
               <span>Profile</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="public-profile"
+              className="flex-shrink-0 md:w-full md:justify-start px-4 py-3 h-12 whitespace-nowrap data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground hover:bg-muted/50 transition-colors md:rounded-none rounded-lg border-0 shadow-none snap-start flex items-center gap-2"
+            >
+              <Link2 className="h-4 w-4 flex-shrink-0" />
+              <span>Public Profile</span>
             </TabsTrigger>
             <TabsTrigger
               value="products"
@@ -98,6 +108,9 @@ export default async function CreatorDashboardPage() {
         </TabsContent>
         <TabsContent value="profile" className="border-none p-0 mt-0">
           <ProfilePage user={user} availabilitySlots={availabilityData.slots || []} />
+        </TabsContent>
+        <TabsContent value="public-profile" className="border-none p-0 mt-0">
+          <PublicProfile user={user} skills={skillsData.skills || []} />
         </TabsContent>
         <TabsContent value="appointments" className="border-none p-0 mt-0">
           <CreatorAppointmentsList

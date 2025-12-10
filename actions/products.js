@@ -20,7 +20,7 @@ export async function createDigitalProduct(formData) {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -89,7 +89,7 @@ export async function updateDigitalProduct(formData) {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
       select: {
         id: true,
@@ -173,7 +173,7 @@ export async function deleteDigitalProduct(formData) {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
       select: {
         id: true,
@@ -231,7 +231,7 @@ export async function getCreatorProducts() {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
       select: {
         id: true,
@@ -351,7 +351,7 @@ export async function purchaseDigitalProduct(formData) {
     const buyer = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
     });
 
@@ -461,7 +461,7 @@ export async function getCreatorProductEarnings() {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
       select: {
         id: true,
@@ -557,7 +557,7 @@ export async function updateBankAccount(formData) {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 

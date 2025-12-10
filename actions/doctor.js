@@ -19,7 +19,7 @@ export async function setAvailabilitySlots(formData) {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -43,7 +43,7 @@ export async function setAvailabilitySlots(formData) {
     // Check if the doctor already has slots
     const existingSlots = await db.availability.findMany({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
       },
     });
 
@@ -68,7 +68,7 @@ export async function setAvailabilitySlots(formData) {
     // Create new availability slot
     const newSlot = await db.availability.create({
       data: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         status: "AVAILABLE",
@@ -97,7 +97,7 @@ export async function getDoctorAvailability() {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -107,7 +107,7 @@ export async function getDoctorAvailability() {
 
     const availabilitySlots = await db.availability.findMany({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
       },
       orderBy: {
         startTime: "asc",
@@ -135,7 +135,7 @@ export async function getDoctorAppointments() {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -145,13 +145,13 @@ export async function getDoctorAppointments() {
 
     const appointments = await db.appointment.findMany({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
         status: {
           in: ["SCHEDULED"],
         },
       },
       include: {
-        patient: true,
+        client: true,
       },
       orderBy: {
         startTime: "asc",
@@ -197,8 +197,8 @@ export async function cancelAppointment(formData) {
         id: appointmentId,
       },
       include: {
-        patient: true,
-        doctor: true,
+        client: true,
+        creator: true,
       },
     });
 
@@ -207,7 +207,7 @@ export async function cancelAppointment(formData) {
     }
 
     // Verify the user is either the doctor or the patient for this appointment
-    if (appointment.doctorId !== user.id && appointment.patientId !== user.id) {
+    if (appointment.creatorId !== user.id && appointment.clientId !== user.id) {
       throw new Error("You are not authorized to cancel this appointment");
     }
 
@@ -222,9 +222,9 @@ export async function cancelAppointment(formData) {
     });
 
     // Determine which path to revalidate based on user role
-    if (user.role === "DOCTOR") {
+    if (user.role === "CREATOR") {
       revalidatePath("/creator");
-    } else if (user.role === "PATIENT") {
+    } else if (user.role === "CLIENT") {
       revalidatePath("/appointments");
     }
 
@@ -249,7 +249,7 @@ export async function addAppointmentNotes(formData) {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -268,7 +268,7 @@ export async function addAppointmentNotes(formData) {
     const appointment = await db.appointment.findUnique({
       where: {
         id: appointmentId,
-        doctorId: doctor.id,
+        creatorId: doctor.id,
       },
     });
 
@@ -308,7 +308,7 @@ export async function markAppointmentCompleted(formData) {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -326,10 +326,10 @@ export async function markAppointmentCompleted(formData) {
     const appointment = await db.appointment.findUnique({
       where: {
         id: appointmentId,
-        doctorId: doctor.id, // Ensure appointment belongs to this doctor
+        creatorId: doctor.id, // Ensure appointment belongs to this doctor
       },
       include: {
-        patient: true,
+        client: true,
       },
     });
 
@@ -416,7 +416,7 @@ export async function updateCreatorProfile(formData) {
     const creator = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 

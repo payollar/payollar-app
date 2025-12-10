@@ -12,9 +12,9 @@ export default async function OnboardingLayout({ children }) {
 
   // Redirect users who have already completed onboarding
   if (user) {
-    if (user.role === "PATIENT") {
+    if (user.role === "CLIENT") {
       redirect("/talents");
-    } else if (user.role === "DOCTOR") {
+    } else if (user.role === "CREATOR") {
       // Check verification status for creators/talents
       if (user.verificationStatus === "VERIFIED") {
         redirect("/creator");

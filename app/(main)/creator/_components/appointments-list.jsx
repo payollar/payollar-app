@@ -39,7 +39,7 @@ export default function CreatorAppointmentsList() {
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
-                userRole="DOCTOR"
+                userRole="CREATOR"
                 refetchAppointments={fetchAppointments}
               />
             ))}

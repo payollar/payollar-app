@@ -87,7 +87,7 @@ export function AppointmentCard({
 
   // Check if appointment can be marked as completed
   const canMarkCompleted = () => {
-    if (userRole !== "DOCTOR" || appointment.status !== "SCHEDULED") {
+    if (userRole !== "CREATOR" || appointment.status !== "SCHEDULED") {
       return false;
     }
     const now = new Date();
@@ -138,7 +138,7 @@ export function AppointmentCard({
 
   // Handle save notes (doctor only)
   const handleSaveNotes = async () => {
-    if (notesLoading || userRole !== "DOCTOR") return;
+    if (notesLoading || userRole !== "CREATOR") return;
 
     const formData = new FormData();
     formData.append("appointmentId", appointment.id);
@@ -221,10 +221,10 @@ export function AppointmentCard({
 
   // Determine other party information based on user role
   const otherParty =
-    userRole === "DOCTOR" ? appointment.patient : appointment.doctor;
+    userRole === "CREATOR" ? appointment.client : appointment.creator;
 
-  const otherPartyLabel = userRole === "DOCTOR" ? "Client" : "Creator";
-  const otherPartyIcon = userRole === "DOCTOR" ? <User /> : <User />;
+  const otherPartyLabel = userRole === "CREATOR" ? "Client" : "Creator";
+  const otherPartyIcon = userRole === "CREATOR" ? <User /> : <User />;
 
   return (
     <>
@@ -237,16 +237,16 @@ export function AppointmentCard({
               </div>
               <div>
                 <h3 className="font-medium text-white">
-                  {userRole === "DOCTOR"
+                  {userRole === "CREATOR"
                     ? otherParty.name
                     : ` ${otherParty.name}`}
                 </h3>
-                {userRole === "DOCTOR" && (
+                {userRole === "CREATOR" && (
                   <p className="text-sm text-muted-foreground">
                     {otherParty.email}
                   </p>
                 )}
-                {userRole === "PATIENT" && (
+                {userRole === "CLIENT" && (
                   <p className="text-sm text-muted-foreground">
                     {otherParty.specialty}
                   </p>
@@ -335,16 +335,16 @@ export function AppointmentCard({
                 </div>
                 <div>
                   <p className="text-white font-medium">
-                    {userRole === "DOCTOR"
+                    {userRole === "CREATOR"
                       ? otherParty.name
                       : ` ${otherParty.name}`}
                   </p>
-                  {userRole === "DOCTOR" && (
+                  {userRole === "CREATOR" && (
                     <p className="text-muted-foreground text-sm">
                       {otherParty.email}
                     </p>
                   )}
-                  {userRole === "PATIENT" && (
+                  {userRole === "CLIENT" && (
                     <p className="text-muted-foreground text-sm">
                       {otherParty.specialty}
                     </p>
@@ -398,7 +398,7 @@ export function AppointmentCard({
             {appointment.patientDescription && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground">
-                  {userRole === "DOCTOR"
+                  {userRole === "CREATOR"
                     ? "Client Description"
                     : "Your Description"}
                 </h4>
@@ -446,7 +446,7 @@ export function AppointmentCard({
                 <h4 className="text-sm font-medium text-muted-foreground">
                   Creator Notes
                 </h4>
-                {userRole === "DOCTOR" &&
+                {userRole === "CREATOR" &&
                   action !== "notes" &&
                   appointment.status !== "CANCELLED" && (
                     <Button
@@ -461,7 +461,7 @@ export function AppointmentCard({
                   )}
               </div>
 
-              {userRole === "DOCTOR" && action === "notes" ? (
+              {userRole === "CREATOR" && action === "notes" ? (
                 <div className="space-y-3">
                   <Textarea
                     value={notes}

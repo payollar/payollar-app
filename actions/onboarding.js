@@ -25,19 +25,19 @@ export async function setUserRole(formData) {
 
   const role = formData.get("role");
 
-  if (!role || !["PATIENT", "DOCTOR"].includes(role)) {
+  if (!role || !["CLIENT", "CREATOR"].includes(role)) {
     throw new Error("Invalid role selection");
   }
 
   try {
-    // For patient role - simple update
-    if (role === "PATIENT") {
+    // For client role - simple update
+    if (role === "CLIENT") {
       await db.user.update({
         where: {
           clerkUserId: userId,
         },
         data: {
-          role: "PATIENT",
+          role: "CLIENT",
         },
       });
 
@@ -45,8 +45,8 @@ export async function setUserRole(formData) {
       return { success: true, redirect: "/talents" };
     }
 
-    // For doctor role - need additional information
-    if (role === "DOCTOR") {
+    // For creator role - need additional information
+    if (role === "CREATOR") {
       const specialty = formData.get("specialty");
       const experience = parseInt(formData.get("experience"), 10);
       const credentialUrl = formData.get("credentialUrl");
@@ -64,7 +64,7 @@ export async function setUserRole(formData) {
           clerkUserId: userId,
         },
         data: {
-          role: "DOCTOR",
+          role: "CREATOR",
           specialty,
           experience,
           credentialUrl,

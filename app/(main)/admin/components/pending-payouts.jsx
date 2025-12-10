@@ -106,10 +106,10 @@ export function PendingPayouts({ payouts }) {
                         </div>
                         <div className="flex-1">
                           <h3 className="font-medium text-white">
-                             {payout.doctor.name}
+                             {payout.creator.name}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            {payout.doctor.specialty}
+                            {payout.creator.specialty}
                           </p>
                           <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
                             <div className="flex items-center">
@@ -196,21 +196,21 @@ export function PendingPayouts({ payouts }) {
                       Name
                     </p>
                     <p className="text-white">
-                     {selectedPayout.doctor.name}
+                     {selectedPayout.creator.name}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
                       Email
                     </p>
-                    <p className="text-white">{selectedPayout.doctor.email}</p>
+                    <p className="text-white">{selectedPayout.creator.email}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
                       Specialty
                     </p>
                     <p className="text-white">
-                      {selectedPayout.doctor.specialty}
+                      {selectedPayout.creator.specialty}
                     </p>
                   </div>
                   <div>
@@ -218,7 +218,7 @@ export function PendingPayouts({ payouts }) {
                       Current Credits
                     </p>
                     <p className="text-white">
-                      {selectedPayout.doctor.credits}
+                      {selectedPayout.creator.credits}
                     </p>
                   </div>
                 </div>
@@ -271,12 +271,12 @@ export function PendingPayouts({ payouts }) {
               </div>
 
               {/* Warning if insufficient credits */}
-              {selectedPayout.doctor.credits < selectedPayout.credits && (
+              {selectedPayout.creator.credits < selectedPayout.credits && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     Warning: Doctor currently has only{" "}
-                    {selectedPayout.doctor.credits} credits but this payout
+                    {selectedPayout.creator.credits} credits but this payout
                     requires {selectedPayout.credits} credits. The payout cannot
                     be processed.
                   </AlertDescription>
@@ -295,7 +295,7 @@ export function PendingPayouts({ payouts }) {
               <Button
                 onClick={() => handleApprovePayout(selectedPayout)}
                 disabled={
-                  selectedPayout.doctor.credits < selectedPayout.credits
+                  selectedPayout.creator.credits < selectedPayout.credits
                 }
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
@@ -331,7 +331,7 @@ export function PendingPayouts({ payouts }) {
                   <ul className="mt-2 space-y-1 list-disc pl-4">
                     <li>
                       Deduct {selectedPayout.credits} credits from Dr.{" "}
-                      {selectedPayout.doctor.name}'s account
+                      {selectedPayout.creator.name}'s account
                     </li>
                     <li>Mark the payout as PROCESSED</li>
                     <li>This action cannot be undone</li>
@@ -343,7 +343,7 @@ export function PendingPayouts({ payouts }) {
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Doctor:</span>
                   <span className="text-white">
-                     {selectedPayout.doctor.name}
+                     {selectedPayout.creator.name}
                   </span>
                 </div>
                 <div className="flex justify-between mb-2">

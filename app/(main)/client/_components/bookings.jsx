@@ -44,7 +44,7 @@ export function ClientBookings({ appointments = [], error }) {
                 <AppointmentCard
                   key={appointment.id}
                   appointment={appointment}
-                  userRole="PATIENT"
+                  userRole="CLIENT"
                 />
               ))}
             </div>
@@ -81,7 +81,7 @@ export function ClientBookings({ appointments = [], error }) {
                 <AppointmentCard
                   key={appointment.id}
                   appointment={appointment}
-                  userRole="PATIENT"
+                  userRole="CLIENT"
                 />
               ))}
             </div>
@@ -107,7 +107,7 @@ export function ClientBookings({ appointments = [], error }) {
                 <AppointmentCard
                   key={appointment.id}
                   appointment={appointment}
-                  userRole="PATIENT"
+                  userRole="CLIENT"
                 />
               ))}
             </div>

@@ -26,7 +26,7 @@ export async function checkAndAllocateCredits(user) {
     }
 
     // Only allocate credits for patients
-    if (user.role !== "PATIENT") {
+    if (user.role !== "CLIENT") {
       return user;
     }
 

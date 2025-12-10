@@ -19,7 +19,7 @@ export async function getPatientAppointments() {
     const user = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
       select: {
         id: true,
@@ -32,10 +32,10 @@ export async function getPatientAppointments() {
 
     const appointments = await db.appointment.findMany({
       where: {
-        patientId: user.id,
+        clientId: user.id,
       },
       include: {
-        doctor: {
+        creator: {
           select: {
             id: true,
             name: true,
@@ -70,12 +70,12 @@ export async function getClientStats() {
     const user = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
       include: {
-        patientAppointments: {
+        clientAppointments: {
           include: {
-            doctor: {
+            creator: {
               select: {
                 id: true,
                 name: true,
@@ -103,7 +103,7 @@ export async function getClientStats() {
     // Get all appointments for calculations
     const allAppointments = await db.appointment.findMany({
       where: {
-        patientId: user.id,
+        clientId: user.id,
       },
     });
 
@@ -156,7 +156,7 @@ export async function getClientTransactions() {
     const user = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
       select: {
         id: true,
@@ -198,7 +198,7 @@ export async function updateClientProfile(formData) {
     const client = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
     });
 

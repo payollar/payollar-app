@@ -65,7 +65,7 @@ export default function OnboardingPage() {
     if (loading) return;
 
     const formData = new FormData();
-    formData.append("role", "PATIENT");
+    formData.append("role", "CLIENT");
 
     await submitUserRole(formData);
   };
@@ -81,7 +81,7 @@ export default function OnboardingPage() {
     if (loading) return;
 
     const formData = new FormData();
-    formData.append("role", "DOCTOR");
+    formData.append("role", "CREATOR");
     formData.append("specialty", data.specialty);
     formData.append("experience", data.experience.toString());
     formData.append("credentialUrl", data.credentialUrl);

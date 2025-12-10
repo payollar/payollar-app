@@ -6,7 +6,7 @@ import CreatorAppointmentsList from "../_components/appointments-list";
 export default async function CreatorBookingsPage() {
   const user = await getCurrentUser();
 
-  if (user?.role !== "DOCTOR") {
+  if (user?.role !== "CREATOR") {
     redirect("/onboarding");
   }
 

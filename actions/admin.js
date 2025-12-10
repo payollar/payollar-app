@@ -38,7 +38,7 @@ export async function getPendingDoctors() {
   try {
     const pendingDoctors = await db.user.findMany({
       where: {
-        role: "DOCTOR",
+        role: "CREATOR",
         verificationStatus: "PENDING",
       },
       orderBy: {
@@ -62,7 +62,7 @@ export async function getVerifiedDoctors() {
   try {
     const verifiedDoctors = await db.user.findMany({
       where: {
-        role: "DOCTOR",
+        role: "CREATOR",
         verificationStatus: "VERIFIED",
       },
       orderBy: {
@@ -156,7 +156,7 @@ export async function getPendingPayouts() {
         status: "PROCESSING",
       },
       include: {
-        doctor: {
+        creator: {
           select: {
             id: true,
             name: true,
@@ -205,7 +205,7 @@ export async function approvePayout(formData) {
         status: "PROCESSING",
       },
       include: {
-        doctor: true,
+        creator: true,
       },
     });
 
@@ -214,7 +214,7 @@ export async function approvePayout(formData) {
     }
 
     // Check if doctor has enough credits
-    if (payout.doctor.credits < payout.credits) {
+    if (payout.creator.credits < payout.credits) {
       throw new Error("Doctor doesn't have enough credits for this payout");
     }
 
@@ -235,7 +235,7 @@ export async function approvePayout(formData) {
       // Deduct credits from doctor's account
       await tx.user.update({
         where: {
-          id: payout.doctorId,
+          id: payout.creatorId,
         },
         data: {
           credits: {
@@ -247,7 +247,7 @@ export async function approvePayout(formData) {
       // Create a transaction record for the deduction
       await tx.creditTransaction.create({
         data: {
-          userId: payout.doctorId,
+          userId: payout.creatorId,
           amount: -payout.credits,
           type: "ADMIN_ADJUSTMENT",
         },

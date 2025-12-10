@@ -9,7 +9,7 @@ export async function getDoctorsBySpecialty(specialty) {
   try {
     const doctors = await db.user.findMany({
       where: {
-        role: "DOCTOR",
+        role: "CREATOR",
         verificationStatus: "VERIFIED",
         specialty: specialty.split("%20").join(" "),
       },

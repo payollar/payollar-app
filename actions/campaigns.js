@@ -18,7 +18,7 @@ export async function createCampaign(formData) {
     const client = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
     });
 
@@ -138,7 +138,7 @@ export async function getClientCampaigns() {
     const client = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
       select: {
         id: true,
@@ -203,7 +203,7 @@ export async function updateCampaignStatus(formData) {
     const client = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
       select: {
         id: true,
@@ -266,7 +266,7 @@ export async function applyToCampaign(formData) {
     const talent = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -363,7 +363,7 @@ export async function updateApplicationStatus(formData) {
     const client = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
       select: {
         id: true,

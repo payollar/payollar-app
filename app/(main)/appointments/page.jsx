@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/actions/onboarding";
 export default async function PatientAppointmentsPage() {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "PATIENT") {
+  if (!user || user.role !== "CLIENT") {
     redirect("/onboarding");
   }
 
@@ -42,7 +42,7 @@ export default async function PatientAppointmentsPage() {
                 <AppointmentCard
                   key={appointment.id}
                   appointment={appointment}
-                  userRole="PATIENT"
+                  userRole="CLIENT"
                 />
               ))}
             </div>

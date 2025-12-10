@@ -140,7 +140,7 @@ export function ClientOverview({ stats, recentAppointments = [] }) {
                 <AppointmentCard
                   key={appointment.id}
                   appointment={appointment}
-                  userRole="PATIENT"
+                  userRole="CLIENT"
                 />
               ))}
             </div>

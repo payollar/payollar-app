@@ -20,8 +20,8 @@ export default async function Header() {
 
   // Role-based nav
   const roleNavItems = [
-    { href: "/client", label: "Client Dashboard", show: user?.role === "PATIENT" },
-    { href: "/creator", label: "Creator Dashboard", show: user?.role === "DOCTOR" },
+    { href: "/client", label: "Client Dashboard", show: user?.role === "CLIENT" },
+    { href: "/creator", label: "Creator Dashboard", show: user?.role === "CREATOR" },
     { href: "/admin", label: "Admin Dashboard", show: user?.role === "ADMIN" },
     { href: "/onboarding", label: "Complete Profile", show: user?.role === "UNASSIGNED" },
   ].filter(item => item.show);

@@ -30,7 +30,7 @@ export async function bookAppointment(formData) {
     const patient = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "PATIENT",
+        role: "CLIENT",
       },
     });
 
@@ -53,7 +53,7 @@ export async function bookAppointment(formData) {
     const doctor = await db.user.findUnique({
       where: {
         id: doctorId,
-        role: "DOCTOR",
+        role: "CREATOR",
         verificationStatus: "VERIFIED",
       },
     });
@@ -65,7 +65,7 @@ export async function bookAppointment(formData) {
     // Check if the requested time slot is available
     const overlappingAppointment = await db.appointment.findFirst({
       where: {
-        doctorId: doctorId,
+        creatorId: doctorId,
         status: "SCHEDULED",
         OR: [
           {
@@ -109,8 +109,8 @@ export async function bookAppointment(formData) {
     // Create the appointment with the video session ID
     const appointment = await db.appointment.create({
       data: {
-        patientId: patient.id,
-        doctorId: doctor.id,
+        clientId: patient.id,
+        creatorId: doctor.id,
         startTime,
         endTime,
         patientDescription,
@@ -179,7 +179,7 @@ export async function generateVideoToken(formData) {
     }
 
     // Verify the user is either the doctor or the patient for this appointment
-    if (appointment.doctorId !== user.id && appointment.patientId !== user.id) {
+    if (appointment.creatorId !== user.id && appointment.clientId !== user.id) {
       throw new Error("You are not authorized to join this call");
     }
 
@@ -245,7 +245,7 @@ export async function getDoctorById(doctorId) {
     const doctor = await db.user.findFirst({
       where: {
         id: doctorId,
-        role: "DOCTOR",
+        role: "CREATOR",
         verificationStatus: "VERIFIED",
       },
       include: {
@@ -293,7 +293,7 @@ export async function getAvailableTimeSlots(doctorId) {
     const doctor = await db.user.findUnique({
       where: {
         id: doctorId,
-        role: "DOCTOR",
+        role: "CREATOR",
         verificationStatus: "VERIFIED",
       },
     });
@@ -305,7 +305,7 @@ export async function getAvailableTimeSlots(doctorId) {
     // Fetch a single availability record
     const availability = await db.availability.findFirst({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
         status: "AVAILABLE",
       },
     });
@@ -322,7 +322,7 @@ export async function getAvailableTimeSlots(doctorId) {
     const lastDay = endOfDay(days[3]);
     const existingAppointments = await db.appointment.findMany({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
         status: "SCHEDULED",
         startTime: {
           lte: lastDay,

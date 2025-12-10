@@ -12,7 +12,7 @@ import { getClientCampaigns } from "@/actions/campaigns";
 export default async function ClientDashboardPage() {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "PATIENT") {
+  if (!user || user.role !== "CLIENT") {
     redirect("/onboarding");
   }
 

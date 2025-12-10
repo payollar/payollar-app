@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default async function CreatorAnalyticsPage() {
   const user = await getCurrentUser();
 
-  if (user?.role !== "DOCTOR") {
+  if (user?.role !== "CREATOR") {
     redirect("/onboarding");
   }
 

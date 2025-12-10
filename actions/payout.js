@@ -22,7 +22,7 @@ export async function requestPayout(formData) {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -39,7 +39,7 @@ export async function requestPayout(formData) {
     // Check if doctor has any pending payout requests
     const existingPendingPayout = await db.payout.findFirst({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
         status: "PROCESSING",
       },
     });
@@ -68,7 +68,7 @@ export async function requestPayout(formData) {
     // Create payout request
     const payout = await db.payout.create({
       data: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
         amount: totalAmount,
         credits: creditCount,
         platformFee,
@@ -100,7 +100,7 @@ export async function getDoctorPayouts() {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
     });
 
@@ -110,7 +110,7 @@ export async function getDoctorPayouts() {
 
     const payouts = await db.payout.findMany({
       where: {
-        doctorId: doctor.id,
+        creatorId: doctor.id,
       },
       orderBy: {
         createdAt: "desc",
@@ -137,7 +137,7 @@ export async function getDoctorEarnings() {
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
-        role: "DOCTOR",
+        role: "CREATOR",
       },
       select: {
         id: true,
