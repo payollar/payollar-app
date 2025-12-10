@@ -34,7 +34,7 @@ export default async function Header() {
   ];
 
   const mediaSubItems = [
-    { href: "/media", label: "Media page" },
+    { href: "/media", label: "All Media" },
     { href: "/products/tv-media", label: "Book TV media" },
     { href: "/products/radio-media", label: "Book Radio media" },
     { href: "/products/digital-media", label: "Digital Marketing" },
@@ -55,7 +55,7 @@ export default async function Header() {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-6">
           {/* Media dropdown */}
-          <NavigationMenu>
+          <NavigationMenu viewport={false}>
             <NavigationMenuList>
               <NavigationMenuItem>
                 <NavigationMenuTrigger>Media</NavigationMenuTrigger>
