@@ -36,6 +36,7 @@ export default async function Header() {
 
   const mediaSubItems = [
     { href: "/media", label: "Buy Media" },
+    { href: "/media", label: "Buy Media" },
     { href: "/media/packages", label: "Packages" },
     { href: "/media/schedule", label: "Schedule Media" },
   ];
