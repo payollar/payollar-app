@@ -184,7 +184,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
       {/* Profile Summary and Information Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Profile Summary */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg border-gray-800">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-6">
               {/* Profile Picture */}
@@ -254,7 +254,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
         </Card>
 
         {/* Right Column - Profile Information Form */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg border-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Profile Information</CardTitle>
             <p className="text-gray-400 text-sm">Update your public profile details.</p>

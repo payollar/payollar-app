@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCreatorServices } from "@/actions/services";
+import { CreatorServices } from "../_components/services";
 
 export default async function CreatorServicesPage() {
   const user = await getCurrentUser();
@@ -13,15 +14,10 @@ export default async function CreatorServicesPage() {
     redirect("/creator/verification");
   }
 
+  const servicesData = await getCreatorServices().catch(() => ({ services: [] }));
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Services</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">Services management coming soon...</p>
-      </CardContent>
-    </Card>
+    <CreatorServices services={servicesData.services || []} />
   );
 }
 
