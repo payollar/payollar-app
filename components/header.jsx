@@ -36,7 +36,7 @@ export default async function Header() {
 
   const mediaSubItems = [
     { href: "/media", label: "Buy Media" },
-    { href: "/media/packages", label: "Media Packages" },
+    { href: "/media/packages", label: "Packages" },
     { href: "/media/schedule", label: "Schedule Media" },
   ];
 
@@ -54,10 +54,10 @@ export default async function Header() {
           {/* Media dropdown */}
           <NavigationMenu viewport={false}>
             <NavigationMenuList>
-              <NavigationMenuItem>
+              <NavigationMenuItem className="relative">
                 <NavigationMenuTrigger>Media</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid gap-3 p-4 w-[220px]">
+                <NavigationMenuContent className="absolute left-0 top-full mt-1.5 w-[220px] z-50 bg-popover border rounded-md shadow-md">
+                  <ul className="grid gap-3 p-4">
                     {mediaSubItems.map((item) => (
                       <li key={item.href}>
                         <NavigationMenuLink asChild>
