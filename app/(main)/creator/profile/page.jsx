@@ -14,9 +14,10 @@ export default async function CreatorProfilePage() {
     redirect("/creator/verification");
   }
 
-  const availabilityData = await getDoctorAvailability();
+  // Get availability, but don't fail if it's not set
+  const availabilityData = await getDoctorAvailability().catch(() => ({ slots: [] }));
 
   return (
-    <ProfilePage user={user} availabilitySlots={availabilityData.slots || []} />
+    <ProfilePage user={user} availabilitySlots={availabilityData?.slots || []} />
   );
 }

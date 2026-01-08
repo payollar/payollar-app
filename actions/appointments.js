@@ -310,8 +310,9 @@ export async function getAvailableTimeSlots(doctorId) {
       },
     });
 
+    // If no availability is set, return empty slots instead of throwing an error
     if (!availability) {
-      throw new Error("No availability set by doctor");
+      return { days: [] };
     }
 
     // Get the next 4 days
@@ -408,6 +409,7 @@ export async function getAvailableTimeSlots(doctorId) {
     return { days: result };
   } catch (error) {
     console.error("Failed to fetch available slots:", error);
-    throw new Error("Failed to fetch available time slots: " + error.message);
+    // Return empty slots instead of throwing an error
+    return { days: [] };
   }
 }

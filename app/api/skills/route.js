@@ -1,4 +1,4 @@
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 
@@ -17,7 +17,7 @@ export async function GET(req) {
       });
     } else {
       // fetch skills for logged-in user
-      const { userId } = getAuth(req);
+      const { userId } = await auth();
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -37,7 +37,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { userId } = getAuth(req);
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -73,7 +73,7 @@ export async function POST(req) {
 // ✅ DELETE handler
 export async function DELETE(req) {
   try {
-    const { userId } = getAuth(req);
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

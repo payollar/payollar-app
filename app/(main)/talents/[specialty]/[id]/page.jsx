@@ -7,15 +7,23 @@ export default async function CreatorProfilePage({ params }) {
 
   try {
     // Fetch creator/talent data and available slots in parallel
-    const [doctorData, slotsData] = await Promise.all([
+    // If slots fail, we'll still show the profile with empty slots
+    const [doctorData, slotsData] = await Promise.allSettled([
       getDoctorById(id),
-      getAvailableTimeSlots(id),
+      getAvailableTimeSlots(id).catch(() => ({ days: [] })),
     ]);
+
+    const doctor = doctorData.status === "fulfilled" ? doctorData.value.doctor : null;
+    const availableDays = slotsData.status === "fulfilled" ? slotsData.value.days || [] : [];
+
+    if (!doctor) {
+      redirect("/talents");
+    }
 
     return (
       <DoctorProfile
-        doctor={doctorData.doctor}
-        availableDays={slotsData.days || []}
+        doctor={doctor}
+        availableDays={availableDays}
       />
     );
   } catch (error) {

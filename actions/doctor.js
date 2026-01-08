@@ -114,9 +114,11 @@ export async function getDoctorAvailability() {
       },
     });
 
-    return { slots: availabilitySlots };
+    return { slots: availabilitySlots || [] };
   } catch (error) {
-    throw new Error("Failed to fetch availability slots " + error.message);
+    // Return empty slots instead of throwing an error
+    console.error("Failed to fetch availability slots:", error);
+    return { slots: [] };
   }
 }
 
