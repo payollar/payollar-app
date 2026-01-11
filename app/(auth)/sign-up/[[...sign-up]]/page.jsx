@@ -50,10 +50,10 @@ export default function SignUpPage() {
         {
           onSuccess: async () => {
             toast.success("Account created successfully!");
-            // Small delay to ensure user record is created in database
+            // Small delay to ensure user record is created in database and session is set
             await new Promise(resolve => setTimeout(resolve, 500));
-            router.push("/onboarding");
-            router.refresh();
+            // Force a hard navigation to ensure session is picked up
+            window.location.href = "/onboarding";
           },
           onError: (ctx) => {
             let errorMessage = ctx.error?.message || "Failed to create account. Please try again.";

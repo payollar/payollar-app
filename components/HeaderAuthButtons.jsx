@@ -1,13 +1,85 @@
 "use client";
 
-import { useSession, signOut } from "@/lib/auth-client";
+import { useSession, signOut, authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { User, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function HeaderAuthButtons() {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending, refetch } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [sessionData, setSessionData] = useState(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // Ensure component is mounted (client-side only)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Manually fetch session on mount and when pathname changes
+  useEffect(() => {
+    if (!mounted) return;
+
+    const fetchSession = async () => {
+      setIsCheckingSession(true);
+      try {
+        const result = await authClient.getSession();
+        
+        // Better Auth returns { data: { user, session } } or { user, session }
+        const sessionResult = result?.data || result;
+        
+        if (sessionResult?.user) {
+          setSessionData(sessionResult);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Session detected:', sessionResult.user.email);
+          }
+        } else {
+          setSessionData(null);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('No session found');
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
+        setSessionData(null);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    // Fetch immediately on mount
+    fetchSession();
+
+    // Also refetch when pathname changes (after navigation)
+    const timer = setTimeout(() => {
+      fetchSession();
+      refetch(); // Also trigger the hook refetch
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [pathname, mounted, refetch]);
+
+  // Update sessionData when hook session changes
+  useEffect(() => {
+    if (session?.user) {
+      setSessionData(session);
+      setIsCheckingSession(false);
+    } else if (!isPending && !session?.user && mounted) {
+      // Only clear if we're sure there's no session (not pending)
+      // But keep existing sessionData if we have it (might be a timing issue)
+      if (!sessionData) {
+        setSessionData(null);
+      }
+      setIsCheckingSession(false);
+    }
+  }, [session, isPending, mounted, sessionData]);
+
+  // Use sessionData if available, otherwise fall back to hook data
+  const currentSession = sessionData || session;
+  const isLoading = !mounted || isPending || isCheckingSession;
 
   const handleSignOut = async () => {
     await signOut({
@@ -20,7 +92,8 @@ export default function HeaderAuthButtons() {
     });
   };
 
-  if (isPending) {
+  // Show loading state while checking session or not mounted
+  if (isLoading && !currentSession) {
     return (
       <Button variant="secondary" size="sm" disabled>
         Loading...
@@ -28,7 +101,8 @@ export default function HeaderAuthButtons() {
     );
   }
 
-  if (!session?.user) {
+  // Show sign in button if no session
+  if (!currentSession?.user) {
     return (
       <Button
         variant="secondary"
@@ -43,7 +117,7 @@ export default function HeaderAuthButtons() {
   return (
     <div className="flex items-center gap-3">
       <span className="text-sm text-muted-foreground hidden md:block">
-        {session.user.name || session.user.email}
+        {currentSession.user.name || currentSession.user.email}
       </span>
       <Button
         variant="ghost"

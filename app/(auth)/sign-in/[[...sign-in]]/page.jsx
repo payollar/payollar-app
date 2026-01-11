@@ -37,10 +37,12 @@ export default function SignInPage() {
           password,
         },
         {
-          onSuccess: () => {
+          onSuccess: async () => {
             toast.success("Signed in successfully!");
-            router.push(redirectUrl);
-            router.refresh();
+            // Small delay to ensure session cookie is set and session is available
+            await new Promise(resolve => setTimeout(resolve, 300));
+            // Force a hard navigation to ensure session is picked up
+            window.location.href = redirectUrl;
           },
           onError: (ctx) => {
             let errorMessage = ctx.error?.message || "Failed to sign in. Please check your credentials.";
