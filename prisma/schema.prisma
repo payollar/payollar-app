@@ -12,10 +12,14 @@ datasource db {
 
 model User {
   id          String   @id @default(uuid())
-  clerkUserId String   @unique // Clerk's user ID
+  clerkUserId String?  @unique // Clerk's user ID (optional during migration)
+  betterAuthId String? @unique // Better Auth user ID
   email       String   @unique
   name        String?
   imageUrl    String?
+  password    String?  // Hashed password for Better Auth
+  emailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
   role        UserRole @default(UNASSIGNED) // UNASSIGNED, CLIENT, CREATOR, ADMIN
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -53,6 +57,42 @@ model User {
   productPurchases     DigitalProductSale[]  @relation("ProductSeller")
   mediaAgency          MediaAgency?
   services             Service[]
+  sessions             Session[]
+  accounts             Account[]
+}
+
+// Better Auth Account model - stores authentication credentials
+model Account {
+  id                   String   @id @default(uuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId            String   // Account ID from provider or userId for credentials
+  providerId           String   // Provider identifier (e.g., "credential", "google", "github")
+  accessToken          String?  // OAuth access token
+  refreshToken         String?  // OAuth refresh token
+  accessTokenExpiresAt DateTime? // When access token expires
+  refreshTokenExpiresAt DateTime? // When refresh token expires
+  scope                String?  // OAuth scope
+  idToken              String?  // OAuth ID token
+  password             String?  // Hashed password for email/password auth
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([userId])
+  @@index([accountId, providerId])
+  @@unique([accountId, providerId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
 }
 
 model Skill {

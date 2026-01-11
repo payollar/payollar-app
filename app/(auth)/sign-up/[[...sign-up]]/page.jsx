@@ -64,3 +64,11 @@ export default function Page() {
     </div>
   );
 }
+
+// Better Auth version - commented out
+// "use client";
+// import { useState } from "react";
+// import { useRouter } from "next/navigation";
+// import Image from "next/image";
+// import { signUp } from "@/lib/auth-client";
+// ... (rest of Better Auth implementation)

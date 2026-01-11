@@ -2,7 +2,9 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { checkUser } from "@/lib/checkUser";
 import { revalidatePath } from "next/cache";
+// import { getAuthUserId } from "@/lib/getAuthUserId"; // Better Auth - commented out
 
 
 /**
@@ -120,25 +122,34 @@ export async function setUserRole(formData) {
 
 /**
  * Gets the current user's complete profile information
+ * Now supports both Clerk and Better Auth
  */
 export async function getCurrentUser() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return null;
+    // Use checkUser which supports both Clerk and Better Auth
+    const user = await checkUser();
+    
+    if (user) {
+      return user;
     }
 
+    // Fallback to direct Clerk check for backward compatibility
     try {
-      const user = await db.user.findUnique({
+      const { userId } = await auth();
+
+      if (!userId) {
+        return null;
+      }
+
+      const dbUser = await db.user.findUnique({
         where: {
           clerkUserId: userId,
         },
       });
 
       // If user exists, return them
-      if (user) {
-        return user;
+      if (dbUser) {
+        return dbUser;
       }
 
       // If user doesn't exist, try to create them from Clerk data
