@@ -85,7 +85,7 @@ function ResetPasswordForm() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Left side - Image */}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
           <Image
@@ -95,22 +95,25 @@ function ResetPasswordForm() {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-700/70"></div>
         </div>
 
         {/* Right side - Success Message */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-4 sm:p-8">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
           <div className="w-full max-w-md space-y-8 text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/25">
+              <CheckCircle className="h-10 w-10 text-emerald-600" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Password Reset Successful!</h2>
-            <p className="text-gray-600">
+            <div className="space-y-2">
+              <h2 className="text-4xl font-bold text-gray-900">Password Reset Successful!</h2>
+              <div className="w-16 h-1 bg-emerald-500 rounded-full mx-auto"></div>
+            </div>
+            <p className="text-gray-600 text-lg">
               Your password has been reset successfully. You can now sign in with your new password.
             </p>
             <Button
               onClick={() => router.push("/sign-in")}
-              className="w-full bg-gray-900 text-white hover:bg-gray-800"
+              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25 h-12 text-base font-semibold"
             >
               Go to Sign In
             </Button>
@@ -122,7 +125,7 @@ function ResetPasswordForm() {
 
   if (tokenError) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Left side - Image */}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
           <Image
@@ -132,29 +135,32 @@ function ResetPasswordForm() {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-700/70"></div>
         </div>
 
         {/* Right side - Error Message */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-4 sm:p-8">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
           <div className="w-full max-w-md space-y-8 text-center">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <Lock className="h-8 w-8 text-red-600" />
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-red-500/25">
+              <Lock className="h-10 w-10 text-red-600" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Invalid Reset Link</h2>
-            <p className="text-gray-600">
+            <div className="space-y-2">
+              <h2 className="text-4xl font-bold text-gray-900">Invalid Reset Link</h2>
+              <div className="w-16 h-1 bg-red-500 rounded-full mx-auto"></div>
+            </div>
+            <p className="text-gray-600 text-lg">
               This password reset link is invalid or has expired. Please request a new one.
             </p>
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Button
                 onClick={() => router.push("/forgot-password")}
-                className="w-full bg-gray-900 text-white hover:bg-gray-800"
+                className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25 h-12 text-base font-semibold"
               >
                 Request New Reset Link
               </Button>
               <Link
                 href="/sign-in"
-                className="block text-sm font-medium text-gray-900 hover:text-gray-700"
+                className="block text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
               >
                 Back to Sign In
               </Link>
@@ -166,7 +172,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Left side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <Image
@@ -176,11 +182,14 @@ function ResetPasswordForm() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-700/70"></div>
         <div className="absolute inset-0 flex items-center justify-center p-12 z-10">
-          <div className="text-white max-w-md">
-            <h1 className="text-4xl font-bold mb-4">Reset Your Password</h1>
-            <p className="text-lg text-gray-200">
+          <div className="text-white max-w-md space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-5xl font-bold leading-tight">Reset Your Password</h1>
+              <div className="w-20 h-1 bg-emerald-400 rounded-full"></div>
+            </div>
+            <p className="text-xl text-emerald-50 leading-relaxed">
               Enter your new password below. Make sure it's at least 8 characters long.
             </p>
           </div>
@@ -188,29 +197,29 @@ function ResetPasswordForm() {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-4 sm:p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <div className="w-full max-w-md space-y-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">New Password</h2>
-            <p className="mt-2 text-sm text-gray-600">
+          <div className="space-y-2">
+            <h2 className="text-4xl font-bold text-gray-900">New Password</h2>
+            <p className="text-gray-600">
               Please enter your new password below.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700">
+              <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
                 New Password
               </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors z-10" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="At least 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-gray-900"
+                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   required
                   minLength={8}
                   disabled={isLoading}
@@ -218,7 +227,7 @@ function ResetPasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-emerald-600 focus:outline-none transition-colors"
                   disabled={isLoading}
                 >
                   {showPassword ? (
@@ -228,31 +237,32 @@ function ResetPasswordForm() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 Must be at least 8 characters long
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-700">
+              <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
                 Confirm New Password
               </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors z-10" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-gray-900"
+                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   required
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-emerald-600 focus:outline-none transition-colors"
                   disabled={isLoading}
                 >
                   {showConfirmPassword ? (
@@ -266,12 +276,12 @@ function ResetPasswordForm() {
 
             <Button
               type="submit"
-              className="w-full bg-gray-900 text-white hover:bg-gray-800 transition-colors h-11"
+              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25 h-12 text-base font-semibold"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Resetting...
                 </>
               ) : (
@@ -283,7 +293,7 @@ function ResetPasswordForm() {
           <div className="text-center">
             <Link
               href="/sign-in"
-              className="text-sm font-medium text-gray-900 hover:text-gray-700"
+              className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
             >
               Back to Sign In
             </Link>
