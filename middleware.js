@@ -39,7 +39,9 @@ export async function middleware(req) {
     // Check if user is already authenticated
     const sessionCookie = getSessionCookie(req);
     if (sessionCookie) {
-      // If user is already signed in, redirect to landing page
+      // If user is already signed in, redirect based on their role
+      // We'll let the client-side handle the role check for better UX
+      // For now, redirect to home - the app will handle role-based routing
       return NextResponse.redirect(new URL("/", req.url));
     }
     return NextResponse.next();

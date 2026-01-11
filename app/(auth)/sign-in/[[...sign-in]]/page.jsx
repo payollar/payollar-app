@@ -24,8 +24,16 @@ function SignInForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Basic validation
     if (!email || !password) {
       toast.error("Please fill in all fields");
+      return;
+    }
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -41,9 +49,45 @@ function SignInForm() {
           onSuccess: async () => {
             toast.success("Signed in successfully!");
             // Small delay to ensure session cookie is set and session is available
-            await new Promise(resolve => setTimeout(resolve, 300));
-            // Force a hard navigation to ensure session is picked up
-            window.location.href = redirectUrl;
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Check user role and redirect appropriately
+            try {
+              const response = await fetch("/api/user/check-role", {
+                credentials: "include",
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                if (data.role) {
+                  // User has a role, redirect to appropriate dashboard
+                  if (data.role === "CLIENT") {
+                    window.location.href = "/talents";
+                  } else if (data.role === "CREATOR") {
+                    if (data.verificationStatus === "VERIFIED") {
+                      window.location.href = "/creator";
+                    } else {
+                      window.location.href = "/creator/verification";
+                    }
+                  } else if (data.role === "ADMIN") {
+                    window.location.href = "/admin";
+                  } else {
+                    // UNASSIGNED role, go to onboarding
+                    window.location.href = "/onboarding";
+                  }
+                } else {
+                  // No role, go to onboarding
+                  window.location.href = "/onboarding";
+                }
+              } else {
+                // Fallback to redirectUrl or onboarding
+                window.location.href = redirectUrl;
+              }
+            } catch (error) {
+              console.error("Error checking user role:", error);
+              // Fallback to redirectUrl or onboarding
+              window.location.href = redirectUrl;
+            }
           },
           onError: (ctx) => {
             let errorMessage = ctx.error?.message || "Failed to sign in. Please check your credentials.";
@@ -51,11 +95,19 @@ function SignInForm() {
             // Better error messages for common issues
             if (errorMessage.toLowerCase().includes("invalid") || 
                 errorMessage.toLowerCase().includes("credential") ||
-                errorMessage.toLowerCase().includes("password")) {
+                errorMessage.toLowerCase().includes("password") ||
+                errorMessage.toLowerCase().includes("incorrect")) {
               errorMessage = "Invalid email or password. Please check your credentials and try again.";
             } else if (errorMessage.toLowerCase().includes("not found") ||
-                       errorMessage.toLowerCase().includes("user")) {
+                       errorMessage.toLowerCase().includes("user") ||
+                       errorMessage.toLowerCase().includes("does not exist")) {
               errorMessage = "No account found with this email. Please sign up first.";
+            } else if (errorMessage.toLowerCase().includes("rate limit") ||
+                       errorMessage.toLowerCase().includes("too many")) {
+              errorMessage = "Too many sign-in attempts. Please wait a moment and try again.";
+            } else if (errorMessage.toLowerCase().includes("network") ||
+                       errorMessage.toLowerCase().includes("fetch")) {
+              errorMessage = "Network error. Please check your connection and try again.";
             }
             
             toast.error(errorMessage);

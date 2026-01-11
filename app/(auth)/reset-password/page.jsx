@@ -24,6 +24,26 @@ function ResetPasswordForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [tokenError, setTokenError] = useState(false);
+  
+  // Password strength calculation
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return { strength: 0, label: "", color: "" };
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
+    if (/\d/.test(pwd)) strength++;
+    if (/[^a-zA-Z\d]/.test(pwd)) strength++;
+    
+    if (strength <= 2) return { strength, label: "Weak", color: "bg-red-500" };
+    if (strength <= 3) return { strength, label: "Fair", color: "bg-yellow-500" };
+    if (strength <= 4) return { strength, label: "Good", color: "bg-blue-500" };
+    return { strength, label: "Strong", color: "bg-emerald-500" };
+  };
+  
+  const passwordStrength = getPasswordStrength(password);
+  const passwordsMatch = password && confirmPassword && password === confirmPassword;
+  const passwordMismatch = confirmPassword && password !== confirmPassword;
 
   useEffect(() => {
     if (error === "INVALID_TOKEN") {
@@ -50,9 +70,16 @@ function ResetPasswordForm() {
       return;
     }
 
+    // Password validation
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters long");
       return;
+    }
+    
+    // Additional password strength check (warning only, not blocking)
+    if (password.length >= 8 && (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password))) {
+      // Just a warning, don't block - let them proceed
+      toast.warning("For better security, consider using uppercase, lowercase, and numbers");
     }
 
     if (!token) {
@@ -69,15 +96,29 @@ function ResetPasswordForm() {
       });
 
       setIsSuccess(true);
-      toast.success("Password reset successfully!");
+      toast.success("Password reset successfully! Redirecting to sign in...");
       
       // Redirect to sign in after 2 seconds
       setTimeout(() => {
         router.push("/sign-in");
+        router.refresh();
       }, 2000);
     } catch (error) {
       console.error("Reset password error:", error);
-      toast.error(error?.message || "Failed to reset password. The link may have expired. Please request a new one.");
+      let errorMessage = error?.message || "Failed to reset password. The link may have expired.";
+      
+      // Better error messages
+      if (errorMessage.toLowerCase().includes("expired") ||
+          errorMessage.toLowerCase().includes("invalid") ||
+          errorMessage.toLowerCase().includes("token")) {
+        errorMessage = "This password reset link has expired or is invalid. Please request a new one.";
+        setTokenError(true);
+      } else if (errorMessage.toLowerCase().includes("network") ||
+                 errorMessage.toLowerCase().includes("fetch")) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -237,10 +278,31 @@ function ResetPasswordForm() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Must be at least 8 characters long
-              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">Password strength</span>
+                  {password && (
+                    <span className={`font-medium ${
+                      passwordStrength.strength <= 2 ? "text-red-500" :
+                      passwordStrength.strength <= 3 ? "text-yellow-500" :
+                      passwordStrength.strength <= 4 ? "text-blue-500" : "text-emerald-500"
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
+                  )}
+                </div>
+                {password && (
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Must be at least 8 characters long
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -255,7 +317,11 @@ function ResetPasswordForm() {
                   placeholder="Confirm your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  className={`pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                    passwordMismatch ? "border-red-500 focus:border-red-500" :
+                    passwordsMatch ? "border-emerald-500 focus:border-emerald-500" :
+                    "focus:border-emerald-500"
+                  }`}
                   required
                   disabled={isLoading}
                 />
@@ -272,6 +338,18 @@ function ResetPasswordForm() {
                   )}
                 </button>
               </div>
+              {passwordMismatch && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  Passwords do not match
+                </p>
+              )}
+              {passwordsMatch && (
+                <p className="text-xs text-emerald-600 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Passwords match
+                </p>
+              )}
             </div>
 
             <Button

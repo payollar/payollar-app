@@ -91,9 +91,15 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (data && data?.success) {
-      router.push(data.redirect);
+      toast.success("Profile updated successfully!");
+      // Small delay before redirect
+      setTimeout(() => {
+        router.push(data.redirect);
+        router.refresh();
+      }, 300);
     } else if (data && data?.error) {
       console.error("Onboarding error:", data.error);
+      toast.error(data.error || "Failed to save your information. Please try again.");
     }
   }, [data, router]);
 

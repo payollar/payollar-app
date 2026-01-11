@@ -20,8 +20,16 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Basic validation
     if (!email) {
       toast.error("Please enter your email address");
+      return;
+    }
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -40,7 +48,8 @@ export default function ForgotPasswordPage() {
       toast.success("Password reset email sent! Check your inbox.");
     } catch (error) {
       console.error("Forgot password error:", error);
-      // Better Auth doesn't reveal if email exists, so we show success anyway for security
+      // Better Auth doesn't reveal if email exists for security
+      // Always show success message to prevent email enumeration attacks
       setIsSubmitted(true);
       toast.success("If an account exists with this email, you'll receive a password reset link.");
     } finally {

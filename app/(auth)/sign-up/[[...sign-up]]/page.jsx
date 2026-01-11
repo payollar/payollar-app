@@ -21,22 +21,57 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Password strength calculation
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return { strength: 0, label: "", color: "" };
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
+    if (/\d/.test(pwd)) strength++;
+    if (/[^a-zA-Z\d]/.test(pwd)) strength++;
+    
+    if (strength <= 2) return { strength, label: "Weak", color: "bg-red-500" };
+    if (strength <= 3) return { strength, label: "Fair", color: "bg-yellow-500" };
+    if (strength <= 4) return { strength, label: "Good", color: "bg-blue-500" };
+    return { strength, label: "Strong", color: "bg-emerald-500" };
+  };
+  
+  const passwordStrength = getPasswordStrength(password);
+  const passwordsMatch = password && confirmPassword && password === confirmPassword;
+  const passwordMismatch = confirmPassword && password !== confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Basic validation
     if (!name || !email || !password || !confirmPassword) {
       toast.error("Please fill in all fields");
       return;
     }
-
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+    
+    // Name validation
+    if (name.trim().length < 2) {
+      toast.error("Name must be at least 2 characters long");
       return;
     }
-
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
+    // Password validation
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters long");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -54,7 +89,7 @@ export default function SignUpPage() {
             toast.success("Account created successfully!");
             // Small delay to ensure user record is created in database and session is set
             await new Promise(resolve => setTimeout(resolve, 500));
-            // Force a hard navigation to ensure session is picked up
+            // Navigate to onboarding - new users always need to select a role
             window.location.href = "/onboarding";
           },
           onError: (ctx) => {
@@ -63,8 +98,18 @@ export default function SignUpPage() {
             // Better error messages for common issues
             if (errorMessage.toLowerCase().includes("already exists") || 
                 errorMessage.toLowerCase().includes("unique constraint") ||
-                errorMessage.toLowerCase().includes("email")) {
+                errorMessage.toLowerCase().includes("email") ||
+                errorMessage.toLowerCase().includes("duplicate")) {
               errorMessage = "An account with this email already exists. Please sign in instead, or use a different email.";
+            } else if (errorMessage.toLowerCase().includes("password") ||
+                       errorMessage.toLowerCase().includes("weak")) {
+              errorMessage = "Password is too weak. Please use a stronger password.";
+            } else if (errorMessage.toLowerCase().includes("rate limit") ||
+                       errorMessage.toLowerCase().includes("too many")) {
+              errorMessage = "Too many sign-up attempts. Please wait a moment and try again.";
+            } else if (errorMessage.toLowerCase().includes("network") ||
+                       errorMessage.toLowerCase().includes("fetch")) {
+              errorMessage = "Network error. Please check your connection and try again.";
             }
             
             toast.error(errorMessage);
@@ -200,10 +245,31 @@ export default function SignUpPage() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Must be at least 8 characters long
-              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">Password strength</span>
+                  {password && (
+                    <span className={`font-medium ${
+                      passwordStrength.strength <= 2 ? "text-red-500" :
+                      passwordStrength.strength <= 3 ? "text-yellow-500" :
+                      passwordStrength.strength <= 4 ? "text-blue-500" : "text-emerald-500"
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
+                  )}
+                </div>
+                {password && (
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Must be at least 8 characters long
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -218,7 +284,11 @@ export default function SignUpPage() {
                   placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  className={`pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                    passwordMismatch ? "border-red-500 focus:border-red-500" :
+                    passwordsMatch ? "border-emerald-500 focus:border-emerald-500" :
+                    "focus:border-emerald-500"
+                  }`}
                   required
                   disabled={isLoading}
                 />
@@ -235,6 +305,18 @@ export default function SignUpPage() {
                   )}
                 </button>
               </div>
+              {passwordMismatch && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  Passwords do not match
+                </p>
+              )}
+              {passwordsMatch && (
+                <p className="text-xs text-emerald-600 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Passwords match
+                </p>
+              )}
             </div>
 
             <Button
