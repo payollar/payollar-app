@@ -1,60 +1,58 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-// import { getSessionCookie } from "better-auth/cookies"; // Better Auth - commented out
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-const isProtectedRoute = createRouteMatcher([
-  "/",
-  "/talents(.*)",
-  "/onboarding(.*)",
-  "/creator(.*)",
-  "/client(.*)",
-  "/admin(.*)",
-  "/video-call(.*)",
-  "/appointments(.*)",
-  "/store(.*)",
-  "/campaigns(.*)",
-  "/media(.*)",
-  "/products(.*)",
-]);
+const isProtectedRoute = (pathname) => {
+  const protectedPaths = [
+    "/",
+    "/talents",
+    "/onboarding",
+    "/creator",
+    "/client",
+    "/admin",
+    "/video-call",
+    "/appointments",
+    "/store",
+    "/campaigns",
+    "/media",
+    "/products",
+  ];
+  
+  return protectedPaths.some(path => pathname.startsWith(path));
+};
 
-const isPublicRoute = createRouteMatcher([
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/api/webhooks(.*)", // Webhook routes should be public
-  // "/api/auth(.*)", // Better Auth routes - commented out
-  // "/api/migrate-user(.*)", // Migration route - commented out
-]);
+const isPublicRoute = (pathname) => {
+  const publicPaths = [
+    "/sign-in",
+    "/sign-up",
+    "/api/webhooks",
+    "/api/auth",
+  ];
+  
+  return publicPaths.some(path => pathname.startsWith(path));
+};
 
-export default clerkMiddleware(async (auth, req) => {
+export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
 
   // Allow public routes without authentication
-  if (isPublicRoute(req)) {
-    const { userId } = await auth();
-    if (userId) {
+  if (isPublicRoute(pathname)) {
+    // Check if user is already authenticated
+    const sessionCookie = getSessionCookie(req);
+    if (sessionCookie) {
       // If user is already signed in, redirect to landing page
       return NextResponse.redirect(new URL("/", req.url));
     }
     return NextResponse.next();
   }
 
-  // Better Auth check - commented out
-  // let isAuthenticated = false;
-  // try {
-  //   const betterAuthCookie = getSessionCookie(req);
-  //   if (betterAuthCookie) {
-  //     isAuthenticated = true;
-  //   }
-  // } catch (error) {
-  //   // Better Auth cookie check failed, will fall back to Clerk
-  // }
-
-  // Use Clerk authentication
-  const { userId } = await auth();
-  const isAuthenticated = !!userId;
+  // Check Better Auth session cookie (Edge Runtime compatible)
+  // Note: This only checks for cookie existence, not validation
+  // Full validation happens in server components/actions
+  const sessionCookie = getSessionCookie(req);
+  const isAuthenticated = !!sessionCookie;
 
   // Redirect unauthenticated users to sign-in for protected routes
-  if (!isAuthenticated && isProtectedRoute(req)) {
+  if (!isAuthenticated && isProtectedRoute(pathname)) {
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect_url", pathname);
     return NextResponse.redirect(signInUrl);
@@ -64,7 +62,7 @@ export default clerkMiddleware(async (auth, req) => {
   const response = NextResponse.next();
   response.headers.set("x-pathname", pathname);
   return response;
-});
+}
 
 export const config = {
   matcher: [

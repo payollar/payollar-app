@@ -1,13 +1,18 @@
 // app/api/portfolio/route.js
-import { getAuth } from "@clerk/nextjs/server";
+import { auth as betterAuth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 
-// ✅ POST → Add new portfolio items
+// POST → Add new portfolio items
 export async function POST(req) {
   try {
-    const { userId: clerkUserId } = getAuth(req);
-    if (!clerkUserId) {
+    const headersList = await headers();
+    const session = await betterAuth.api.getSession({
+      headers: headersList,
+    });
+    
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -18,9 +23,9 @@ export async function POST(req) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    // Find local user
+    // Find local user (Better Auth uses User.id directly)
     const user = await db.user.findUnique({
-      where: { clerkUserId },
+      where: { id: session.user.id },
       select: { id: true },
     });
 
@@ -28,92 +33,89 @@ export async function POST(req) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Save all portfolio items
-    const created = await Promise.all(
-      body.files.map((f) =>
-        db.portfolio.create({
-          data: {
-            title: f.name || null,
-            description: f.description || null,
-            url: f.url, // ✅ use ufsUrl on frontend
-            fileType: f.fileType || null,
-            fileKey: f.fileKey || null,
-            userId: user.id,
-          },
-        })
-      )
-    );
+    // Create portfolio items
+    const portfolioItems = await db.portfolio.createMany({
+      data: body.files.map((file) => ({
+        userId: user.id,
+        url: file.url,
+        fileKey: file.fileKey || null,
+        fileType: file.fileType || null,
+        title: file.name || null,
+        description: file.description || null,
+      })),
+    });
 
-    return NextResponse.json(created);
-  } catch (err) {
-    console.error("POST /api/portfolio error:", err);
+    return NextResponse.json({ success: true, count: portfolioItems.count });
+  } catch (error) {
+    console.error("POST /api/portfolio error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-// ✅ GET → Fetch current doctor’s portfolio
+// GET → Fetch portfolio items for a user
 export async function GET(req) {
   try {
-    const { userId: clerkUserId } = getAuth(req);
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const url = new URL(req.url);
+    const userId = url.searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID required" }, { status: 400 });
     }
 
-    // Find local user
-    const user = await db.user.findUnique({
-      where: { clerkUserId },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Get portfolio items
-    const items = await db.portfolio.findMany({
-      where: { userId: user.id },
+    const portfolioItems = await db.portfolio.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(items);
-  } catch (err) {
-    console.error("GET /api/portfolio error:", err);
+    return NextResponse.json(portfolioItems);
+  } catch (error) {
+    console.error("GET /api/portfolio error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-// ✅ DELETE → Remove a portfolio item
+// DELETE → Remove a portfolio item
 export async function DELETE(req) {
   try {
-    const { userId: clerkUserId } = getAuth(req);
-    if (!clerkUserId) {
+    const headersList = await headers();
+    const session = await betterAuth.api.getSession({
+      headers: headersList,
+    });
+    
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const url = new URL(req.url);
-    const id = url.searchParams.get("id");
+    const { searchParams } = new URL(req.url);
+    const portfolioId = searchParams.get("id");
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    if (!portfolioId) {
+      return NextResponse.json({ error: "Portfolio ID required" }, { status: 400 });
     }
 
-    const portfolio = await db.portfolio.findUnique({
-      where: { id },
-      include: { user: true },
+    // Get current user (Better Auth uses User.id directly)
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
     });
 
-    if (!portfolio) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (portfolio.user.clerkUserId !== clerkUserId) {
+    // Verify the portfolio item belongs to the user
+    const portfolioItem = await db.portfolio.findUnique({
+      where: { id: portfolioId },
+    });
+
+    if (!portfolioItem || portfolioItem.userId !== user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await db.portfolio.delete({ where: { id } });
+    await db.portfolio.delete({ where: { id: portfolioId } });
+
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("DELETE /api/portfolio error:", err);
+  } catch (error) {
+    console.error("DELETE /api/portfolio error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

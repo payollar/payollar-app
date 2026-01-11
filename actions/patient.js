@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
@@ -9,16 +9,16 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
  * Get all appointments for the authenticated patient
  */
 export async function getPatientAppointments() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const user = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
       select: {
@@ -60,16 +60,16 @@ export async function getPatientAppointments() {
  * Get client dashboard statistics and overview
  */
 export async function getClientStats() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const user = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
       include: {
@@ -146,16 +146,16 @@ export async function getClientStats() {
  * Get client credit transactions history
  */
 export async function getClientTransactions() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const user = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
       select: {
@@ -187,9 +187,9 @@ export async function getClientTransactions() {
  * Update client profile information
  */
 export async function updateClientProfile(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
@@ -197,7 +197,7 @@ export async function updateClientProfile(formData) {
     // Get the client
     const client = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
     });

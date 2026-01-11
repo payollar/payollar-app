@@ -27,10 +27,13 @@ export default async function OnboardingLayout({ children }) {
       }
       // If role is UNASSIGNED, continue to onboarding
     }
+    // If user is null (not found), still show onboarding page
+    // This can happen if the user was just created and the database hasn't synced yet
   } catch (error) {
     // Log error but don't break the page
     console.error("Error in onboarding layout:", error);
     // Continue to show onboarding page even if there's an error
+    // This allows users to complete onboarding even if there's a temporary issue
   }
 
   return (

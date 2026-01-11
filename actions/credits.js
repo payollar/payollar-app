@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 
@@ -31,12 +31,12 @@ export async function checkAndAllocateCredits(user) {
     }
 
     // Check if user has a subscription
-    const { has } = await auth();
-
-    // Check which plan the user has
-    const hasBasic = has({ plan: "free_user" });
-    const hasStandard = has({ plan: "standard" });
-    const hasPremium = has({ plan: "premium" });
+    // Note: Subscription plans would need to be stored in the database
+    // For now, defaulting to free_user plan
+    // TODO: Implement subscription system with Better Auth
+    const hasBasic = true; // Default to free plan
+    const hasStandard = false;
+    const hasPremium = false;
 
     let currentPlan = null;
     let creditsToAllocate = 0;

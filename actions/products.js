@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 
 const PLATFORM_FEE_PERCENTAGE = 0.01; // 1% platform fee
@@ -10,16 +10,16 @@ const PLATFORM_FEE_PERCENTAGE = 0.01; // 1% platform fee
  * Create a new digital product
  */
 export async function createDigitalProduct(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -79,16 +79,16 @@ export async function createDigitalProduct(formData) {
  * Update a digital product
  */
 export async function updateDigitalProduct(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
       select: {
@@ -163,16 +163,16 @@ export async function updateDigitalProduct(formData) {
  * Delete a digital product
  */
 export async function deleteDigitalProduct(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
       select: {
@@ -221,16 +221,16 @@ export async function deleteDigitalProduct(formData) {
  * Get all products for the current creator
  */
 export async function getCreatorProducts() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
       select: {
@@ -341,16 +341,16 @@ export async function getActiveProducts() {
  * Purchase a digital product
  */
 export async function purchaseDigitalProduct(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const buyer = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
     });
@@ -451,16 +451,16 @@ export async function purchaseDigitalProduct(formData) {
  * Get creator's product sales statistics
  */
 export async function getCreatorProductEarnings() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
       select: {
@@ -547,16 +547,16 @@ export async function getCreatorProductEarnings() {
  * Update creator's bank account information
  */
 export async function updateBankAccount(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });

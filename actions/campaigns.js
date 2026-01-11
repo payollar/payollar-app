@@ -1,23 +1,23 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 
 /**
  * Create a new campaign
  */
 export async function createCampaign(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const client = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
     });
@@ -128,16 +128,16 @@ export async function getActiveCampaigns() {
  * Get campaigns created by the current client
  */
 export async function getClientCampaigns() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const client = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
       select: {
@@ -193,16 +193,16 @@ export async function getClientCampaigns() {
  * Update campaign status
  */
 export async function updateCampaignStatus(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const client = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
       select: {
@@ -256,16 +256,16 @@ export async function updateCampaignStatus(formData) {
  * Apply to a campaign (for talents)
  */
 export async function applyToCampaign(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const talent = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -353,16 +353,16 @@ export async function applyToCampaign(formData) {
  * Update application status (for clients to accept/reject)
  */
 export async function updateApplicationStatus(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const client = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
       select: {

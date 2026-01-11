@@ -1,16 +1,16 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 
 /**
  * Set doctor's availability slots
  */
 export async function setAvailabilitySlots(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
@@ -18,7 +18,7 @@ export async function setAvailabilitySlots(formData) {
     // Get the doctor
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -89,16 +89,16 @@ export async function setAvailabilitySlots(formData) {
  * Get doctor's current availability slots
  */
 export async function getDoctorAvailability() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -129,16 +129,16 @@ export async function getDoctorAvailability() {
  */
 
 export async function getDoctorAppointments() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -172,16 +172,16 @@ export async function getDoctorAppointments() {
  * Cancel an appointment (can be done by both doctor and patient)
  */
 export async function cancelAppointment(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const user = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
       },
     });
 
@@ -243,16 +243,16 @@ export async function cancelAppointment(formData) {
  * Add notes to an appointment
  */
 export async function addAppointmentNotes(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -302,16 +302,16 @@ export async function addAppointmentNotes(formData) {
  * Mark an appointment as completed (only by doctor after end time)
  */
 export async function markAppointmentCompleted(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -409,9 +409,9 @@ export async function getPublicDoctorProfile(doctorId) {
  * Update creator/talent profile information
  */
 export async function updateCreatorProfile(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
@@ -419,7 +419,7 @@ export async function updateCreatorProfile(formData) {
     // Get the creator/talent
     const creator = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });

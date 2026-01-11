@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { db } from "@/lib/prisma";
 
 /**
@@ -8,14 +8,14 @@ import { db } from "@/lib/prisma";
  */
 export async function getCreatorSkills() {
   try {
-    const { userId } = await auth();
+    const authResult = await getAuthUserId();
 
-    if (!userId) {
+    if (!authResult || !authResult.userId) {
       return { skills: [], error: "Unauthorized" };
     }
 
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: authResult.userId },
       include: { skills: true },
     });
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 
 const CREDIT_VALUE = 10; // $10 per credit total
@@ -12,16 +12,16 @@ const DOCTOR_EARNINGS_PER_CREDIT = 8; // $8 to doctor
  * Request payout for all remaining credits
  */
 export async function requestPayout(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -90,16 +90,16 @@ export async function requestPayout(formData) {
  * Get doctor's payout history
  */
 export async function getDoctorPayouts() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
     });
@@ -127,16 +127,16 @@ export async function getDoctorPayouts() {
  * Get doctor's earnings summary (from product sales only)
  */
 export async function getDoctorEarnings() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const doctor = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CREATOR",
       },
       select: {

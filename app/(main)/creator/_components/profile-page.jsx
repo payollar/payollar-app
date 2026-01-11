@@ -36,11 +36,9 @@ import {
 import { format } from "date-fns";
 import { updateCreatorProfile } from "@/actions/doctor";
 import { toast } from "sonner";
-import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 export function ProfilePage({ user, availabilitySlots = [] }) {
-  const { getToken } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [copied, setCopied] = useState(false);
@@ -81,9 +79,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
     const fetchSkills = async () => {
       try {
         setIsLoadingSkills(true);
-        const token = await getToken();
         const res = await fetch("/api/skills", {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include", // Include session cookie
         });
         if (res.ok) {
           const data = await res.json();
@@ -150,13 +147,12 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
     if (!newSkill.trim()) return;
     
     try {
-      const token = await getToken();
       const res = await fetch("/api/skills", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Include session cookie
         body: JSON.stringify({ name: newSkill }),
       });
 
@@ -177,13 +173,9 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
   // Delete a skill
   const deleteSkill = async (id) => {
     try {
-      const token = await getToken();
       const res = await fetch(`/api/skills?id=${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
+        credentials: "include", // Include session cookie
       });
 
       if (res.ok) {
@@ -277,12 +269,9 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
       });
 
       // Update via API to include portfolio URLs
-      const token = await getToken();
       const response = await fetch("/api/creator/profile", {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include", // Include session cookie
         body: formData,
       });
 

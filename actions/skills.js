@@ -3,7 +3,7 @@
 import { db } from "@/lib/prisma";
 
 /**
- * Fetch a doctor's profile by their clerkUserId (for public profile)
+ * Fetch a doctor's profile by their ID (for public profile)
  */
 export async function getDoctorProfile(doctorId) {
     const doctor = await db.user.findUnique({

@@ -1,19 +1,23 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth as betterAuth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { db } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const headersList = await headers();
+    const session = await betterAuth.api.getSession({
+      headers: headersList,
+    });
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get the user from database
+    // Get the user from database (Better Auth uses User.id directly)
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: session.user.id },
     });
 
     if (!user || user.role !== "CREATOR") {
@@ -44,15 +48,18 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const { userId } = await auth();
+    const headersList = await headers();
+    const session = await betterAuth.api.getSession({
+      headers: headersList,
+    });
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get the user from database
+    // Get the user from database (Better Auth uses User.id directly)
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: session.user.id },
     });
 
     if (!user || user.role !== "CREATOR") {

@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -9,14 +9,14 @@ import { revalidatePath } from "next/cache";
  */
 export async function getCreatorServices() {
   try {
-    const { userId } = await auth();
+    const authResult = await getAuthUserId();
 
-    if (!userId) {
+    if (!authResult || !authResult.userId) {
       return { services: [], error: "Unauthorized" };
     }
 
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: authResult.userId },
       include: { services: { orderBy: { createdAt: "desc" } } },
     });
 
@@ -36,14 +36,14 @@ export async function getCreatorServices() {
  */
 export async function createService(formData) {
   try {
-    const { userId } = await auth();
+    const authResult = await getAuthUserId();
 
-    if (!userId) {
+    if (!authResult || !authResult.userId) {
       return { success: false, error: "Unauthorized" };
     }
 
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: authResult.userId },
     });
 
     if (!user || user.role !== "CREATOR") {
@@ -88,14 +88,14 @@ export async function createService(formData) {
  */
 export async function updateService(formData) {
   try {
-    const { userId } = await auth();
+    const authResult = await getAuthUserId();
 
-    if (!userId) {
+    if (!authResult || !authResult.userId) {
       return { success: false, error: "Unauthorized" };
     }
 
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: authResult.userId },
     });
 
     if (!user || user.role !== "CREATOR") {
@@ -150,14 +150,14 @@ export async function updateService(formData) {
  */
 export async function deleteService(formData) {
   try {
-    const { userId } = await auth();
+    const authResult = await getAuthUserId();
 
-    if (!userId) {
+    if (!authResult || !authResult.userId) {
       return { success: false, error: "Unauthorized" };
     }
 
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: authResult.userId },
     });
 
     if (!user || user.role !== "CREATOR") {

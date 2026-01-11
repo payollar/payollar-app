@@ -1,23 +1,24 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
+import { sendVerificationStatusEmail } from "@/lib/email";
 
 /**
  * Verifies if current user has admin role
  */
 export async function verifyAdmin() {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     return false;
   }
 
   try {
     const user = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
       },
     });
 
@@ -92,6 +93,11 @@ export async function updateDoctorStatus(formData) {
   }
 
   try {
+    const doctor = await db.user.findUnique({
+      where: { id: doctorId },
+      select: { email: true, name: true },
+    });
+
     await db.user.update({
       where: {
         id: doctorId,
@@ -100,6 +106,20 @@ export async function updateDoctorStatus(formData) {
         verificationStatus: status,
       },
     });
+
+    // Send verification status email
+    if (doctor?.email) {
+      try {
+        await sendVerificationStatusEmail(
+          doctor.email,
+          doctor.name || "Creator",
+          status
+        );
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Don't throw - email failure shouldn't block status update
+      }
+    }
 
     revalidatePath("/admin");
     return { success: true };
@@ -193,9 +213,12 @@ export async function approvePayout(formData) {
 
   try {
     // Get admin user info
-    const { userId } = await auth();
+    const authResult = await getAuthUserId();
+    if (!authResult || !authResult.userId) {
+      throw new Error("Unauthorized");
+    }
     const admin = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: authResult.userId },
     });
 
     // Find the payout request

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import { sendWelcomeEmail } from "@/lib/email";
 
 /**
  * Webhook to handle Better Auth user creation
@@ -53,6 +54,16 @@ export async function POST(req) {
           role: "UNASSIGNED", // User will select role during onboarding
         },
       });
+
+      // Send welcome email (don't block on email failure)
+      if (newUser.email) {
+        try {
+          await sendWelcomeEmail(newUser.email, newUser.name || "there");
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Continue even if email fails
+        }
+      }
 
       return NextResponse.json({ success: true, user: newUser });
     }

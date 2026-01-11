@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 import { Vonage } from "@vonage/server-sdk";
 import { addDays, addMinutes, format, isBefore, endOfDay } from "date-fns";
 import { Auth } from "@vonage/auth";
+import { sendAppointmentConfirmationEmail } from "@/lib/email";
 
 // Initialize Vonage Video API client
 const credentials = new Auth({
@@ -19,9 +20,9 @@ const vonage = new Vonage(credentials, options);
  * Book a new appointment with a doctor
  */
 export async function bookAppointment(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
@@ -29,7 +30,7 @@ export async function bookAppointment(formData) {
     // Get the patient user
     const patient = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
         role: "CLIENT",
       },
     });
@@ -119,6 +120,23 @@ export async function bookAppointment(formData) {
       },
     });
 
+    // Send confirmation email to client
+    if (patient.email) {
+      try {
+        const duration = Math.round((endTime - startTime) / (1000 * 60)); // Duration in minutes
+        await sendAppointmentConfirmationEmail(patient.email, patient.name || "Client", {
+          talentName: doctor.name || "Talent",
+          date: format(startTime, "EEEE, MMMM d, yyyy"),
+          time: format(startTime, "h:mm a"),
+          duration,
+          type: "Video Call",
+        });
+      } catch (emailError) {
+        console.error("Failed to send appointment confirmation email:", emailError);
+        // Don't throw - email failure shouldn't block appointment creation
+      }
+    }
+
     revalidatePath("/appointments");
     return { success: true, appointment: appointment };
   } catch (error) {
@@ -144,16 +162,16 @@ async function createVideoSession() {
  * This will be called when either doctor or patient is about to join the call
  */
 export async function generateVideoToken(formData) {
-  const { userId } = await auth();
+  const authResult = await getAuthUserId();
 
-  if (!userId) {
+  if (!authResult || !authResult.userId) {
     throw new Error("Unauthorized");
   }
 
   try {
     const user = await db.user.findUnique({
       where: {
-        clerkUserId: userId,
+        id: authResult.userId,
       },
     });
 

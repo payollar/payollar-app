@@ -1,4 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth as betterAuth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 
@@ -10,20 +11,24 @@ export async function GET(req) {
     let user;
 
     if (doctorId) {
-      // fetch skills for any doctor by clerkUserId
+      // fetch skills for any doctor by ID
       user = await db.user.findUnique({
-        where: { clerkUserId: doctorId },
+        where: { id: doctorId },
         include: { skills: true },
       });
     } else {
       // fetch skills for logged-in user
-      const { userId } = await auth();
-      if (!userId) {
+      const headersList = await headers();
+      const session = await betterAuth.api.getSession({
+        headers: headersList,
+      });
+      
+      if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
       user = await db.user.findUnique({
-        where: { clerkUserId: userId },
+        where: { id: session.user.id }, // Better Auth uses User.id directly
         include: { skills: true },
       });
     }
@@ -37,16 +42,20 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const headersList = await headers();
+    const session = await betterAuth.api.getSession({
+      headers: headersList,
+    });
+    
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { name } = await req.json();
 
-    // 1. Lookup the user by clerkUserId
+    // 1. Lookup the user by ID (Better Auth uses User.id directly)
     const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+      where: { id: session.user.id },
     });
 
     if (!user) {
@@ -57,7 +66,7 @@ export async function POST(req) {
     const skill = await db.skill.create({
       data: {
         name,
-        userId: user.id,  // ✅ correct way
+        userId: user.id,
       },
     });
 
@@ -68,21 +77,32 @@ export async function POST(req) {
   }
 }
 
-
-
-// ✅ DELETE handler
+// DELETE handler
 export async function DELETE(req) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const headersList = await headers();
+    const session = await betterAuth.api.getSession({
+      headers: headersList,
+    });
+    
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
-    const skillId = searchParams.get("id"); // e.g. /api/skills?id=123
+    const skillId = searchParams.get("id");
 
     if (!skillId) {
       return NextResponse.json({ error: "Missing skill ID" }, { status: 400 });
+    }
+
+    // Get current user (Better Auth uses User.id directly)
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Make sure the skill belongs to the logged-in user
@@ -91,7 +111,7 @@ export async function DELETE(req) {
       include: { user: true },
     });
 
-    if (!skill || skill.user.clerkUserId !== userId) {
+    if (!skill || skill.user.id !== user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
