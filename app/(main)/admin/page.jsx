@@ -12,6 +12,9 @@ import {
   getVerifiedMediaAgencies,
 } from "@/actions/admin";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   // Fetch all data in parallel
   const [pendingDoctorsData, verifiedDoctorsData, pendingPayoutsData, pendingAgenciesData, verifiedAgenciesData] =

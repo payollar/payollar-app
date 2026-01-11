@@ -4,6 +4,9 @@ import { getDoctorAppointments } from "@/actions/doctor";
 import { getDoctorEarnings, getDoctorPayouts } from "@/actions/payout";
 import { OverviewPage } from "./_components/overview-page";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function CreatorDashboardPage() {
   const user = await getCurrentUser();
 

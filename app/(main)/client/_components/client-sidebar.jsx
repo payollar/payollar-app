@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Search,
@@ -24,7 +24,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { SignOutButton } from "@clerk/nextjs";
+import { signOut } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 const menuItems = [
   {
@@ -66,6 +67,27 @@ const menuItems = [
 
 export function ClientSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Signed out successfully");
+            router.push("/");
+            router.refresh();
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error?.message || "Failed to sign out");
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast.error("An error occurred while signing out");
+    }
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -115,12 +137,14 @@ export function ClientSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SignOutButton>
-              <SidebarMenuButton className="w-full" tooltip="Logout">
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </SidebarMenuButton>
-            </SignOutButton>
+            <SidebarMenuButton 
+              className="w-full" 
+              tooltip="Logout"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

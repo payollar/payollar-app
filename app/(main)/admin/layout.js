@@ -9,6 +9,9 @@ export const metadata = {
   description: "Manage doctors, patients, and platform settings",
 };
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({ children }) {
   // Verify the user has admin access
   const isAdmin = await verifyAdmin();

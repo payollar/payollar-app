@@ -6,6 +6,9 @@ export const metadata = {
   description: "Complete your profile to get started with Payollar",
 };
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function OnboardingLayout({ children }) {
   try {
     // Get complete user profile

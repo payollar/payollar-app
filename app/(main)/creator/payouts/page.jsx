@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getDoctorPayouts, getDoctorEarnings } from "@/actions/payout";
 import { CreatorPayoutsPage } from "../_components/creator-payouts";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function CreatorPayoutsPageRoute() {
   const user = await getCurrentUser();
 

@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getDoctorAvailability } from "@/actions/doctor";
 import { AvailabilitySettings } from "../_components/availability-settings";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function CreatorAvailabilityPage() {
   const user = await getCurrentUser();
 

@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getClientCampaigns } from "@/actions/campaigns";
 import { ClientCampaigns } from "../_components/campaigns";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function ClientCampaignsPage() {
   const user = await getCurrentUser();
 

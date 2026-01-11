@@ -11,6 +11,9 @@ import Link from "next/link";
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function VerificationPage() {
   // Get complete user profile
   const user = await getCurrentUser();

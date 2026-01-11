@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getCreatorProducts, getCreatorProductEarnings } from "@/actions/products";
 import { CreatorProducts } from "../_components/products";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function CreatorProductsPage() {
   const user = await getCurrentUser();
 

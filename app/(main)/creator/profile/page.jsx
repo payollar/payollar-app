@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getDoctorAvailability } from "@/actions/doctor";
 import { ProfilePage } from "../_components/profile-page";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function CreatorProfilePage() {
   const user = await getCurrentUser();
 

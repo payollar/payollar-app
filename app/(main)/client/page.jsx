@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { ClientOverview } from "./_components/overview";
 import { getClientCampaigns } from "@/actions/campaigns";
 
+// Force dynamic rendering to avoid static generation issues with headers()
+export const dynamic = 'force-dynamic';
+
 export default async function ClientDashboardPage() {
   const user = await getCurrentUser();
 
