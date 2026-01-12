@@ -98,6 +98,19 @@ model Session {
   @@index([token])
 }
 
+// Better Auth Verification model - stores email verification tokens and other verification data
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String   // The identifier for the verification request (e.g., email)
+  value      String   // The value to be verified (e.g., verification token)
+  expiresAt  DateTime // When the verification expires
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier, value])
+  @@index([expiresAt])
+}
+
 model Skill {
   id        String   @id @default(uuid())
   name      String

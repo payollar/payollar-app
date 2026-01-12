@@ -35,17 +35,67 @@ function addCorsHeaders(response, origin) {
   });
 }
 
-// Wrap handlers to add CORS headers
+// Wrap handlers to add CORS headers and error handling
 export async function GET(req, context) {
-  const response = await handler.GET(req, context);
-  const origin = req.headers.get("origin");
-  return addCorsHeaders(response, origin);
+  try {
+    const response = await handler.GET(req, context);
+    const origin = req.headers.get("origin");
+    
+    // Log 500 errors for debugging
+    if (response.status === 500) {
+      const responseText = await response.clone().text();
+      console.error("Better Auth GET returned 500:", responseText);
+    }
+    
+    return addCorsHeaders(response, origin);
+  } catch (error) {
+    console.error("Better Auth GET error:", error);
+    console.error("Error stack:", error.stack);
+    const origin = req.headers.get("origin");
+    const errorResponse = NextResponse.json(
+      { 
+        error: "Internal server error",
+        message: error.message || "An error occurred",
+        ...(process.env.NODE_ENV === "development" && { 
+          stack: error.stack,
+          details: error.toString()
+        })
+      },
+      { status: 500 }
+    );
+    return addCorsHeaders(errorResponse, origin);
+  }
 }
 
 export async function POST(req, context) {
-  const response = await handler.POST(req, context);
-  const origin = req.headers.get("origin");
-  return addCorsHeaders(response, origin);
+  try {
+    const response = await handler.POST(req, context);
+    const origin = req.headers.get("origin");
+    
+    // Log 500 errors for debugging
+    if (response.status === 500) {
+      const responseText = await response.clone().text();
+      console.error("Better Auth POST returned 500:", responseText);
+    }
+    
+    return addCorsHeaders(response, origin);
+  } catch (error) {
+    console.error("Better Auth POST error:", error);
+    console.error("Error stack:", error.stack);
+    const origin = req.headers.get("origin");
+    const errorResponse = NextResponse.json(
+      { 
+        error: "Internal server error",
+        message: error.message || "An error occurred",
+        ...(process.env.NODE_ENV === "development" && { 
+          stack: error.stack,
+          details: error.toString()
+        })
+      },
+      { status: 500 }
+    );
+    return addCorsHeaders(errorResponse, origin);
+  }
 }
 
 // Handle OPTIONS preflight requests
