@@ -428,13 +428,30 @@ export default function MediaAgencyForm() {
                     <UploadButton
                       endpoint="mediaAgencyImage"
                       onClientUploadComplete={(res) => {
-                        if (res && res[0]?.url) {
-                          handleListingChange("imageUrl", res[0].url)
-                          toast.success("Image uploaded successfully")
+                        try {
+                          let imageUrl = null;
+                          
+                          if (Array.isArray(res) && res.length > 0) {
+                            const file = res[0];
+                            imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                          } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                            imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                          }
+                          
+                          if (imageUrl) {
+                            handleListingChange("imageUrl", imageUrl);
+                            toast.success("Image uploaded successfully");
+                          } else {
+                            toast.error("Upload completed but URL not found");
+                          }
+                        } catch (error) {
+                          console.error("Error processing upload:", error);
+                          toast.error("Error processing upload");
                         }
                       }}
                       onUploadError={(error) => {
-                        toast.error(`Upload failed: ${error.message}`)
+                        console.error("Upload error:", error);
+                        toast.error(`Upload failed: ${error.message || "Please try again."}`);
                       }}
                     />
                     {currentListing.imageUrl && (

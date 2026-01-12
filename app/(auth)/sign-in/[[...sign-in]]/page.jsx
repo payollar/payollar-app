@@ -70,7 +70,7 @@ function SignInForm() {
                 if (data.role) {
                   // User has a role, redirect to appropriate dashboard
                   if (data.role === "CLIENT") {
-                    window.location.href = "/talents";
+                    window.location.href = "/";
                   } else if (data.role === "CREATOR") {
                     if (data.verificationStatus === "VERIFIED") {
                       window.location.href = "/creator";
@@ -135,7 +135,7 @@ function SignInForm() {
       {/* Left side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <Image
-          src="/design.jpg"
+          src="/banner2.jpeg"
           alt="Login background"
           fill
           className="object-cover"

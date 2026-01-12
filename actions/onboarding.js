@@ -96,7 +96,7 @@ export async function setUserRole(formData) {
       });
 
       revalidatePath("/");
-      return { success: true, redirect: "/talents" };
+      return { success: true, redirect: "/" };
     }
 
     // For creator role - need additional information

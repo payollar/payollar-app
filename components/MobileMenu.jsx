@@ -19,23 +19,25 @@ export default function MobileMenu({ publicNavItems, mediaSubItems, roleNavItems
 
         {/* Scrollable nav content */}
         <div className="flex-1 overflow-y-auto space-y-6">
-          {/* Media dropdown-style */}
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide mb-2 text-muted-foreground">
-              Media
-            </p>
-            <div className="flex flex-col gap-2 ml-2">
-              {mediaSubItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="block rounded-md px-2 py-1 text-sm hover:bg-muted hover:text-primary transition"
-                >
-                  {item.label}
-                </Link>
-              ))}
+          {/* Media dropdown-style - only show if items exist (not for creators) */}
+          {mediaSubItems.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide mb-2 text-muted-foreground">
+                Media
+              </p>
+              <div className="flex flex-col gap-2 ml-2">
+                {mediaSubItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="block rounded-md px-2 py-1 text-sm hover:bg-muted hover:text-primary transition"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Public Links */}
           <div>

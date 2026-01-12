@@ -601,6 +601,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                           alt="Profile"
                           fill
                           className="object-cover"
+                          unoptimized={profileImage?.startsWith('http')}
+                          onError={(e) => {
+                            console.error("Image load error:", e);
+                            toast.error("Failed to load image. Please try uploading again.");
+                          }}
                         />
                       </div>
                     )}
@@ -608,14 +613,30 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                       <UploadButton
                         endpoint="profileImage"
                         onClientUploadComplete={(res) => {
-                          if (res && res[0]?.url) {
-                            setProfileImage(res[0].url);
-                            toast.success("Profile picture uploaded successfully");
+                          try {
+                            let imageUrl = null;
+                            
+                            if (Array.isArray(res) && res.length > 0) {
+                              const file = res[0];
+                              imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                            } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                              imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                            }
+                            
+                            if (imageUrl) {
+                              setProfileImage(imageUrl);
+                              toast.success("Profile picture uploaded successfully");
+                            } else {
+                              toast.error("Upload completed but URL not found");
+                            }
+                          } catch (error) {
+                            console.error("Error processing upload:", error);
+                            toast.error("Error processing upload");
                           }
                         }}
                         onUploadError={(error) => {
                           console.error("Upload error:", error);
-                          toast.error(`Upload failed: ${error.message}`);
+                          toast.error(`Upload failed: ${error.message || "Please try again."}`);
                         }}
                       />
                     </div>

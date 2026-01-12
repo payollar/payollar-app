@@ -41,6 +41,9 @@ export default async function Header() {
     { href: "/media/schedule", label: "Schedule Media" },
   ];
 
+  // Show media menu only for CLIENT or ADMIN roles (not CREATOR)
+  const showMediaMenu = user?.role === "CLIENT" || user?.role === "ADMIN";
+
   return (
     <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-20">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -52,30 +55,32 @@ export default async function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-6">
-          {/* Media dropdown */}
-          <NavigationMenu viewport={false}>
-            <NavigationMenuList>
-              <NavigationMenuItem className="relative">
-                <NavigationMenuTrigger>Media</NavigationMenuTrigger>
-                <NavigationMenuContent className="absolute left-0 top-full mt-1.5 w-[220px] z-50 bg-popover border rounded-md shadow-md">
-                  <ul className="grid gap-3 p-4">
-                    {mediaSubItems.map((item) => (
-                      <li key={item.href}>
-                        <NavigationMenuLink asChild>
-                          <Link
-                            href={item.href}
-                            className="block rounded-md px-3 py-2 text-sm hover:bg-muted hover:text-primary transition-colors"
-                          >
-                            {item.label}
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          {/* Media dropdown - only show for CLIENT or ADMIN */}
+          {showMediaMenu && (
+            <NavigationMenu viewport={false}>
+              <NavigationMenuList>
+                <NavigationMenuItem className="relative">
+                  <NavigationMenuTrigger>Media</NavigationMenuTrigger>
+                  <NavigationMenuContent className="absolute left-0 top-full mt-1.5 w-[220px] z-50 bg-popover border rounded-md shadow-md">
+                    <ul className="grid gap-3 p-4">
+                      {mediaSubItems.map((item) => (
+                        <li key={item.href}>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              href={item.href}
+                              className="block rounded-md px-3 py-2 text-sm hover:bg-muted hover:text-primary transition-colors"
+                            >
+                              {item.label}
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          )}
 
           {/* Public */}
           {publicNavItems.map((item) => (
@@ -97,7 +102,12 @@ export default async function Header() {
 
         {/* Mobile Menu */}
         <div className="md:hidden flex items-center gap-2">
-          <MobileMenu publicNavItems={publicNavItems} mediaSubItems={mediaSubItems} roleNavItems={roleNavItems} user={user} />
+          <MobileMenu 
+            publicNavItems={publicNavItems} 
+            mediaSubItems={showMediaMenu ? mediaSubItems : []} 
+            roleNavItems={roleNavItems} 
+            user={user} 
+          />
         </div>
       </nav>
     </header>

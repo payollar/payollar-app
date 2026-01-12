@@ -138,7 +138,7 @@ export default function SignUpPage() {
       {/* Left side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <Image
-          src="/design2.jpg"
+          src="/banner2.jpeg"
           alt="Sign up background"
           fill
           className="object-cover"
@@ -156,15 +156,15 @@ export default function SignUpPage() {
             </p>
             <div className="grid grid-cols-3 gap-4 pt-4">
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-300">10K+</div>
+                <div className="text-3xl font-bold text-emerald-300">1K+</div>
                 <div className="text-sm text-emerald-200">Active Users</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-300">5K+</div>
+                <div className="text-3xl font-bold text-emerald-300">500+</div>
                 <div className="text-sm text-emerald-200">Creators</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-300">50K+</div>
+                <div className="text-3xl font-bold text-emerald-300">100+</div>
                 <div className="text-sm text-emerald-200">Bookings</div>
               </div>
             </div>

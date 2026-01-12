@@ -398,13 +398,18 @@ export default function OnboardingPage() {
                     <Label>Profile Picture</Label>
                     <div className="flex items-center gap-4">
                       {uploadedImageUrl ? (
-                        <div className="relative">
+                        <div className="relative w-24 h-24">
                           <Image
                             src={uploadedImageUrl}
                             alt="Profile preview"
                             width={100}
                             height={100}
                             className="rounded-full object-cover"
+                            unoptimized={uploadedImageUrl?.startsWith('http')}
+                            onError={(e) => {
+                              console.error("Image load error:", e);
+                              toast.error("Failed to load image. Please try uploading again.");
+                            }}
                           />
                           <Button
                             type="button"
@@ -424,11 +429,30 @@ export default function OnboardingPage() {
                       <UploadButton
                         endpoint="profileImage"
                         onClientUploadComplete={(res) => {
-                          setUploadedImageUrl(res[0].url);
-                          toast.success("Profile picture uploaded");
+                          try {
+                            let imageUrl = null;
+                            
+                            if (Array.isArray(res) && res.length > 0) {
+                              const file = res[0];
+                              imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                            } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                              imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                            }
+                            
+                            if (imageUrl) {
+                              setUploadedImageUrl(imageUrl);
+                              toast.success("Profile picture uploaded");
+                            } else {
+                              toast.error("Upload completed but URL not found");
+                            }
+                          } catch (error) {
+                            console.error("Error processing upload:", error);
+                            toast.error("Error processing upload");
+                          }
                         }}
                         onUploadError={(err) => {
-                          toast.error("Upload failed. Please try again.");
+                          console.error("Upload error:", err);
+                          toast.error(`Upload failed: ${err.message || "Please try again."}`);
                         }}
                       />
                     </div>

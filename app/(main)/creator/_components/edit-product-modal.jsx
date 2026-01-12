@@ -205,19 +205,41 @@ export function EditProductModal({ open, onOpenChange, product }) {
                     alt="Product preview"
                     fill
                     className="object-cover"
+                    unoptimized={formData.imageUrl?.startsWith('http')}
+                    onError={(e) => {
+                      console.error("Image load error:", e);
+                      toast.error("Failed to load image. Please try uploading again.");
+                    }}
                   />
                 </div>
               )}
               <UploadButton
                 endpoint="portfolioUploader"
                 onClientUploadComplete={(res) => {
-                  if (res && res[0]?.url) {
-                    handleInputChange("imageUrl", res[0].url);
-                    toast.success("Image uploaded successfully");
+                  try {
+                    let imageUrl = null;
+                    
+                    if (Array.isArray(res) && res.length > 0) {
+                      const file = res[0];
+                      imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                    } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                      imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                    }
+                    
+                    if (imageUrl) {
+                      handleInputChange("imageUrl", imageUrl);
+                      toast.success("Image uploaded successfully");
+                    } else {
+                      toast.error("Upload completed but URL not found");
+                    }
+                  } catch (error) {
+                    console.error("Error processing upload:", error);
+                    toast.error("Error processing upload");
                   }
                 }}
                 onUploadError={(error) => {
-                  toast.error(`Upload failed: ${error.message}`);
+                  console.error("Upload error:", error);
+                  toast.error(`Upload failed: ${error.message || "Please try again."}`);
                 }}
               />
             </div>
@@ -232,14 +254,34 @@ export function EditProductModal({ open, onOpenChange, product }) {
             <UploadButton
               endpoint="portfolioUploader"
               onClientUploadComplete={(res) => {
-                if (res && res[0]?.url) {
-                  handleInputChange("fileUrl", res[0].url);
-                  handleInputChange("fileType", res[0].type || "");
-                  toast.success("File uploaded successfully");
+                try {
+                  let fileUrl = null;
+                  let fileType = null;
+                  
+                  if (Array.isArray(res) && res.length > 0) {
+                    const file = res[0];
+                    fileUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                    fileType = file?.type || file?.serverData?.type || "";
+                  } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                    fileUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                    fileType = res.type || res.serverData?.type || "";
+                  }
+                  
+                  if (fileUrl) {
+                    handleInputChange("fileUrl", fileUrl);
+                    handleInputChange("fileType", fileType);
+                    toast.success("File uploaded successfully");
+                  } else {
+                    toast.error("Upload completed but URL not found");
+                  }
+                } catch (error) {
+                  console.error("Error processing upload:", error);
+                  toast.error("Error processing upload");
                 }
               }}
               onUploadError={(error) => {
-                toast.error(`Upload failed: ${error.message}`);
+                console.error("Upload error:", error);
+                toast.error(`Upload failed: ${error.message || "Please try again."}`);
               }}
             />
             {formData.fileUrl && (

@@ -66,6 +66,10 @@ export function ClientProfile({ user }) {
                     alt={fullName}
                     fill
                     className="object-cover"
+                    unoptimized={true}
+                    onError={() => {
+                      toast.error("Failed to load profile image");
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-800">
@@ -135,24 +139,45 @@ export function ClientProfile({ user }) {
                 {profileImage && (
                   <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-700">
                     <Image
+                      key={profileImage}
                       src={profileImage}
                       alt="Profile"
                       fill
                       className="object-cover"
+                      unoptimized={true}
+                      onError={() => {
+                        toast.error("Failed to load profile image");
+                      }}
                     />
                   </div>
                 )}
                 <UploadButton
                   endpoint="profileImage"
                   onClientUploadComplete={(res) => {
-                    if (res && res[0]?.url) {
-                      setProfileImage(res[0].url);
-                      toast.success("Profile picture uploaded successfully");
+                    try {
+                      let imageUrl = null;
+                      
+                      if (Array.isArray(res) && res.length > 0) {
+                        const file = res[0];
+                        imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                      } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                        imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                      }
+                      
+                      if (imageUrl) {
+                        setProfileImage(imageUrl);
+                        toast.success("Profile picture uploaded successfully");
+                      } else {
+                        toast.error("Upload completed but URL not found");
+                      }
+                    } catch (error) {
+                      console.error("Error processing upload:", error);
+                      toast.error("Error processing upload");
                     }
                   }}
                   onUploadError={(error) => {
                     console.error("Upload error:", error);
-                    toast.error(`Upload failed: ${error.message}`);
+                    toast.error(`Upload failed: ${error.message || "Please try again."}`);
                   }}
                 />
               </div>

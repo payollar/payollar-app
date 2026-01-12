@@ -287,26 +287,64 @@ export function CreateCampaignModal({ open, onOpenChange }) {
           <div className="space-y-2">
             <Label className="text-gray-300">Campaign Image</Label>
             <div className="space-y-3">
-              {formData.imageUrl && (
-                <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-700">
+              {formData.imageUrl ? (
+                <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-700 bg-gray-800">
                   <Image
                     src={formData.imageUrl}
                     alt="Campaign preview"
                     fill
                     className="object-cover"
+                    unoptimized={true}
+                    onError={() => {
+                      toast.error("Failed to load image. Please try uploading again.");
+                    }}
                   />
+                </div>
+              ) : (
+                <div className="relative w-full h-48 rounded-lg border-2 border-dashed border-gray-700 bg-gray-800/50 flex items-center justify-center">
+                  <p className="text-sm text-gray-400">No image uploaded yet</p>
                 </div>
               )}
               <UploadButton
                 endpoint="portfolioUploader"
                 onClientUploadComplete={(res) => {
-                  if (res && res[0]?.url) {
-                    handleInputChange("imageUrl", res[0].url);
-                    toast.success("Image uploaded successfully");
+                  try {
+                    let imageUrl = null;
+                    
+                    if (Array.isArray(res) && res.length > 0) {
+                      const file = res[0];
+                      // Construct URL from key (most reliable)
+                      if (file?.key) {
+                        imageUrl = `https://utfs.io/f/${file.key}`;
+                      } else if (file?.url) {
+                        imageUrl = file.url;
+                      } else if (file?.serverData?.url) {
+                        imageUrl = file.serverData.url;
+                      }
+                    } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                      if (res.key) {
+                        imageUrl = `https://utfs.io/f/${res.key}`;
+                      } else if (res.url) {
+                        imageUrl = res.url;
+                      } else if (res.serverData?.url) {
+                        imageUrl = res.serverData.url;
+                      }
+                    }
+                    
+                    if (imageUrl) {
+                      setFormData(prev => ({ ...prev, imageUrl }));
+                      toast.success("Image uploaded successfully");
+                    } else {
+                      toast.error("Upload completed but URL not found");
+                    }
+                  } catch (error) {
+                    console.error("Error processing upload:", error);
+                    toast.error("Error processing upload");
                   }
                 }}
                 onUploadError={(error) => {
-                  toast.error(`Upload failed: ${error.message}`);
+                  console.error("Upload error:", error);
+                  toast.error(`Upload failed: ${error.message || "Please try again."}`);
                 }}
               />
             </div>
