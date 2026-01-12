@@ -8,7 +8,7 @@ export const metadata = {
 
 export default async function ClientDashboardLayout({ children }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <ClientSidebar />
       <SidebarInset className="bg-background">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

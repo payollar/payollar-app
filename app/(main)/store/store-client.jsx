@@ -32,29 +32,31 @@ import Image from "next/image";
 import { purchaseDigitalProduct } from "@/actions/products";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 
 export function StoreClient({ initialProducts = [] }) {
   const router = useRouter();
-  const { userId, isSignedIn } = useAuth();
+  const { data: session, isPending } = useSession();
+  const isSignedIn = !!session?.user;
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
-  const filteredProducts = initialProducts.filter((product) => {
+  const filteredProducts = (initialProducts || []).filter((product) => {
+    if (!product || !product.title) return false;
     const matchesSearch =
       product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (product.description || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       categoryFilter === "all" || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const allCategories = [
-    ...new Set(initialProducts.map((p) => p.category).filter(Boolean)),
+    ...new Set((initialProducts || []).map((p) => p?.category).filter(Boolean)),
   ].sort();
 
   const handlePurchase = (product) => {
@@ -98,7 +100,7 @@ export function StoreClient({ initialProducts = [] }) {
           <div className="text-center space-y-4 max-w-3xl mx-auto">
             <Badge variant="secondary" className="w-fit mx-auto">
               <Package className="h-3 w-3 mr-1" />
-              {initialProducts.length} Products Available
+              {initialProducts?.length || 0} Products Available
             </Badge>
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-balance">
               Digital Products Store
@@ -185,16 +187,22 @@ export function StoreClient({ initialProducts = [] }) {
                   <CardContent className="p-6 space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Link
-                          href={`/talents/${product.creator.specialty || "creator"}/${product.creator.id}`}
-                          className="text-sm font-medium text-primary hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {product.creator.name || "Creator"}
-                        </Link>
+                        {product.creator ? (
+                          <Link
+                            href={`/talents/${product.creator.specialty ? encodeURIComponent(product.creator.specialty) : "creator"}/${product.creator.id}`}
+                            className="text-sm font-medium text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {product.creator.name || "Creator"}
+                          </Link>
+                        ) : (
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Creator
+                          </span>
+                        )}
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Download className="h-3 w-3 mr-1" />
-                          {product.purchaseCount || 0}
+                          {product.purchaseCount ?? product.downloadCount ?? 0}
                         </div>
                       </div>
                       <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
@@ -209,7 +217,7 @@ export function StoreClient({ initialProducts = [] }) {
                       <div className="flex items-center">
                         <DollarSign className="h-5 w-5 text-primary mr-1" />
                         <span className="text-2xl font-bold">
-                          ₵{product.price.toFixed(2)}
+                          ₵{(product.price || 0).toFixed(2)}
                         </span>
                       </div>
                       <Button className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -259,19 +267,19 @@ export function StoreClient({ initialProducts = [] }) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Product Price:</span>
                   <span className="text-white font-medium">
-                    ₵{selectedProduct.price.toFixed(2)}
+                    ₵{(selectedProduct.price || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Platform Fee (1%):</span>
                   <span className="text-white font-medium">
-                    ₵{(selectedProduct.price * 0.01).toFixed(2)}
+                    ₵{((selectedProduct.price || 0) * 0.01).toFixed(2)}
                   </span>
                 </div>
                 <div className="border-t border-border pt-3 flex justify-between font-bold">
                   <span className="text-white">Total:</span>
                   <span className="text-emerald-400">
-                    ₵{selectedProduct.price.toFixed(2)}
+                    ₵{(selectedProduct.price || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
