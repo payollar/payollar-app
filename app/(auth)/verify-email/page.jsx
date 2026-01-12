@@ -21,16 +21,30 @@ function VerifyEmailContent() {
   
   const token = searchParams.get("token");
   const error = searchParams.get("error");
+  const source = searchParams.get("source"); // Check if coming from Google OAuth
 
   // Check if user is already verified
   useEffect(() => {
     if (!isPending && session?.user) {
       if (session.user.emailVerified) {
-        // User is already verified, redirect to onboarding
-        router.push("/onboarding");
+        // User is already verified (including Google OAuth users)
+        // For Google OAuth users, show a brief welcome message before redirecting
+        if (source === "google") {
+          // Show success message for Google sign-up
+          toast.success("Welcome to Payollar! Your email is verified.", {
+            duration: 3000,
+          });
+          // Small delay to show the message, then redirect
+          setTimeout(() => {
+            router.push("/onboarding");
+          }, 1500);
+        } else {
+          // Regular verified user, redirect immediately
+          router.push("/onboarding");
+        }
       }
     }
-  }, [session, isPending, router]);
+  }, [session, isPending, router, source]);
 
   const handleResendVerification = async () => {
     if (!session?.user?.email) {
@@ -129,8 +143,8 @@ function VerifyEmailContent() {
     );
   }
 
-  // Show success if token is present (verification successful)
-  if (token && !error) {
+  // Show success if token is present (verification successful) or if Google OAuth user
+  if ((token && !error) || (source === "google" && session?.user?.emailVerified)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
         <Card className="w-full max-w-md">
@@ -140,7 +154,9 @@ function VerifyEmailContent() {
               <CardTitle>Email Verified!</CardTitle>
             </div>
             <CardDescription>
-              Your email has been successfully verified. You can now continue with onboarding.
+              {source === "google" 
+                ? "Welcome to Payollar! Your Google email is verified. You can now continue with onboarding."
+                : "Your email has been successfully verified. You can now continue with onboarding."}
             </CardDescription>
           </CardHeader>
           <CardContent>

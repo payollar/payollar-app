@@ -365,7 +365,9 @@ export default function SignUpPage() {
             onClick={async () => {
               try {
                 setIsLoading(true);
-                await signInWithGoogle("/onboarding");
+                // For sign-up, redirect to verify-email page first (even though Google emails are verified)
+                // This ensures new Google users see the welcome message and follow the same flow
+                await signInWithGoogle("/verify-email?source=google");
               } catch (error) {
                 console.error("Google sign-in error:", error);
                 toast.error("Failed to sign in with Google. Please try again.");

@@ -1,7 +1,7 @@
-"use server"
+"use server";
 
-import { db } from "@/lib/prisma"
-import { checkUser } from "@/lib/checkUser"
+import { db } from "@/lib/prisma";
+import { checkUser } from "@/lib/checkUser";
 
 /**
  * Submit media agency registration form
@@ -16,13 +16,13 @@ export async function submitMediaAgencyForm(data) {
       region,
       country,
       listings, // Array of media listings
-    } = data
+    } = data;
 
     // Get current user if authenticated
-    let userId = null
+    let userId = null;
     try {
-      const user = await checkUser()
-      userId = user?.id || null
+      const user = await checkUser();
+      userId = user?.id || null;
     } catch (error) {
       // User not authenticated, continue without userId
     }
@@ -59,15 +59,15 @@ export async function submitMediaAgencyForm(data) {
       include: {
         listings: true,
       },
-    })
+    });
 
-    return { success: true, agency }
+    return { success: true, agency };
   } catch (error) {
-    console.error("Error submitting media agency form:", error)
+    console.error("Error submitting media agency form:", error);
     return { 
       success: false, 
       error: error.message || "Failed to submit media agency form" 
-    }
+    };
   }
 }
 
@@ -88,15 +88,15 @@ export async function getMediaAgency(id) {
           take: 10,
         },
       },
-    })
+    });
 
-    return { success: true, agency }
+    return { success: true, agency };
   } catch (error) {
-    console.error("Error fetching media agency:", error)
+    console.error("Error fetching media agency:", error);
     return { 
       success: false, 
       error: error.message || "Failed to fetch media agency" 
-    }
+    };
   }
 }
 
@@ -115,15 +115,15 @@ export async function getMediaAgencyByUserId(userId) {
           orderBy: { createdAt: "desc" },
         },
       },
-    })
+    });
 
-    return { success: true, agency }
+    return { success: true, agency };
   } catch (error) {
-    console.error("Error fetching media agency by user ID:", error)
+    console.error("Error fetching media agency by user ID:", error);
     return { 
       success: false, 
       error: error.message || "Failed to fetch media agency" 
-    }
+    };
   }
 }
 
@@ -148,15 +148,15 @@ export async function addMediaListing(agencyId, listingData) {
         timeSlots: listingData.timeSlots || [],
         status: "DRAFT",
       },
-    })
+    });
 
-    return { success: true, listing }
+    return { success: true, listing };
   } catch (error) {
-    console.error("Error adding media listing:", error)
+    console.error("Error adding media listing:", error);
     return { 
       success: false, 
       error: error.message || "Failed to add media listing" 
-    }
+    };
   }
 }
 
@@ -180,15 +180,15 @@ export async function updateMediaListing(listingId, listingData) {
         timeSlots: listingData.timeSlots || [],
         status: listingData.status,
       },
-    })
+    });
 
-    return { success: true, listing }
+    return { success: true, listing };
   } catch (error) {
-    console.error("Error updating media listing:", error)
+    console.error("Error updating media listing:", error);
     return { 
       success: false, 
       error: error.message || "Failed to update media listing" 
-    }
+    };
   }
 }
 
@@ -218,15 +218,15 @@ export async function createMediaBooking(bookingData) {
         listing: true,
         agency: true,
       },
-    })
+    });
 
-    return { success: true, booking }
+    return { success: true, booking };
   } catch (error) {
-    console.error("Error creating media booking:", error)
+    console.error("Error creating media booking:", error);
     return { 
       success: false, 
       error: error.message || "Failed to create media booking" 
-    }
+    };
   }
 }
 
@@ -245,22 +245,22 @@ export async function getMediaAgencyStats(agencyId) {
         },
         bookings: true,
       },
-    })
+    });
 
     if (!agency) {
-      return { success: false, error: "Media agency not found" }
+      return { success: false, error: "Media agency not found" };
     }
 
-    const totalListings = agency.listings.length
-    const activeListings = agency.listings.filter(l => l.status === "ACTIVE").length
-    const totalBookings = agency.bookings.length
-    const pendingBookings = agency.bookings.filter(b => b.status === "PENDING").length
-    const confirmedBookings = agency.bookings.filter(b => b.status === "CONFIRMED").length
-    const completedBookings = agency.bookings.filter(b => b.status === "COMPLETED").length
+    const totalListings = agency.listings.length;
+    const activeListings = agency.listings.filter(l => l.status === "ACTIVE").length;
+    const totalBookings = agency.bookings.length;
+    const pendingBookings = agency.bookings.filter(b => b.status === "PENDING").length;
+    const confirmedBookings = agency.bookings.filter(b => b.status === "CONFIRMED").length;
+    const completedBookings = agency.bookings.filter(b => b.status === "COMPLETED").length;
     
     const totalRevenue = agency.bookings
       .filter(b => b.status === "COMPLETED" || b.status === "CONFIRMED")
-      .reduce((sum, b) => sum + (b.totalAmount || 0), 0)
+      .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
     return {
       success: true,
@@ -273,13 +273,13 @@ export async function getMediaAgencyStats(agencyId) {
         completedBookings,
         totalRevenue,
       },
-    }
+    };
   } catch (error) {
-    console.error("Error fetching media agency stats:", error)
+    console.error("Error fetching media agency stats:", error);
     return { 
       success: false, 
       error: error.message || "Failed to fetch stats" 
-    }
+    };
   }
 }
 
