@@ -108,7 +108,7 @@ export function HeroSection() {
             </div>
             
             {/* Company Logos */}
-            <div className="pt-6 md:pt-8">
+            {/* <div className="pt-6 md:pt-8">
               <p className="text-gray-500 text-xs md:text-sm mb-3 md:mb-4">Trusted by industry leaders</p>
               <div className="flex items-center space-x-4 md:space-x-8 opacity-60 overflow-x-auto">
                 <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">TV3</div>
@@ -116,7 +116,7 @@ export function HeroSection() {
                 <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">Adom FM</div>
                 <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">Joy Prime</div>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Creative Grid */}

@@ -34,23 +34,23 @@ export function CTASection() {
 
           {/* Subheading */}
           <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of talents and media companies already using PAYOLLAR to create amazing content together.
+            Join thousands of talents and media companies already using Payollar to create amazing content together.
           </p>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-8">
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">10K+</div>
+              <div className="text-2xl md:text-3xl font-bold text-white mb-1">1K+</div>
               <div className="text-gray-400 text-sm">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">25K+</div>
+              <div className="text-2xl md:text-3xl font-bold text-white mb-1">100+</div>
               <div className="text-gray-400 text-sm">Successful Bookings</div>
             </div>
-            <div className="text-center">
+            {/* <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold text-white mb-1">$2M+</div>
               <div className="text-gray-400 text-sm">Paid to Talents</div>
-            </div>
+            </div> */}
             <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold text-white mb-1">98%</div>
               <div className="text-gray-400 text-sm">Satisfaction Rate</div>

@@ -16,6 +16,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export function CampaignsSection() {
   const features = [
@@ -66,7 +67,7 @@ export function CampaignsSection() {
           <div className="relative order-2 lg:order-1">
             {/* Mock Campaign Cards */}
             <div className="space-y-6">
-              <Card className="border-emerald-900/20 bg-slate-800/50 backdrop-blur-sm overflow-hidden">
+              <Card className="border-emerald-900/20 bg-slate-800/50 backdrop-blur-sm overflow-hidden group relative">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -97,9 +98,19 @@ export function CampaignsSection() {
                     ))}
                   </div>
                 </CardContent>
+                {/* Image */}
+                <div className="absolute top-4 right-4 w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden z-10 shadow-2xl border-2 border-emerald-500/30">
+                  <Image
+                    src="/techproduct.jpg"
+                    alt="Tech Product Launch"
+                    fill
+                    className="object-cover"
+                    unoptimized={true}
+                  />
+                </div>
               </Card>
 
-              <Card className="border-emerald-900/20 bg-slate-800/50 backdrop-blur-sm overflow-hidden">
+              <Card className="border-emerald-900/20 bg-slate-800/50 backdrop-blur-sm overflow-hidden group relative">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -130,6 +141,16 @@ export function CampaignsSection() {
                     ))}
                   </div>
                 </CardContent>
+                {/* Image */}
+                <div className="absolute top-4 right-4 w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden z-10 shadow-2xl border-2 border-blue-500/30">
+                  <Image
+                    src="/host.jpeg"
+                    alt="Radio Show Host"
+                    fill
+                    className="object-cover"
+                    unoptimized={true}
+                  />
+                </div>
               </Card>
             </div>
 

@@ -174,7 +174,8 @@ body:has([data-auth-page]) header {
 }
 
 .animate-marquee:hover,
-.animate-marquee-reverse:hover {
+.animate-marquee-reverse:hover,
+.marquee-container:hover .animate-marquee {
   animation-play-state: paused;
 }
 

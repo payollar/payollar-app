@@ -8,13 +8,15 @@ import { HowItWorksSection } from "@/components/landing/how-it-works"
 import { TestimonialsSection } from "@/components/landing/testimonials"
 import { CTASection } from "@/components/landing/cta-section"
 import { Footer } from "@/components/landing/footer"
+import { PartnersMarquee } from "@/components/landing/partners-marquee"
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
       <main>
         <HeroSection />
-        <StatsSection />
+        {/* <StatsSection /> */}
+        <PartnersMarquee />
         <div id="talents">
           <TalentsSection />
         </div>
