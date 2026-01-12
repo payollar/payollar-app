@@ -79,10 +79,10 @@ export function PendingPayouts({ payouts }) {
     <div>
       <Card className="bg-muted/20 border-emerald-900/20">
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-white">
+          <CardTitle className="text-lg md:text-xl font-bold text-white">
             Pending Payouts
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             Review and approve doctor payout requests
           </CardDescription>
         </CardHeader>
@@ -98,30 +98,30 @@ export function PendingPayouts({ payouts }) {
                   key={payout.id}
                   className="bg-background border-emerald-900/20 hover:border-emerald-700/30 transition-all"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="bg-muted/20 rounded-full p-2 mt-1">
-                          <User className="h-5 w-5 text-emerald-400" />
+                        <div className="bg-muted/20 rounded-full p-2 mt-1 flex-shrink-0">
+                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-white">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-white text-sm sm:text-base">
                              {payout.creator.name}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {payout.creator.specialty}
                           </p>
-                          <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-muted-foreground">
                             <div className="flex items-center">
-                              <DollarSign className="h-4 w-4 mr-1 text-emerald-400" />
+                              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-emerald-400 flex-shrink-0" />
                               <span>
                                 {payout.credits} credits • $
                                 {payout.netAmount.toFixed(2)}
                               </span>
                             </div>
                             <div className="flex items-center">
-                              <Mail className="h-4 w-4 mr-1 text-emerald-400" />
-                              <span className="text-xs">
+                              <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-emerald-400 flex-shrink-0" />
+                              <span className="break-all">
                                 {payout.paypalEmail}
                               </span>
                             </div>
@@ -135,26 +135,26 @@ export function PendingPayouts({ payouts }) {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-2 self-end lg:self-center">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         <Badge
                           variant="outline"
-                          className="bg-amber-900/20 border-amber-900/30 text-amber-400 w-fit"
+                          className="bg-amber-900/20 border-amber-900/30 text-amber-400 w-fit text-xs"
                         >
                           Pending
                         </Badge>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewDetails(payout)}
-                            className="border-emerald-900/30 hover:bg-muted/80"
+                            className="border-emerald-900/30 hover:bg-muted/80 flex-1 sm:flex-initial"
                           >
                             View Details
                           </Button>
                           <Button
                             size="sm"
                             onClick={() => handleApprovePayout(payout)}
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                            className="bg-emerald-600 hover:bg-emerald-700 flex-1 sm:flex-initial"
                           >
                             <Check className="h-4 w-4 mr-1" />
                             Approve
@@ -173,7 +173,7 @@ export function PendingPayouts({ payouts }) {
       {/* Payout Details Dialog */}
       {selectedPayout && !showApproveDialog && (
         <Dialog open={!!selectedPayout} onOpenChange={closeDialogs}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-white">
                 Payout Request Details
@@ -183,14 +183,14 @@ export function PendingPayouts({ payouts }) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
+            <div className="space-y-4 sm:space-y-6 py-4">
               {/* Doctor Information */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-emerald-400" />
-                  <h3 className="text-white font-medium">Talent Information</h3>
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+                  <h3 className="text-sm sm:text-base text-white font-medium">Talent Information</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
                       Name
@@ -227,10 +227,10 @@ export function PendingPayouts({ payouts }) {
               {/* Payout Information */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-emerald-400" />
-                  <h3 className="text-white font-medium">Payout Details</h3>
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+                  <h3 className="text-sm sm:text-base text-white font-medium">Payout Details</h3>
                 </div>
-                <div className="bg-muted/20 p-4 rounded-lg border border-emerald-900/20 space-y-3">
+                <div className="bg-muted/20 p-3 sm:p-4 rounded-lg border border-emerald-900/20 space-y-2 sm:space-y-3 text-xs sm:text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       Credits to pay out:
@@ -284,11 +284,11 @@ export function PendingPayouts({ payouts }) {
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 onClick={closeDialogs}
-                className="border-emerald-900/30"
+                className="border-emerald-900/30 w-full sm:w-auto"
               >
                 Close
               </Button>
@@ -297,7 +297,7 @@ export function PendingPayouts({ payouts }) {
                 disabled={
                   selectedPayout.creator.credits < selectedPayout.credits
                 }
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
               >
                 <Check className="h-4 w-4 mr-1" />
                 Approve Payout
@@ -313,7 +313,7 @@ export function PendingPayouts({ payouts }) {
           open={showApproveDialog}
           onOpenChange={() => setShowApproveDialog(false)}
         >
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-white">
                 Confirm Payout Approval
@@ -363,19 +363,19 @@ export function PendingPayouts({ payouts }) {
 
             {loading && <BarLoader width={"100%"} color="#36d7b7" />}
 
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 onClick={() => setShowApproveDialog(false)}
                 disabled={loading}
-                className="border-emerald-900/30"
+                className="border-emerald-900/30 w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 onClick={confirmApproval}
                 disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
               >
                 {loading ? (
                   <>

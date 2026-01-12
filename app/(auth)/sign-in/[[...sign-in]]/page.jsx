@@ -48,8 +48,16 @@ function SignInForm() {
         {
           onSuccess: async () => {
             toast.success("Signed in successfully!");
-            // Small delay to ensure session cookie is set and session is available
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Longer delay to ensure session cookie is set and session is available
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Trigger events to notify other components (like navbar) about the new session
+            if (typeof window !== "undefined") {
+              // Trigger storage event for cross-tab sync
+              window.dispatchEvent(new Event('storage'));
+              // Trigger custom event for same-tab components
+              window.dispatchEvent(new CustomEvent('auth:session-update'));
+            }
             
             // Check user role and redirect appropriately
             try {

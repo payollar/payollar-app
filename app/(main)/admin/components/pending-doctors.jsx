@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -67,10 +68,10 @@ export function PendingDoctors({ doctors }) {
     <div>
       <Card className="bg-muted/20 border-emerald-900/20">
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-white">
+          <CardTitle className="text-lg md:text-xl font-bold text-white">
             Pending Talent Verifications
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             Review and approve talents applications
           </CardDescription>
         </CardHeader>
@@ -89,8 +90,21 @@ export function PendingDoctors({ doctors }) {
                   <CardContent className="p-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="bg-muted/20 rounded-full p-2">
-                          <User className="h-5 w-5 text-emerald-400" />
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
+                          {doctor.imageUrl ? (
+                            <Image
+                              src={doctor.imageUrl}
+                              alt={doctor.name || "Profile"}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
+                              <span className="text-lg text-emerald-400 font-bold">
+                                {(doctor.name || "U").charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <h3 className="font-medium text-white">
@@ -102,10 +116,10 @@ export function PendingDoctors({ doctors }) {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 self-end md:self-auto">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-end md:self-auto">
                         <Badge
                           variant="outline"
-                          className="bg-amber-900/20 border-amber-900/30 text-amber-400"
+                          className="bg-amber-900/20 border-amber-900/30 text-amber-400 w-fit"
                         >
                           Pending
                         </Badge>
@@ -113,7 +127,7 @@ export function PendingDoctors({ doctors }) {
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewDetails(doctor)}
-                          className="border-emerald-900/30 hover:bg-muted/80"
+                          className="border-emerald-900/30 hover:bg-muted/80 w-full sm:w-auto"
                         >
                           View Details
                         </Button>
@@ -130,7 +144,7 @@ export function PendingDoctors({ doctors }) {
       {/* Doctor Details Dialog */}
       {selectedDoctor && (
         <Dialog open={!!selectedDoctor} onOpenChange={handleCloseDialog}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-white">
                 Talents Verification Details
@@ -141,30 +155,44 @@ export function PendingDoctors({ doctors }) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              {/* Basic Info */}
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="space-y-1 flex-1">
-                  <h4 className="text-sm font-medium text-muted-foreground">
-                    Full Name
-                  </h4>
-                  <p className="text-base font-medium text-white">
-                    {selectedDoctor.name}
-                  </p>
+            <div className="space-y-4 sm:space-y-6 py-4">
+              {/* Profile Image and Basic Info */}
+              <div className="flex flex-col items-center sm:items-start gap-4 pb-4 border-b border-emerald-900/20">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-muted/20 border-4 border-emerald-900/30">
+                  {selectedDoctor.imageUrl ? (
+                    <Image
+                      src={selectedDoctor.imageUrl}
+                      alt={selectedDoctor.name || "Profile"}
+                      fill
+                      className="object-cover"
+                      sizes="96px"
+                      unoptimized={selectedDoctor.imageUrl?.startsWith('http')}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
+                      <span className="text-2xl sm:text-3xl text-emerald-400 font-bold">
+                        {(selectedDoctor.name || "U").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1 flex-1">
-                  <h4 className="text-sm font-medium text-muted-foreground">
-                    Email
-                  </h4>
-                  <p className="text-base font-medium text-white">
+                <div className="text-center sm:text-left">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1">
+                    {selectedDoctor.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground break-all">
                     {selectedDoctor.email}
                   </p>
                 </div>
-                <div className="space-y-1 flex-1">
-                  <h4 className="text-sm font-medium text-muted-foreground">
+              </div>
+
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1">
+                  <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">
                     Application Date
                   </h4>
-                  <p className="text-base font-medium text-white">
+                  <p className="text-sm sm:text-base font-medium text-white">
                     {format(new Date(selectedDoctor.createdAt), "PPP")}
                   </p>
                 </div>
@@ -175,13 +203,13 @@ export function PendingDoctors({ doctors }) {
               {/* Professional Details */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Medal className="h-5 w-5 text-emerald-400" />
-                  <h3 className="text-white font-medium">
+                  <Medal className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+                  <h3 className="text-sm sm:text-base text-white font-medium">
                     Professional Information
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-4 sm:gap-x-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-medium text-muted-foreground">
                       Specialty
@@ -235,14 +263,14 @@ export function PendingDoctors({ doctors }) {
 
             {loading && <BarLoader width={"100%"} color="#36d7b7" />}
 
-            <DialogFooter className="flex sm:justify-between">
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
               <Button
                 variant="destructive"
                 onClick={() =>
                   handleUpdateStatus(selectedDoctor.id, "REJECTED")
                 }
                 disabled={loading}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
               >
                 <X className="mr-2 h-4 w-4" />
                 Reject
@@ -252,7 +280,7 @@ export function PendingDoctors({ doctors }) {
                   handleUpdateStatus(selectedDoctor.id, "VERIFIED")
                 }
                 disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
               >
                 <Check className="mr-2 h-4 w-4" />
                 Approve

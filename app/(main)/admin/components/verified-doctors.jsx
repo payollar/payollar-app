@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -67,20 +68,20 @@ export function VerifiedDoctors({ doctors }) {
     <div>
       <Card className="bg-muted/20 border-emerald-900/20">
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col gap-4">
             <div>
-              <CardTitle className="text-xl font-bold text-white">
+              <CardTitle className="text-lg md:text-xl font-bold text-white">
                 Manage Talents
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs md:text-sm">
                 View and manage all verified Talents
               </CardDescription>
             </div>
-            <div className="relative w-full md:w-64">
+            <div className="relative w-full">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search talents..."
-                className="pl-8 bg-background border-emerald-900/20"
+                className="pl-8 bg-background border-emerald-900/20 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -107,8 +108,21 @@ export function VerifiedDoctors({ doctors }) {
                     <CardContent className="p-4">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <div className="bg-muted/20 rounded-full p-2">
-                            <User className="h-5 w-5 text-emerald-400" />
+                          <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
+                            {doctor.imageUrl ? (
+                              <Image
+                                src={doctor.imageUrl}
+                                alt={doctor.name || "Profile"}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
+                                <span className="text-lg text-emerald-400 font-bold">
+                                  {(doctor.name || "U").charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <h3 className="font-medium text-white">
@@ -123,12 +137,12 @@ export function VerifiedDoctors({ doctors }) {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 self-end md:self-auto">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-end md:self-auto">
                           {isSuspended ? (
                             <>
                               <Badge
                                 variant="outline"
-                                className="bg-red-900/20 border-red-900/30 text-red-400"
+                                className="bg-red-900/20 border-red-900/30 text-red-400 w-fit"
                               >
                                 Suspended
                               </Badge>
@@ -139,7 +153,7 @@ export function VerifiedDoctors({ doctors }) {
                                   handleStatusChange(doctor, false)
                                 }
                                 disabled={loading}
-                                className="border-emerald-900/30 hover:bg-muted/80"
+                                className="border-emerald-900/30 hover:bg-muted/80 w-full sm:w-auto"
                               >
                                 {loading && targetDoctor?.id === doctor.id ? (
                                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -153,7 +167,7 @@ export function VerifiedDoctors({ doctors }) {
                             <>
                               <Badge
                                 variant="outline"
-                                className="bg-emerald-900/20 border-emerald-900/30 text-emerald-400"
+                                className="bg-emerald-900/20 border-emerald-900/30 text-emerald-400 w-fit"
                               >
                                 Active
                               </Badge>
@@ -162,7 +176,7 @@ export function VerifiedDoctors({ doctors }) {
                                 size="sm"
                                 onClick={() => handleStatusChange(doctor, true)}
                                 disabled={loading}
-                                className="border-red-900/30 hover:bg-red-900/10 text-red-400"
+                                className="border-red-900/30 hover:bg-red-900/10 text-red-400 w-full sm:w-auto"
                               >
                                 {loading && targetDoctor?.id === doctor.id ? (
                                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />

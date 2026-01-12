@@ -24,8 +24,10 @@ const isPublicRoute = (pathname) => {
   const publicPaths = [
     "/sign-in",
     "/sign-up",
+    "/forgot-password",
+    "/reset-password",
     "/api/webhooks",
-    "/api/auth",
+    "/api/auth", // All Better Auth routes including /api/auth/check-session
   ];
   
   return publicPaths.some(path => pathname.startsWith(path));
@@ -36,7 +38,12 @@ export async function middleware(req) {
 
   // Allow public routes without authentication
   if (isPublicRoute(pathname)) {
-    // Check if user is already authenticated
+    // For API routes, always allow them through without redirects
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next();
+    }
+    
+    // For non-API public routes, check if user is already authenticated
     const sessionCookie = getSessionCookie(req);
     if (sessionCookie) {
       // If user is already signed in, redirect based on their role

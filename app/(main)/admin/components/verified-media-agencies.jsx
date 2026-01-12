@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Mail, Phone, Globe, MapPin, Radio, Tv, Megaphone, Smartphone, Users, Video, Eye } from "lucide-react";
+import { Building2, Mail, Phone, Globe, MapPin, Radio, Tv, Megaphone, Smartphone, Users, Video, Eye, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -39,10 +40,10 @@ export function VerifiedMediaAgencies({ agencies }) {
     <div>
       <Card className="bg-muted/20 border-emerald-900/20">
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-white">
+          <CardTitle className="text-lg md:text-xl font-bold text-white">
             Verified Media Agencies
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             All approved media agencies and their listings
           </CardDescription>
         </CardHeader>
@@ -58,19 +59,40 @@ export function VerifiedMediaAgencies({ agencies }) {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4 flex-1">
-                        {agency.logoUrl && (
-                          <img
-                            src={agency.logoUrl}
-                            alt={agency.agencyName}
-                            className="w-16 h-16 rounded-lg object-cover border border-border"
-                          />
-                        )}
+                        <div className="flex flex-col gap-2">
+                          {agency.logoUrl && (
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-emerald-900/30 flex-shrink-0">
+                              <Image
+                                src={agency.logoUrl}
+                                alt={agency.agencyName}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          {agency.user?.imageUrl && (
+                            <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
+                              <Image
+                                src={agency.user.imageUrl}
+                                alt={agency.user.name || "User Profile"}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-semibold text-lg">{agency.agencyName}</h3>
                             <Badge className="bg-emerald-600">Verified</Badge>
                           </div>
                           <div className="space-y-1 text-sm text-muted-foreground">
+                            {agency.user && (
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                <span>{agency.user.name || agency.user.email}</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2">
                               <Mail className="w-4 h-4" />
                               <span>{agency.email}</span>
@@ -139,22 +161,43 @@ export function VerifiedMediaAgencies({ agencies }) {
 
       {/* Details Dialog */}
       <Dialog open={!!selectedAgency} onOpenChange={() => setSelectedAgency(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
           {selectedAgency && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-4">
-                  {selectedAgency.logoUrl && (
-                    <img
-                      src={selectedAgency.logoUrl}
-                      alt={selectedAgency.agencyName}
-                      className="w-20 h-20 rounded-lg object-cover border border-border"
-                    />
-                  )}
-                  <div>
-                    <DialogTitle className="text-2xl">{selectedAgency.agencyName}</DialogTitle>
-                    <DialogDescription>
-                      Verified on {format(new Date(selectedAgency.updatedAt), "PPp")}
+                <div className="flex flex-col items-center sm:items-start gap-3 sm:gap-4 pb-4 border-b border-emerald-900/20">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    {selectedAgency.logoUrl && (
+                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border-4 border-emerald-900/30">
+                        <Image
+                          src={selectedAgency.logoUrl}
+                          alt={selectedAgency.agencyName}
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                          unoptimized={selectedAgency.logoUrl?.startsWith('http')}
+                        />
+                      </div>
+                    )}
+                    {selectedAgency.user?.imageUrl && (
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-muted/20 border-4 border-emerald-900/30">
+                        <Image
+                          src={selectedAgency.user.imageUrl}
+                          alt={selectedAgency.user.name || "User Profile"}
+                          fill
+                          className="object-cover"
+                          sizes="80px"
+                          unoptimized={selectedAgency.user.imageUrl?.startsWith('http')}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <DialogTitle className="text-lg sm:text-2xl">{selectedAgency.agencyName}</DialogTitle>
+                    <DialogDescription className="text-xs sm:text-sm">
+                      {selectedAgency.user && (
+                        <span className="block mt-1 break-all">{selectedAgency.user.name || selectedAgency.user.email}</span>
+                      )}
                     </DialogDescription>
                   </div>
                 </div>
@@ -180,13 +223,13 @@ export function VerifiedMediaAgencies({ agencies }) {
                       </div>
                     )}
                     {selectedAgency.website && (
-                      <div>
+                      <div className="sm:col-span-2">
                         <p className="text-muted-foreground">Website</p>
                         <a
                           href={selectedAgency.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium text-emerald-400 hover:underline"
+                          className="font-medium text-emerald-400 hover:underline break-all"
                         >
                           {selectedAgency.website}
                         </a>
@@ -194,7 +237,7 @@ export function VerifiedMediaAgencies({ agencies }) {
                     )}
                     <div>
                       <p className="text-muted-foreground">Location</p>
-                      <p className="font-medium">
+                      <p className="font-medium break-words">
                         {[selectedAgency.city, selectedAgency.region, selectedAgency.country]
                           .filter(Boolean)
                           .join(", ")}
@@ -203,8 +246,8 @@ export function VerifiedMediaAgencies({ agencies }) {
                   </div>
                   {selectedAgency.description && (
                     <div className="mt-4">
-                      <p className="text-muted-foreground mb-2">Description</p>
-                      <p className="text-sm">{selectedAgency.description}</p>
+                      <p className="text-muted-foreground mb-2 text-xs sm:text-sm">Description</p>
+                      <p className="text-xs sm:text-sm break-words">{selectedAgency.description}</p>
                     </div>
                   )}
                 </div>
@@ -212,31 +255,36 @@ export function VerifiedMediaAgencies({ agencies }) {
                 {/* Media Listings */}
                 {selectedAgency.listings && selectedAgency.listings.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-3">
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">
                       Active Media Listings ({selectedAgency.listings.length})
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {selectedAgency.listings.map((listing) => {
                         const Icon = MEDIA_TYPE_ICONS[listing.listingType] || Building2;
                         return (
                           <Card key={listing.id} className="border-emerald-900/30">
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-4">
+                            <CardContent className="p-3 sm:p-4">
+                              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                                 {listing.imageUrl && (
-                                  <img
-                                    src={listing.imageUrl}
-                                    alt={listing.name}
-                                    className="w-16 h-16 rounded-lg object-cover border border-border"
-                                  />
-                                )}
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Icon className="w-5 h-5 text-emerald-400" />
-                                    <h4 className="font-semibold">{listing.name}</h4>
-                                    <Badge variant="outline">{listing.listingType}</Badge>
-                                    <Badge className="bg-emerald-600">{listing.status}</Badge>
+                                  <div className="relative w-full sm:w-16 h-32 sm:h-16 rounded-lg overflow-hidden border-2 border-emerald-900/30 flex-shrink-0">
+                                    <Image
+                                      src={listing.imageUrl}
+                                      alt={listing.name}
+                                      fill
+                                      className="object-cover"
+                                      sizes="64px"
+                                      unoptimized={listing.imageUrl?.startsWith('http')}
+                                    />
                                   </div>
-                                  <div className="space-y-1 text-sm text-muted-foreground">
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 flex-shrink-0" />
+                                    <h4 className="font-semibold text-sm sm:text-base truncate">{listing.name}</h4>
+                                    <Badge variant="outline" className="text-xs">{listing.listingType}</Badge>
+                                    <Badge className="bg-emerald-600 text-xs">{listing.status}</Badge>
+                                  </div>
+                                  <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                                     {listing.network && (
                                       <p><span className="font-medium">Network:</span> {listing.network}</p>
                                     )}

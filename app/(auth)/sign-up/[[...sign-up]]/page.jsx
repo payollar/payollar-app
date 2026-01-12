@@ -87,8 +87,17 @@ export default function SignUpPage() {
         {
           onSuccess: async () => {
             toast.success("Account created successfully!");
-            // Small delay to ensure user record is created in database and session is set
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Longer delay to ensure user record is created in database and session is fully set
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Trigger events to notify other components (like navbar) about the new session
+            if (typeof window !== "undefined") {
+              // Trigger storage event for cross-tab sync
+              window.dispatchEvent(new Event('storage'));
+              // Trigger custom event for same-tab components
+              window.dispatchEvent(new CustomEvent('auth:session-update'));
+            }
+            
             // Navigate to onboarding - new users always need to select a role
             window.location.href = "/onboarding";
           },

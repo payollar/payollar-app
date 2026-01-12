@@ -92,16 +92,22 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (data && data?.success) {
       toast.success("Profile updated successfully!");
-      // Small delay before redirect
+      
+      // Trigger events to notify navbar about session update
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('auth:session-update'));
+      }
+      
+      // Small delay before redirect to ensure session is updated
       setTimeout(() => {
-        router.push(data.redirect);
-        router.refresh();
-      }, 300);
+        window.location.href = data.redirect;
+      }, 500);
     } else if (data && data?.error) {
       console.error("Onboarding error:", data.error);
       toast.error(data.error || "Failed to save your information. Please try again.");
     }
-  }, [data, router]);
+  }, [data]);
 
   // Update form values when portfolio URLs or skills change
   useEffect(() => {
