@@ -14,7 +14,7 @@ export default async function CreatorDashboardLayout({ children }) {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
         </header>
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           {children}
         </div>
       </SidebarInset>
