@@ -265,7 +265,7 @@ function SignInForm() {
           <Button
             type="button"
             variant="outline"
-            className="w-full border-2 border-gray-300 hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50 transition-all h-12 text-base font-semibold"
+            className="w-full border-2 border-gray-300 hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-700 transition-all h-12 text-base font-semibold"
             onClick={async () => {
               try {
                 setIsLoading(true);
