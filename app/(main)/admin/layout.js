@@ -24,10 +24,11 @@ export default async function AdminLayout({ children }) {
     <SidebarProvider defaultOpen={true}>
       <AdminSidebar />
       <SidebarInset className="bg-background">
+        {/* Header bar with sidebar toggle - matches other dashboard layouts */}
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
         </header>
-        <div className="flex-1 p-4 sm:p-6 overflow-auto">
+        <div className="flex-1 p-6 overflow-auto">
           {children}
         </div>
       </SidebarInset>

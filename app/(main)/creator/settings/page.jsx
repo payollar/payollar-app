@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { CreatorSettingsClient } from "../_components/creator-settings";
+import { CreatorProfile } from "../_components/creator-profile";
 
 // Force dynamic rendering to avoid static generation issues with headers()
 export const dynamic = 'force-dynamic';
@@ -12,5 +12,7 @@ export default async function CreatorSettingsPage() {
     redirect("/onboarding");
   }
 
-  return <CreatorSettingsClient user={user} />;
+  return (
+    <CreatorProfile user={user} />
+  );
 }

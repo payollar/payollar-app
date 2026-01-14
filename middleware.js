@@ -35,12 +35,15 @@ const isPublicRoute = (pathname) => {
 
 export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
+  let response;
 
   // Allow public routes without authentication
   if (isPublicRoute(pathname)) {
     // For API routes, always allow them through without redirects
     if (pathname.startsWith('/api/')) {
-      return NextResponse.next();
+      response = NextResponse.next();
+      response.headers.set("x-pathname", pathname);
+      return response;
     }
     
     // For non-API public routes, check if user is already authenticated
@@ -49,9 +52,13 @@ export async function middleware(req) {
       // If user is already signed in, redirect based on their role
       // We'll let the client-side handle the role check for better UX
       // For now, redirect to home - the app will handle role-based routing
-      return NextResponse.redirect(new URL("/", req.url));
+      response = NextResponse.redirect(new URL("/", req.url));
+      response.headers.set("x-pathname", pathname);
+      return response;
     }
-    return NextResponse.next();
+    response = NextResponse.next();
+    response.headers.set("x-pathname", pathname);
+    return response;
   }
 
   // Check Better Auth session cookie (Edge Runtime compatible)
@@ -64,11 +71,13 @@ export async function middleware(req) {
   if (!isAuthenticated && isProtectedRoute(pathname)) {
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect_url", pathname);
-    return NextResponse.redirect(signInUrl);
+    response = NextResponse.redirect(signInUrl);
+    response.headers.set("x-pathname", pathname);
+    return response;
   }
 
-  // Add pathname to headers for layout to check
-  const response = NextResponse.next();
+  // Add pathname to headers for layout to check - ALWAYS set it for all responses
+  response = NextResponse.next();
   response.headers.set("x-pathname", pathname);
   return response;
 }

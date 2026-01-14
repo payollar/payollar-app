@@ -2,9 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Star, Quote, ArrowRight } from "lucide-react"
-import Link from "next/link"
+import { Star, Quote } from "lucide-react"
 
 export function TestimonialsSection() {
   const testimonials = [
@@ -81,7 +79,7 @@ export function TestimonialsSection() {
   const duplicatedTestimonials = [...testimonialsWithTheme, ...testimonialsWithTheme]
 
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 relative overflow-hidden">
+    <section className="py-16 md:py-20 bg-white relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"></div>
@@ -91,17 +89,17 @@ export function TestimonialsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <Badge className="mb-4 px-4 py-2 bg-emerald-500/20 border-emerald-500/30 text-emerald-400">
+          <Badge className="mb-4 px-4 py-2 bg-emerald-50 border-emerald-200 text-emerald-600">
             💬 Success Stories
           </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             What Our{" "}
-            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
               Community
             </span>{" "}
             Says
           </h2>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Join thousands of talents and media companies who have found success through PAYOLLAR
           </p>
         </div>
@@ -113,7 +111,7 @@ export function TestimonialsSection() {
             {duplicatedTestimonials.map((testimonial, index) => (
               <Card
                 key={`marquee-1-${index}`}
-                className="flex-shrink-0 w-[280px] md:w-[320px] group border-emerald-900/30 bg-slate-800/60 backdrop-blur-sm hover:border-emerald-500/50 transition-all duration-300 relative overflow-hidden"
+                className="flex-shrink-0 w-[280px] md:w-[320px] group border-gray-200 bg-white hover:border-emerald-300 transition-all duration-300 relative overflow-hidden"
               >
                 {/* Gradient border effect */}
                 <div
@@ -134,7 +132,7 @@ export function TestimonialsSection() {
                   </div>
 
                   {/* Testimonial text */}
-                  <p className="text-gray-300 text-xs md:text-sm leading-relaxed mb-3 italic line-clamp-3">
+                  <p className="text-gray-600 text-xs md:text-sm leading-relaxed mb-3 italic line-clamp-3">
                     "{testimonial.text}"
                   </p>
 
@@ -144,12 +142,12 @@ export function TestimonialsSection() {
                       <img
                         src={testimonial.image || "/placeholder.svg"}
                         alt={testimonial.name}
-                        className="w-full h-full rounded-full object-cover bg-slate-800"
+                        className="w-full h-full rounded-full object-cover bg-gray-100"
                       />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white text-xs">{testimonial.name}</h4>
-                      <p className="text-xs text-gray-400">{testimonial.role}</p>
+                      <h4 className="font-semibold text-gray-900 text-xs">{testimonial.name}</h4>
+                      <p className="text-xs text-gray-600">{testimonial.role}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -162,7 +160,7 @@ export function TestimonialsSection() {
             {duplicatedTestimonials.map((testimonial, index) => (
               <Card
                 key={`marquee-2-${index}`}
-                className="flex-shrink-0 w-[280px] md:w-[320px] group border-emerald-900/30 bg-slate-800/60 backdrop-blur-sm hover:border-emerald-500/50 transition-all duration-300 relative overflow-hidden"
+                className="flex-shrink-0 w-[280px] md:w-[320px] group border-gray-200 bg-white hover:border-emerald-300 transition-all duration-300 relative overflow-hidden"
               >
                 {/* Gradient border effect */}
                 <div
@@ -183,7 +181,7 @@ export function TestimonialsSection() {
                   </div>
 
                   {/* Testimonial text */}
-                  <p className="text-gray-300 text-xs md:text-sm leading-relaxed mb-3 italic line-clamp-3">
+                  <p className="text-gray-600 text-xs md:text-sm leading-relaxed mb-3 italic line-clamp-3">
                     "{testimonial.text}"
                   </p>
 
@@ -193,12 +191,12 @@ export function TestimonialsSection() {
                       <img
                         src={testimonial.image || "/placeholder.svg"}
                         alt={testimonial.name}
-                        className="w-full h-full rounded-full object-cover bg-slate-800"
+                        className="w-full h-full rounded-full object-cover bg-gray-100"
                       />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white text-xs">{testimonial.name}</h4>
-                      <p className="text-xs text-gray-400">{testimonial.role}</p>
+                      <h4 className="font-semibold text-gray-900 text-xs">{testimonial.name}</h4>
+                      <p className="text-xs text-gray-600">{testimonial.role}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -207,21 +205,6 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="text-center">
-          <div className="inline-flex flex-col items-center space-y-4 bg-slate-800/50 backdrop-blur-sm border border-emerald-900/30 rounded-2xl px-12 py-8">
-            <h3 className="text-2xl font-bold text-white">Ready to join them?</h3>
-            <p className="text-gray-400">Start your success story today</p>
-            <Button
-              asChild
-              className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white px-8 py-3 rounded-full font-semibold shadow-lg shadow-emerald-500/50 hover:shadow-emerald-500/70 transition-all duration-300 transform hover:scale-105"
-            >
-              <Link href="/onboarding">
-                Get Started Now <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
       </div>
     </section>
   )

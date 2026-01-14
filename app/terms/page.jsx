@@ -17,7 +17,7 @@ export default function TermsOfServicePage() {
             <section>
               <h2 className="text-2xl font-semibold text-white mt-8 mb-4">1. Agreement to Terms</h2>
               <p>
-                By accessing or using PAYOLA ("the Platform," "we," "us," or "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use our services.
+                By accessing or using Payollar ("the Platform," "we," "us," or "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use our services.
               </p>
               <p>
                 These Terms apply to all users of the Platform, including creators, clients, media agencies, and visitors. By creating an account, you represent that you are at least 18 years old and have the legal capacity to enter into these Terms.
@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
             <section>
               <h2 className="text-2xl font-semibold text-white mt-8 mb-4">2. Description of Service</h2>
               <p>
-                PAYOLA is a platform that connects creators, talents, and clients for various services including:
+                Payollar is a platform that connects creators, talents, and clients for various services including:
               </p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Appointment booking and video consultations between creators and clients</li>

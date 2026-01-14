@@ -10,36 +10,40 @@ export function HowItWorksSection() {
   const steps = [
     {
       icon: UserPlus,
+      video: "/icons/profile2.MP4",
       title: "Create Profile",
       description: "Sign up and build your professional profile with portfolio, rates, and availability",
-      color: "from-purple-500 to-pink-500",
+      color: "bg-white",
     },
     {
       icon: Search,
+      video: "/icons/search.mp4",
       title: "Discover Opportunities",
-      description: "Browse or get matched with relevant gigs from TV, radio, and digital media companies",
-      color: "from-blue-500 to-cyan-500",
+      description: "Browse or get matched with relevant gigs from TV, radio, & digital media companies",
+      color: "bg-white",
     },
     {
       icon: Calendar,
+      video: "/icons/book.mp4",
       title: "Book & Negotiate",
       description: "Apply for gigs, negotiate terms, and confirm bookings with secure contracts",
-      color: "from-emerald-500 to-green-500",
+      color: "bg-white",
     },
     {
       icon: CheckCircle,
+      video: "/icons/verified.MP4",
       title: "Deliver & Get Paid",
       description: "Complete your performance, get reviewed, and receive secure payment",
-      color: "from-orange-500 to-red-500",
+      color: "bg-white",
     },
   ]
 
   return (
-    <section className="py-24 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 relative overflow-hidden">
+    <section className="py-24 bg-black relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -55,7 +59,7 @@ export function HowItWorksSection() {
             </span>{" "}
             Works
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Get started in minutes and begin connecting with opportunities that match your talent
           </p>
         </div>
@@ -68,25 +72,36 @@ export function HowItWorksSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
             {steps.map((step, index) => (
               <div key={index} className="relative">
-                <Card className="group hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 transform hover:-translate-y-4 border-emerald-900/20 bg-slate-800/50 backdrop-blur-sm hover:border-emerald-700/40">
+                <Card className="group hover:shadow-2xl hover:shadow-white/10 transition-all duration-500 transform hover:-translate-y-4 border-white/10 bg-white/[0.03] backdrop-blur-2xl hover:border-white/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
                   <CardContent className="p-8 text-center">
                     {/* Step number */}
                     <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="w-8 h-8 bg-emerald-600 rounded-full border-4 border-slate-900 flex items-center justify-center text-sm font-bold text-white">
+                      <div className="w-8 h-8 bg-emerald-600 rounded-full border-4 border-black flex items-center justify-center text-sm font-bold text-white">
                         {index + 1}
                       </div>
                     </div>
 
-                    {/* Icon */}
+                    {/* Icon or Video */}
                     <div
-                      className={`inline-flex p-6 rounded-full bg-gradient-to-r ${step.color} mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}
+                      className={`inline-flex p-6 rounded-full ${step.color.includes('bg-') ? step.color : `bg-gradient-to-r ${step.color}`} mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg overflow-hidden`}
                     >
-                      <step.icon className="w-8 h-8 text-white" />
+                      {step.video ? (
+                        <video
+                          src={step.video}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-16 h-16 object-contain"
+                        />
+                      ) : (
+                        <step.icon className={`w-16 h-16 ${step.color === 'bg-white' ? 'text-black' : 'text-white'}`} />
+                      )}
                     </div>
 
                     {/* Content */}
                     <h3 className="text-xl font-bold text-white mb-4">{step.title}</h3>
-                    <p className="text-gray-400 leading-relaxed mb-6">{step.description}</p>
+                    <p className="text-gray-300 leading-relaxed mb-6">{step.description}</p>
 
                     {/* Arrow for desktop */}
                     {index < steps.length - 1 && (
@@ -107,7 +122,7 @@ export function HowItWorksSection() {
             <span className="text-gray-300">Ready to get started?</span>
             <Button
               asChild
-              className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white px-6 py-2 rounded-full font-semibold shadow-lg shadow-emerald-500/50"
+              className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white px-6 py-2 rounded-full font-semibold "
             >
               <Link href="/onboarding">
                 Join Now <ArrowRight className="ml-2 h-4 w-4" />

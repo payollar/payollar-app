@@ -5,10 +5,6 @@ import { Toaster } from "sonner";
 import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 
-// import sidebar components
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -29,26 +25,13 @@ export default function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
-          {/* Wrap everything with SidebarProvider */}
-          {/* <SidebarProvider> */}
-          {/* <AppSidebar /> */}
+          <div className="flex flex-col min-h-screen">
+            <Header />
 
-            <div className="flex flex-col min-h-screen">
-              <Header />
-
-              <main className="flex-1">
-
-                
-                {children}
-              </main>
-{/* 
-              <footer className="bg-muted/50 py-12">
-                <div className="container mx-auto px-4 text-center text-gray-200">
-                  <p>Payollar 2025 All right reserved!</p>
-                </div>
-              </footer> */}
-            </div>
-          {/* </SidebarProvider> */}
+            <main className="flex-1 pt-16">
+              {children}
+            </main>
+          </div>
 
           <Toaster richColors />
         </ThemeProvider>

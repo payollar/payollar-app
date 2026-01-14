@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Play, Shield, Star, Music, Mic, Camera, Headphones, ArrowRight, Target } from "lucide-react"
+import { Music, Mic, Camera, Headphones, ArrowRight, Target } from "lucide-react"
 import Link from "next/link"
 
 export function HeroSection() {
@@ -62,14 +62,22 @@ export function HeroSection() {
             {/* Trust Indicators */}
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-emerald-500/20 rounded-full">
-                  <Shield className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
+                <div className="p-1 rounded-full">
+                  <img 
+                    src="/icons/secure.PNG" 
+                    alt="Quality guaranteed"
+                    className="w-8 h-8 md:w-8 md:h-8 object-contain"
+                  />
                 </div>
                 <span className="text-gray-300 font-medium text-sm md:text-base">Quality guaranteed</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-yellow-500/20 rounded-full">
-                  <Star className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                <div className="p-2  rounded-full">
+                  <img 
+                    src="/icons/verified2.PNG" 
+                    alt="Top-rated professionals"
+                    className="w-8 h-8 md:w-8 md:h-8 object-contain"
+                  />
                 </div>
                 <span className="text-gray-300 font-medium text-sm md:text-base">Top-rated professionals</span>
               </div>
@@ -80,7 +88,7 @@ export function HeroSection() {
               <Button
                 asChild
                 size="lg"
-                className="bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/50"
+                className="bg-emerald-600 text-white hover:bg-emerald-700 "
               >
                 <Link href="/onboarding">
                   Get Started <ArrowRight className="ml-2 h-4 w-4" />
@@ -106,17 +114,6 @@ export function HeroSection() {
                 </Link>
               </Button>
             </div>
-            
-            {/* Company Logos */}
-            {/* <div className="pt-6 md:pt-8">
-              <p className="text-gray-500 text-xs md:text-sm mb-3 md:mb-4">Trusted by industry leaders</p>
-              <div className="flex items-center space-x-4 md:space-x-8 opacity-60 overflow-x-auto">
-                <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">TV3</div>
-                <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">Joy FM</div>
-                <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">Adom FM</div>
-                <div className="text- font-semibold text-sm md:text-lg whitespace-nowrap">Joy Prime</div>
-              </div>
-            </div> */}
           </div>
 
           {/* Right Creative Grid */}
