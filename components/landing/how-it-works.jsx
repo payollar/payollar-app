@@ -17,14 +17,14 @@ export function HowItWorksSection() {
     },
     {
       icon: Search,
-      video: "/icons/search.mp4",
+      video: "/icons/search.MP4",
       title: "Discover Opportunities",
       description: "Browse or get matched with relevant gigs from TV, radio, & digital media companies",
       color: "bg-white",
     },
     {
       icon: Calendar,
-      video: "/icons/book.mp4",
+      video: "/icons/book.MP4",
       title: "Book & Negotiate",
       description: "Apply for gigs, negotiate terms, and confirm bookings with secure contracts",
       color: "bg-white",
@@ -54,7 +54,7 @@ export function HowItWorksSection() {
           </Badge>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             How{" "}
-            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] drop-shadow-[0_0_40px_rgba(6,182,212,0.3)] hover:drop-shadow-[0_0_30px_rgba(16,185,129,0.7)] hover:drop-shadow-[0_0_60px_rgba(6,182,212,0.5)] transition-all duration-300">
               Payollar
             </span>{" "}
             Works
