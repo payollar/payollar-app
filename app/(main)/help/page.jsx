@@ -41,7 +41,7 @@ const faqCategories = {
     },
     {
       question: "How do I contact support?",
-      answer: "You can reach our support team at info@payollar.com. We typically respond within 24-48 hours. For urgent matters, please include 'URGENT' in your subject line."
+      answer: "You can reach our support team at hey@payollar.com. We typically respond within 24-48 hours. For urgent matters, please include 'URGENT' in your subject line."
     }
   ],
   client: [
@@ -346,10 +346,10 @@ export default function HelpPage() {
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" />
                 <a 
-                  href="mailto:info@payollar.com" 
+                  href="mailto:hey@payollar.com" 
                   className="text-primary hover:underline font-medium"
                 >
-                  info@payollar.com
+                  hey@payollar.com
                 </a>
               </div>
             </div>

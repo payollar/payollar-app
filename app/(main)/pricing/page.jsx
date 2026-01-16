@@ -56,7 +56,7 @@ export default async function PricingPage() {
           Questions? We're Here to Help
         </h2>
         <p className="text-muted-foreground mb-4">
-          Contact our support team at info@payollar.com
+          Contact our support team at hey@payollar.com
         </p>
       </div>
     </div>

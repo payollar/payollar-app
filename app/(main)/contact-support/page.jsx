@@ -232,10 +232,10 @@ export default function ContactSupportPage() {
                   For general inquiries and non-urgent matters
                 </p>
                 <a
-                  href="mailto:support@info.payollar.com"
+                  href="mailto:hey@payollar.com"
                   className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
                 >
-                  support@info.payollar.com
+                  hey@payollar.com
                 </a>
               </CardContent>
             </Card>
