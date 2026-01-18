@@ -16,6 +16,7 @@ export default function RadioMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [showCustomBuilder, setShowCustomBuilder] = useState(false)
+  const [customBuilderStationId, setCustomBuilderStationId] = useState(null)
   const headerImage = getHeaderImage("/products/radio-media")
 
   const handlePackageClick = (stationName, pkg) => {
@@ -25,6 +26,25 @@ export default function RadioMediaPage() {
       details: `${pkg.duration} • ${pkg.slots} spots`,
     })
     setIsModalOpen(true)
+  }
+
+  const handleCustomPackageClick = (stationId, stationName) => {
+    if (customBuilderStationId === stationId) {
+      setCustomBuilderStationId(null)
+    } else {
+      setCustomBuilderStationId(stationId)
+    }
+  }
+
+  const handleCustomPackageSubmit = (stationName, packageData) => {
+    setSelectedPackage({
+      name: `${stationName} - Custom Package`,
+      price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
+      details: `${packageData.calculations.totalQuantity} spots over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
+      customData: packageData,
+    })
+    setIsModalOpen(true)
+    setCustomBuilderStationId(null)
   }
 
   const radioStations = [
@@ -168,7 +188,8 @@ export default function RadioMediaPage() {
           <div className="text-center text-white px-4">
             <h1 className="text-3xl md:text-5xl font-bold mb-4">Radio Advertising</h1>
             <p className="text-lg md:text-xl max-w-3xl mx-auto opacity-90">
-              Connect with audiences through AM/FM radio stations nationwide
+              Connect with audiences through AM/FM radio stations across Ghana. Perfect for local and regional
+              campaigns.
             </p>
           </div>
         </div>
@@ -177,13 +198,13 @@ export default function RadioMediaPage() {
       {/* Header */}
       <section className="py-12 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-8">
+          {/* <div className="text-center space-y-4 mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-balance">Radio Advertising</h1>
             <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
               Connect with engaged audiences through AM/FM radio stations across Ghana. Perfect for local and regional
               campaigns.
             </p>
-          </div>
+          </div> */}
 
           {/* Search and Filters */}
           <div className="max-w-4xl mx-auto space-y-4">
@@ -232,7 +253,7 @@ export default function RadioMediaPage() {
       </section>
 
       {/* Custom Package Builder Section */}
-      <section className="py-16 bg-muted/30">
+      {/* <section className="py-16 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">Build Your Custom Radio Package</h2>
@@ -266,7 +287,7 @@ export default function RadioMediaPage() {
             </div>
           )}
         </div>
-      </section>
+      </section> */}
 
       {/* Radio Stations List */}
       <section className="py-16">
@@ -341,7 +362,38 @@ export default function RadioMediaPage() {
                           </CardContent>
                         </Card>
                       ))}
+                      {/* Custom Package Option */}
+                      <Card className="border-2 border-dashed hover:border-primary/50 transition-colors">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">Custom Package</CardTitle>
+                          <div className="text-2xl font-bold text-primary">Build Your Own</div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="text-sm text-muted-foreground">
+                            Create a personalized package
+                          </div>
+                          <Button 
+                            className="w-full" 
+                            size="sm" 
+                            variant={customBuilderStationId === station.id ? "outline" : "default"}
+                            onClick={() => handleCustomPackageClick(station.id, station.name)}
+                          >
+                            {customBuilderStationId === station.id ? "Hide Builder" : "Build Custom Package"}
+                          </Button>
+                        </CardContent>
+                      </Card>
                     </div>
+                    
+                    {/* Custom Package Builder for this station */}
+                    {customBuilderStationId === station.id && (
+                      <div className="mt-6 p-4 bg-muted/30 rounded-lg border">
+                        <h5 className="font-semibold mb-4">Custom Package Builder for {station.name}</h5>
+                        <CustomPackageBuilder
+                          mediaType="radio"
+                          onPackageSubmit={(packageData) => handleCustomPackageSubmit(station.name, packageData)}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>

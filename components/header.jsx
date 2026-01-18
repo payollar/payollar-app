@@ -50,29 +50,29 @@ export default async function Header() {
   const showMediaMenu = user?.role === "CLIENT" || user?.role === "ADMIN";
 
   return (
-    <header className={`fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-20 ${isDashboardPage ? 'md:left-[15rem] md:w-[calc(100%-15rem)]' : ''}`}>
-      <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className={`fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-20 overflow-visible ${isDashboardPage ? 'md:left-[15rem] md:w-[calc(100%-15rem)]' : ''}`}>
+      <nav className="container mx-auto px-4 h-16 flex items-center justify-between overflow-visible">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image src="/logo-single.png" alt="Logo" width={160} height={50} />
         </Link>
 
         {/* Desktop Nav - Show on desktop always, and on mobile for dashboard pages */}
-        <div className={`${isDashboardPage ? 'flex' : 'hidden md:flex'} items-center gap-3 md:gap-6 overflow-x-auto`}>
+        <div className={`${isDashboardPage ? 'flex' : 'hidden md:flex'} items-center justify-end gap-3 md:gap-6 overflow-visible flex-1 min-w-0`}>
           {/* Media dropdown - only show for CLIENT or ADMIN */}
           {showMediaMenu && (
             <NavigationMenu viewport={false}>
               <NavigationMenuList>
                 <NavigationMenuItem className="relative">
-                  <NavigationMenuTrigger>Media</NavigationMenuTrigger>
-                  <NavigationMenuContent className="absolute left-0 top-full mt-1.5 w-[220px] z-50 bg-popover border rounded-md shadow-md">
-                    <ul className="grid gap-3 p-4">
+                  <NavigationMenuTrigger className="whitespace-nowrap">Media</NavigationMenuTrigger>
+                  <NavigationMenuContent className="left-0 top-full mt-1.5 z-[100]">
+                    <ul className="grid gap-1 p-2 w-[200px]">
                       {mediaSubItems.map((item) => (
                         <li key={item.href}>
                           <NavigationMenuLink asChild>
                             <Link
                               href={item.href}
-                              className="block rounded-md px-3 py-2 text-sm hover:bg-muted hover:text-primary transition-colors"
+                              className="block select-none rounded-sm px-3 py-2 text-sm leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                             >
                               {item.label}
                             </Link>

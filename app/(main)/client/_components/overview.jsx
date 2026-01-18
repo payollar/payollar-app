@@ -80,7 +80,7 @@ export function ClientOverview({ stats, recentAppointments = [], campaigns = [] 
   const companyName = stats?.companyName || "TechCorp";
   
   // Calculate metrics
-  const totalSpent = stats?.totalSpent || 68500;
+  const totalSpent = stats?.totalSpent || 0;
   const activeCampaigns = campaigns?.filter(c => c.status === "ACTIVE").length || 0;
   const bookedTalents = stats?.bookedTalents || recentAppointments?.length || 0;
   const pendingApplications = stats?.pendingApplications || 0;

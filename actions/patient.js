@@ -126,6 +126,39 @@ export async function getClientStats() {
       return aptDate >= startOfCurrentMonth && aptDate <= endOfCurrentMonth;
     }).length;
 
+    // Calculate total spent from various sources
+    // 1. Credit purchases (each credit costs $10 USD)
+    const CREDIT_PRICE = 10; // $10 per credit
+    const creditPurchases = await db.creditTransaction.findMany({
+      where: {
+        userId: user.id,
+        type: "CREDIT_PURCHASE",
+        amount: { gt: 0 },
+      },
+    });
+    const creditSpent = creditPurchases.reduce((sum, t) => sum + (t.amount * CREDIT_PRICE), 0);
+
+    // 2. Product purchases
+    const productPurchases = await db.digitalProductSale.findMany({
+      where: {
+        buyerId: user.id,
+        status: "COMPLETED",
+      },
+    });
+    const productSpent = productPurchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // 3. Media bookings (completed or confirmed)
+    const mediaBookings = await db.mediaBooking.findMany({
+      where: {
+        clientEmail: user.email,
+        status: { in: ["CONFIRMED", "COMPLETED"] },
+      },
+    });
+    const mediaSpent = mediaBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+    // Total spent across all sources
+    const totalSpent = creditSpent + productSpent + mediaSpent;
+
     return {
       stats: {
         totalAppointments,
@@ -133,6 +166,7 @@ export async function getClientStats() {
         upcomingAppointments,
         cancelledAppointments,
         appointmentsThisMonth,
+        totalSpent,
       },
       recentAppointments: user.patientAppointments || [],
     };

@@ -166,7 +166,8 @@ export default function BillboardMediaPage() {
           <div className="text-center text-white px-4">
             <h1 className="text-3xl md:text-5xl font-bold mb-4">Billboard Advertising</h1>
             <p className="text-lg md:text-xl max-w-3xl mx-auto opacity-90">
-              High-impact outdoor advertising in prime locations across cities
+            Make a bold statement with outdoor advertising in high-traffic locations across Ghana. From digital
+            displays to traditional billboards.
             </p>
           </div>
         </div>
@@ -175,13 +176,13 @@ export default function BillboardMediaPage() {
       {/* Header */}
       <section className="py-12 bg-gradient-to-r from-orange-500/10 to-red-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-8">
+          {/* <div className="text-center space-y-4 mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-balance">Billboard Advertising</h1>
             <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
               Make a bold statement with outdoor advertising in high-traffic locations across Ghana. From digital
               displays to traditional billboards.
             </p>
-          </div>
+          </div> */}
 
           {/* Search and Filters */}
           <div className="max-w-4xl mx-auto space-y-4">

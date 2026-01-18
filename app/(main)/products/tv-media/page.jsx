@@ -8,12 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tv, Search, MapPin, Users, Clock, Star, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
+import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import { useState } from "react"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 
 export default function TVMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
+  const [customBuilderStationId, setCustomBuilderStationId] = useState(null)
   const headerImage = getHeaderImage("/products/tv-media")
 
   const handlePackageClick = (stationName, pkg) => {
@@ -23,6 +25,25 @@ export default function TVMediaPage() {
       details: `${pkg.duration} • ${pkg.slots} spots`,
     })
     setIsModalOpen(true)
+  }
+
+  const handleCustomPackageClick = (stationId, stationName) => {
+    if (customBuilderStationId === stationId) {
+      setCustomBuilderStationId(null)
+    } else {
+      setCustomBuilderStationId(stationId)
+    }
+  }
+
+  const handleCustomPackageSubmit = (stationName, packageData) => {
+    setSelectedPackage({
+      name: `${stationName} - Custom Package`,
+      price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
+      details: `${packageData.calculations.totalQuantity} spots over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
+      customData: packageData,
+    })
+    setIsModalOpen(true)
+    setCustomBuilderStationId(null)
   }
 
   const tvStations = [
@@ -144,7 +165,8 @@ export default function TVMediaPage() {
           <div className="text-center text-white px-4">
             <h1 className="text-3xl md:text-5xl font-bold mb-4">Television Advertising</h1>
             <p className="text-lg md:text-xl max-w-3xl mx-auto opacity-90">
-              Reach millions of viewers with premium television advertising
+              Reach millions of viewers with premium television advertising  across major networks and local stations in
+              Ghana.
             </p>
           </div>
         </div>
@@ -153,13 +175,13 @@ export default function TVMediaPage() {
       {/* Header */}
       <section className="py-12 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-8">
+          {/* <div className="text-center space-y-4 mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-balance">Television Advertising</h1>
             <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
               Reach millions of viewers with premium television advertising across major networks and local stations in
               Ghana.
             </p>
-          </div>
+          </div> */}
 
           {/* Search and Filters */}
           <div className="max-w-4xl mx-auto space-y-4">
@@ -277,7 +299,38 @@ export default function TVMediaPage() {
                           </CardContent>
                         </Card>
                       ))}
+                      {/* Custom Package Option */}
+                      <Card className="border-2 border-dashed hover:border-primary/50 transition-colors">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">Custom Package</CardTitle>
+                          <div className="text-2xl font-bold text-primary">Build Your Own</div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="text-sm text-muted-foreground">
+                            Create a personalized package
+                          </div>
+                          <Button 
+                            className="w-full" 
+                            size="sm" 
+                            variant={customBuilderStationId === station.id ? "outline" : "default"}
+                            onClick={() => handleCustomPackageClick(station.id, station.name)}
+                          >
+                            {customBuilderStationId === station.id ? "Hide Builder" : "Build Custom Package"}
+                          </Button>
+                        </CardContent>
+                      </Card>
                     </div>
+                    
+                    {/* Custom Package Builder for this station */}
+                    {customBuilderStationId === station.id && (
+                      <div className="mt-6 p-4 bg-muted/30 rounded-lg border">
+                        <h5 className="font-semibold mb-4">Custom Package Builder for {station.name}</h5>
+                        <CustomPackageBuilder
+                          mediaType="radio"
+                          onPackageSubmit={(packageData) => handleCustomPackageSubmit(station.name, packageData)}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>

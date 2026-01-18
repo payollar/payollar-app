@@ -191,13 +191,13 @@ export default function DigitalMediaPage() {
       {/* Header */}
       <section className="py-12 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-8">
+          {/* <div className="text-center space-y-4 mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-balance">Digital Advertising</h1>
             <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
               Reach your target audience with precision through social media, streaming platforms, and online
               advertising networks.
             </p>
-          </div>
+          </div> */}
 
           {/* Search and Filters */}
           <div className="max-w-4xl mx-auto space-y-4">

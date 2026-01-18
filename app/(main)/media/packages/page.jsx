@@ -57,7 +57,7 @@ export default function MediaPackagesPage() {
     },
     {
       id: "radio",
-      name: "Radio Media",
+      name: "",
       icon: Radio,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
