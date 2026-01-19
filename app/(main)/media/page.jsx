@@ -90,7 +90,7 @@ export default function LandingPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Card className="p-6 bg-card/50 backdrop-blur">
                   <div className="space-y-2">
-                    <div className="text-2xl font-bold">10,000+</div>
+                    <div className="text-2xl font-bold">100+</div>
                     <div className="text-sm text-muted-foreground">Media Partners</div>
                   </div>
                 </Card>
@@ -102,7 +102,7 @@ export default function LandingPage() {
                 </Card>
                 <Card className="p-6 bg-card/50 backdrop-blur">
                   <div className="space-y-2">
-                    <div className="text-2xl font-bold">$50M+</div>
+                    <div className="text-2xl font-bold">$100k+</div>
                     <div className="text-sm text-muted-foreground">Ad Spend Managed</div>
                   </div>
                 </Card>
@@ -119,7 +119,7 @@ export default function LandingPage() {
       </section>
 
 
-      <section className="relative h-64 md:h-80 w-full">
+      {/* <section className="relative h-64 md:h-80 w-full">
         <img
           src={headerImage}
           alt="Media Banner"
@@ -131,7 +131,7 @@ export default function LandingPage() {
             Media Channels
           </h1>
         </div>
-      </section>
+      </section> */}
 
        {/* Header */}
        <section className="py-16 bg-muted/20">
@@ -562,7 +562,7 @@ export default function LandingPage() {
             <Card className="p-6">
               <CardContent className="p-0 space-y-4">
                 <p className="text-muted-foreground">
-                  "MediaConnect revolutionized our advertising strategy. Managing TV, radio, and digital campaigns from
+                  "payollar revolutionized our advertising strategy. Managing TV, radio, and digital campaigns from
                   one platform saved us countless hours."
                 </p>
                 <div className="flex items-center space-x-3">
@@ -596,7 +596,7 @@ export default function LandingPage() {
             <Card className="p-6">
               <CardContent className="p-0 space-y-4">
                 <p className="text-muted-foreground">
-                  "As a media company, MediaConnect has streamlined our inventory management and significantly increased
+                  "As a media company, payollar has streamlined our inventory management and significantly increased
                   our booking efficiency."
                 </p>
                 <div className="flex items-center space-x-3">
@@ -860,7 +860,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2025 payollar. All rights reserved.</p>
+            <p>&copy; 2026 payollar. All rights reserved.</p>
           </div>
         </div>
       </footer>
