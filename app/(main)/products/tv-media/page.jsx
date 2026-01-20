@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tv, Search, MapPin, Users, Clock, Star, ArrowLeft } from "lucide-react"
+import { Tv, Search, MapPin, Users, Clock, Star, ArrowLeft, Eye } from "lucide-react"
 import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
@@ -23,6 +23,8 @@ export default function TVMediaPage() {
       name: `${stationName} - ${pkg.name}`,
       price: pkg.price,
       details: `${pkg.duration} • ${pkg.slots} spots`,
+      mediaType: "tv",
+      defaultSpots: pkg.slots,
     })
     setIsModalOpen(true)
   }
@@ -40,6 +42,8 @@ export default function TVMediaPage() {
       name: `${stationName} - Custom Package`,
       price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
       details: `${packageData.calculations.totalQuantity} spots over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
+      mediaType: "tv",
+      defaultSpots: packageData.calculations.totalQuantity,
       customData: packageData,
     })
     setIsModalOpen(true)
@@ -58,9 +62,9 @@ export default function TVMediaPage() {
       timeSlots: ["Prime Time", "Morning", "Late Night"],
       demographics: ["Adults 25-54", "Adults 18-49"],
       packages: [
-        { name: "Morning Show Package", price: "₵3,500", duration: "30 seconds", slots: 5 },
-        { name: "Prime Time Package", price: "₵12,000", duration: "30 seconds", slots: 3 },
-        { name: "Weekend Special", price: "₵6,000", duration: "30 seconds", slots: 8 },
+        { name: "Morning Show Package", price: "₵3,500", duration: "30 seconds", slots: 5, estimatedReach: "2.5M+ viewers" },
+        { name: "Prime Time Package", price: "₵12,000", duration: "30 seconds", slots: 3, estimatedReach: "4.5M+ viewers" },
+        { name: "Weekend Special", price: "₵6,000", duration: "30 seconds", slots: 8, estimatedReach: "3.5M+ viewers" },
       ],
     },
     {
@@ -74,9 +78,9 @@ export default function TVMediaPage() {
       timeSlots: ["Prime Time", "Daytime", "News"],
       demographics: ["Adults 25-54", "Adults 35-64"],
       packages: [
-        { name: "News Hour Package", price: "₵3,000", duration: "30 seconds", slots: 6 },
-        { name: "Prime Drama Package", price: "₵10,000", duration: "30 seconds", slots: 4 },
-        { name: "Daytime Bundle", price: "₵5,000", duration: "30 seconds", slots: 10 },
+        { name: "News Hour Package", price: "₵3,000", duration: "30 seconds", slots: 6, estimatedReach: "2.2M+ viewers" },
+        { name: "Prime Drama Package", price: "₵10,000", duration: "30 seconds", slots: 4, estimatedReach: "3.8M+ viewers" },
+        { name: "Daytime Bundle", price: "₵5,000", duration: "30 seconds", slots: 10, estimatedReach: "2.8M+ viewers" },
       ],
     },
     {
@@ -90,9 +94,9 @@ export default function TVMediaPage() {
       timeSlots: ["Morning", "Afternoon", "Evening"],
       demographics: ["Adults 18-49", "Adults 25-54"],
       packages: [
-        { name: "Morning News Package", price: "₵2,500", duration: "30 seconds", slots: 8 },
-        { name: "Evening Package", price: "₵8,000", duration: "30 seconds", slots: 5 },
-        { name: "All-Day Bundle", price: "₵15,000", duration: "30 seconds", slots: 20 },
+        { name: "Morning News Package", price: "₵2,500", duration: "30 seconds", slots: 8, estimatedReach: "1.8M+ viewers" },
+        { name: "Evening Package", price: "₵8,000", duration: "30 seconds", slots: 5, estimatedReach: "2.5M+ viewers" },
+        { name: "All-Day Bundle", price: "₵15,000", duration: "30 seconds", slots: 20, estimatedReach: "2.8M+ viewers" },
       ],
     },
     {
@@ -106,9 +110,9 @@ export default function TVMediaPage() {
       timeSlots: ["Prime Time", "News", "Talk Shows"],
       demographics: ["Adults 25-54", "Adults 35-64"],
       packages: [
-        { name: "News Package", price: "₵2,000", duration: "30 seconds", slots: 5 },
-        { name: "Prime Time Package", price: "₵7,000", duration: "30 seconds", slots: 3 },
-        { name: "Talk Show Bundle", price: "₵4,500", duration: "30 seconds", slots: 7 },
+        { name: "News Package", price: "₵2,000", duration: "30 seconds", slots: 5, estimatedReach: "1.5M+ viewers" },
+        { name: "Prime Time Package", price: "₵7,000", duration: "30 seconds", slots: 3, estimatedReach: "2.2M+ viewers" },
+        { name: "Talk Show Bundle", price: "₵4,500", duration: "30 seconds", slots: 7, estimatedReach: "1.8M+ viewers" },
       ],
     },
     {
@@ -122,9 +126,9 @@ export default function TVMediaPage() {
       timeSlots: ["Morning", "Afternoon", "Evening"],
       demographics: ["Adults 18-49", "Adults 25-54"],
       packages: [
-        { name: "Morning Package", price: "₵1,800", duration: "30 seconds", slots: 6 },
-        { name: "Evening Package", price: "₵6,500", duration: "30 seconds", slots: 4 },
-        { name: "Full Day Bundle", price: "₵12,000", duration: "30 seconds", slots: 15 },
+        { name: "Morning Package", price: "₵1,800", duration: "30 seconds", slots: 6, estimatedReach: "1.2M+ viewers" },
+        { name: "Evening Package", price: "₵6,500", duration: "30 seconds", slots: 4, estimatedReach: "1.8M+ viewers" },
+        { name: "Full Day Bundle", price: "₵12,000", duration: "30 seconds", slots: 15, estimatedReach: "1.9M+ viewers" },
       ],
     },
   ]
@@ -293,6 +297,12 @@ export default function TVMediaPage() {
                             <div className="text-sm text-muted-foreground">
                               {pkg.duration} • {pkg.slots} spots
                             </div>
+                            {pkg.estimatedReach && (
+                              <div className="flex items-center gap-1 text-sm text-primary font-medium">
+                                <Eye className="h-4 w-4" />
+                                {pkg.estimatedReach}
+                              </div>
+                            )}
                             <Button className="w-full" size="sm" onClick={() => handlePackageClick(station.name, pkg)}>
                               Select Package
                             </Button>

@@ -14,7 +14,18 @@ import {
 } from "@/components/ui/navigation-menu";
 
 export default async function Header() {
-  const user = await checkUser();
+  let user = null;
+  try {
+    user = await checkUser();
+  } catch (error) {
+    // Only log errors in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Header checkUser error:', error);
+    }
+    // Continue with null user - don't block the header from rendering
+    user = null;
+  }
+  
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
   
@@ -22,13 +33,15 @@ export default async function Header() {
   const isDashboardPage = 
     pathname.startsWith("/creator") ||
     pathname.startsWith("/client") ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/media-agency");
 
   // Role-based nav
   const roleNavItems = [
     { href: "/client", label: "Client Dashboard", show: user?.role === "CLIENT" },
     { href: "/creator", label: "Creator Dashboard", show: user?.role === "CREATOR" },
     { href: "/admin", label: "Admin Dashboard", show: user?.role === "ADMIN" },
+    { href: "/media-agency", label: "Media Agency", show: user?.role === "MEDIA_AGENCY" },
     { href: "/onboarding", label: "Complete Profile", show: user?.role === "UNASSIGNED" },
   ].filter(item => item.show);
 

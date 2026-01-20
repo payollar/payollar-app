@@ -27,6 +27,9 @@ export default async function OnboardingLayout({ children }) {
         }
       } else if (user.role === "ADMIN") {
         redirect("/admin");
+      } else if (user.role === "MEDIA_AGENCY") {
+        // Media agencies skip onboarding and go directly to dashboard
+        redirect("/media-agency");
       }
       // If role is UNASSIGNED, continue to onboarding
     }

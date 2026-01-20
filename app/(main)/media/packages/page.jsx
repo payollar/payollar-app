@@ -14,6 +14,7 @@ import {
   Star,
   Check,
   ArrowRight,
+  Eye,
 } from "lucide-react"
 import Link from "next/link"
 import { getHeaderImage } from "@/lib/getHeaderImage"
@@ -34,6 +35,7 @@ export default function MediaPackagesPage() {
           price: "₵15,000",
           duration: "30 seconds",
           slots: 5,
+          estimatedReach: "2.5M+ viewers",
           features: ["Prime time slots", "High viewership", "Multiple channels"],
           rating: 4.9,
         },
@@ -42,6 +44,7 @@ export default function MediaPackagesPage() {
           price: "₵8,000",
           duration: "30 seconds",
           slots: 10,
+          estimatedReach: "1.8M+ viewers",
           features: ["Daytime slots", "Cost-effective", "Wide reach"],
           rating: 4.7,
         },
@@ -50,6 +53,7 @@ export default function MediaPackagesPage() {
           price: "₵12,000",
           duration: "60 seconds",
           slots: 3,
+          estimatedReach: "2.2M+ viewers",
           features: ["Weekend slots", "Extended duration", "Premium placement"],
           rating: 4.8,
         },
@@ -67,6 +71,7 @@ export default function MediaPackagesPage() {
           price: "₵5,000",
           duration: "30 seconds",
           slots: 7,
+          estimatedReach: "1.5M+ listeners",
           features: ["Morning slots", "Rush hour coverage", "High listenership"],
           rating: 4.8,
         },
@@ -75,6 +80,7 @@ export default function MediaPackagesPage() {
           price: "₵3,500",
           duration: "30 seconds",
           slots: 10,
+          estimatedReach: "1.2M+ listeners",
           features: ["Afternoon slots", "Steady audience", "Affordable"],
           rating: 4.6,
         },
@@ -83,6 +89,7 @@ export default function MediaPackagesPage() {
           price: "₵4,500",
           duration: "30 seconds",
           slots: 8,
+          estimatedReach: "1.3M+ listeners",
           features: ["Evening slots", "Prime time", "Great value"],
           rating: 4.7,
         },
@@ -100,6 +107,7 @@ export default function MediaPackagesPage() {
           price: "₵2,500",
           duration: "1 month",
           slots: 20,
+          estimatedReach: "500K+ impressions",
           features: ["Facebook, Instagram, Twitter", "Targeted ads", "Analytics"],
           rating: 4.9,
         },
@@ -108,6 +116,7 @@ export default function MediaPackagesPage() {
           price: "₵1,800",
           duration: "1 month",
           slots: 15,
+          estimatedReach: "300K+ impressions",
           features: ["Google Ads", "SEO optimization", "Performance tracking"],
           rating: 4.7,
         },
@@ -116,6 +125,7 @@ export default function MediaPackagesPage() {
           price: "₵3,200",
           duration: "1 month",
           slots: 10,
+          estimatedReach: "800K+ views",
           features: ["YouTube ads", "Video production", "Multi-platform"],
           rating: 4.8,
         },
@@ -133,6 +143,7 @@ export default function MediaPackagesPage() {
           price: "₵20,000",
           duration: "1 month",
           slots: 1,
+          estimatedReach: "200K+ daily views",
           features: ["High-traffic location", "24/7 visibility", "Premium placement"],
           rating: 4.9,
         },
@@ -141,6 +152,7 @@ export default function MediaPackagesPage() {
           price: "₵12,000",
           duration: "1 month",
           slots: 1,
+          estimatedReach: "120K+ daily views",
           features: ["Good visibility", "Strategic placement", "Cost-effective"],
           rating: 4.6,
         },
@@ -149,6 +161,7 @@ export default function MediaPackagesPage() {
           price: "₵50,000",
           duration: "1 month",
           slots: 3,
+          estimatedReach: "600K+ daily views",
           features: ["Multiple locations", "Maximum reach", "Bulk discount"],
           rating: 4.8,
         },
@@ -215,15 +228,23 @@ export default function MediaPackagesPage() {
                           </div>
                         </div>
                         <div className="text-3xl font-bold text-primary">{pkg.price}</div>
-                        <CardDescription className="flex items-center gap-4 mt-2">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {pkg.duration}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {pkg.slots} {pkg.slots === 1 ? "slot" : "slots"}
-                          </span>
+                        <CardDescription className="flex flex-col gap-2 mt-2">
+                          <div className="flex items-center gap-4">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {pkg.duration}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="h-4 w-4" />
+                              {pkg.slots} {pkg.slots === 1 ? "slot" : "slots"}
+                            </span>
+                          </div>
+                          {pkg.estimatedReach && (
+                            <span className="flex items-center gap-1 text-primary font-medium">
+                              <Eye className="h-4 w-4" />
+                              {pkg.estimatedReach}
+                            </span>
+                          )}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">

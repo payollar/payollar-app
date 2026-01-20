@@ -136,6 +136,7 @@ enum UserRole {
   CLIENT
   CREATOR
   ADMIN
+  MEDIA_AGENCY
 }
 
 enum VerificationStatus {
@@ -369,6 +370,8 @@ model MediaAgency {
 
   listings MediaListing[]
   bookings MediaBooking[]
+  termsAndConditions MediaAgencyTC[]
+  reports MediaAgencyReport[]
 
   @@index([verificationStatus, createdAt])
 }
@@ -477,4 +480,47 @@ enum RateType {
   PER_HOUR
   PER_SESSION
   FIXED
+}
+
+model MediaAgencyTC {
+  id          String   @id @default(uuid())
+  agencyId    String
+  agency      MediaAgency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  title       String
+  content     String   @db.Text // Terms and conditions content
+  version     Int      @default(1) // Version number
+  isActive    Boolean  @default(true) // Only one active TC per agency
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([agencyId, isActive])
+  @@index([agencyId, createdAt])
+}
+
+model MediaAgencyReport {
+  id          String   @id @default(uuid())
+  agencyId    String
+  agency      MediaAgency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  bookingId   String?  // Optional: link to specific booking
+  reportType  ReportType
+  title       String
+  content     String?  @db.Text
+  metrics     Json?    // Flexible JSON for various metrics (views, impressions, etc.)
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([agencyId, createdAt])
+  @@index([bookingId])
+  @@index([reportType, startDate, endDate])
+}
+
+enum ReportType {
+  BOOKING_SUMMARY
+  PERFORMANCE
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  CUSTOM
 }

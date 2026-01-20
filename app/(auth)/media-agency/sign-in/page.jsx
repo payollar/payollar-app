@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff, Building2 } from "lucide-react";
 import Link from "next/link";
 
-function SignInForm() {
+function MediaAgencySignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect_url") || "/onboarding";
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,13 +23,11 @@ function SignInForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Basic validation
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
     
-    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast.error("Please enter a valid email address");
@@ -48,14 +45,10 @@ function SignInForm() {
         {
           onSuccess: async () => {
             toast.success("Signed in successfully!");
-            // Longer delay to ensure session cookie is set and session is available
             await new Promise(resolve => setTimeout(resolve, 800));
             
-            // Trigger events to notify other components (like navbar) about the new session
             if (typeof window !== "undefined") {
-              // Trigger storage event for cross-tab sync
               window.dispatchEvent(new Event('storage'));
-              // Trigger custom event for same-tab components
               window.dispatchEvent(new CustomEvent('auth:session-update'));
             }
             
@@ -67,8 +60,11 @@ function SignInForm() {
               
               if (response.ok) {
                 const data = await response.json();
-                if (data.role) {
-                  // User has a role, redirect to appropriate dashboard
+                if (data.role === "MEDIA_AGENCY") {
+                  window.location.href = "/media-agency";
+                  return;
+                } else if (data.role) {
+                  // User has a different role, redirect to their dashboard
                   if (data.role === "CLIENT") {
                     window.location.href = "/";
                   } else if (data.role === "CREATOR") {
@@ -79,30 +75,24 @@ function SignInForm() {
                     }
                   } else if (data.role === "ADMIN") {
                     window.location.href = "/admin";
-                  } else if (data.role === "MEDIA_AGENCY") {
-                    window.location.href = "/media-agency";
                   } else {
-                    // UNASSIGNED role, go to onboarding
                     window.location.href = "/onboarding";
                   }
                 } else {
-                  // No role, go to onboarding
-                  window.location.href = "/onboarding";
+                  // No role, redirect to media agency sign-up
+                  window.location.href = "/media-agency/sign-up";
                 }
               } else {
-                // Fallback to redirectUrl or onboarding
-                window.location.href = redirectUrl;
+                window.location.href = "/media-agency/sign-up";
               }
             } catch (error) {
               console.error("Error checking user role:", error);
-              // Fallback to redirectUrl or onboarding
-              window.location.href = redirectUrl;
+              window.location.href = "/media-agency/sign-up";
             }
           },
           onError: (ctx) => {
             let errorMessage = ctx.error?.message || "Failed to sign in. Please check your credentials.";
             
-            // Better error messages for common issues
             if (errorMessage.toLowerCase().includes("invalid") || 
                 errorMessage.toLowerCase().includes("credential") ||
                 errorMessage.toLowerCase().includes("password") ||
@@ -112,12 +102,6 @@ function SignInForm() {
                        errorMessage.toLowerCase().includes("user") ||
                        errorMessage.toLowerCase().includes("does not exist")) {
               errorMessage = "No account found with this email. Please sign up first.";
-            } else if (errorMessage.toLowerCase().includes("rate limit") ||
-                       errorMessage.toLowerCase().includes("too many")) {
-              errorMessage = "Too many sign-in attempts. Please wait a moment and try again.";
-            } else if (errorMessage.toLowerCase().includes("network") ||
-                       errorMessage.toLowerCase().includes("fetch")) {
-              errorMessage = "Network error. Please check your connection and try again.";
             }
             
             toast.error(errorMessage);
@@ -138,29 +122,21 @@ function SignInForm() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <Image
           src="/banner2.jpeg"
-          alt="Login background"
+          alt="Media agency sign in background"
           fill
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-700/70"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 via-blue-800/80 to-blue-700/70"></div>
         <div className="absolute inset-0 flex items-center justify-center p-12 z-10">
           <div className="text-white max-w-md space-y-6">
             <div className="space-y-2">
-              <h1 className="text-5xl font-bold leading-tight">Welcome Back</h1>
-              <div className="w-20 h-1 bg-emerald-400 rounded-full"></div>
+              <h1 className="text-5xl font-bold leading-tight">Media Agency Portal</h1>
+              <div className="w-20 h-1 bg-blue-400 rounded-full"></div>
             </div>
-            <p className="text-xl text-emerald-50 leading-relaxed">
-              Connect with media professionals, book campaigns, and grow your business all in one platform.
+            <p className="text-xl text-blue-50 leading-relaxed">
+              Sign in to manage your media listings, bookings, and reporting.
             </p>
-            <div className="flex items-center gap-4 pt-4">
-              <div className="flex -space-x-2">
-                <div className="w-10 h-10 rounded-full bg-emerald-400/20 border-2 border-emerald-300"></div>
-                <div className="w-10 h-10 rounded-full bg-emerald-400/20 border-2 border-emerald-300"></div>
-                <div className="w-10 h-10 rounded-full bg-emerald-400/20 border-2 border-emerald-300"></div>
-              </div>
-              <p className="text-sm text-emerald-100">Join thousands of creators</p>
-            </div>
           </div>
         </div>
       </div>
@@ -169,11 +145,14 @@ function SignInForm() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <div className="w-full max-w-md space-y-8">
           <div className="space-y-2">
-            <h2 className="text-4xl font-bold text-gray-900">Sign In</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 className="h-8 w-8 text-blue-600" />
+              <h2 className="text-4xl font-bold text-gray-900">Sign In</h2>
+            </div>
             <p className="text-gray-600">
               Don't have an account?{" "}
-              <Link href="/sign-up" className="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-                Sign up
+              <Link href="/media-agency/sign-up" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Register your agency
               </Link>
             </p>
           </div>
@@ -184,14 +163,14 @@ function SignInForm() {
                 Email address
               </Label>
               <div className="relative group">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="agency@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  className="pl-10 bg-white text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                   required
                   disabled={isLoading}
                 />
@@ -205,27 +184,27 @@ function SignInForm() {
                 </Label>
                 <Link
                   href="/forgot-password"
-                  className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
               <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors z-10" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors z-10" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  className="pl-10 pr-10 bg-white text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                   required
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-emerald-600 focus:outline-none transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 focus:outline-none transition-colors"
                   disabled={isLoading}
                 >
                   {showPassword ? (
@@ -239,7 +218,7 @@ function SignInForm() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25 h-12 text-base font-semibold"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25 h-12 text-base font-semibold"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -248,7 +227,7 @@ function SignInForm() {
                   Signing in...
                 </>
               ) : (
-                "Sign in"
+                "Sign In"
               )}
             </Button>
           </form>
@@ -271,8 +250,8 @@ function SignInForm() {
             onClick={async () => {
               try {
                 setIsLoading(true);
-                // Redirect to verify-email which will check role and redirect appropriately
-                await signInWithGoogle("/verify-email?source=google");
+                // Redirect to verify-email which will check role and redirect MEDIA_AGENCY to dashboard
+                await signInWithGoogle("/verify-email?source=google&media_agency=true");
               } catch (error) {
                 console.error("Google sign-in error:", error);
                 toast.error("Failed to sign in with Google. Please try again.");
@@ -304,11 +283,11 @@ function SignInForm() {
 
           <div className="text-center text-xs text-gray-500 leading-relaxed">
             By signing in, you agree to our{" "}
-            <Link href="/terms" className="font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
+            <Link href="/terms" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
+            <Link href="/privacy" className="font-medium text-blue-600 hover:text-blue-700 transition-colors">
               Privacy Policy
             </Link>
           </div>
@@ -318,19 +297,19 @@ function SignInForm() {
   );
 }
 
-export default function SignInPage() {
+export default function MediaAgencySignInPage() {
   return (
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600" />
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
       }
     >
-      <SignInForm />
+      <MediaAgencySignInForm />
     </Suspense>
   );
 }

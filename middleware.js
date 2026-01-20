@@ -9,6 +9,7 @@ const isProtectedRoute = (pathname) => {
     "/creator",
     "/client",
     "/admin",
+    "/media-agency",
     "/video-call",
     "/appointments",
     "/store",
@@ -24,6 +25,8 @@ const isPublicRoute = (pathname) => {
   const publicPaths = [
     "/sign-in",
     "/sign-up",
+    "/media-agency/sign-in",
+    "/media-agency/sign-up",
     "/forgot-password",
     "/reset-password",
     "/api/webhooks",

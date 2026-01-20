@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
+  // Check if this is TV or Radio media (show number of spots field)
+  const isMediaPackage = packageInfo?.mediaType === "radio" || packageInfo?.mediaType === "tv"
+  
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -16,8 +19,25 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
     company: "",
     budget: "",
     startDate: "",
+    numberOfSpots: "",
     message: "",
   })
+
+  // Reset form when package changes or modal opens
+  useEffect(() => {
+    if (isOpen && packageInfo) {
+      setFormData({
+        fullName: "",
+        email: "",
+        phone: "",
+        company: "",
+        budget: "",
+        startDate: "",
+        numberOfSpots: packageInfo?.defaultSpots?.toString() || "",
+        message: "",
+      })
+    }
+  }, [isOpen, packageInfo])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -129,6 +149,28 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
               />
             </div>
           </div>
+
+          {isMediaPackage && (
+            <div className="space-y-2">
+              <Label htmlFor="numberOfSpots">
+                Number of Spots <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="numberOfSpots"
+                type="number"
+                min="1"
+                placeholder={packageInfo?.defaultSpots ? `Default: ${packageInfo.defaultSpots} spots` : "Enter number of spots"}
+                value={formData.numberOfSpots}
+                onChange={(e) => handleChange("numberOfSpots", e.target.value)}
+                required
+              />
+              {packageInfo?.defaultSpots && (
+                <p className="text-xs text-muted-foreground">
+                  Package includes {packageInfo.defaultSpots} spots. You can request more or fewer spots.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="message">Additional Information</Label>

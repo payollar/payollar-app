@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Radio, Search, MapPin, Users, Clock, Star, ArrowLeft } from "lucide-react"
+import { Radio, Search, MapPin, Users, Clock, Star, ArrowLeft, Eye } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import InquiryFormModal from "@/components/InquiryFormModal"
@@ -24,6 +24,8 @@ export default function RadioMediaPage() {
       name: `${stationName} - ${pkg.name}`,
       price: pkg.price,
       details: `${pkg.duration} • ${pkg.slots} spots`,
+      mediaType: "radio",
+      defaultSpots: pkg.slots,
     })
     setIsModalOpen(true)
   }
@@ -41,6 +43,8 @@ export default function RadioMediaPage() {
       name: `${stationName} - Custom Package`,
       price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
       details: `${packageData.calculations.totalQuantity} spots over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
+      mediaType: "radio",
+      defaultSpots: packageData.calculations.totalQuantity,
       customData: packageData,
     })
     setIsModalOpen(true)
@@ -60,9 +64,9 @@ export default function RadioMediaPage() {
       timeSlots: ["Morning Drive", "Afternoon Drive", "Evening"],
       demographics: ["Adults 25-54", "Adults 35-64"],
       packages: [
-        { name: "Morning Drive Package", price: "₵1,500", duration: "60 seconds", slots: 10 },
-        { name: "Afternoon Package", price: "₵1,000", duration: "60 seconds", slots: 15 },
-        { name: "Weekend Bundle", price: "₵750", duration: "60 seconds", slots: 20 },
+        { name: "Morning Drive Package", price: "₵1,500", duration: "60 seconds", slots: 10, estimatedReach: "1.2M+ listeners" },
+        { name: "Afternoon Package", price: "₵1,000", duration: "60 seconds", slots: 15, estimatedReach: "800K+ listeners" },
+        { name: "Weekend Bundle", price: "₵750", duration: "60 seconds", slots: 20, estimatedReach: "600K+ listeners" },
       ],
     },
     {
@@ -77,9 +81,9 @@ export default function RadioMediaPage() {
       timeSlots: ["Morning Show", "Midday", "Evening"],
       demographics: ["Adults 18-49", "Adults 25-54"],
       packages: [
-        { name: "Morning Show Package", price: "₵1,200", duration: "60 seconds", slots: 8 },
-        { name: "Midday Mix", price: "₵800", duration: "60 seconds", slots: 12 },
-        { name: "All-Day Bundle", price: "₵2,000", duration: "60 seconds", slots: 25 },
+        { name: "Morning Show Package", price: "₵1,200", duration: "60 seconds", slots: 8, estimatedReach: "1.1M+ listeners" },
+        { name: "Midday Mix", price: "₵800", duration: "60 seconds", slots: 12, estimatedReach: "700K+ listeners" },
+        { name: "All-Day Bundle", price: "₵2,000", duration: "60 seconds", slots: 25, estimatedReach: "1.5M+ listeners" },
       ],
     },
     {
@@ -94,9 +98,9 @@ export default function RadioMediaPage() {
       timeSlots: ["Morning News", "Talk Shows", "Evening"],
       demographics: ["Adults 25-54", "Adults 35-64"],
       packages: [
-        { name: "Morning News Package", price: "₵1,800", duration: "60 seconds", slots: 12 },
-        { name: "Talk Show Package", price: "₵1,200", duration: "60 seconds", slots: 10 },
-        { name: "Weekly Bundle", price: "₵3,000", duration: "60 seconds", slots: 30 },
+        { name: "Morning News Package", price: "₵1,800", duration: "60 seconds", slots: 12, estimatedReach: "1.8M+ listeners" },
+        { name: "Talk Show Package", price: "₵1,200", duration: "60 seconds", slots: 10, estimatedReach: "1.5M+ listeners" },
+        { name: "Weekly Bundle", price: "₵3,000", duration: "60 seconds", slots: 30, estimatedReach: "2.2M+ listeners" },
       ],
     },
     {
@@ -111,9 +115,9 @@ export default function RadioMediaPage() {
       timeSlots: ["Morning", "Workday", "Evening"],
       demographics: ["Adults 18-34", "Youth 15-24"],
       packages: [
-        { name: "Workday Package", price: "₵1,000", duration: "60 seconds", slots: 15 },
-        { name: "Morning Package", price: "₵800", duration: "60 seconds", slots: 10 },
-        { name: "Evening Special", price: "₵600", duration: "60 seconds", slots: 18 },
+        { name: "Workday Package", price: "₵1,000", duration: "60 seconds", slots: 15, estimatedReach: "900K+ listeners" },
+        { name: "Morning Package", price: "₵800", duration: "60 seconds", slots: 10, estimatedReach: "750K+ listeners" },
+        { name: "Evening Special", price: "₵600", duration: "60 seconds", slots: 18, estimatedReach: "650K+ listeners" },
       ],
     },
     {
@@ -128,9 +132,9 @@ export default function RadioMediaPage() {
       timeSlots: ["Morning", "Afternoon", "Evening"],
       demographics: ["Adults 18-49", "Adults 25-54"],
       packages: [
-        { name: "Morning Package", price: "₵900", duration: "60 seconds", slots: 12 },
-        { name: "Afternoon Package", price: "₵700", duration: "60 seconds", slots: 15 },
-        { name: "Full Day Bundle", price: "₵1,800", duration: "60 seconds", slots: 35 },
+        { name: "Morning Package", price: "₵900", duration: "60 seconds", slots: 12, estimatedReach: "850K+ listeners" },
+        { name: "Afternoon Package", price: "₵700", duration: "60 seconds", slots: 15, estimatedReach: "700K+ listeners" },
+        { name: "Full Day Bundle", price: "₵1,800", duration: "60 seconds", slots: 35, estimatedReach: "1.1M+ listeners" },
       ],
     },
     {
@@ -145,9 +149,9 @@ export default function RadioMediaPage() {
       timeSlots: ["Morning Drive", "Midday", "Evening"],
       demographics: ["Adults 25-54", "Adults 35-64"],
       packages: [
-        { name: "Morning Drive Package", price: "₵800", duration: "60 seconds", slots: 10 },
-        { name: "Midday Package", price: "₵600", duration: "60 seconds", slots: 12 },
-        { name: "Weekly Special", price: "₵1,500", duration: "60 seconds", slots: 28 },
+        { name: "Morning Drive Package", price: "₵800", duration: "60 seconds", slots: 10, estimatedReach: "600K+ listeners" },
+        { name: "Midday Package", price: "₵600", duration: "60 seconds", slots: 12, estimatedReach: "500K+ listeners" },
+        { name: "Weekly Special", price: "₵1,500", duration: "60 seconds", slots: 28, estimatedReach: "750K+ listeners" },
       ],
     },
   ]
@@ -356,6 +360,12 @@ export default function RadioMediaPage() {
                             <div className="text-sm text-muted-foreground">
                               {pkg.duration} • {pkg.slots} spots
                             </div>
+                            {pkg.estimatedReach && (
+                              <div className="flex items-center gap-1 text-sm text-primary font-medium">
+                                <Eye className="h-4 w-4" />
+                                {pkg.estimatedReach}
+                              </div>
+                            )}
                             <Button className="w-full" size="sm" onClick={() => handlePackageClick(station.name, pkg)}>
                               Select Package
                             </Button>
