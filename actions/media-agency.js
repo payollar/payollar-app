@@ -101,6 +101,47 @@ export async function getMediaAgency(id) {
 }
 
 /**
+ * Get all active media listings (stations) for public selection
+ */
+export async function getActiveMediaListings(mediaType = null) {
+  try {
+    const where = {
+      status: "ACTIVE",
+    };
+
+    if (mediaType) {
+      where.listingType = mediaType;
+    }
+
+    const listings = await db.mediaListing.findMany({
+      where,
+      include: {
+        agency: {
+          select: {
+            id: true,
+            agencyName: true,
+            verificationStatus: true,
+          },
+        },
+      },
+      orderBy: [
+        { listingType: "asc" },
+        { name: "asc" },
+      ],
+    });
+
+    return { success: true, listings };
+  } catch (error) {
+    console.error("Error fetching media listings:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch media listings",
+      listings: [],
+    };
+  }
+}
+
+/**
  * Get media agency by user ID
  */
 export async function getMediaAgencyByUserId(userId) {

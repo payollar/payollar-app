@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -20,15 +20,23 @@ import {
   Radio,
   Smartphone,
   Biohazard as Billboard,
+  Building2,
+  MapPin,
+  Video,
 } from "lucide-react"
 import Link from "next/link"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import InquiryFormModal from "@/components/InquiryFormModal"
+import { getActiveMediaListings } from "@/actions/media-agency"
 
 export default function ScheduleMediaPage() {
   const headerImage = getHeaderImage("/media")
-  const [selectedMediaType, setSelectedMediaType] = useState("digital")
+  const [selectedMediaType, setSelectedMediaType] = useState(null)
+  const [selectedStation, setSelectedStation] = useState(null)
+  const [mediaListings, setMediaListings] = useState([])
+  const [filteredListings, setFilteredListings] = useState([])
+  const [isLoadingListings, setIsLoadingListings] = useState(true)
   const [showCustomBuilder, setShowCustomBuilder] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -36,7 +44,8 @@ export default function ScheduleMediaPage() {
     email: "",
     phone: "",
     company: "",
-    mediaType: "digital",
+    mediaType: "",
+    listingId: "",
     startDate: "",
     endDate: "",
     budget: "",
@@ -44,12 +53,62 @@ export default function ScheduleMediaPage() {
     message: "",
   })
 
+  // Fetch media listings on component mount
+  useEffect(() => {
+    async function fetchListings() {
+      setIsLoadingListings(true)
+      try {
+        const result = await getActiveMediaListings()
+        if (result.success) {
+          setMediaListings(result.listings || [])
+          setFilteredListings(result.listings || [])
+        }
+      } catch (error) {
+        console.error("Error fetching media listings:", error)
+      } finally {
+        setIsLoadingListings(false)
+      }
+    }
+    fetchListings()
+  }, [])
+
+  // Filter listings when media type is selected
+  useEffect(() => {
+    if (selectedMediaType) {
+      const filtered = mediaListings.filter(
+        listing => listing.listingType.toLowerCase() === selectedMediaType.toLowerCase()
+      )
+      setFilteredListings(filtered)
+    } else {
+      setFilteredListings(mediaListings)
+    }
+  }, [selectedMediaType, mediaListings])
+
   const mediaTypes = [
-    { id: "digital", name: "Digital Media", icon: Smartphone, description: "Social media, search ads, video ads" },
-    { id: "radio", name: "", icon: Radio, description: "Radio spots and promotions" },
-    { id: "tv", name: "TV Media", icon: Tv, description: "Television commercials and spots" },
-    { id: "billboard", name: "Billboard Media", icon: Billboard, description: "Outdoor advertising and billboards" },
+    { id: "RADIO", name: "Radio Media", icon: Radio, description: "Radio spots and promotions" },
+    { id: "TV", name: "TV Media", icon: Tv, description: "Television commercials and spots" },
+    { id: "DIGITAL", name: "Digital Media", icon: Smartphone, description: "Social media, search ads, video ads" },
+    { id: "BILLBOARD", name: "Billboard Media", icon: Billboard, description: "Outdoor advertising and billboards" },
+    { id: "INFLUENCER_MARKETING", name: "Influencer Marketing", icon: Users, description: "Social media influencers and creators" },
+    { id: "VIDEO_CLIPPING", name: "Video Clipping", icon: Video, description: "Video editing and clipping services" },
   ]
+
+  const getMediaTypeIcon = (type) => {
+    const mediaType = mediaTypes.find(mt => mt.id === type)
+    return mediaType?.icon || Building2
+  }
+
+  const handleMediaTypeSelect = (typeId) => {
+    setSelectedMediaType(typeId)
+    setSelectedStation(null)
+    handleInputChange("mediaType", typeId)
+  }
+
+  const handleStationSelect = (station) => {
+    setSelectedStation(station)
+    handleInputChange("listingId", station.id)
+    handleInputChange("mediaType", station.listingType)
+  }
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -89,64 +148,184 @@ export default function ScheduleMediaPage() {
           <div className="lg:col-span-2 space-y-6">
             {!showCustomBuilder ? (
               <>
-                {/* Media Type Selection */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Select Media Type</CardTitle>
-                    <CardDescription>Choose the type of media you want to schedule</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      {mediaTypes.map((type) => {
-                        const Icon = type.icon
-                        const isSelected = selectedMediaType === type.id
-                        return (
-                          <button
-                            key={type.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedMediaType(type.id)
-                              handleInputChange("mediaType", type.id)
-                            }}
-                            className={`p-4 rounded-lg border-2 transition-all text-left ${
-                              isSelected
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/50"
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`p-2 rounded-lg ${
-                                  isSelected ? "bg-primary/10" : "bg-muted"
-                                }`}
-                              >
-                                <Icon className={`h-5 w-5 ${isSelected ? "text-primary" : ""}`} />
+                {/* Step 1: Media Type Selection */}
+                {!selectedMediaType && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Step 1: Select Media Type</CardTitle>
+                      <CardDescription>Choose the type of media you want to schedule</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {mediaTypes.map((type) => {
+                          const Icon = type.icon
+                          const count = mediaListings.filter(l => l.listingType === type.id).length
+                          return (
+                            <button
+                              key={type.id}
+                              type="button"
+                              onClick={() => handleMediaTypeSelect(type.id)}
+                              className="p-4 rounded-lg border-2 transition-all text-left border-border hover:border-primary/50 hover:bg-primary/5"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-lg bg-primary/10">
+                                  <Icon className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium">{type.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {type.description}
+                                  </p>
+                                  {count > 0 && (
+                                    <p className="text-xs text-primary mt-1 font-medium">
+                                      {count} station{count !== 1 ? 's' : ''} available
+                                    </p>
+                                  )}
+                                </div>
+                                <ArrowRight className="h-5 w-5 text-muted-foreground" />
                               </div>
-                              <div className="flex-1">
-                                <p className={`font-medium ${isSelected ? "text-primary" : ""}`}>
-                                  {type.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {type.description}
-                                </p>
-                              </div>
-                              {isSelected && (
-                                <Check className="h-5 w-5 text-primary" />
-                              )}
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Contact Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Contact Information</CardTitle>
-                    <CardDescription>Tell us about yourself and your project</CardDescription>
-                  </CardHeader>
+                {/* Step 2: Station Selection */}
+                {selectedMediaType && !selectedStation && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>Step 2: Select Station</CardTitle>
+                          <CardDescription>
+                            Choose a station from {mediaTypes.find(mt => mt.id === selectedMediaType)?.name}
+                          </CardDescription>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedMediaType(null)
+                            setSelectedStation(null)
+                            handleInputChange("mediaType", "")
+                            handleInputChange("listingId", "")
+                          }}
+                        >
+                          Change Type
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoadingListings ? (
+                        <div className="text-center py-12">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                          <p className="text-sm text-muted-foreground mt-4">Loading stations...</p>
+                        </div>
+                      ) : filteredListings.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="font-medium">No stations available</p>
+                          <p className="text-sm">No active stations found for this media type</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {filteredListings.map((listing) => {
+                            const Icon = getMediaTypeIcon(listing.listingType)
+                            return (
+                              <button
+                                key={listing.id}
+                                type="button"
+                                onClick={() => handleStationSelect(listing)}
+                                className="w-full p-4 rounded-lg border-2 transition-all text-left border-border hover:border-primary hover:bg-primary/5"
+                              >
+                                <div className="flex items-start gap-4">
+                                  <div className="p-3 rounded-lg bg-primary/10">
+                                    <Icon className="h-6 w-6 text-primary" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h3 className="font-semibold">{listing.name}</h3>
+                                      {listing.network && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {listing.network}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      {listing.location && (
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="h-4 w-4" />
+                                          <span>{listing.location}</span>
+                                        </div>
+                                      )}
+                                      {listing.frequency && (
+                                        <div className="flex items-center gap-1">
+                                          <Radio className="h-4 w-4" />
+                                          <span>{listing.frequency}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {listing.reach && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Reach: {listing.reach}
+                                      </p>
+                                    )}
+                                    {listing.priceRange && (
+                                      <p className="text-sm font-medium text-primary mt-2">
+                                        {listing.priceRange}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Step 3: Scheduling Form - Only show after station is selected */}
+                {selectedStation && (
+                  <>
+
+                    {/* Selected Station Info */}
+                    <Card className="bg-primary/5 border-primary/20">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <Check className="h-5 w-5 text-primary" />
+                              Selected Station
+                            </CardTitle>
+                            <CardDescription>
+                              {selectedStation.name} • {selectedStation.location}
+                            </CardDescription>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedStation(null)
+                              handleInputChange("listingId", "")
+                            }}
+                          >
+                            Change Station
+                          </Button>
+                        </div>
+                      </CardHeader>
+                    </Card>
+
+                    {/* Contact Information */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Step 3: Contact Information</CardTitle>
+                        <CardDescription>Tell us about yourself and your project</CardDescription>
+                      </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -196,12 +375,12 @@ export default function ScheduleMediaPage() {
                   </CardContent>
                 </Card>
 
-                {/* Campaign Details */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Campaign Details</CardTitle>
-                    <CardDescription>Provide details about your media campaign</CardDescription>
-                  </CardHeader>
+                    {/* Campaign Details */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Campaign Details</CardTitle>
+                        <CardDescription>Provide details about your media campaign</CardDescription>
+                      </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -266,22 +445,26 @@ export default function ScheduleMediaPage() {
                   </CardContent>
                 </Card>
 
-                {/* Actions */}
-                <div className="flex gap-4">
-                  <Button onClick={handleSubmit} size="lg">
-                    Submit Inquiry
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="lg"
-                    className="flex-1 text-lg py-6"
-                    onClick={() => setShowCustomBuilder(true)}
-                  >
-                    Build Custom Package
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
+                    {/* Actions */}
+                    <div className="flex gap-4">
+                      <Button onClick={handleSubmit} size="lg" disabled={!selectedStation}>
+                        Submit Inquiry
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="lg"
+                        variant="outline"
+                        className="flex-1 text-lg py-6"
+                        onClick={() => setShowCustomBuilder(true)}
+                        disabled={!selectedStation}
+                      >
+                        Build Custom Package
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </Button>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <Card>
@@ -303,10 +486,18 @@ export default function ScheduleMediaPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <CustomPackageBuilder
-                    mediaType={selectedMediaType}
-                    onPackageSubmit={handlePackageSubmit}
-                  />
+                  {selectedStation ? (
+                    <CustomPackageBuilder
+                      mediaType={selectedStation.listingType.toLowerCase()}
+                      stationId={selectedStation.id}
+                      stationName={selectedStation.name}
+                      onPackageSubmit={handlePackageSubmit}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Please select a station first</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
