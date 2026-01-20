@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Inbox, FileText, BarChart3, TrendingUp, Calendar } from "lucide-react";
+import { Building2, Inbox, FileText, BarChart3, TrendingUp, Calendar, Download, Eye, Plus } from "lucide-react";
 
 export default async function MediaAgencyDashboard() {
   const user = await checkUser();
@@ -27,10 +27,15 @@ export default async function MediaAgencyDashboard() {
           listing: true,
         },
       },
+      reports: {
+        take: 5,
+        orderBy: { createdAt: "desc" },
+      },
       _count: {
         select: {
           listings: true,
           bookings: true,
+          reports: true,
         },
       },
     },
@@ -68,8 +73,17 @@ export default async function MediaAgencyDashboard() {
   // Calculate stats
   const totalListings = mediaAgency._count.listings;
   const totalBookings = mediaAgency._count.bookings;
+  const totalReports = mediaAgency._count.reports;
   const pendingBookings = mediaAgency.bookings.filter(b => b.status === "PENDING").length;
   const confirmedBookings = mediaAgency.bookings.filter(b => b.status === "CONFIRMED").length;
+  
+  // Format report type for display
+  const formatReportType = (type) => {
+    return type
+      .split("_")
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ");
+  };
 
   return (
     <div className="space-y-6">
@@ -81,7 +95,7 @@ export default async function MediaAgencyDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
@@ -130,6 +144,19 @@ export default async function MediaAgencyDashboard() {
             <div className="text-2xl font-bold">{confirmedBookings}</div>
             <p className="text-xs text-muted-foreground">
               Active campaigns
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Campaign Reports</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalReports}</div>
+            <p className="text-xs text-muted-foreground">
+              Total reports generated
             </p>
           </CardContent>
         </Card>
@@ -182,6 +209,92 @@ export default async function MediaAgencyDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Campaign Reports */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Campaign Reports</CardTitle>
+              <CardDescription>
+                Recent performance and campaign reports
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/media-agency/reporting">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View All
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {mediaAgency.reports.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No campaign reports yet</p>
+              <p className="text-sm mb-4">Create your first report to track campaign performance</p>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/media-agency/reporting">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Report
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {mediaAgency.reports.map((report) => (
+                <div
+                  key={report.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">{report.title}</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-medium">
+                            {formatReportType(report.reportType)}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {new Date(report.startDate).toLocaleDateString()} - {new Date(report.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {report.content && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 ml-11">
+                        {report.content}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/media-agency/reporting/${report.id}`}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {mediaAgency.reports.length >= 5 && (
+                <div className="pt-2 border-t">
+                  <Button variant="ghost" className="w-full" asChild>
+                    <Link href="/media-agency/reporting">
+                      View all reports
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

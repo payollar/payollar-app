@@ -372,6 +372,7 @@ model MediaAgency {
   bookings MediaBooking[]
   termsAndConditions MediaAgencyTC[]
   reports MediaAgencyReport[]
+  transmissionCertificates TransmissionCertificate[]
 
   @@index([verificationStatus, createdAt])
 }
@@ -523,4 +524,27 @@ enum ReportType {
   QUARTERLY
   ANNUAL
   CUSTOM
+}
+
+model TransmissionCertificate {
+  id              String   @id @default(uuid())
+  agencyId        String
+  agency          MediaAgency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  bookingId       String?  // Optional: link to specific booking
+  campaignRefId   String   // Campaign reference ID
+  fileUrl         String   // URL to uploaded PDF/image
+  fileName        String   // Original filename
+  fileType        String   // MIME type (application/pdf, image/jpeg, etc.)
+  fileSize        Int?     // File size in bytes
+  airDate         DateTime // Date when ad aired
+  airTime         String?  // Time when ad aired (e.g., "14:30")
+  stationName     String?  // Radio/TV station name
+  notes           String?  @db.Text // Additional notes
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([agencyId, createdAt])
+  @@index([bookingId])
+  @@index([campaignRefId])
+  @@index([airDate])
 }

@@ -11,6 +11,7 @@ import {
   Building2,
   LogOut,
   DollarSign,
+  FileCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,6 +47,11 @@ const menuItems = [
     title: "Terms & Conditions",
     icon: FileText,
     href: "/media-agency/terms",
+  },
+  {
+    title: "Transmission Certificates",
+    icon: FileCheck,
+    href: "/media-agency/transmission-certificates",
   },
   {
     title: "Reporting",
