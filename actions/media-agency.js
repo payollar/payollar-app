@@ -5,6 +5,7 @@ import { checkUser } from "@/lib/checkUser";
 
 /**
  * Submit media agency registration form
+ * If user already has a MediaAgency (e.g. resubmitting for verification), updates it instead of creating.
  */
 export async function submitMediaAgencyForm(data) {
   try {
@@ -27,20 +28,69 @@ export async function submitMediaAgencyForm(data) {
       // User not authenticated, continue without userId
     }
 
-    // Create media agency
+    const agencyData = {
+      agencyName: contactName || "Media Agency",
+      contactName,
+      email,
+      phone,
+      city,
+      region,
+      country: country || "Ghana",
+      verificationStatus: "PENDING",
+    };
+
+    // If user is authenticated, check for existing agency (unique on userId)
+    if (userId) {
+      const existingAgency = await db.mediaAgency.findUnique({
+        where: { userId },
+        include: { listings: true },
+      });
+
+      if (existingAgency) {
+        // Update existing agency instead of creating
+        const agency = await db.mediaAgency.update({
+          where: { id: existingAgency.id },
+          data: agencyData,
+          include: { listings: true },
+        });
+
+        // Optionally add new listings if provided
+        if (listings && listings.length > 0) {
+          await db.mediaListing.createMany({
+            data: listings.map((listing) => ({
+              agencyId: agency.id,
+              listingType: listing.listingType,
+              name: listing.name,
+              network: listing.network,
+              location: listing.location,
+              frequency: listing.frequency,
+              description: listing.description,
+              reach: listing.reach,
+              demographics: listing.demographics || [],
+              imageUrl: listing.imageUrl,
+              priceRange: listing.priceRange,
+              timeSlots: listing.timeSlots || [],
+              status: "DRAFT",
+            })),
+          });
+          const updated = await db.mediaAgency.findUnique({
+            where: { id: agency.id },
+            include: { listings: true },
+          });
+          return { success: true, agency: updated };
+        }
+
+        return { success: true, agency };
+      }
+    }
+
+    // Create new media agency (no existing agency for this user, or unauthenticated)
     const agency = await db.mediaAgency.create({
       data: {
+        ...agencyData,
         userId,
-        agencyName: contactName || "Media Agency", // Use contact name as agency name
-        contactName,
-        email,
-        phone,
-        city,
-        region,
-        country: country || "Ghana",
-        verificationStatus: "PENDING",
         listings: listings && listings.length > 0 ? {
-          create: listings.map(listing => ({
+          create: listings.map((listing) => ({
             listingType: listing.listingType,
             name: listing.name,
             network: listing.network,
@@ -53,7 +103,7 @@ export async function submitMediaAgencyForm(data) {
             priceRange: listing.priceRange,
             timeSlots: listing.timeSlots || [],
             status: "DRAFT",
-          }))
+          })),
         } : undefined,
       },
       include: {
@@ -64,9 +114,9 @@ export async function submitMediaAgencyForm(data) {
     return { success: true, agency };
   } catch (error) {
     console.error("Error submitting media agency form:", error);
-    return { 
-      success: false, 
-      error: error.message || "Failed to submit media agency form" 
+    return {
+      success: false,
+      error: error.message || "Failed to submit media agency form",
     };
   }
 }
