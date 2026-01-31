@@ -73,7 +73,7 @@ export function RateCardForm({ mediaAgencyId }) {
           priceRange,
           timeSlots,
           demographics,
-          status: "DRAFT",
+          status: "ACTIVE",
         }),
       });
 

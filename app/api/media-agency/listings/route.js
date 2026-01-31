@@ -52,7 +52,7 @@ export async function POST(req) {
         priceRange,
         timeSlots: timeSlots || [],
         demographics: demographics || [],
-        status: status || "DRAFT",
+        status: status || "ACTIVE",
       },
     });
 

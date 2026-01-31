@@ -70,7 +70,7 @@ export async function submitMediaAgencyForm(data) {
               imageUrl: listing.imageUrl,
               priceRange: listing.priceRange,
               timeSlots: listing.timeSlots || [],
-              status: "DRAFT",
+              status: "ACTIVE",
             })),
           });
           const updated = await db.mediaAgency.findUnique({
@@ -102,7 +102,7 @@ export async function submitMediaAgencyForm(data) {
             imageUrl: listing.imageUrl,
             priceRange: listing.priceRange,
             timeSlots: listing.timeSlots || [],
-            status: "DRAFT",
+            status: "ACTIVE",
           })),
         } : undefined,
       },
@@ -237,7 +237,7 @@ export async function addMediaListing(agencyId, listingData) {
         imageUrl: listingData.imageUrl,
         priceRange: listingData.priceRange,
         timeSlots: listingData.timeSlots || [],
-        status: "DRAFT",
+        status: "ACTIVE",
       },
     });
 
