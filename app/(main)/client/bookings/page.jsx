@@ -6,19 +6,24 @@ import { ClientBookings } from "../_components/bookings";
 // Force dynamic rendering to avoid static generation issues with headers()
 export const dynamic = 'force-dynamic';
 
-export default async function ClientBookingsPage() {
+export default async function ClientBookingsPage({ searchParams }) {
   const user = await getCurrentUser();
 
   if (!user || user.role !== "CLIENT") {
     redirect("/onboarding");
   }
 
+  const params = searchParams ? await searchParams : {};
   const appointmentsData = await getPatientAppointments();
+  const success = params?.success;
+  const paymentError = params?.error;
 
   return (
     <ClientBookings 
       appointments={appointmentsData.appointments || []}
       error={appointmentsData.error}
+      paymentSuccess={success}
+      paymentError={paymentError}
     />
   );
 }

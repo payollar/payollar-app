@@ -1,12 +1,37 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppointmentCard } from "@/components/appointment-card";
 import { Calendar, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-export function ClientBookings({ appointments = [], error }) {
+const PAYMENT_ERROR_MESSAGES = {
+  missing_reference: "Payment reference was missing.",
+  verification_failed: "Payment verification failed.",
+  invalid_metadata: "Invalid booking data.",
+  user_not_found: "User or talent not found.",
+  slot_no_longer_available: "This time slot is no longer available.",
+  booking_failed: "Booking could not be completed.",
+};
+
+export function ClientBookings({ appointments = [], error, paymentSuccess, paymentError }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (paymentSuccess === "1") {
+      toast.success("Payment successful! Your booking is confirmed.");
+      router.replace("/client/bookings", { scroll: false });
+    } else if (paymentError) {
+      const message = PAYMENT_ERROR_MESSAGES[paymentError] || "Payment or booking failed.";
+      toast.error(message);
+      router.replace("/client/bookings", { scroll: false });
+    }
+  }, [paymentSuccess, paymentError, router]);
+
   // Separate appointments by status
   const upcoming = appointments.filter(
     (apt) => apt.status === "SCHEDULED" && new Date(apt.startTime) > new Date()

@@ -1,45 +1,55 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Loader2, Clock, ArrowLeft, Calendar } from "lucide-react";
-import { bookAppointment } from "@/actions/appointments";
+import { Loader2, Clock, ArrowLeft, Calendar, CreditCard } from "lucide-react";
 import { toast } from "sonner";
-import useFetch from "@/hooks/use-fetch";
 
 export function AppointmentForm({ doctorId, slot, onBack, onComplete }) {
   const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Use the useFetch hook to handle loading, data, and error states
-  const { loading, data, fn: submitBooking } = useFetch(bookAppointment);
-
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    // Create form data
-    const formData = new FormData();
-    formData.append("doctorId", doctorId);
-    formData.append("startTime", slot.startTime);
-    formData.append("endTime", slot.endTime);
-    formData.append("description", description);
+    try {
+      const res = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doctorId,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          description: description.trim() || undefined,
+        }),
+      });
 
-    // Submit booking using the function from useFetch
-    await submitBooking(formData);
-  };
+      const data = await res.json();
 
-  // Handle response after booking attempt
-  useEffect(() => {
-    if (data) {
-      if (data.success) {
-        toast.success("Appointment booked successfully!");
-        onComplete();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to start payment");
+        setLoading(false);
+        return;
       }
+
+      if (data.authorizationUrl) {
+        toast.success("Redirecting to Paystack to complete payment...");
+        window.location.href = data.authorizationUrl;
+        return;
+      }
+
+      toast.error("Payment link not received");
+      setLoading(false);
+    } catch (err) {
+      console.error("Paystack init error:", err);
+      toast.error("Something went wrong. Please try again.");
+      setLoading(false);
     }
-  }, [data]);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -73,6 +83,12 @@ export function AppointmentForm({ doctorId, slot, onBack, onComplete }) {
         </p>
       </div>
 
+      <p className="text-sm text-muted-foreground flex items-center gap-2">
+        <CreditCard className="h-4 w-4" />
+        You will be redirected to Paystack to pay securely. Booking is confirmed
+        after successful payment.
+      </p>
+
       <div className="flex justify-between pt-2">
         <Button
           type="button"
@@ -92,10 +108,10 @@ export function AppointmentForm({ doctorId, slot, onBack, onComplete }) {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Booking...
+              Redirecting to payment...
             </>
           ) : (
-            "Confirm Booking"
+            "Pay with Paystack"
           )}
         </Button>
       </div>
