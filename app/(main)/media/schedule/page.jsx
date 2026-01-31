@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +32,7 @@ import InquiryFormModal from "@/components/InquiryFormModal"
 import { getActiveMediaListings } from "@/actions/media-agency"
 
 export default function ScheduleMediaPage() {
+  const searchParams = useSearchParams()
   const headerImage = getHeaderImage("/media")
   const [selectedMediaType, setSelectedMediaType] = useState(null)
   const [selectedStation, setSelectedStation] = useState(null)
@@ -83,6 +85,25 @@ export default function ScheduleMediaPage() {
       setFilteredListings(mediaListings)
     }
   }, [selectedMediaType, mediaListings])
+
+  // Pre-select type and listing from URL (?type=TV&listing=id)
+  useEffect(() => {
+    const typeParam = searchParams.get("type")
+    const listingIdParam = searchParams.get("listing")
+    if (!typeParam || !listingIdParam || mediaListings.length === 0) return
+    const listing = mediaListings.find(
+      (l) => l.id === listingIdParam && (l.listingType || "").toLowerCase() === typeParam.toLowerCase()
+    )
+    if (listing) {
+      setSelectedMediaType(listing.listingType)
+      setSelectedStation(listing)
+      setFormData((prev) => ({
+        ...prev,
+        mediaType: listing.listingType,
+        listingId: listing.id,
+      }))
+    }
+  }, [searchParams, mediaListings])
 
   const mediaTypes = [
     { id: "RADIO", name: "Radio Media", icon: Radio, description: "Radio spots and promotions" },

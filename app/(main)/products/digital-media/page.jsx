@@ -1,22 +1,32 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Smartphone, Search, Users, Target, Star, ArrowLeft, Facebook, Instagram, Youtube, Twitter } from "lucide-react"
+import { Smartphone, Search, Users, Target, Star, ArrowLeft, Facebook, Instagram, Youtube, Twitter, MapPin, Calendar } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import { getHeaderImage } from "@/lib/getHeaderImage"
+import { getActiveMediaListings } from "@/actions/media-agency"
 
 export default function DigitalMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [showCustomBuilder, setShowCustomBuilder] = useState(false)
+  const [registeredListings, setRegisteredListings] = useState([])
   const headerImage = getHeaderImage("/products/digital-media")
+
+  useEffect(() => {
+    getActiveMediaListings("DIGITAL").then((result) => {
+      if (result.success && result.listings?.length) {
+        setRegisteredListings(result.listings)
+      }
+    })
+  }, [])
 
   const handlePackageClick = (platformName, pkg) => {
     setSelectedPackage({

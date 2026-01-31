@@ -1,23 +1,33 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Radio, Search, MapPin, Users, Clock, Star, ArrowLeft, Eye } from "lucide-react"
+import { Radio, Search, MapPin, Users, Clock, Star, ArrowLeft, Eye, Calendar } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import { getHeaderImage } from "@/lib/getHeaderImage"
+import { getActiveMediaListings } from "@/actions/media-agency"
 
 export default function RadioMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [showCustomBuilder, setShowCustomBuilder] = useState(false)
   const [customBuilderStationId, setCustomBuilderStationId] = useState(null)
+  const [registeredListings, setRegisteredListings] = useState([])
   const headerImage = getHeaderImage("/products/radio-media")
+
+  useEffect(() => {
+    getActiveMediaListings("RADIO").then((result) => {
+      if (result.success && result.listings?.length) {
+        setRegisteredListings(result.listings)
+      }
+    })
+  }, [])
 
   const handlePackageClick = (stationName, pkg) => {
     setSelectedPackage({
@@ -292,6 +302,38 @@ export default function RadioMediaPage() {
           )}
         </div>
       </section> */}
+
+      {/* Registered Radio Listings */}
+      {registeredListings.length > 0 && (
+        <section className="py-12 border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold mb-6">Registered Radio Listings</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {registeredListings.map((listing) => (
+                <Card key={listing.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold">{listing.name}</h3>
+                    {listing.agency?.agencyName && (
+                      <p className="text-sm text-muted-foreground">{listing.agency.agencyName}</p>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-2 text-sm text-muted-foreground">
+                      {listing.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{listing.location}</span>}
+                      {listing.reach && <span>{listing.reach}</span>}
+                      {listing.priceRange && <span>{listing.priceRange}</span>}
+                    </div>
+                    <Link href={`/media/schedule?type=RADIO&listing=${listing.id}`}>
+                      <Button className="w-full mt-4" size="sm">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Radio Stations List */}
       <section className="py-16">

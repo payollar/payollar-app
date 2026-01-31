@@ -19,10 +19,21 @@ import {
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { getHeaderImage } from "@/lib/getHeaderImage"
+import { getActiveMediaListings } from "@/actions/media-agency"
+import { MediaListingsGrid } from "./_components/media-listings-grid"
 
-
-export default function LandingPage() {
+export default async function MediaPage() {
   const headerImage = getHeaderImage("/media")
+
+  const { success, listings = [] } = await getActiveMediaListings()
+  const listingsByType = (success && Array.isArray(listings))
+    ? listings.reduce((acc, listing) => {
+        const type = listing.listingType || "OTHER"
+        if (!acc[type]) acc[type] = []
+        acc[type].push(listing)
+        return acc
+      }, {})
+    : {}
   
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -215,244 +226,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Media Services Grid */}
- <section className="py-16">
+      {/* Media Services Grid - shows registered listings by type */}
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* TV Media */}
-            <Link href="/products/tv-media">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/tv-media.jpg"
-                    alt="TV Media"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">TV Media</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Reach millions with television advertising across local and national networks.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Networks:</span>
-                      <span className="font-medium">50+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵2,500/spot</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Avg. Reach:</span>
-                      <span className="font-medium">50K-2M</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View TV Stations
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Radio Media */}
-            <Link href="/products/radio-media">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/radio-media.jpg"
-                    alt="Radio Media"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Radio Media</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Connect with audiences through AM/FM radio stations nationwide.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Stations:</span>
-                      <span className="font-medium">100+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵250/spot</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Avg. Reach:</span>
-                      <span className="font-medium">10K-500K</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Radio Stations
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Billboard Media */}
-            <Link href="/products/billboard-media">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/billboard.jpg"
-                    alt="Billboard Media"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Billboard Media</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    High-impact outdoor advertising in prime locations across cities.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Locations:</span>
-                      <span className="font-medium">200+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵8,000/month</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Daily Impressions:</span>
-                      <span className="font-medium">5K-100K</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Billboards
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Digital Media */}
-            <Link href="/products/digital-media">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/social-media2.jpg"
-                    alt="Digital Media"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Digital Media</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Social media, streaming, and online advertising platforms.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Platforms:</span>
-                      <span className="font-medium">15+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵500/campaign</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Targeting Options:</span>
-                      <span className="font-medium">Advanced</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Digital Options
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Influencer Marketing */}
-            <Link href="/products/influencer-marketing">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/radio.jpeg"
-                    alt="Influencer Marketing"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Influencer Marketing</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Partner with top influencers to reach engaged audiences authentically.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Influencers:</span>
-                      <span className="font-medium">500+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵1,000/post</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Avg. Engagement:</span>
-                      <span className="font-medium">5K-500K</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Influencers
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Video Clipping */}
-            <Link href="/products/video-clipping">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/clipping.jpg"
-                    alt="Video Clipping"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Video Clipping</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Professional video editing and clipping services for all platforms.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Turnaround Time:</span>
-                      <span className="font-medium">24-48 hrs</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵300/video</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Formats:</span>
-                      <span className="font-medium">All Platforms</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Packages
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
+          <div className="text-center space-y-2 mb-10">
+            <h2 className="text-3xl lg:text-4xl font-bold text-balance">Browse Media Services</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Registered listings appear in their respective media sections below. Click a listing to schedule or view more.
+            </p>
           </div>
+          <MediaListingsGrid listingsByType={listingsByType} />
         </div>
       </section>
 
