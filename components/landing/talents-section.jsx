@@ -402,18 +402,17 @@ export function TalentsSection() {
 
                         {/* Action buttons */}
                         <div className="flex space-x-2 pt-2">
-                          <Button 
-                            asChild
-                            className="flex-1 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white"
+                          <Link
+                            href="/talents"
+                            className="flex-1 inline-flex items-center justify-center gap-2 h-9 rounded-md px-4 text-sm font-medium text-white border-0 transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: "#000" }}
                           >
-                            <Link href="/talents">
-                              Book Now
-                            </Link>
-                          </Button>
+                            Book Now
+                          </Link>
                           <Button 
                             asChild
                             variant="outline" 
-                            className="flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50 bg-white"
+                            className="flex-1 border-gray-300 text-black bg-white hover:bg-white hover:text-black"
                           >
                             <Link href="/talents">
                               <Eye className="w-4 h-4 mr-1" />

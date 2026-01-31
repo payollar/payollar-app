@@ -4,6 +4,7 @@ import { StatsSection } from "@/components/landing/stats-section"
 import { FeaturesSection } from "@/components/landing/features-section"
 import { CreatorsSection } from "@/components/landing/digital-products-section"
 import { CampaignsSection } from "@/components/landing/campaigns-section"
+import { MediaFeaturesSection } from "@/components/landing/media-features-section"
 import { HowItWorksSection } from "@/components/landing/how-it-works"
 import { TestimonialsSection } from "@/components/landing/testimonials"
 import { CTASection } from "@/components/landing/cta-section"
@@ -22,10 +23,13 @@ export default function LandingPage() {
         </div>
         <CreatorsSection />
         <CampaignsSection />
+        <div className="bg-white py-8 lg:py-12">
+          <MediaFeaturesSection />
+        </div>
         <div id="features">
           <FeaturesSection />
         </div>
-        <div id="how-it-works">
+        <div id="how-it-works" className="bg-white py-8 lg:py-12">
           <HowItWorksSection />
         </div>
         <div id="testimonials">

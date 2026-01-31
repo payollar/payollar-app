@@ -197,15 +197,17 @@ export function FeaturedCarousel() {
                           <div className="text-lg font-bold text-white">{talent.rate}</div>
                           <div className="flex space-x-2">
                             <Link href="/talents">
-                              <Button size="sm" variant="outline" className="bg-transparent text-white border-white/30">
+                              <Button size="sm" variant="outline" className="bg-transparent text-black border-gray-300 hover:bg-transparent hover:text-black">
                                 <Eye className="w-4 h-4 mr-1" />
                                 View
                               </Button>
                             </Link>
-                            <Link href="/talents">
-                              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                                Book
-                              </Button>
+                            <Link
+                              href="/talents"
+                              className="inline-flex items-center justify-center gap-2 h-8 rounded-md px-3 text-sm font-medium text-white border-0 transition-colors hover:opacity-90"
+                              style={{ backgroundColor: "#000" }}
+                            >
+                              Book
                             </Link>
                           </div>
                         </div>
@@ -306,14 +308,16 @@ export function FeaturedCarousel() {
                       <div className="text-2xl font-bold text-white">{currentTalent.rate}</div>
                       <div className="flex space-x-3">
                         <Link href="/talents">
-                          <Button variant="outline" className="bg-transparent text-white border-white/30"> 
+                          <Button variant="outline" className="bg-transparent text-black border-gray-300 hover:bg-transparent hover:text-black"> 
                             <Eye className="w-4 h-4 mr-2" /> View Profile
                           </Button>
                         </Link>
-                        <Link href="/talents">
-                          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full">
-                            Book Now
-                          </Button>
+                        <Link
+                          href="/talents"
+                          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-white border-0 transition-colors hover:opacity-90"
+                          style={{ backgroundColor: "#000" }}
+                        >
+                          Book Now
                         </Link>
                       </div>
                     </div>
