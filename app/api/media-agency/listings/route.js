@@ -2,6 +2,40 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { auth as betterAuth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { checkUser } from "@/lib/checkUser";
+
+export async function GET(request) {
+  try {
+    const user = await checkUser();
+    if (!user || user.role !== "MEDIA_AGENCY") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const mediaAgency = await db.mediaAgency.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!mediaAgency) {
+      return NextResponse.json({ error: "Media agency not found" }, { status: 404 });
+    }
+
+    const listings = await db.mediaListing.findMany({
+      where: { agencyId: mediaAgency.id },
+      orderBy: [
+        { listingType: "asc" },
+        { name: "asc" },
+      ],
+    });
+
+    return NextResponse.json({ success: true, listings });
+  } catch (error) {
+    console.error("Error fetching media listings:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch media listings", details: error.message },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req) {
   try {

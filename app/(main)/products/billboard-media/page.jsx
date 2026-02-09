@@ -6,22 +6,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Biohazard as Billboard, Search, MapPin, Eye, Star, ArrowLeft, Car, Calendar } from "lucide-react"
+import { Biohazard as Billboard, Search, MapPin, Eye, Star, ArrowLeft, Car, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import { getHeaderImage } from "@/lib/getHeaderImage"
-import { getActiveMediaListings } from "@/actions/media-agency"
+import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
 
 export default function BillboardMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [registeredListings, setRegisteredListings] = useState([])
+  const [rateCards, setRateCards] = useState([])
   const headerImage = getHeaderImage("/products/billboard-media")
 
   useEffect(() => {
     getActiveMediaListings("BILLBOARD").then((result) => {
       if (result.success && result.listings?.length) {
         setRegisteredListings(result.listings)
+      }
+    })
+    getPublishedRateCards("BILLBOARD").then((result) => {
+      if (result.success && result.rateCards?.length) {
+        setRateCards(result.rateCards)
       }
     })
   }, [])
@@ -240,6 +246,55 @@ export default function BillboardMediaPage() {
       </section>
 
       {/* Registered Billboard Listings */}
+      {/* Rate Cards Section */}
+      {rateCards.length > 0 && (
+        <section className="py-12 border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold mb-6">Billboard Rate Cards</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rateCards.map((rateCard) => (
+                <Link key={rateCard.id} href={`/rate-cards/${rateCard.id}`}>
+                  <Card className="hover:shadow-lg transition-all cursor-pointer h-full">
+                    {rateCard.imageUrl && (
+                      <div className="relative h-40 w-full overflow-hidden">
+                        <img
+                          src={rateCard.imageUrl}
+                          alt={rateCard.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      </div>
+                    )}
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-bold">{rateCard.title}</h3>
+                        <Badge variant="outline">Rate Card</Badge>
+                      </div>
+                      {rateCard.agency?.agencyName && (
+                        <p className="text-sm text-muted-foreground mb-2">{rateCard.agency.agencyName}</p>
+                      )}
+                      {rateCard.location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                          <MapPin className="h-3 w-3" />
+                          {rateCard.location}
+                        </p>
+                      )}
+                      {rateCard.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{rateCard.description}</p>
+                      )}
+                      <Button className="w-full mt-4" variant="outline">
+                        View Rate Card
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {registeredListings.length > 0 && (
         <section className="py-12 border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

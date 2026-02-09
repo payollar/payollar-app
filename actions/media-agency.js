@@ -151,19 +151,19 @@ export async function getMediaAgency(id) {
 }
 
 /**
- * Get all active media listings (stations) for public selection
+ * Get all published rate cards for public display
  */
-export async function getActiveMediaListings(mediaType = null) {
+export async function getPublishedRateCards(mediaType = null) {
   try {
     const where = {
-      status: "ACTIVE",
+      isPublished: true,
     };
 
     if (mediaType) {
       where.listingType = mediaType;
     }
 
-    const listings = await db.mediaListing.findMany({
+    const rateCards = await db.rateCard.findMany({
       where,
       include: {
         agency: {
@@ -176,11 +176,60 @@ export async function getActiveMediaListings(mediaType = null) {
       },
       orderBy: [
         { listingType: "asc" },
-        { name: "asc" },
+        { createdAt: "desc" },
       ],
     });
 
-    return { success: true, listings };
+    return { success: true, rateCards };
+  } catch (error) {
+    console.error("Error fetching rate cards:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch rate cards",
+      rateCards: [],
+    };
+  }
+}
+
+/**
+ * Get all active media listings (stations) for public selection
+ */
+export async function getActiveMediaListings(mediaType = null) {
+  try {
+    const where = {
+      status: "ACTIVE",
+    };
+
+    if (mediaType) {
+      where.listingType = mediaType;
+    }
+
+    const baseInclude = {
+      agency: {
+        select: {
+          id: true,
+          agencyName: true,
+          verificationStatus: true,
+        },
+      },
+    };
+    // Don't include packages/timeClasses to avoid Prisma errors if tables don't exist
+    const listings = await db.mediaListing.findMany({
+      where,
+      include: baseInclude,
+      orderBy: [
+        { listingType: "asc" },
+        { name: "asc" },
+      ],
+    });
+    
+    const withPackages = listings.map((l) => ({
+      ...l,
+      packages: [],
+      timeClasses: [],
+    }));
+
+    return { success: true, listings: withPackages };
   } catch (error) {
     console.error("Error fetching media listings:", error);
     return {
@@ -280,6 +329,100 @@ export async function updateMediaListing(listingId, listingData) {
       success: false, 
       error: error.message || "Failed to update media listing" 
     };
+  }
+}
+
+/**
+ * Get a single media listing by ID (with packages when table exists)
+ */
+export async function getMediaListingById(id) {
+  try {
+    const baseInclude = {
+      agency: {
+        select: {
+          id: true,
+          agencyName: true,
+          verificationStatus: true,
+        },
+      },
+    };
+    // Don't include packages/timeClasses to avoid Prisma errors if tables don't exist
+    const listing = await db.mediaListing.findUnique({
+      where: { id },
+      include: baseInclude,
+    });
+    if (!listing) return { success: false, error: "Listing not found" };
+    return {
+      success: true,
+      listing: {
+        ...listing,
+        packages: listing.packages ?? [],
+        timeClasses: listing.timeClasses ?? [],
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching media listing:", error);
+    return { success: false, error: error.message || "Failed to fetch listing" };
+  }
+}
+
+/**
+ * Add a package to a media listing
+ */
+export async function createMediaListingPackage(listingId, data) {
+  try {
+    const count = await db.mediaListingPackage.count({ where: { listingId } });
+    const pkg = await db.mediaListingPackage.create({
+      data: {
+        listingId,
+        name: data.name,
+        price: Number(data.price),
+        duration: data.duration || null,
+        spots: data.spots != null ? Number(data.spots) : null,
+        estimatedViewers: data.estimatedViewers || null,
+        sortOrder: count,
+      },
+    });
+    return { success: true, package: pkg };
+  } catch (error) {
+    console.error("Error creating media listing package:", error);
+    return { success: false, error: error.message || "Failed to create package" };
+  }
+}
+
+/**
+ * Update a media listing package
+ */
+export async function updateMediaListingPackage(packageId, data) {
+  try {
+    const pkg = await db.mediaListingPackage.update({
+      where: { id: packageId },
+      data: {
+        ...(data.name != null && { name: data.name }),
+        ...(data.price != null && { price: Number(data.price) }),
+        ...(data.duration !== undefined && { duration: data.duration || null }),
+        ...(data.spots !== undefined && { spots: data.spots != null ? Number(data.spots) : null }),
+        ...(data.estimatedViewers !== undefined && { estimatedViewers: data.estimatedViewers || null }),
+        ...(data.sortOrder != null && { sortOrder: Number(data.sortOrder) }),
+      },
+    });
+    return { success: true, package: pkg };
+  } catch (error) {
+    console.error("Error updating media listing package:", error);
+    return { success: false, error: error.message || "Failed to update package" };
+  }
+}
+
+/**
+ * Delete a media listing package
+ */
+export async function deleteMediaListingPackage(packageId) {
+  try {
+    await db.mediaListingPackage.delete({ where: { id: packageId } });
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting media listing package:", error);
+    return { success: false, error: error.message || "Failed to delete package" };
   }
 }
 

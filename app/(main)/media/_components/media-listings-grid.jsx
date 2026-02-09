@@ -28,7 +28,8 @@ export function MediaListingsGrid({ listingsByType }) {
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
       {MEDIA_TYPES.map((type) => {
-        const listings = listingsByType[type.id] || []
+        const allListings = listingsByType[type.id] || []
+        const filteredListings = allListings.filter((listing) => !listing.name?.toLowerCase().includes("payollar"))
         const Icon = type.icon
         return (
           <div key={type.id} className="space-y-4">
@@ -44,7 +45,7 @@ export function MediaListingsGrid({ listingsByType }) {
                   <div className="absolute bottom-3 left-3 flex items-center justify-between w-[calc(100%-24px)]">
                     <h3 className="text-white text-xl font-bold">{type.name}</h3>
                     <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                      {listings.length} listing{listings.length !== 1 ? "s" : ""}
+                      {filteredListings.length} listing{filteredListings.length !== 1 ? "s" : ""}
                     </Badge>
                   </div>
                 </div>
@@ -58,9 +59,9 @@ export function MediaListingsGrid({ listingsByType }) {
               </Card>
             </Link>
             {/* Registered listings for this type */}
-            {listings.length > 0 ? (
+            {filteredListings.length > 0 && (
               <div className="space-y-2 pl-1">
-                {listings.slice(0, 4).map((listing) => (
+                {filteredListings.slice(0, 4).map((listing) => (
                   <Link
                     key={listing.id}
                     href={`/media/schedule?type=${type.id}&listing=${listing.id}`}
@@ -89,14 +90,12 @@ export function MediaListingsGrid({ listingsByType }) {
                     </Card>
                   </Link>
                 ))}
-                {listings.length > 4 && (
+                {filteredListings.length > 4 && (
                   <Link href={type.href} className="text-sm text-primary hover:underline">
-                    +{listings.length - 4} more
+                    +{filteredListings.length - 4} more
                   </Link>
                 )}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground pl-1">No registered listings yet.</p>
             )}
           </div>
         )

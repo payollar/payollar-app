@@ -19,7 +19,7 @@ import {
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { getHeaderImage } from "@/lib/getHeaderImage"
-import { getActiveMediaListings } from "@/actions/media-agency"
+import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
 import { MediaListingsGrid } from "./_components/media-listings-grid"
 
 export default async function MediaPage() {

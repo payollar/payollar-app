@@ -64,7 +64,7 @@ export default async function Header() {
 
   return (
     <header className={`fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-20 overflow-visible ${isDashboardPage ? 'md:left-[15rem] md:w-[calc(100%-15rem)]' : ''}`}>
-      <nav className="container mx-auto px-4 h-16 flex items-center justify-between overflow-visible">
+      <nav className={`h-16 flex items-center justify-between overflow-visible ${isDashboardPage ? 'px-4' : 'container mx-auto px-4'}`}>
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image src="/logo-single.png" alt="Logo" width={160} height={50} />

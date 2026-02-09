@@ -39,6 +39,11 @@ const menuItems = [
     href: "/media-agency/rate-card",
   },
   {
+    title: "Smart Rate Card",
+    icon: FileText,
+    href: "/media-agency/smart-rate-card",
+  },
+  {
     title: "Requests",
     icon: Inbox,
     href: "/media-agency/requests",

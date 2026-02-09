@@ -513,6 +513,7 @@ export default function ScheduleMediaPage() {
                       stationId={selectedStation.id}
                       stationName={selectedStation.name}
                       onPackageSubmit={handlePackageSubmit}
+                      timeClasses={selectedStation.timeClasses}
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">

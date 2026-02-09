@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Plus, Edit, Trash2, Tv, Radio, Biohazard as Billboard, Smartphone, Users, Building2 } from "lucide-react";
 import { RateCardForm } from "./_components/rate-card-form";
+import { ListingPackagesSection } from "./_components/listing-packages-section";
+import { ListingTimeClassesSection } from "./_components/listing-time-classes-section";
 
 export default async function MediaAgencyRateCardPage() {
   const user = await checkUser();
@@ -15,18 +17,23 @@ export default async function MediaAgencyRateCardPage() {
     redirect("/");
   }
 
+  // Don't include packages/timeClasses to avoid Prisma errors if tables don't exist
   const mediaAgency = await db.mediaAgency.findUnique({
     where: { userId: user.id },
     include: {
-      listings: {
-        orderBy: { createdAt: "desc" },
-      },
+      listings: { orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!mediaAgency) {
     redirect("/media-agency/settings");
   }
+
+  mediaAgency.listings = (mediaAgency.listings || []).map((l) => ({
+    ...l,
+    packages: l.packages ?? [],
+    timeClasses: l.timeClasses ?? [],
+  }));
 
   const getMediaTypeIcon = (type) => {
     switch (type) {
@@ -201,6 +208,9 @@ export default async function MediaAgencyRateCardPage() {
                         </div>
                       </div>
                     )}
+
+                    <ListingPackagesSection listing={listing} />
+                    <ListingTimeClassesSection listing={listing} />
                   </div>
                 );
               })}

@@ -373,6 +373,8 @@ model MediaAgency {
   termsAndConditions MediaAgencyTC[]
   reports MediaAgencyReport[]
   transmissionCertificates TransmissionCertificate[]
+  rateCards RateCard[]
+  rateCardBookings RateCardBookingItem[]
 
   @@index([verificationStatus, createdAt])
 }
@@ -404,10 +406,42 @@ model MediaListing {
   updatedAt    DateTime      @updatedAt
 
   bookings MediaBooking[]
+  packages MediaListingPackage[]
+  timeClasses MediaListingTimeClass[]
 
   @@index([agencyId, status])
   @@index([listingType, status, location])
   @@index([status, createdAt])
+}
+
+model MediaListingTimeClass {
+  id           String       @id @default(uuid())
+  listingId    String
+  listing      MediaListing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  label        String       // e.g. "Premium", "M1", "M2"
+  timeRange    String       // e.g. "6:00am - 10:00am"
+  ratePer30Sec Float        // Rate in GHS per 30-second spot
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([listingId])
+}
+
+model MediaListingPackage {
+  id                String       @id @default(uuid())
+  listingId         String
+  listing           MediaListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  name               String       // e.g. "Morning Show Package", "Prime Time Package"
+  price              Float        // in GHS
+  duration           String?      // e.g. "30 seconds"
+  spots              Int?         // number of spots
+  estimatedViewers   String?      // e.g. "2.5M+ viewers"
+  sortOrder          Int          @default(0)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([listingId])
 }
 
 enum MediaType {
@@ -547,4 +581,155 @@ model TransmissionCertificate {
   @@index([bookingId])
   @@index([campaignRefId])
   @@index([airDate])
+}
+
+// Smart Rate Card System
+// Allows media agencies to create flexible, table-based rate cards
+// Similar to Notion tables but with booking intelligence
+
+model RateCard {
+  id          String   @id @default(uuid())
+  agencyId    String
+  agency      MediaAgency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  title       String   // Rate card title/name
+  description String?  @db.Text // Optional description
+  isPublished Boolean  @default(false) // Whether rate card is visible to users
+  
+  // Media listing integration fields
+  listingId   String?  // Optional: Link to existing MediaListing
+  listingType MediaType? // Media type (TV, RADIO, BILLBOARD, etc.)
+  location    String?  // Location/city for display on frontend
+  imageUrl    String?  // Optional image/logo URL
+  
+  lastUpdated DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  sections RateCardSection[]
+  bookings RateCardBookingItem[] @relation("RateCardBookings")
+
+  @@index([agencyId])
+  @@index([agencyId, isPublished])
+  @@index([listingType, isPublished])
+  @@index([listingId])
+}
+
+model RateCardSection {
+  id          String   @id @default(uuid())
+  rateCardId  String
+  rateCard    RateCard @relation(fields: [rateCardId], references: [id], onDelete: Cascade)
+  title       String   // Section heading (e.g., "TV Rates", "Radio Packages")
+  sortOrder   Int      @default(0) // Order of sections
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tables SmartTable[]
+
+  @@index([rateCardId, sortOrder])
+}
+
+model SmartTable {
+  id          String   @id @default(uuid())
+  sectionId   String
+  section     RateCardSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title       String?  // Optional table title
+  sortOrder   Int      @default(0) // Order within section
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  columns SmartTableColumn[]
+  rows    SmartTableRow[]
+
+  @@index([sectionId, sortOrder])
+}
+
+enum ColumnDataType {
+  TEXT
+  NUMBER
+  CURRENCY
+  DROPDOWN
+  BOOLEAN
+  NOTES
+}
+
+model SmartTableColumn {
+  id                    String        @id @default(uuid())
+  tableId               String
+  table                 SmartTable    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  name                  String        // Column name (e.g., "Package Name", "Price")
+  dataType              ColumnDataType // Type of data this column holds
+  displayOrder          Int           @default(0) // Column order
+  isVisibleOnFrontend   Boolean       @default(true) // Show to users or internal only
+  isRequiredForBooking  Boolean       @default(false) // Must have value for booking
+  config                Json?         // JSON config: dropdown options, currency format, validation rules
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  cells SmartTableCell[]
+
+  @@index([tableId, displayOrder])
+}
+
+model SmartTableRow {
+  id          String   @id @default(uuid())
+  tableId     String
+  table       SmartTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  isBookable  Boolean  @default(true) // Can users book this row?
+  sortOrder   Int      @default(0) // Row order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cells SmartTableCell[]
+  bookingItems RateCardBookingItem[]
+
+  @@index([tableId, sortOrder])
+  @@index([tableId, isBookable])
+}
+
+model SmartTableCell {
+  id        String   @id @default(uuid())
+  rowId     String
+  row       SmartTableRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  columnId  String
+  column    SmartTableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  value     String?  @db.Text // Cell value as string (parsed based on column dataType)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([rowId, columnId]) // One cell per row-column combination
+  @@index([rowId])
+  @@index([columnId])
+}
+
+model RateCardBookingItem {
+  id              String        @id @default(uuid())
+  rowId           String
+  row             SmartTableRow @relation(fields: [rowId], references: [id], onDelete: Restrict)
+  rateCardId      String
+  rateCard        RateCard      @relation("RateCardBookings", fields: [rateCardId], references: [id], onDelete: Restrict)
+  agencyId        String
+  agency          MediaAgency   @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  
+  // Snapshot of row data at booking time (never changes)
+  snapshotData    Json          @db.JsonB // Complete snapshot: { columnName: value, ... }
+  snapshotPrice  Float?        // Extracted price for quick reference
+  snapshotUnit   String?       // Price unit (e.g., "per spot", "per day")
+  snapshotDescription String?   @db.Text // Extracted description/ad name
+  
+  // Booking details
+  clientName     String
+  clientEmail    String
+  clientPhone    String?
+  quantity       Int?          // Number of units (spots, days, etc.)
+  startDate      DateTime?
+  endDate        DateTime?
+  totalAmount    Float?
+  status         BookingStatus @default(PENDING)
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([rowId])
+  @@index([rateCardId])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
 }
