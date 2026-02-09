@@ -42,3 +42,4 @@ next-env.d.ts
 lib/private.key
 # clerk configuration (can include secrets)
 /.clerk/
+.pnpm-store
