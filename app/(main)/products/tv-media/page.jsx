@@ -93,11 +93,11 @@ export default function TVMediaPage() {
       </nav>
 
       {/* Header Cover */}
-      <section className="relative h-64 md:h-80 w-full">
+      <section className="relative h-64 md:h-80 w-full overflow-hidden">
         <img
           src={headerImage}
           alt="TV Media Cover"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover rounded-b-2xl"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
         <div className="absolute inset-0 flex items-center justify-center">

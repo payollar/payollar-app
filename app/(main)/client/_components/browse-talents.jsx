@@ -14,14 +14,8 @@ import {
 } from "@/components/ui/select";
 import {
   Search,
-  Star,
-  MapPin,
   Briefcase,
-  DollarSign,
-  Clock,
   User,
-  Sparkles,
-  Filter,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -30,17 +24,6 @@ export function BrowseTalents({ talents = [], categories = [], specialties = [] 
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const total = talents.length;
-    const withServices = talents.filter((t) => t._count?.services > 0).length;
-    const totalServices = talents.reduce(
-      (acc, t) => acc + (t._count?.services || 0),
-      0
-    );
-    return { total, withServices, totalServices };
-  }, [talents]);
 
   // Filter talents
   const filteredTalents = useMemo(() => {
@@ -81,54 +64,12 @@ export function BrowseTalents({ talents = [], categories = [], specialties = [] 
             Discover talented creators and their available services
           </p>
         </div>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Total Talents</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                <User className="h-10 w-10 text-blue-400 relative z-10" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">With Services</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.withServices}</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                <Briefcase className="h-10 w-10 text-emerald-400 relative z-10" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-white/20 bg-gradient-to-br from-blue-900/20 via-blue-900/10 to-transparent backdrop-blur-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Total Services</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.totalServices}</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                <Sparkles className="h-10 w-10 text-blue-400 relative z-10" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Link href="/talents">
+          <Button className="bg-white hover:bg-gray-100 text-gray-900">
+            <Search className="h-4 w-4 mr-2" />
+            Find Talents
+          </Button>
+        </Link>
       </div>
 
       {/* Search and Filters */}

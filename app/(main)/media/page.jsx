@@ -145,12 +145,12 @@ export default async function MediaPage() {
       </section> */}
 
        {/* Header */}
-       <section className="py-16 bg-muted/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+       <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl p-8 md:p-12">
           <div className="text-center space-y-4 mb-8">
             
-            <h1 className="text-4xl lg:text-5xl font-bold text-balance">Browse Media Services</h1>
-            <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
+            <h1 className="text-4xl lg:text-5xl font-bold text-balance text-gray-900">Browse Media Services</h1>
+            <p className="text-xl text-gray-600 text-pretty max-w-3xl mx-auto">
               Discover the perfect advertising channels for your campaign. From traditional broadcast to cutting-edge
               digital platforms.
             </p>
@@ -159,19 +159,19 @@ export default async function MediaPage() {
           {/* Search and Filters */}
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search by location, audience, or media type..." className="pl-10 h-12" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input placeholder="Search by location, audience, or media type..." className="pl-10 h-12 bg-gray-50 border-gray-200 text-gray-900" />
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
-              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+              <Badge variant="secondary" className="cursor-pointer hover:bg-gray-100 bg-gray-100 text-gray-700 border-gray-200">
                 <MapPin className="h-3 w-3 mr-1" />
                 All Locations
               </Badge>
-              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+              <Badge variant="secondary" className="cursor-pointer hover:bg-gray-100 bg-gray-100 text-gray-700 border-gray-200">
                 <Users className="h-3 w-3 mr-1" />
                 All Demographics
               </Badge>
-              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+              <Badge variant="secondary" className="cursor-pointer hover:bg-gray-100 bg-gray-100 text-gray-700 border-gray-200">
                 <DollarSign className="h-3 w-3 mr-1" />
                 Any Budget
               </Badge>

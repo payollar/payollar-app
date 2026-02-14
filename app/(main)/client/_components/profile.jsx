@@ -133,53 +133,67 @@ export function ClientProfile({ user }) {
             </div>
 
             {/* Profile Picture Upload */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="text-gray-300">Profile Picture</Label>
-              <div className="space-y-3">
-                {profileImage && (
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-700">
-                    <Image
-                      key={profileImage}
-                      src={profileImage}
-                      alt="Profile"
-                      fill
-                      className="object-cover"
-                      unoptimized={true}
-                      onError={() => {
-                        toast.error("Failed to load profile image");
-                      }}
-                    />
-                  </div>
-                )}
-                <UploadButton
-                  endpoint="profileImage"
-                  onClientUploadComplete={(res) => {
-                    try {
-                      let imageUrl = null;
-                      
-                      if (Array.isArray(res) && res.length > 0) {
-                        const file = res[0];
-                        imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
-                      } else if (res && typeof res === 'object' && !Array.isArray(res)) {
-                        imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="relative group">
+                  {profileImage ? (
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-700 flex-shrink-0">
+                      <Image
+                        key={profileImage}
+                        src={profileImage}
+                        alt="Profile"
+                        fill
+                        className="object-cover"
+                        unoptimized={true}
+                        onError={() => {
+                          toast.error("Failed to load profile image");
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white text-xs text-center px-2">Click to change</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gray-800 flex items-center justify-center border-2 border-gray-700 flex-shrink-0">
+                      <User className="h-12 w-12 text-gray-500" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 w-full sm:w-auto space-y-2">
+                  <UploadButton
+                    endpoint="profileImage"
+                    onClientUploadComplete={(res) => {
+                      try {
+                        let imageUrl = null;
+                        
+                        if (Array.isArray(res) && res.length > 0) {
+                          const file = res[0];
+                          imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
+                        } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                          imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
+                        }
+                        
+                        if (imageUrl) {
+                          setProfileImage(imageUrl);
+                          toast.success("Profile picture uploaded successfully");
+                        } else {
+                          toast.error("Upload completed but URL not found");
+                        }
+                      } catch (error) {
+                        console.error("Error processing upload:", error);
+                        toast.error("Error processing upload");
                       }
-                      
-                      if (imageUrl) {
-                        setProfileImage(imageUrl);
-                        toast.success("Profile picture uploaded successfully");
-                      } else {
-                        toast.error("Upload completed but URL not found");
-                      }
-                    } catch (error) {
-                      console.error("Error processing upload:", error);
-                      toast.error("Error processing upload");
-                    }
-                  }}
-                  onUploadError={(error) => {
-                    console.error("Upload error:", error);
-                    toast.error(`Upload failed: ${error.message || "Please try again."}`);
-                  }}
-                />
+                    }}
+                    onUploadError={(error) => {
+                      console.error("Upload error:", error);
+                      toast.error(`Upload failed: ${error.message || "Please try again."}`);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Recommended: Square image, max 4MB. JPG, PNG, or GIF.
+                  </p>
+                </div>
               </div>
             </div>
 
