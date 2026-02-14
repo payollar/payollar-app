@@ -42,6 +42,11 @@ model User {
   bankRoutingNumber String? // Routing/Sort code
   bankCountry       String? // Country code
 
+  // Creator mobile money info for product sales payouts
+  mobileMoneyProvider String? // MTN, Vodafone, AirtelTigo
+  mobileMoneyNumber  String? // Phone number
+  mobileMoneyName    String? // Account name
+
   // Relations
   clientAppointments   Appointment[]         @relation("ClientAppointments")
   creatorAppointments  Appointment[]         @relation("CreatorAppointments")

@@ -100,9 +100,9 @@ export function CreatorSidebar() {
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-white font-bold text-sm">TH</span>
+            <span className="text-white font-bold text-sm">P</span>
           </div>
-          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">TalentHub</span>
+          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden"></span>
         </div>
       </SidebarHeader>
       <SidebarContent>

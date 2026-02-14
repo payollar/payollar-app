@@ -570,24 +570,42 @@ export async function updateBankAccount(formData) {
     const bankName = formData.get("bankName");
     const bankRoutingNumber = formData.get("bankRoutingNumber");
     const bankCountry = formData.get("bankCountry");
+    
+    // Mobile money fields
+    const mobileMoneyProvider = formData.get("mobileMoneyProvider");
+    const mobileMoneyNumber = formData.get("mobileMoneyNumber");
+    const mobileMoneyName = formData.get("mobileMoneyName");
 
-    // Validate required fields
-    if (!bankAccountName || !bankAccountNumber || !bankName || !bankRoutingNumber || !bankCountry) {
-      throw new Error("All bank account fields are required");
+    // Prepare update data
+    const updateData = {};
+
+    // Update bank account fields if provided
+    if (bankAccountName && bankAccountNumber && bankName && bankRoutingNumber && bankCountry) {
+      updateData.bankAccountName = bankAccountName.trim();
+      updateData.bankAccountNumber = bankAccountNumber.trim();
+      updateData.bankName = bankName.trim();
+      updateData.bankRoutingNumber = bankRoutingNumber.trim();
+      updateData.bankCountry = bankCountry.trim();
     }
 
-    // Update bank account info
+    // Update mobile money fields if provided
+    if (mobileMoneyProvider && mobileMoneyNumber && mobileMoneyName) {
+      updateData.mobileMoneyProvider = mobileMoneyProvider.trim();
+      updateData.mobileMoneyNumber = mobileMoneyNumber.trim();
+      updateData.mobileMoneyName = mobileMoneyName.trim();
+    }
+
+    // Validate that at least one payment method is provided
+    if (Object.keys(updateData).length === 0) {
+      throw new Error("Please provide either bank account or mobile money information");
+    }
+
+    // Update payment method info
     const updatedCreator = await db.user.update({
       where: {
         id: creator.id,
       },
-      data: {
-        bankAccountName: bankAccountName.trim(),
-        bankAccountNumber: bankAccountNumber.trim(),
-        bankName: bankName.trim(),
-        bankRoutingNumber: bankRoutingNumber.trim(),
-        bankCountry: bankCountry.trim(),
-      },
+      data: updateData,
     });
 
     revalidatePath("/creator");
@@ -595,6 +613,92 @@ export async function updateBankAccount(formData) {
   } catch (error) {
     console.error("Failed to update bank account:", error);
     throw new Error("Failed to update bank account: " + error.message);
+  }
+}
+
+/**
+ * Remove creator's bank account information
+ */
+export async function removeBankAccount() {
+  const authResult = await getAuthUserId();
+
+  if (!authResult || !authResult.userId) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const creator = await db.user.findUnique({
+      where: {
+        id: authResult.userId,
+        role: "CREATOR",
+      },
+    });
+
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+
+    // Remove bank account info by setting fields to null
+    const updatedCreator = await db.user.update({
+      where: {
+        id: creator.id,
+      },
+      data: {
+        bankAccountName: null,
+        bankAccountNumber: null,
+        bankName: null,
+        bankRoutingNumber: null,
+        bankCountry: null,
+      },
+    });
+
+    revalidatePath("/creator");
+    return { success: true, creator: updatedCreator };
+  } catch (error) {
+    console.error("Failed to remove bank account:", error);
+    throw new Error("Failed to remove bank account: " + error.message);
+  }
+}
+
+/**
+ * Remove creator's mobile money information
+ */
+export async function removeMobileMoney() {
+  const authResult = await getAuthUserId();
+
+  if (!authResult || !authResult.userId) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const creator = await db.user.findUnique({
+      where: {
+        id: authResult.userId,
+        role: "CREATOR",
+      },
+    });
+
+    if (!creator) {
+      throw new Error("Creator not found");
+    }
+
+    // Remove mobile money info by setting fields to null
+    const updatedCreator = await db.user.update({
+      where: {
+        id: creator.id,
+      },
+      data: {
+        mobileMoneyProvider: null,
+        mobileMoneyNumber: null,
+        mobileMoneyName: null,
+      },
+    });
+
+    revalidatePath("/creator");
+    return { success: true, creator: updatedCreator };
+  } catch (error) {
+    console.error("Failed to remove mobile money:", error);
+    throw new Error("Failed to remove mobile money: " + error.message);
   }
 }
 

@@ -96,7 +96,7 @@ export function ClientSidebar() {
           <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
             <span className="text-white font-bold text-sm">TH</span>
           </div>
-          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">TalentHub</span>
+          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden"></span>
         </div>
       </SidebarHeader>
       <SidebarContent>

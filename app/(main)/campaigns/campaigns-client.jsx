@@ -111,20 +111,35 @@ export function CampaignsClient({ initialCampaigns = [] }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="absolute inset-0 grid-pattern opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <Badge variant="secondary" className="w-fit mx-auto">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              {campaigns.length} Active Campaigns
-            </Badge>
-            <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-balance">
-              Discover exciting brand campaigns
-            </h1>
-            <p className="text-lg text-muted-foreground text-pretty">
-              Connect with top brands and monetize your talent. Browse campaigns, apply instantly, and grow your creator business.
-            </p>
+      <section className="relative overflow-hidden w-full px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="relative w-full h-[250px] md:h-[300px] lg:h-[350px] rounded-2xl overflow-hidden">
+          {/* Background Image */}
+          <div className="absolute inset-0 w-full h-full">
+            <img
+              src="/campaign-banner.PNG"
+              alt="Campaigns Banner"
+              className="w-full h-full object-cover rounded-2xl"
+              style={{ objectFit: "cover" }}
+            />
+          </div>
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/40 z-[1] rounded-2xl"></div>
+          {/* Content */}
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+              <div className="text-center space-y-4 max-w-3xl mx-auto">
+                <Badge variant="secondary" className="w-fit mx-auto backdrop-blur-sm bg-background/80">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {campaigns.length} Active Campaigns
+                </Badge>
+                <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-balance text-white drop-shadow-lg">
+                  Discover exciting brand campaigns
+                </h1>
+                <p className="text-lg text-white/90 text-pretty drop-shadow-md">
+                  Connect with top brands and monetize your talent. Browse campaigns, apply instantly, and grow your creator business.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
