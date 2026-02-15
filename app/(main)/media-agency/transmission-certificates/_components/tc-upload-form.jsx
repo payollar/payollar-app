@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Upload, X, FileText } from "lucide-react";
 import { UploadButton } from "@uploadthing/react";
 import Image from "next/image";
 
-export function TransmissionCertificateForm({ mediaAgencyId }) {
+export function TransmissionCertificateForm({ mediaAgencyId, availableBookings = [] }) {
+  const searchParams = useSearchParams();
+  const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [selectedBookingType, setSelectedBookingType] = useState("");
   const [campaignRefId, setCampaignRefId] = useState("");
   const [airDate, setAirDate] = useState("");
   const [airTime, setAirTime] = useState("");
@@ -18,6 +23,41 @@ export function TransmissionCertificateForm({ mediaAgencyId }) {
   const [notes, setNotes] = useState("");
   const [uploadedFileData, setUploadedFileData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Auto-select booking from URL params
+  useEffect(() => {
+    const bookingId = searchParams?.get("bookingId");
+    const bookingType = searchParams?.get("bookingType");
+    if (bookingId && bookingType) {
+      const booking = availableBookings.find((b) => b.id === bookingId && b.type === bookingType);
+      if (booking) {
+        setSelectedBookingId(bookingId);
+        setSelectedBookingType(bookingType);
+        setCampaignRefId(`${bookingType}-${bookingId.substring(0, 8).toUpperCase()}`);
+      }
+    }
+  }, [searchParams, availableBookings]);
+
+  // Auto-fill campaignRefId when booking is selected
+  const handleBookingChange = (value) => {
+    if (value === "none") {
+      setSelectedBookingId("");
+      setSelectedBookingType("");
+      setCampaignRefId("");
+      return;
+    }
+
+    const [type, id] = value.split("|");
+    setSelectedBookingId(id);
+    setSelectedBookingType(type);
+    
+    // Auto-generate campaign ref ID from booking
+    const booking = availableBookings.find((b) => b.id === id && b.type === type);
+    if (booking) {
+      // Use booking ID as campaign ref, or generate one
+      setCampaignRefId(`${type}-${id.substring(0, 8).toUpperCase()}`);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,8 +67,15 @@ export function TransmissionCertificateForm({ mediaAgencyId }) {
       return;
     }
 
-    if (!campaignRefId || !airDate) {
-      toast.error("Please fill in Campaign Reference ID and Air Date");
+    if (!airDate) {
+      toast.error("Please fill in Air Date");
+      return;
+    }
+
+    // CampaignRefId is required, but can be auto-generated from booking
+    const finalCampaignRefId = campaignRefId || (selectedBookingId ? `${selectedBookingType}-${selectedBookingId.substring(0, 8).toUpperCase()}` : "");
+    if (!finalCampaignRefId) {
+      toast.error("Please select a booking or enter a Campaign Reference ID");
       return;
     }
 
@@ -41,7 +88,9 @@ export function TransmissionCertificateForm({ mediaAgencyId }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mediaAgencyId,
-          campaignRefId,
+          campaignRefId: finalCampaignRefId,
+          bookingId: selectedBookingId || null,
+          bookingType: selectedBookingType || null,
           fileUrl: uploadedFileData.url,
           fileName: uploadedFileData.name || "certificate",
           fileType: uploadedFileData.type || "application/pdf",
@@ -61,6 +110,8 @@ export function TransmissionCertificateForm({ mediaAgencyId }) {
       toast.success("Transmission certificate uploaded successfully!");
       
       // Reset form
+      setSelectedBookingId("");
+      setSelectedBookingType("");
       setCampaignRefId("");
       setAirDate("");
       setAirTime("");
@@ -79,6 +130,38 @@ export function TransmissionCertificateForm({ mediaAgencyId }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="bookingSelect">
+          Link to Booking (Optional)
+        </Label>
+        <Select 
+          value={selectedBookingId && selectedBookingType ? `${selectedBookingType}|${selectedBookingId}` : "none"}
+          onValueChange={handleBookingChange}
+          disabled={isLoading}
+        >
+          <SelectTrigger id="bookingSelect">
+            <SelectValue placeholder="Select a booking to link this certificate" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No booking (manual entry)</SelectItem>
+            {availableBookings.length === 0 ? (
+              <SelectItem value="no-bookings" disabled>
+                No confirmed/completed bookings available
+              </SelectItem>
+            ) : (
+              availableBookings.map((booking) => (
+                <SelectItem key={`${booking.type}-${booking.id}`} value={`${booking.type}|${booking.id}`}>
+                  {booking.displayName} ({booking.status}) - {booking.listingName}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Select a confirmed or completed booking to automatically link this certificate. The client will see it in their media library.
+        </p>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="campaignRefId">
@@ -92,6 +175,9 @@ export function TransmissionCertificateForm({ mediaAgencyId }) {
             required
             disabled={isLoading}
           />
+          <p className="text-xs text-muted-foreground">
+            Auto-filled when booking is selected, or enter manually
+          </p>
         </div>
 
         <div className="space-y-2">

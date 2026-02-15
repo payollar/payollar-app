@@ -13,6 +13,7 @@ export async function updateBookingStatus(formData) {
 
   const bookingId = formData.get("bookingId");
   const status = formData.get("status");
+  const bookingType = formData.get("bookingType") || "MEDIA"; // Default to MEDIA for backward compatibility
 
   if (!bookingId || !status) {
     throw new Error("Missing required fields");
@@ -27,18 +28,35 @@ export async function updateBookingStatus(formData) {
     throw new Error("Media agency not found");
   }
 
-  const booking = await db.mediaBooking.findUnique({
-    where: { id: bookingId },
-  });
+  if (bookingType === "RATE_CARD") {
+    // Handle RateCardBookingItem
+    const booking = await db.rateCardBookingItem.findUnique({
+      where: { id: bookingId },
+    });
 
-  if (!booking || booking.agencyId !== mediaAgency.id) {
-    throw new Error("Booking not found or unauthorized");
+    if (!booking || booking.agencyId !== mediaAgency.id) {
+      throw new Error("Booking not found or unauthorized");
+    }
+
+    await db.rateCardBookingItem.update({
+      where: { id: bookingId },
+      data: { status },
+    });
+  } else {
+    // Handle MediaBooking
+    const booking = await db.mediaBooking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking || booking.agencyId !== mediaAgency.id) {
+      throw new Error("Booking not found or unauthorized");
+    }
+
+    await db.mediaBooking.update({
+      where: { id: bookingId },
+      data: { status },
+    });
   }
-
-  await db.mediaBooking.update({
-    where: { id: bookingId },
-    data: { status },
-  });
 
   revalidatePath("/media-agency/requests");
   revalidatePath("/media-agency");

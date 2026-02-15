@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Download, Calendar, Clock, Radio, Tv, Eye, Trash2 } from "lucide-react";
 import { TransmissionCertificateForm } from "./_components/tc-upload-form";
+import { getAgencyBookingsForLinking } from "@/actions/media-agency-bookings";
 
 export default async function TransmissionCertificatesPage() {
   const user = await checkUser();
@@ -28,6 +29,10 @@ export default async function TransmissionCertificatesPage() {
   if (!mediaAgency) {
     redirect("/media-agency/settings");
   }
+
+  // Get bookings for linking
+  const bookingsResult = await getAgencyBookingsForLinking();
+  const availableBookings = bookingsResult.success ? bookingsResult.bookings : [];
 
   const formatFileType = (type) => {
     if (type?.includes("pdf")) return "PDF";
@@ -63,7 +68,10 @@ export default async function TransmissionCertificatesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TransmissionCertificateForm mediaAgencyId={mediaAgency.id} />
+          <TransmissionCertificateForm 
+            mediaAgencyId={mediaAgency.id} 
+            availableBookings={availableBookings}
+          />
         </CardContent>
       </Card>
 

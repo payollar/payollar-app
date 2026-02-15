@@ -826,14 +826,14 @@ export function RateCardDisplay({ rateCard }) {
 
             {/* Action Buttons */}
             <div className="flex gap-3 justify-end pt-4 border-t">
-              <Button
+              {/* <Button
                 variant="outline"
                 onClick={() => {
                   setIsSummaryDialogOpen(false);
                 }}
               >
                 Cancel
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 onClick={addToCart}

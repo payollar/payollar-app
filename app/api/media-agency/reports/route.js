@@ -18,7 +18,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { mediaAgencyId, title, reportType, startDate, endDate, content } = body;
+    const { mediaAgencyId, title, reportType, startDate, endDate, content, bookingId, bookingType } = body;
 
     if (!mediaAgencyId || !title || !reportType || !startDate || !endDate) {
       return NextResponse.json(
@@ -39,9 +39,35 @@ export async function POST(req) {
       );
     }
 
+    // If bookingId is provided, validate it exists and belongs to the agency
+    if (bookingId && bookingType) {
+      if (bookingType === "MEDIA") {
+        const booking = await db.mediaBooking.findUnique({
+          where: { id: bookingId },
+        });
+        if (!booking || booking.agencyId !== mediaAgencyId) {
+          return NextResponse.json(
+            { error: "Booking not found or unauthorized" },
+            { status: 404 }
+          );
+        }
+      } else if (bookingType === "RATE_CARD") {
+        const booking = await db.rateCardBookingItem.findUnique({
+          where: { id: bookingId },
+        });
+        if (!booking || booking.agencyId !== mediaAgencyId) {
+          return NextResponse.json(
+            { error: "Booking not found or unauthorized" },
+            { status: 404 }
+          );
+        }
+      }
+    }
+
     const report = await db.mediaAgencyReport.create({
       data: {
         agencyId: mediaAgencyId,
+        bookingId: bookingId || null,
         title,
         reportType,
         startDate: new Date(startDate),

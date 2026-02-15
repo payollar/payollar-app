@@ -28,7 +28,8 @@ export async function getClientMediaBookings() {
       return { success: false, error: "Client not found" };
     }
 
-    const bookings = await db.mediaBooking.findMany({
+    // Get MediaBooking bookings
+    const mediaBookings = await db.mediaBooking.findMany({
       where: {
         clientEmail: user.email,
       },
@@ -55,7 +56,88 @@ export async function getClientMediaBookings() {
       },
     });
 
-    return { success: true, bookings };
+    // Get RateCardBookingItem bookings
+    const rateCardBookings = await db.rateCardBookingItem.findMany({
+      where: {
+        clientEmail: user.email,
+      },
+      include: {
+        rateCard: {
+          select: {
+            id: true,
+            title: true,
+            listingType: true,
+            location: true,
+            imageUrl: true,
+          },
+        },
+        agency: {
+          select: {
+            id: true,
+            agencyName: true,
+            contactName: true,
+          },
+        },
+        row: {
+          include: {
+            table: {
+              include: {
+                section: {
+                  select: {
+                    title: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Transform rate card bookings to match MediaBooking format for consistent display
+    const transformedRateCardBookings = rateCardBookings.map((booking) => ({
+      id: booking.id,
+      listingId: booking.rateCard.listingId || booking.rateCard.id,
+      agencyId: booking.agencyId,
+      clientName: booking.clientName,
+      clientEmail: booking.clientEmail,
+      clientPhone: booking.clientPhone,
+      packageName: booking.snapshotDescription || booking.row?.table?.section?.title || "Rate Card Item",
+      packagePrice: booking.snapshotPrice,
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      duration: null,
+      slots: booking.quantity,
+      totalAmount: booking.totalAmount,
+      status: booking.status,
+      notes: booking.notes,
+      createdAt: booking.createdAt,
+      updatedAt: booking.updatedAt,
+      listing: {
+        id: booking.rateCard.id,
+        name: booking.rateCard.title,
+        listingType: booking.rateCard.listingType || "DIGITAL",
+        location: booking.rateCard.location,
+        imageUrl: booking.rateCard.imageUrl,
+      },
+      agency: {
+        id: booking.agency.id,
+        agencyName: booking.agency.agencyName,
+        contactName: booking.agency.contactName,
+      },
+      bookingType: "RATE_CARD", // Flag to identify rate card bookings
+    }));
+
+    // Combine both types of bookings
+    const allBookings = [
+      ...mediaBookings.map((b) => ({ ...b, bookingType: "MEDIA" })),
+      ...transformedRateCardBookings,
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return { success: true, bookings: allBookings };
   } catch (error) {
     console.error("Error fetching client media bookings:", error);
     return { success: false, error: error.message || "Failed to fetch bookings" };
@@ -87,27 +169,28 @@ export async function getClientTransmissionCertificates() {
       return { success: false, error: "Client not found" };
     }
 
-    // First, get all booking IDs for this client
-    const clientBookings = await db.mediaBooking.findMany({
-      where: {
-        clientEmail: user.email,
-      },
-      select: {
-        id: true,
-      },
-    });
+    // Get IDs from both MediaBooking and RateCardBookingItem bookings
+    const [mediaBookingIds, rateCardBookingIds] = await Promise.all([
+      db.mediaBooking.findMany({
+        where: { clientEmail: user.email },
+        select: { id: true },
+      }).then(bookings => bookings.map(b => b.id)),
+      db.rateCardBookingItem.findMany({
+        where: { clientEmail: user.email },
+        select: { id: true },
+      }).then(bookings => bookings.map(b => b.id)),
+    ]);
 
-    const bookingIds = clientBookings.map((b) => b.id);
-
-    if (bookingIds.length === 0) {
+    const allBookingIds = [...mediaBookingIds, ...rateCardBookingIds];
+    
+    if (allBookingIds.length === 0) {
       return { success: true, certificates: [] };
     }
 
-    // Get certificates linked to bookings
-    // Note: Certificates can also be linked via campaignRefId, but we'll focus on bookingId for now
+    // Get certificates linked to any booking (MediaBooking or RateCardBookingItem)
     const certificates = await db.transmissionCertificate.findMany({
       where: {
-        bookingId: { in: bookingIds },
+        bookingId: { in: allBookingIds },
       },
       include: {
         agency: {
@@ -156,27 +239,28 @@ export async function getClientCampaignReports() {
       return { success: false, error: "Client not found" };
     }
 
-    // First, get all booking IDs for this client
-    const clientBookings = await db.mediaBooking.findMany({
-      where: {
-        clientEmail: user.email,
-      },
-      select: {
-        id: true,
-      },
-    });
+    // Get IDs from both MediaBooking and RateCardBookingItem bookings
+    const [mediaBookingIds, rateCardBookingIds] = await Promise.all([
+      db.mediaBooking.findMany({
+        where: { clientEmail: user.email },
+        select: { id: true },
+      }).then(bookings => bookings.map(b => b.id)),
+      db.rateCardBookingItem.findMany({
+        where: { clientEmail: user.email },
+        select: { id: true },
+      }).then(bookings => bookings.map(b => b.id)),
+    ]);
 
-    const bookingIds = clientBookings.map((b) => b.id);
-
-    if (bookingIds.length === 0) {
+    const allBookingIds = [...mediaBookingIds, ...rateCardBookingIds];
+    
+    if (allBookingIds.length === 0) {
       return { success: true, reports: [] };
     }
 
-    // Get reports linked to bookings
-    // Note: Reports only link via bookingId, not campaignRefId
+    // Get reports linked to any booking (MediaBooking or RateCardBookingItem)
     const reports = await db.mediaAgencyReport.findMany({
       where: {
-        bookingId: { in: bookingIds },
+        bookingId: { in: allBookingIds },
       },
       include: {
         agency: {

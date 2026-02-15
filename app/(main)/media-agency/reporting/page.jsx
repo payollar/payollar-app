@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { BarChart3, FileText, Plus, Download } from "lucide-react";
 import { ReportingForm } from "./_components/reporting-form";
+import { getAgencyBookingsForLinking } from "@/actions/media-agency-bookings";
 
 export default async function MediaAgencyReportingPage() {
   const user = await checkUser();
@@ -27,6 +28,10 @@ export default async function MediaAgencyReportingPage() {
   if (!mediaAgency) {
     redirect("/media-agency/settings");
   }
+
+  // Get bookings for linking
+  const bookingsResult = await getAgencyBookingsForLinking();
+  const availableBookings = bookingsResult.success ? bookingsResult.bookings : [];
 
   return (
     <div className="space-y-6">
@@ -50,7 +55,10 @@ export default async function MediaAgencyReportingPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ReportingForm mediaAgencyId={mediaAgency.id} />
+            <ReportingForm 
+              mediaAgencyId={mediaAgency.id} 
+              availableBookings={availableBookings}
+            />
           </CardContent>
         </Card>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,13 +10,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-export function ReportingForm({ mediaAgencyId }) {
+export function ReportingForm({ mediaAgencyId, availableBookings = [] }) {
+  const searchParams = useSearchParams();
   const [title, setTitle] = useState("");
   const [reportType, setReportType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [content, setContent] = useState("");
+  const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [selectedBookingType, setSelectedBookingType] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Auto-select booking from URL params
+  useEffect(() => {
+    const bookingId = searchParams?.get("bookingId");
+    const bookingType = searchParams?.get("bookingType");
+    if (bookingId && bookingType) {
+      const booking = availableBookings.find((b) => b.id === bookingId && b.type === bookingType);
+      if (booking) {
+        setSelectedBookingId(bookingId);
+        setSelectedBookingType(bookingType);
+      }
+    }
+  }, [searchParams, availableBookings]);
+
+  const handleBookingChange = (value) => {
+    if (value === "none") {
+      setSelectedBookingId("");
+      setSelectedBookingType("");
+      return;
+    }
+
+    const [type, id] = value.split("|");
+    setSelectedBookingId(id);
+    setSelectedBookingType(type);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,6 +67,8 @@ export function ReportingForm({ mediaAgencyId }) {
           startDate,
           endDate,
           content,
+          bookingId: selectedBookingId || null,
+          bookingType: selectedBookingType || null,
         }),
       });
 
@@ -51,6 +82,8 @@ export function ReportingForm({ mediaAgencyId }) {
       setStartDate("");
       setEndDate("");
       setContent("");
+      setSelectedBookingId("");
+      setSelectedBookingType("");
       window.location.reload();
     } catch (error) {
       console.error("Error creating report:", error);
@@ -62,6 +95,38 @@ export function ReportingForm({ mediaAgencyId }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="bookingSelect">
+          Link to Booking (Optional)
+        </Label>
+        <Select 
+          value={selectedBookingId && selectedBookingType ? `${selectedBookingType}|${selectedBookingId}` : "none"}
+          onValueChange={handleBookingChange}
+          disabled={isLoading}
+        >
+          <SelectTrigger id="bookingSelect">
+            <SelectValue placeholder="Select a booking to link this report" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No booking (general report)</SelectItem>
+            {availableBookings.length === 0 ? (
+              <SelectItem value="no-bookings" disabled>
+                No confirmed/completed bookings available
+              </SelectItem>
+            ) : (
+              availableBookings.map((booking) => (
+                <SelectItem key={`${booking.type}-${booking.id}`} value={`${booking.type}|${booking.id}`}>
+                  {booking.displayName} ({booking.status}) - {booking.listingName}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Select a confirmed or completed booking to link this report. The client will see it in their media library.
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="title">Report Title</Label>
         <Input

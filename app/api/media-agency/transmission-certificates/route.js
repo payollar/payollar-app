@@ -29,7 +29,8 @@ export async function POST(req) {
       airTime, 
       stationName, 
       notes,
-      bookingId 
+      bookingId,
+      bookingType 
     } = body;
 
     if (!mediaAgencyId || !campaignRefId || !fileUrl || !airDate) {
@@ -49,6 +50,31 @@ export async function POST(req) {
         { error: "Unauthorized" },
         { status: 403 }
       );
+    }
+
+    // If bookingId is provided, validate it exists and belongs to the agency
+    if (bookingId && bookingType) {
+      if (bookingType === "MEDIA") {
+        const booking = await db.mediaBooking.findUnique({
+          where: { id: bookingId },
+        });
+        if (!booking || booking.agencyId !== mediaAgencyId) {
+          return NextResponse.json(
+            { error: "Booking not found or unauthorized" },
+            { status: 404 }
+          );
+        }
+      } else if (bookingType === "RATE_CARD") {
+        const booking = await db.rateCardBookingItem.findUnique({
+          where: { id: bookingId },
+        });
+        if (!booking || booking.agencyId !== mediaAgencyId) {
+          return NextResponse.json(
+            { error: "Booking not found or unauthorized" },
+            { status: 404 }
+          );
+        }
+      }
     }
 
     // Create transmission certificate
