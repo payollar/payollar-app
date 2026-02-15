@@ -710,16 +710,130 @@ export function RateCardDisplay({ rateCard }) {
               </CardContent>
             </Card>
 
+            {/* Booking Form Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Booking Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="summaryClientName">
+                      Your Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="summaryClientName"
+                      value={bookingForm.clientName}
+                      onChange={(e) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          clientName: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="summaryClientEmail">
+                      Email <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="summaryClientEmail"
+                      type="email"
+                      value={bookingForm.clientEmail}
+                      onChange={(e) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          clientEmail: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="summaryClientPhone">Phone</Label>
+                    <Input
+                      id="summaryClientPhone"
+                      value={bookingForm.clientPhone}
+                      onChange={(e) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          clientPhone: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="summaryQuantity">Quantity per item</Label>
+                    <Input
+                      id="summaryQuantity"
+                      type="number"
+                      min="1"
+                      value={bookingForm.quantity}
+                      onChange={(e) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          quantity: parseInt(e.target.value) || 1,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="summaryStartDate">Start Date</Label>
+                    <Input
+                      id="summaryStartDate"
+                      type="date"
+                      value={bookingForm.startDate ? format(bookingForm.startDate, "yyyy-MM-dd") : ""}
+                      onChange={(e) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          startDate: e.target.value ? new Date(e.target.value) : null,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="summaryEndDate">End Date</Label>
+                    <Input
+                      id="summaryEndDate"
+                      type="date"
+                      value={bookingForm.endDate ? format(bookingForm.endDate, "yyyy-MM-dd") : ""}
+                      onChange={(e) =>
+                        setBookingForm({
+                          ...bookingForm,
+                          endDate: e.target.value ? new Date(e.target.value) : null,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="summaryNotes">Additional Notes</Label>
+                  <Textarea
+                    id="summaryNotes"
+                    value={bookingForm.notes}
+                    onChange={(e) =>
+                      setBookingForm({
+                        ...bookingForm,
+                        notes: e.target.value,
+                      })
+                    }
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Action Buttons */}
             <div className="flex gap-3 justify-end pt-4 border-t">
-              {/* <Button
+              <Button
                 variant="outline"
                 onClick={() => {
                   setIsSummaryDialogOpen(false);
                 }}
               >
                 Cancel
-              </Button> */}
+              </Button>
               <Button
                 variant="outline"
                 onClick={addToCart}
@@ -729,13 +843,11 @@ export function RateCardDisplay({ rateCard }) {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => {
-                  setIsSummaryDialogOpen(false);
-                  setIsBookingDialogOpen(true);
-                }}
+                onClick={handleBooking}
+                disabled={isSubmitting || !bookingForm.clientName || !bookingForm.clientEmail}
               >
                 <BookOpen className="h-4 w-4 mr-2" />
-                Book Only
+                {isSubmitting ? "Booking..." : "Book Only"}
               </Button>
               <Button onClick={handlePayment}>
                 <CreditCard className="h-4 w-4 mr-2" />

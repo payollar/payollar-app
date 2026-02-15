@@ -36,13 +36,15 @@ export default function RadioMediaPage() {
     })
   }, [])
 
-  const handlePackageClick = (stationName, pkg) => {
+  const handlePackageClick = (stationName, pkg, listingId, agencyId) => {
     setSelectedPackage({
       name: `${stationName} - ${pkg.name}`,
       price: pkg.price,
       details: `${pkg.duration || "30 seconds"} • ${pkg.slots ?? 0} spots`,
       mediaType: "radio",
       defaultSpots: pkg.slots ?? 0,
+      listingId: listingId,
+      agencyId: agencyId,
     })
     setIsModalOpen(true)
   }
@@ -55,14 +57,16 @@ export default function RadioMediaPage() {
     }
   }
 
-  const handleCustomPackageSubmit = (stationName, packageData) => {
+  const handleCustomPackageSubmit = (stationName, packageData, listingId, agencyId) => {
     setSelectedPackage({
       name: `${stationName} - Custom Package`,
-      price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
+      price: packageData.calculations.finalTotal,
       details: `${packageData.calculations.totalQuantity} spots over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
       mediaType: "radio",
       defaultSpots: packageData.calculations.totalQuantity,
       customData: packageData,
+      listingId: listingId,
+      agencyId: agencyId,
     })
     setIsModalOpen(true)
     setCustomBuilderStationId(null)
@@ -272,7 +276,9 @@ export default function RadioMediaPage() {
                     else setCustomBuilderStationId(stationId)
                   }}
                   showCustomBuilder={customBuilderStationId === listing.id}
-                  onCustomPackageSubmit={handleCustomPackageSubmit}
+                  onCustomPackageSubmit={(stationName, packageData) => 
+                    handleCustomPackageSubmit(stationName, packageData, listing.id, listing.agencyId)
+                  }
                   CustomBuilderComponent={CustomPackageBuilder}
                 />
               ))}

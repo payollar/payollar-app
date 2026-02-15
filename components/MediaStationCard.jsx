@@ -21,6 +21,7 @@ export function MediaStationCard({
 }) {
   const timeSlots = listing.timeSlots || [];
   const demographics = listing.demographics || [];
+  const packages = listing.packages || [];
 
   return (
     <Card className="overflow-hidden rounded-2xl bg-zinc-900/95 border-zinc-700 text-white">
@@ -82,8 +83,28 @@ export function MediaStationCard({
             </div>
           )}
 
+          {packages.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-zinc-300">Available Packages:</div>
+              <div className="space-y-2">
+                {packages.map((pkg) => (
+                  <Button
+                    key={pkg.id}
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-zinc-600 text-white hover:bg-zinc-700 justify-between"
+                    onClick={() => onSelectPackage && onSelectPackage(listing.name, pkg, listing.id, listing.agencyId)}
+                  >
+                    <span>{pkg.name}</span>
+                    <span className="font-semibold">₵{pkg.price.toLocaleString()}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <Link href={`/media/schedule?type=${listing.listingType}&listing=${listing.id}`}>
-            <Button variant="outline" size="sm" className="border-zinc-600 text-white hover:bg-zinc-700">
+            <Button variant="outline" size="sm" className="border-zinc-600 text-white hover:bg-zinc-700 w-full">
               Schedule / Inquire
             </Button>
           </Link>

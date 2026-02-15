@@ -212,8 +212,11 @@ export async function getActiveMediaListings(mediaType = null) {
           verificationStatus: true,
         },
       },
+      packages: {
+        orderBy: { sortOrder: "asc" },
+      },
     };
-    // Don't include packages/timeClasses to avoid Prisma errors if tables don't exist
+    
     const listings = await db.mediaListing.findMany({
       where,
       include: baseInclude,
@@ -222,14 +225,8 @@ export async function getActiveMediaListings(mediaType = null) {
         { name: "asc" },
       ],
     });
-    
-    const withPackages = listings.map((l) => ({
-      ...l,
-      packages: [],
-      timeClasses: [],
-    }));
 
-    return { success: true, listings: withPackages };
+    return { success: true, listings };
   } catch (error) {
     console.error("Error fetching media listings:", error);
     return {

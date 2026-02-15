@@ -1,14 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createMediaBooking } from "@/actions/media-agency"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
-export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
+export default function InquiryFormModal({ isOpen, onClose, packageInfo, userEmail, userName }) {
+  const router = useRouter()
   // Check if this is TV or Radio media (show number of spots field)
   const isMediaPackage = packageInfo?.mediaType === "radio" || packageInfo?.mediaType === "tv"
   
@@ -22,13 +27,14 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
     numberOfSpots: "",
     message: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Reset form when package changes or modal opens
+  // Reset form when package changes or modal opens, and auto-fill user data if available
   useEffect(() => {
     if (isOpen && packageInfo) {
       setFormData({
-        fullName: "",
-        email: "",
+        fullName: userName || "",
+        email: userEmail || "",
         phone: "",
         company: "",
         budget: "",
@@ -37,14 +43,80 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
         message: "",
       })
     }
-  }, [isOpen, packageInfo])
+  }, [isOpen, packageInfo, userEmail, userName])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("[v0] Form submitted:", { ...formData, package: packageInfo })
-    // Here you would typically send the data to your backend
-    alert("Thank you! We'll contact you shortly to discuss your advertising needs.")
-    onClose()
+    
+    // Validate required fields
+    if (!packageInfo?.listingId || !packageInfo?.agencyId) {
+      toast.error("Missing booking information. Please try again.")
+      return
+    }
+
+    if (!formData.fullName || !formData.email || !formData.phone) {
+      toast.error("Please fill in all required fields.")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // Extract price from packageInfo (could be string like "₵1,000" or number)
+      let packagePrice = null
+      if (packageInfo.price) {
+        if (typeof packageInfo.price === "string") {
+          // Remove currency symbols and commas, then parse
+          packagePrice = parseFloat(packageInfo.price.replace(/[₵$,\s]/g, ""))
+        } else {
+          packagePrice = packageInfo.price
+        }
+      }
+
+      // Calculate total amount (price * quantity if spots are specified)
+      let totalAmount = packagePrice
+      if (isMediaPackage && formData.numberOfSpots && packagePrice) {
+        // For media packages, multiply price by number of spots if applicable
+        const spots = parseInt(formData.numberOfSpots) || 1
+        totalAmount = packagePrice * spots
+      }
+
+      const bookingData = {
+        listingId: packageInfo.listingId,
+        agencyId: packageInfo.agencyId,
+        clientName: formData.fullName,
+        clientEmail: formData.email,
+        clientPhone: formData.phone,
+        packageName: packageInfo.name,
+        packagePrice: packagePrice,
+        startDate: formData.startDate ? new Date(formData.startDate) : null,
+        endDate: null, // Could be calculated based on duration if needed
+        duration: packageInfo.details || null,
+        slots: formData.numberOfSpots ? parseInt(formData.numberOfSpots) : null,
+        totalAmount: totalAmount,
+        notes: [
+          formData.company && `Company: ${formData.company}`,
+          formData.budget && `Budget: ${formData.budget}`,
+          formData.message,
+        ].filter(Boolean).join("\n"),
+      }
+
+      const result = await createMediaBooking(bookingData)
+
+      if (result.success) {
+        toast.success("Booking request submitted successfully! The media agency will contact you shortly.")
+        onClose()
+        // Revalidate the media library page
+        router.refresh()
+      } else {
+        toast.error(result.error || "Failed to submit booking request. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error submitting booking:", error)
+      toast.error("An error occurred. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (field, value) => {
@@ -184,11 +256,24 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo }) {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1 bg-transparent"
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Submit Request
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Request"
+              )}
             </Button>
           </div>
         </form>
