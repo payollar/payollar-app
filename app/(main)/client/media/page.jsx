@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getClientMediaLibrary } from "@/actions/client-media";
+import { MediaLibrary } from "../_components/media-library";
 
 // Force dynamic rendering to avoid static generation issues with headers()
 export const dynamic = 'force-dynamic';
@@ -12,14 +13,13 @@ export default async function ClientMediaPage() {
     redirect("/onboarding");
   }
 
+  const mediaData = await getClientMediaLibrary();
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Media Library</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">Media library coming soon...</p>
-      </CardContent>
-    </Card>
+    <MediaLibrary
+      bookings={mediaData.bookings || []}
+      certificates={mediaData.certificates || []}
+      reports={mediaData.reports || []}
+    />
   );
 }
