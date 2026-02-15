@@ -63,22 +63,22 @@ export default async function Header() {
   const showMediaMenu = user?.role === "CLIENT" || user?.role === "ADMIN";
 
   return (
-    <header className={`fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-20 overflow-visible ${isDashboardPage ? 'md:left-[15rem] md:w-[calc(100%-15rem)]' : ''}`}>
-      <nav className={`h-16 flex items-center justify-between overflow-visible ${isDashboardPage ? 'px-4' : 'container mx-auto px-4'}`}>
+    <header className={`fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-30 ${isDashboardPage ? 'md:left-[15rem] md:w-[calc(100%-15rem)]' : ''}`}>
+      <nav className={`h-16 flex items-center justify-between relative ${isDashboardPage ? 'px-4' : 'container mx-auto px-4'}`}>
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image src="/logo-single.png" alt="Logo" width={160} height={50} />
         </Link>
 
         {/* Desktop Nav - Show on desktop always, and on mobile for dashboard pages */}
-        <div className={`${isDashboardPage ? 'flex' : 'hidden md:flex'} items-center justify-end gap-3 md:gap-6 overflow-visible flex-1 min-w-0`}>
+        <div className={`${isDashboardPage ? 'flex' : 'hidden md:flex'} items-center justify-end gap-3 md:gap-6 flex-1 min-w-0 relative`}>
           {/* Media dropdown - only show for CLIENT or ADMIN */}
           {showMediaMenu && (
             <NavigationMenu viewport={false}>
               <NavigationMenuList>
                 <NavigationMenuItem className="relative">
                   <NavigationMenuTrigger className="whitespace-nowrap">Media</NavigationMenuTrigger>
-                  <NavigationMenuContent className="left-0 top-full mt-1.5 z-[100]">
+                  <NavigationMenuContent className="left-0 top-full mt-1.5 z-[100] bg-popover border rounded-md shadow-lg">
                     <ul className="grid gap-1 p-2 w-[200px]">
                       {mediaSubItems.map((item) => (
                         <li key={item.href}>

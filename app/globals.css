@@ -119,6 +119,45 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Prevent elements from overflowing outside viewport */
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure dialogs and portals are properly contained */
+  [data-slot="dialog-portal"],
+  [data-slot="dialog-overlay"],
+  [data-slot="dialog-content"] {
+    position: fixed !important;
+    isolation: isolate;
+  }
+  
+  /* Ensure header stays on top but below dialogs */
+  header {
+    isolation: isolate;
+  }
+  
+  /* Prevent navigation menu content from appearing outside header */
+  [data-slot="navigation-menu-content"] {
+    position: absolute !important;
+    isolation: isolate;
+  }
+  
+  /* Ensure form elements stay within their containers */
+  form, label, input, textarea, select {
+    position: relative;
+  }
+  
+  /* Prevent any element from appearing outside viewport */
+  * {
+    max-width: 100vw;
+  }
+  
+  /* Ensure dialogs don't leave stray elements */
+  [data-slot="dialog-content"]:not([data-state="open"]) {
+    display: none !important;
+  }
 }
 
 /* Hide header on auth pages */

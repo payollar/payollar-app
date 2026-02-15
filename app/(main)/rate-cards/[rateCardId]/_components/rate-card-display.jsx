@@ -47,6 +47,15 @@ export function RateCardDisplay({ rateCard }) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Ensure dialogs are properly closed on unmount
+  useEffect(() => {
+    return () => {
+      setIsSummaryDialogOpen(false);
+      setIsBookingDialogOpen(false);
+      setIsCartOpen(false);
+    };
+  }, []);
+
   // Load cart from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {

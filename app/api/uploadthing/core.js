@@ -32,13 +32,18 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ file }) => {
       return { url: file.url };
     }),
-  transmissionCertificate: f({
-    image: { maxFileSize: "10MB" },
-    pdf: { maxFileSize: "10MB" },
-  })
+  transmissionCertificate: f(
+    {
+      image: { maxFileSize: "10MB" },
+      pdf: { maxFileSize: "10MB" },
+    },
+    {
+      awaitServerData: false,
+    }
+  )
     .onUploadComplete(async ({ file }) => {
       return {
-        url: file.url,
+        url: file.url || `https://utfs.io/f/${file.key}`,
         key: file.key,
         type: file.type,
         name: file.name,

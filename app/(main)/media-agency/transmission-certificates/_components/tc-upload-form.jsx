@@ -67,6 +67,11 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
       return;
     }
 
+    if (!uploadedFileData.url) {
+      toast.error("File upload incomplete. Please upload the file again.");
+      return;
+    }
+
     if (!airDate) {
       toast.error("Please fill in Air Date");
       return;
@@ -82,6 +87,13 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
     setIsLoading(true);
 
     try {
+      // Ensure we have a valid file URL
+      const fileUrl = uploadedFileData.url || (uploadedFileData.key ? `https://utfs.io/f/${uploadedFileData.key}` : null);
+      
+      if (!fileUrl) {
+        throw new Error("File URL is missing. Please upload the file again.");
+      }
+
       // Save certificate data
       const response = await fetch("/api/media-agency/transmission-certificates", {
         method: "POST",
@@ -91,7 +103,7 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
           campaignRefId: finalCampaignRefId,
           bookingId: selectedBookingId || null,
           bookingType: selectedBookingType || null,
-          fileUrl: uploadedFileData.url,
+          fileUrl: fileUrl,
           fileName: uploadedFileData.name || "certificate",
           fileType: uploadedFileData.type || "application/pdf",
           fileSize: uploadedFileData.size || null,
@@ -107,22 +119,31 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
         throw new Error(errorData.error || "Failed to save certificate");
       }
 
-      toast.success("Transmission certificate uploaded successfully!");
+      const result = await response.json();
       
-      // Reset form
-      setSelectedBookingId("");
-      setSelectedBookingType("");
-      setCampaignRefId("");
-      setAirDate("");
-      setAirTime("");
-      setStationName("");
-      setNotes("");
-      setUploadedFileData(null);
+      if (result.success) {
+        toast.success("Transmission certificate uploaded successfully!");
+        
+        // Reset form
+        setSelectedBookingId("");
+        setSelectedBookingType("");
+        setCampaignRefId("");
+        setAirDate("");
+        setAirTime("");
+        setStationName("");
+        setNotes("");
+        setUploadedFileData(null);
 
-      window.location.reload();
+        // Reload after a short delay to show success message
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        throw new Error(result.error || "Failed to save certificate");
+      }
     } catch (error) {
       console.error("Error uploading certificate:", error);
-      toast.error(error.message || "Failed to upload transmission certificate");
+      toast.error(error.message || "Failed to upload transmission certificate. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -249,37 +270,46 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
                   try {
                     let fileData = null;
                     
+                    // Handle array response
                     if (Array.isArray(res) && res.length > 0) {
                       const uploaded = res[0];
                       fileData = {
-                        url: uploaded?.key ? `https://utfs.io/f/${uploaded.key}` : uploaded?.url,
-                        name: uploaded?.name,
-                        type: uploaded?.type,
-                        size: uploaded?.size,
+                        url: uploaded?.url || (uploaded?.key ? `https://utfs.io/f/${uploaded.key}` : null),
+                        key: uploaded?.key,
+                        name: uploaded?.name || "certificate",
+                        type: uploaded?.type || "application/pdf",
+                        size: uploaded?.size || null,
                       };
-                    } else if (res && typeof res === 'object' && !Array.isArray(res)) {
+                    } 
+                    // Handle single object response
+                    else if (res && typeof res === 'object' && !Array.isArray(res)) {
                       fileData = {
-                        url: res.key ? `https://utfs.io/f/${res.key}` : res.url,
-                        name: res.name,
-                        type: res.type,
-                        size: res.size,
+                        url: res.url || (res.key ? `https://utfs.io/f/${res.key}` : null),
+                        key: res.key,
+                        name: res.name || "certificate",
+                        type: res.type || "application/pdf",
+                        size: res.size || null,
                       };
                     }
                     
                     if (fileData?.url) {
                       setUploadedFileData(fileData);
-                      toast.success("File uploaded successfully");
+                      toast.success("File uploaded successfully! You can now submit the form.");
                     } else {
-                      toast.error("Upload completed but file data not found");
+                      console.error("Upload response:", res);
+                      toast.error("Upload completed but file URL not found. Please try uploading again.");
                     }
                   } catch (error) {
                     console.error("Error processing upload:", error);
-                    toast.error("Error processing upload");
+                    toast.error("Error processing upload. Please try again.");
                   }
                 }}
                 onUploadError={(err) => {
                   console.error("Upload error:", err);
-                  toast.error(`Upload failed: ${err.message || "Please try again."}`);
+                  toast.error(`Upload failed: ${err.message || "Please check your connection and try again."}`);
+                }}
+                onUploadBegin={(name) => {
+                  toast.info(`Uploading ${name}...`);
                 }}
               />
             </div>
