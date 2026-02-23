@@ -10,7 +10,7 @@ import {
   Settings,
   Building2,
   LogOut,
-  DollarSign,
+  Package,
   FileCheck,
 } from "lucide-react";
 import {
@@ -34,8 +34,8 @@ const menuItems = [
     href: "/media-agency",
   },
   {
-    title: "Rate Card",
-    icon: DollarSign,
+    title: "Custom Packages",
+    icon: Package,
     href: "/media-agency/rate-card",
   },
   {
@@ -92,11 +92,11 @@ export function MediaAgencySidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border">
         <div className="flex items-center gap-2 px-2 py-4">
           <Building2 className="h-6 w-6 text-blue-600" />
-          <div>
+          <div className="group-data-[collapsible=icon]:hidden">
             <h2 className="font-semibold text-sm">Media Agency</h2>
             <p className="text-xs text-muted-foreground">Dashboard</p>
           </div>
@@ -108,10 +108,15 @@ export function MediaAgencySidebar() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || 
+                  (item.href !== "/media-agency" && pathname?.startsWith(item.href));
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      tooltip={item.title}
+                    >
                       <Link href={item.href}>
                         <Icon className="h-4 w-4" />
                         <span>{item.title}</span>
@@ -127,7 +132,11 @@ export function MediaAgencySidebar() {
       <SidebarFooter className="border-t border-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} className="text-destructive">
+            <SidebarMenuButton 
+              onClick={handleSignOut} 
+              className="text-destructive"
+              tooltip="Sign Out"
+            >
               <LogOut className="h-4 w-4" />
               <span>Sign Out</span>
             </SidebarMenuButton>

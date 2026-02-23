@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FloatingChat } from "@/components/FloatingChat";
+import { MainWrapper } from "@/components/main-wrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,11 +30,12 @@ export default function RootLayout({ children }) {
           <div className="flex flex-col min-h-screen">
             <Header />
 
-            <main className="flex-1 pt-16">
+            <MainWrapper>
               {children}
-            </main>
+            </MainWrapper>
           </div>
 
+          <FloatingChat />
           <Toaster richColors />
         </ThemeProvider>
       </body>

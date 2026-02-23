@@ -12,7 +12,7 @@ export default async function CreatorDashboardLayout({ children }) {
       <CreatorSidebar />
       <SidebarInset className="bg-background">
         {/* Header bar with sidebar toggle - matches client layout style */}
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <header data-dashboard-header="true" className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background">
           <SidebarTrigger className="-ml-1" />
         </header>
         <div className="flex-1 p-6 overflow-auto">

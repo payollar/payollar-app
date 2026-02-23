@@ -26,15 +26,34 @@ export default async function Header() {
     user = null;
   }
   
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
+  let pathname = "";
+  try {
+    const headersList = await headers();
+    pathname = headersList.get("x-pathname") || "";
+  } catch (error) {
+    // If headers() fails, continue without pathname check
+    // This ensures header always renders on landing page
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Header headers() error:', error);
+    }
+  }
   
-  // Check if we're on a dashboard page (has sidebar)
+  // Check if we're on a dashboard page (has sidebar) - don't render header for these
+  // Only exclude dashboard pages, allow all other pages including landing page ("/")
   const isDashboardPage = 
-    pathname.startsWith("/creator") ||
-    pathname.startsWith("/client") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/media-agency");
+    pathname &&
+    (
+      pathname.startsWith("/creator") ||
+      pathname.startsWith("/client") ||
+      pathname.startsWith("/admin") ||
+      pathname.startsWith("/media-agency")
+    );
+
+  // Don't render header for dashboard pages - they have their own headers
+  // For all other pages (including "/" landing page), render the header
+  if (isDashboardPage) {
+    return null;
+  }
 
   // Role-based nav
   const roleNavItems = [
@@ -59,19 +78,19 @@ export default async function Header() {
     { href: "/media/schedule", label: "Schedule Media" },
   ];
 
-  // Show media menu only for CLIENT or ADMIN roles (not CREATOR)
-  const showMediaMenu = user?.role === "CLIENT" || user?.role === "ADMIN";
+  // Show media menu for CLIENT, ADMIN, or MEDIA_AGENCY roles (not CREATOR)
+  const showMediaMenu = user?.role === "CLIENT" || user?.role === "ADMIN" || user?.role === "MEDIA_AGENCY";
 
   return (
-    <header className={`fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-30 ${isDashboardPage ? 'md:left-[15rem] md:w-[calc(100%-15rem)]' : ''}`}>
-      <nav className={`h-16 flex items-center justify-between relative ${isDashboardPage ? 'px-4' : 'container mx-auto px-4'}`}>
+    <header data-main-header="true" className="fixed top-0 left-0 right-0 w-full border-b bg-background/95 backdrop-blur-md z-30 shadow-sm">
+      <nav className="h-16 flex items-center justify-between relative container mx-auto px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image src="/logo-single.png" alt="Logo" width={160} height={50} />
         </Link>
 
-        {/* Desktop Nav - Show on desktop always, and on mobile for dashboard pages */}
-        <div className={`${isDashboardPage ? 'flex' : 'hidden md:flex'} items-center justify-end gap-3 md:gap-6 flex-1 min-w-0 relative`}>
+        {/* Desktop Nav - Aligned to the right */}
+        <div className="hidden md:flex items-center justify-end gap-3 md:gap-6 flex-1 min-w-0 ml-auto">
           {/* Media dropdown - only show for CLIENT or ADMIN */}
           {showMediaMenu && (
             <NavigationMenu viewport={false}>
@@ -117,17 +136,15 @@ export default async function Header() {
           <HeaderAuthButtons />
         </div>
 
-        {/* Mobile Menu - Only show on non-dashboard pages */}
-        {!isDashboardPage && (
-          <div className="md:hidden flex items-center gap-2">
-            <MobileMenu 
-              publicNavItems={publicNavItems} 
-              mediaSubItems={showMediaMenu ? mediaSubItems : []} 
-              roleNavItems={roleNavItems} 
-              user={user} 
-            />
-          </div>
-        )}
+        {/* Mobile Menu */}
+        <div className="md:hidden flex items-center gap-2">
+          <MobileMenu 
+            publicNavItems={publicNavItems} 
+            mediaSubItems={showMediaMenu ? mediaSubItems : []} 
+            roleNavItems={roleNavItems} 
+            user={user} 
+          />
+        </div>
       </nav>
     </header>
   );

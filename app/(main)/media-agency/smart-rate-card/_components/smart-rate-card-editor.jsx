@@ -24,9 +24,11 @@ import {
   Save,
   Eye,
   EyeOff,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SmartTableEditor } from "./smart-table-editor";
+import Link from "next/link";
 
 const COLUMN_DATA_TYPES = [
   { value: "TEXT", label: "Text" },
@@ -246,6 +248,18 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
                   </span>
                 )}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="gap-2"
+              >
+                <Link href={`/rate-cards/${rateCardId}`} target="_blank" rel="noopener noreferrer">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </Button>
             </div>
           </div>
         </CardHeader>

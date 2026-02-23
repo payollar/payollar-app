@@ -358,6 +358,62 @@ export function SmartTableEditor({ table, onUpdate }) {
     }
   };
 
+  const handleDeleteSelectedRows = async () => {
+    if (selectedRows.size === 0) return;
+
+    const count = selectedRows.size;
+    if (
+      !confirm(
+        `Are you sure you want to delete ${count} row${count > 1 ? "s" : ""}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const rowIds = Array.from(selectedRows);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    for (const rowId of rowIds) {
+      try {
+        const response = await fetch(
+          `/api/media-agency/rate-cards/tables/rows/${rowId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          errorCount++;
+          if (data.bookingsCount) {
+            errors.push(`Row has ${data.bookingsCount} booking(s)`);
+          } else {
+            errors.push(data.error || "Failed to delete");
+          }
+        }
+      } catch (error) {
+        errorCount++;
+        errors.push("Network error");
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} row${successCount > 1 ? "s" : ""} deleted`);
+    }
+    if (errorCount > 0) {
+      toast.error(
+        `Failed to delete ${errorCount} row${errorCount > 1 ? "s" : ""}. ${errors.join(", ")}`
+      );
+    }
+
+    setSelectedRows(new Set());
+    if (onUpdate) onUpdate();
+  };
+
   const handleToggleRowBookable = async (rowId, isBookable) => {
     try {
       const response = await fetch(`/api/media-agency/rate-cards/tables/${table.id}/rows`, {
@@ -653,6 +709,23 @@ export function SmartTableEditor({ table, onUpdate }) {
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
             <Maximize2 className="h-4 w-4" />
           </Button>
+          {/* Bulk Actions */}
+          {selectedRows.size > 0 && (
+            <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+              <span className="text-xs text-muted-foreground">
+                {selectedRows.size} row{selectedRows.size > 1 ? "s" : ""} selected
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelectedRows}
+                className="h-8"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete Rows
+              </Button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -698,7 +771,7 @@ export function SmartTableEditor({ table, onUpdate }) {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[110]">
                     {COLUMN_DATA_TYPES.map((type) => {
                       const Icon = type.icon;
                       return (
@@ -864,6 +937,7 @@ export function SmartTableEditor({ table, onUpdate }) {
                         setSelectedRows(new Set());
                       }
                     }}
+                    title="Select all rows"
                   />
                 </div>
               </th>

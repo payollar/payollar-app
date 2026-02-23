@@ -5,10 +5,11 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Plus, Edit, Trash2, Tv, Radio, Biohazard as Billboard, Smartphone, Users, Building2 } from "lucide-react";
+import { Package, Plus, Edit, Trash2, Tv, Radio, Biohazard as Billboard, Smartphone, Users, Building2 } from "lucide-react";
 import { RateCardForm } from "./_components/rate-card-form";
 import { ListingPackagesSection } from "./_components/listing-packages-section";
 import { ListingTimeClassesSection } from "./_components/listing-time-classes-section";
+import { CustomPackageDetailsSection } from "./_components/custom-package-details-section";
 
 export default async function MediaAgencyRateCardPage() {
   const user = await checkUser();
@@ -69,9 +70,9 @@ export default async function MediaAgencyRateCardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Rate Card</h1>
+          <h1 className="text-3xl font-bold">Custom Packages</h1>
           <p className="text-muted-foreground">
-            Manage pricing and packages for your media listings
+            Configure custom package options and manage packages for your media listings
           </p>
         </div>
         <Button asChild>
@@ -82,6 +83,9 @@ export default async function MediaAgencyRateCardPage() {
         </Button>
       </div>
 
+      {/* Custom Package Settings */}
+      <CustomPackageDetailsSection mediaAgency={mediaAgency} />
+
       {/* Add/Edit Listing Form */}
       <Card id="add-listing">
         <CardHeader>
@@ -90,7 +94,7 @@ export default async function MediaAgencyRateCardPage() {
             Add New Media Listing
           </CardTitle>
           <CardDescription>
-            Create a new media listing with pricing and packages
+            Create a new media listing with custom package options
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -103,13 +107,13 @@ export default async function MediaAgencyRateCardPage() {
         <CardHeader>
           <CardTitle>Your Media Listings</CardTitle>
           <CardDescription>
-            Manage your existing media listings and their pricing
+            Manage your existing media listings and their custom package options
           </CardDescription>
         </CardHeader>
         <CardContent>
           {mediaAgency.listings.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <DollarSign className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No listings yet</p>
               <p className="text-sm">Create your first media listing above</p>
             </div>
