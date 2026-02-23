@@ -242,11 +242,56 @@ export function RateCardDisplay({ rateCard }) {
   }, [cart]);
 
   const handlePayment = async () => {
-    // TODO: Implement payment processing
-    toast.info("Payment functionality coming soon!");
-    // For now, proceed with booking
-    setIsSummaryDialogOpen(false);
-    setIsBookingDialogOpen(true);
+    if (selectedCells.size === 0) {
+      toast.error("Please select at least one item to book");
+      return;
+    }
+
+    if (!bookingForm.clientName || !bookingForm.clientEmail) {
+      toast.error("Name and email are required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Prepare selected cells data for payment
+      const selectedCellsForPayment = selectedCellsData.map(({ rowId, columnId, value }) => ({
+        rowId,
+        columnId,
+        value,
+      }));
+
+      // Initialize Paystack payment
+      const response = await fetch("/api/paystack/initialize-media-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rateCardId: rateCard.id,
+          selectedCells: selectedCellsForPayment,
+          clientName: bookingForm.clientName,
+          clientEmail: bookingForm.clientEmail,
+          clientPhone: bookingForm.clientPhone || "",
+          notes: bookingForm.notes || "",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to initialize payment");
+      }
+
+      // Redirect to Paystack
+      if (data.authorizationUrl) {
+        window.location.href = data.authorizationUrl;
+      } else {
+        throw new Error("No authorization URL received");
+      }
+    } catch (error) {
+      console.error("Payment initialization error:", error);
+      toast.error(error.message || "Failed to initialize payment. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   const handleBooking = async () => {
@@ -858,9 +903,12 @@ export function RateCardDisplay({ rateCard }) {
                 <BookOpen className="h-4 w-4 mr-2" />
                 {isSubmitting ? "Booking..." : "Book Only"}
               </Button>
-              <Button onClick={handlePayment}>
+              <Button 
+                onClick={handlePayment}
+                disabled={isSubmitting || !bookingForm.clientName || !bookingForm.clientEmail}
+              >
                 <CreditCard className="h-4 w-4 mr-2" />
-                Make Payment
+                {isSubmitting ? "Processing..." : "Make Payment"}
               </Button>
             </div>
           </div>
