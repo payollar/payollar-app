@@ -27,6 +27,7 @@ export async function GET(request) {
     const { 
       rateCardId, 
       clientId, 
+      mediaCampaignName,
       clientName, 
       clientEmail, 
       clientPhone,
@@ -143,6 +144,7 @@ export async function GET(request) {
           snapshotPrice: priceColumn?.value ? parseFloat(priceColumn.value) : null,
           snapshotUnit: null,
           snapshotDescription: descriptionColumn?.value || null,
+          mediaCampaignName: mediaCampaignName || null,
           clientName: clientName || "",
           clientEmail: clientEmail || "",
           clientPhone: clientPhone || "",

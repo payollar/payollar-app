@@ -21,10 +21,52 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { BookOpen, Building2, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2 } from "lucide-react";
+
+// Helper to read a semantic "role" from a SmartTableColumn config JSON.
+// We use this to identify special columns like time classes.
+const getColumnRole = (column) => {
+  if (!column || !column.config) return null;
+  const cfg = column.config;
+  if (typeof cfg === "object" && cfg !== null && "role" in cfg) {
+    return cfg.role;
+  }
+  return null;
+};
+
+// Find the time class column in a table, using either the explicit role
+// or a sensible name/dataType heuristic as a fallback.
+const getTimeClassColumn = (table) => {
+  if (!table?.columns) return null;
+
+  // Prefer explicit role
+  const viaRole = table.columns.find((col) => getColumnRole(col) === "time_class");
+  if (viaRole) return viaRole;
+
+  // Fallback: dropdown column whose name looks like a time class field
+  return (
+    table.columns.find(
+      (col) =>
+        col.dataType === "DROPDOWN" &&
+        typeof col.name === "string" &&
+        col.name.toLowerCase().includes("time") &&
+        col.name.toLowerCase().includes("class")
+    ) || null
+  );
+};
+
+// Check if a row matches the currently selected time class filter.
+const rowMatchesTimeClassFilter = (table, row, selectedTimeClass, getCellValueFn) => {
+  if (selectedTimeClass === "ALL") return true;
+  const timeClassColumn = getTimeClassColumn(table);
+  if (!timeClassColumn) return true;
+
+  const raw = getCellValueFn(row, timeClassColumn.id);
+  const value = typeof raw === "string" ? raw.trim() : raw;
+  return !!value && value === selectedTimeClass;
+};
 
 // Cart item structure
 const CART_STORAGE_KEY = "rateCardCart";
@@ -33,25 +75,16 @@ export function RateCardDisplay({ rateCard }) {
   // Track selected cells by "rowId-columnId" key
   const [selectedCells, setSelectedCells] = useState(new Set());
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
-  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState([]);
-  const [bookingForm, setBookingForm] = useState({
-    clientName: "",
-    clientEmail: "",
-    clientPhone: "",
-    quantity: 1,
-    startDate: null,
-    endDate: null,
-    notes: "",
-  });
+  const [mediaCampaignName, setMediaCampaignName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTimeClass, setSelectedTimeClass] = useState("ALL");
 
   // Ensure dialogs are properly closed on unmount
   useEffect(() => {
     return () => {
       setIsSummaryDialogOpen(false);
-      setIsBookingDialogOpen(false);
       setIsCartOpen(false);
     };
   }, []);
@@ -165,6 +198,28 @@ export function RateCardDisplay({ rateCard }) {
 
   const selectedCellsData = useMemo(() => getSelectedCellsData(), [selectedCells, rateCard]);
 
+  // Collect distinct time class values across all tables that expose a time class column.
+  const timeClassValues = useMemo(() => {
+    const values = new Set();
+
+    rateCard.sections?.forEach((section) => {
+      section.tables?.forEach((table) => {
+        const timeClassColumn = getTimeClassColumn(table);
+        if (!timeClassColumn) return;
+
+        table.rows?.forEach((row) => {
+          const raw = getCellValue(row, timeClassColumn.id);
+          const value = typeof raw === "string" ? raw.trim() : raw;
+          if (value) {
+            values.add(value);
+          }
+        });
+      });
+    });
+
+    return Array.from(values);
+  }, [rateCard]);
+
   // Calculate total price for selected cells
   const calculateTotal = () => {
     let total = 0;
@@ -183,6 +238,10 @@ export function RateCardDisplay({ rateCard }) {
   const addToCart = () => {
     if (selectedCells.size === 0) {
       toast.error("Please select at least one item to add to cart");
+      return;
+    }
+    if (!mediaCampaignName?.trim()) {
+      toast.error("Media campaign name is required");
       return;
     }
 
@@ -216,11 +275,13 @@ export function RateCardDisplay({ rateCard }) {
         formattedValue,
       })),
       total: calculateTotal(),
+      mediaCampaignName: mediaCampaignName.trim(),
       createdAt: new Date().toISOString(),
     };
 
     setCart((prevCart) => [...prevCart, cartItem]);
     setSelectedCells(new Set());
+    setMediaCampaignName("");
     setIsSummaryDialogOpen(false);
     toast.success("Items added to cart!");
   };
@@ -247,8 +308,8 @@ export function RateCardDisplay({ rateCard }) {
       return;
     }
 
-    if (!bookingForm.clientName || !bookingForm.clientEmail) {
-      toast.error("Name and email are required");
+    if (!mediaCampaignName?.trim()) {
+      toast.error("Media campaign name is required");
       return;
     }
 
@@ -268,10 +329,7 @@ export function RateCardDisplay({ rateCard }) {
         body: JSON.stringify({
           rateCardId: rateCard.id,
           selectedCells: selectedCellsForPayment,
-          clientName: bookingForm.clientName,
-          clientEmail: bookingForm.clientEmail,
-          clientPhone: bookingForm.clientPhone || "",
-          notes: bookingForm.notes || "",
+          mediaCampaignName: mediaCampaignName.trim(),
         }),
       });
 
@@ -300,8 +358,8 @@ export function RateCardDisplay({ rateCard }) {
       return;
     }
 
-    if (!bookingForm.clientName || !bookingForm.clientEmail) {
-      toast.error("Name and email are required");
+    if (!mediaCampaignName?.trim()) {
+      toast.error("Media campaign name is required");
       return;
     }
 
@@ -336,13 +394,7 @@ export function RateCardDisplay({ rateCard }) {
           body: JSON.stringify({
             rowId: rowData.row.id,
             rateCardId: rateCard.id,
-            ...bookingForm,
-            startDate: bookingForm.startDate
-              ? format(bookingForm.startDate, "yyyy-MM-dd")
-              : null,
-            endDate: bookingForm.endDate
-              ? format(bookingForm.endDate, "yyyy-MM-dd")
-              : null,
+            mediaCampaignName: mediaCampaignName.trim(),
           }),
         });
       });
@@ -360,16 +412,7 @@ export function RateCardDisplay({ rateCard }) {
           }`
         );
         setSelectedCells(new Set());
-        setBookingForm({
-          clientName: "",
-          clientEmail: "",
-          clientPhone: "",
-          quantity: 1,
-          startDate: null,
-          endDate: null,
-          notes: "",
-        });
-        setIsBookingDialogOpen(false);
+        setMediaCampaignName("");
         setIsSummaryDialogOpen(false);
       } else {
         toast.error("Failed to submit bookings");
@@ -414,13 +457,59 @@ export function RateCardDisplay({ rateCard }) {
           </div>
         </div>
 
+        {/* Time class filter - sticky, interactive */}
+        {timeClassValues.length > 0 && (
+          <Card className="mt-6 sticky top-4 z-30 shadow-md">
+            <CardContent className="py-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground shrink-0">
+                  Filter by time class:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={selectedTimeClass === "ALL" ? "default" : "outline"}
+                    onClick={() => setSelectedTimeClass("ALL")}
+                  >
+                    All
+                  </Button>
+                  {timeClassValues.map((value) => (
+                    <Button
+                      key={value}
+                      size="sm"
+                      variant={selectedTimeClass === value ? "default" : "outline"}
+                      onClick={() => setSelectedTimeClass(value)}
+                    >
+                      {value}
+                    </Button>
+                  ))}
+                </div>
+                {selectedTimeClass !== "ALL" && (
+                  <span className="text-sm text-muted-foreground ml-2">
+                    Showing spots & prices for <strong>{selectedTimeClass}</strong>
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Sections */}
         <div className="space-y-12">
           {rateCard.sections?.map((section) => (
             <div key={section.id}>
               <h2 className="text-2xl font-bold mb-6">{section.title}</h2>
 
-              {section.tables?.map((table) => (
+              {section.tables?.map((table) => {
+                // When filtering by a specific time class, hide the Time Class column
+                // so users see only spots (durations) and prices
+                const timeClassColumn = getTimeClassColumn(table);
+                const visibleColumns =
+                  selectedTimeClass !== "ALL" && timeClassColumn
+                    ? table.columns.filter((col) => col.id !== timeClassColumn.id)
+                    : table.columns;
+
+                return (
                 <Card key={table.id} className="mb-8">
                   {table.title && (
                     <CardHeader>
@@ -432,7 +521,7 @@ export function RateCardDisplay({ rateCard }) {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b">
-                            {table.columns.map((column) => (
+                            {visibleColumns.map((column) => (
                               <th
                                 key={column.id}
                                 className="p-3 text-left font-semibold bg-muted/50"
@@ -448,13 +537,23 @@ export function RateCardDisplay({ rateCard }) {
                         <tbody>
                           {table.rows
                             .filter((row) => isRowBookable(row, table))
+                            .filter((row) =>
+                              rowMatchesTimeClassFilter(
+                                table,
+                                row,
+                                selectedTimeClass,
+                                getCellValue
+                              )
+                            )
                             .map((row) => (
                               <tr key={row.id} className="border-b">
-                                {table.columns.map((column) => {
+                                {visibleColumns.map((column) => {
                                   const cellValue = getCellValue(row, column.id);
                                   const isSelected = isCellSelected(row.id, column.id);
                                   const isEmpty = !cellValue || cellValue.trim() === "" || cellValue === "-";
-                                  
+                                  const isTimeClassCell = timeClassColumn && column.id === timeClassColumn.id;
+                                  const isFilterActive = isTimeClassCell && selectedTimeClass === cellValue;
+
                                   return (
                                     <td
                                       key={column.id}
@@ -468,12 +567,22 @@ export function RateCardDisplay({ rateCard }) {
                                           : ""
                                       }`}
                                       onClick={() => {
-                                        if (!isEmpty) {
-                                          toggleCellSelection(row.id, column.id);
+                                        if (isEmpty) return;
+                                        if (isTimeClassCell) {
+                                          setSelectedTimeClass(cellValue);
+                                          return;
                                         }
+                                        toggleCellSelection(row.id, column.id);
                                       }}
                                     >
-                                      {isSelected ? (
+                                      {isTimeClassCell ? (
+                                        <Badge
+                                          variant={isFilterActive ? "default" : "outline"}
+                                          className="inline-flex cursor-pointer hover:bg-primary/10 transition-colors"
+                                        >
+                                          {formatCellValue(cellValue, column)}
+                                        </Badge>
+                                      ) : isSelected ? (
                                         <Badge
                                           variant="default"
                                           className="inline-flex items-center gap-1.5 px-2 py-1"
@@ -497,7 +606,16 @@ export function RateCardDisplay({ rateCard }) {
                             ))}
                         </tbody>
                       </table>
-                      {table.rows.filter((row) => isRowBookable(row, table)).length === 0 && (
+                      {table.rows
+                        .filter((row) => isRowBookable(row, table))
+                        .filter((row) =>
+                          rowMatchesTimeClassFilter(
+                            table,
+                            row,
+                            selectedTimeClass,
+                            getCellValue
+                          )
+                        ).length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           No bookable services available
                         </div>
@@ -505,7 +623,8 @@ export function RateCardDisplay({ rateCard }) {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           ))}
         </div>
@@ -557,6 +676,11 @@ export function RateCardDisplay({ rateCard }) {
                     <div className="flex-1">
                       <h3 className="font-semibold text-sm mb-1">{item.rateCardTitle}</h3>
                       <p className="text-xs text-muted-foreground">{item.agencyName}</p>
+                      {item.mediaCampaignName && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Campaign: {item.mediaCampaignName}
+                        </p>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -764,117 +888,20 @@ export function RateCardDisplay({ rateCard }) {
               </CardContent>
             </Card>
 
-            {/* Booking Form Section */}
+            {/* Campaign Name */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Booking Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="summaryClientName">
-                      Your Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="summaryClientName"
-                      value={bookingForm.clientName}
-                      onChange={(e) =>
-                        setBookingForm({
-                          ...bookingForm,
-                          clientName: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="summaryClientEmail">
-                      Email <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="summaryClientEmail"
-                      type="email"
-                      value={bookingForm.clientEmail}
-                      onChange={(e) =>
-                        setBookingForm({
-                          ...bookingForm,
-                          clientEmail: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="summaryClientPhone">Phone</Label>
-                    <Input
-                      id="summaryClientPhone"
-                      value={bookingForm.clientPhone}
-                      onChange={(e) =>
-                        setBookingForm({
-                          ...bookingForm,
-                          clientPhone: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="summaryQuantity">Quantity per item</Label>
-                    <Input
-                      id="summaryQuantity"
-                      type="number"
-                      min="1"
-                      value={bookingForm.quantity}
-                      onChange={(e) =>
-                        setBookingForm({
-                          ...bookingForm,
-                          quantity: parseInt(e.target.value) || 1,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="summaryStartDate">Start Date</Label>
-                    <Input
-                      id="summaryStartDate"
-                      type="date"
-                      value={bookingForm.startDate ? format(bookingForm.startDate, "yyyy-MM-dd") : ""}
-                      onChange={(e) =>
-                        setBookingForm({
-                          ...bookingForm,
-                          startDate: e.target.value ? new Date(e.target.value) : null,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="summaryEndDate">End Date</Label>
-                    <Input
-                      id="summaryEndDate"
-                      type="date"
-                      value={bookingForm.endDate ? format(bookingForm.endDate, "yyyy-MM-dd") : ""}
-                      onChange={(e) =>
-                        setBookingForm({
-                          ...bookingForm,
-                          endDate: e.target.value ? new Date(e.target.value) : null,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="summaryNotes">Additional Notes</Label>
-                  <Textarea
-                    id="summaryNotes"
-                    value={bookingForm.notes}
-                    onChange={(e) =>
-                      setBookingForm({
-                        ...bookingForm,
-                        notes: e.target.value,
-                      })
-                    }
-                    rows={3}
-                  />
-                </div>
+              <CardContent className="pt-6">
+                <Label htmlFor="summaryMediaCampaignName">
+                  Media Campaign Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="summaryMediaCampaignName"
+                  value={mediaCampaignName}
+                  onChange={(e) => setMediaCampaignName(e.target.value)}
+                  placeholder="e.g., Q1 Product Launch, Summer Promo"
+                  className="mt-2"
+                  required
+                />
               </CardContent>
             </Card>
 
@@ -898,189 +925,17 @@ export function RateCardDisplay({ rateCard }) {
               <Button
                 variant="outline"
                 onClick={handleBooking}
-                disabled={isSubmitting || !bookingForm.clientName || !bookingForm.clientEmail}
+                disabled={isSubmitting || !mediaCampaignName?.trim()}
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 {isSubmitting ? "Booking..." : "Book Only"}
               </Button>
               <Button 
                 onClick={handlePayment}
-                disabled={isSubmitting || !bookingForm.clientName || !bookingForm.clientEmail}
+                disabled={isSubmitting || !mediaCampaignName?.trim()}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
                 {isSubmitting ? "Processing..." : "Make Payment"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Booking Dialog */}
-      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Book Selected Items</DialogTitle>
-            <DialogDescription>
-              Fill in your details to request bookings for {selectedCells.size} selected item
-              {selectedCells.size > 1 ? "s" : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            {/* Selected Items Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Selected Items ({selectedCells.size})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {/* Group by row for better display */}
-                  {Array.from(
-                    new Map(
-                      selectedCellsData.map((item) => [
-                        item.rowId,
-                        {
-                          row: item.row,
-                          table: item.table,
-                          section: item.section,
-                          selectedCells: [],
-                        },
-                      ])
-                    ).values()
-                  ).map(({ row, table, section }) => {
-                    const rowSelectedCells = selectedCellsData.filter(
-                      (item) => item.rowId === row.id
-                    );
-                    const priceCell = rowSelectedCells.find((item) =>
-                      ["CURRENCY", "NUMBER"].includes(item.column.dataType)
-                    );
-                    const price = priceCell ? parseFloat(priceCell.value) : null;
-
-                    return (
-                      <div
-                        key={row.id}
-                        className="flex items-start justify-between p-3 bg-muted/30 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium text-sm mb-2">
-                            {section.title} - {table.title || "Table"}
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {rowSelectedCells.map(({ column, formattedValue }) => (
-                              <Badge key={column.id} variant="outline" className="text-xs">
-                                <span className="font-medium">{column.name}:</span> {formattedValue}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        {price && !isNaN(price) && (
-                          <div className="font-semibold ml-4">
-                            ₵{price.toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {calculateTotal() > 0 && (
-                  <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                    <span className="font-semibold">Total:</span>
-                    <span className="text-xl font-bold">₵{calculateTotal().toLocaleString()}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Booking Form */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="clientName">
-                  Your Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="clientName"
-                  value={bookingForm.clientName}
-                  onChange={(e) =>
-                    setBookingForm({
-                      ...bookingForm,
-                      clientName: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="clientEmail">
-                  Email <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="clientEmail"
-                  type="email"
-                  value={bookingForm.clientEmail}
-                  onChange={(e) =>
-                    setBookingForm({
-                      ...bookingForm,
-                      clientEmail: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="clientPhone">Phone</Label>
-                <Input
-                  id="clientPhone"
-                  value={bookingForm.clientPhone}
-                  onChange={(e) =>
-                    setBookingForm({
-                      ...bookingForm,
-                      clientPhone: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="quantity">Quantity per item</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  value={bookingForm.quantity}
-                  onChange={(e) =>
-                    setBookingForm({
-                      ...bookingForm,
-                      quantity: parseInt(e.target.value) || 1,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea
-                id="notes"
-                value={bookingForm.notes}
-                onChange={(e) =>
-                  setBookingForm({
-                    ...bookingForm,
-                    notes: e.target.value,
-                  })
-                }
-                rows={3}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsBookingDialogOpen(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleBooking} disabled={isSubmitting}>
-                {isSubmitting
-                  ? `Submitting booking${selectedCells.size > 1 ? "s" : ""}...`
-                  : `Submit Booking${selectedCells.size > 1 ? "s" : ""}`}
               </Button>
             </div>
           </div>

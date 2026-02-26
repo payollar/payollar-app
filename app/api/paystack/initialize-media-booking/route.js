@@ -30,10 +30,7 @@ export async function POST(request) {
     const { 
       rateCardId, 
       selectedCells, 
-      clientName, 
-      clientEmail, 
-      clientPhone,
-      notes 
+      mediaCampaignName,
     } = body;
 
     if (!rateCardId || !selectedCells || !Array.isArray(selectedCells) || selectedCells.length === 0) {
@@ -43,12 +40,16 @@ export async function POST(request) {
       );
     }
 
-    if (!clientName || !clientEmail) {
+    if (!mediaCampaignName?.trim()) {
       return NextResponse.json(
-        { error: "clientName and clientEmail are required" },
+        { error: "Media campaign name is required" },
         { status: 400 }
       );
     }
+
+    // Use logged-in client's name and email
+    const clientName = client.name || client.email?.split("@")[0] || "Client";
+    const clientEmail = client.email;
 
     // Verify rate card exists
     const rateCard = await db.rateCard.findUnique({
@@ -123,10 +124,11 @@ export async function POST(request) {
       metadata: {
         rateCardId,
         clientId: client.id,
+        mediaCampaignName: mediaCampaignName || "",
         clientName,
         clientEmail,
-        clientPhone: clientPhone || "",
-        notes: notes || "",
+        clientPhone: "",
+        notes: "",
         bookingType: "RATE_CARD",
         selectedCells: JSON.stringify(cellData),
       },

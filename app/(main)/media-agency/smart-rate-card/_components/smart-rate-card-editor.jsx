@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { SmartTableEditor } from "./smart-table-editor";
 import Link from "next/link";
+import { SMART_RATE_CARD_TEMPLATES } from "@/lib/rate-card-templates";
 
 const COLUMN_DATA_TYPES = [
   { value: "TEXT", label: "Text" },
@@ -47,6 +48,7 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
   const [newDescription, setNewDescription] = useState("");
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState("");
+  const [newSectionTemplateKey, setNewSectionTemplateKey] = useState("");
 
   useEffect(() => {
     fetchRateCard();
@@ -129,7 +131,10 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: newSectionTitle }),
+          body: JSON.stringify({
+            title: newSectionTitle,
+            templateKey: newSectionTemplateKey || undefined,
+          }),
         }
       );
 
@@ -137,6 +142,7 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
       if (data.success) {
         toast.success("Section added");
         setNewSectionTitle("");
+        setNewSectionTemplateKey("");
         setShowAddSection(false);
         await fetchRateCard();
         if (onUpdate) onUpdate();
@@ -279,31 +285,104 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
                 onUpdate={fetchRateCard}
               />
             ))}
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const response = await fetch(
-                    `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}/tables`,
-                    {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ title: null }),
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(
+                      `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}/tables`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ title: null }),
+                      }
+                    );
+                    const data = await response.json();
+                    if (data.success) {
+                      toast.success("Table added");
+                      await fetchRateCard();
                     }
-                  );
-                  const data = await response.json();
-                  if (data.success) {
-                    toast.success("Table added");
-                    await fetchRateCard();
+                  } catch (error) {
+                    toast.error("Failed to add table");
                   }
-                } catch (error) {
-                  toast.error("Failed to add table");
-                }
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Table
-            </Button>
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Empty Table
+              </Button>
+
+              {/* Prebuilt template: TV Time Classes & Segments */}
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const template = SMART_RATE_CARD_TEMPLATES.find(
+                    (t) => t.key === "tv_time_classes"
+                  );
+                  try {
+                    const response = await fetch(
+                      `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}/tables`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          title: template?.defaultTitle || "Time Classes & Segments",
+                          templateKey: "tv_time_classes",
+                        }),
+                      }
+                    );
+                    const data = await response.json();
+                    if (data.success) {
+                      toast.success("Time class template table added");
+                      await fetchRateCard();
+                    } else {
+                      toast.error(data.error || "Failed to add template table");
+                    }
+                  } catch (error) {
+                    console.error("Error adding template table:", error);
+                    toast.error("Failed to add template table");
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Time Class Template
+              </Button>
+              {/* Prebuilt template: Spot Advert */}
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const template = SMART_RATE_CARD_TEMPLATES.find(
+                    (t) => t.key === "spot_advert"
+                  );
+                  try {
+                    const response = await fetch(
+                      `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}/tables`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          title: template?.defaultTitle || "Spot Advert Rates",
+                          templateKey: "spot_advert",
+                        }),
+                      }
+                    );
+                    const data = await response.json();
+                    if (data.success) {
+                      toast.success("Spot advert template table added");
+                      await fetchRateCard();
+                    } else {
+                      toast.error(data.error || "Failed to add template table");
+                    }
+                  } catch (error) {
+                    console.error("Error adding template table:", error);
+                    toast.error("Failed to add template table");
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Spot Advert Template
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}
@@ -330,6 +409,28 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
                   autoFocus
                 />
               </div>
+              <div>
+                <Label>Template (optional)</Label>
+                <Select
+                  value={newSectionTemplateKey || "none"}
+                  onValueChange={(v) => setNewSectionTemplateKey(v === "none" ? "" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No template</SelectItem>
+                    {SMART_RATE_CARD_TEMPLATES.map((t) => (
+                      <SelectItem key={t.key} value={t.key}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Choose a template to add a prebuilt table with time classes and pricing.
+                </p>
+              </div>
               <div className="flex gap-2">
                 <Button onClick={handleAddSection}>
                   <Check className="h-4 w-4 mr-2" />
@@ -340,6 +441,7 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
                   onClick={() => {
                     setShowAddSection(false);
                     setNewSectionTitle("");
+                    setNewSectionTemplateKey("");
                   }}
                 >
                   <X className="h-4 w-4 mr-2" />

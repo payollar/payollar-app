@@ -18,8 +18,9 @@ export async function POST(request) {
     const {
       rowId,
       rateCardId,
-      clientName,
-      clientEmail,
+      mediaCampaignName,
+      clientName: bodyClientName,
+      clientEmail: bodyClientEmail,
       clientPhone,
       quantity,
       startDate,
@@ -27,9 +28,26 @@ export async function POST(request) {
       notes,
     } = body;
 
-    if (!rowId || !rateCardId || !clientName || !clientEmail) {
+    if (!rowId || !rateCardId) {
       return NextResponse.json(
-        { error: "Missing required fields: rowId, rateCardId, clientName, clientEmail" },
+        { error: "Missing required fields: rowId, rateCardId" },
+        { status: 400 }
+      );
+    }
+
+    if (!mediaCampaignName?.trim()) {
+      return NextResponse.json(
+        { error: "Media campaign name is required" },
+        { status: 400 }
+      );
+    }
+
+    // Use session user when client details not provided
+    const clientName = bodyClientName || user.name || (user.email ? user.email.split("@")[0] : null) || "Client";
+    const clientEmail = bodyClientEmail || user.email;
+    if (!clientEmail) {
+      return NextResponse.json(
+        { error: "User email is required for booking" },
         { status: 400 }
       );
     }
@@ -129,6 +147,7 @@ export async function POST(request) {
         snapshotPrice: priceColumn?.value ? parseFloat(priceColumn.value) : null,
         snapshotUnit: null, // Could be extracted from a unit column if exists
         snapshotDescription: descriptionColumn?.value || null,
+        mediaCampaignName: mediaCampaignName || null,
         clientName,
         clientEmail,
         clientPhone: clientPhone || null,

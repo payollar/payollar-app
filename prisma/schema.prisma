@@ -721,6 +721,7 @@ model RateCardBookingItem {
   snapshotDescription String?   @db.Text // Extracted description/ad name
   
   // Booking details
+  mediaCampaignName String?
   clientName     String
   clientEmail    String
   clientPhone    String?
