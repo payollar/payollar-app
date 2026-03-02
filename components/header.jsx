@@ -1,9 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { checkUser } from "@/lib/checkUser";
+import { useEffect, useState } from "react";
 import HeaderAuthButtons from "./HeaderAuthButtons";
 import MobileMenu from "./MobileMenu";
-import { headers } from "next/headers";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -13,85 +14,73 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 
-export default async function Header() {
-  let user = null;
-  try {
-    user = await checkUser();
-  } catch (error) {
-    // Only log errors in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Header checkUser error:', error);
-    }
-    // Continue with null user - don't block the header from rendering
-    user = null;
-  }
-  
-  let pathname = "";
-  try {
-    const headersList = await headers();
-    pathname = headersList.get("x-pathname") || "";
-  } catch (error) {
-    // If headers() fails, continue without pathname check
-    // This ensures header always renders on landing page
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Header headers() error:', error);
-    }
-  }
-  
-  // Check if we're on a dashboard page (has sidebar) - don't render header for these
-  // Only exclude dashboard pages, allow all other pages including landing page ("/")
-  const isDashboardPage = 
-    pathname &&
-    (
-      pathname.startsWith("/creator") ||
-      pathname.startsWith("/client") ||
-      pathname.startsWith("/admin") ||
-      pathname.startsWith("/media-agency")
-    );
+// Public nav (always shown)
+const publicNavItems = [
+  { href: "/", label: "Home" },
+  { href: "/store", label: "Store" },
+  { href: "/campaigns", label: "Campaigns" },
+  { href: "/talents", label: "Find Talents" },
+  { href: "/chat", label: "Payollar AI" },
+];
 
-  // Don't render header for dashboard pages - they have their own headers
-  // For all other pages (including "/" landing page), render the header
-  if (isDashboardPage) {
-    return null;
-  }
+const mediaSubItems = [
+  { href: "/media", label: "Buy Media" },
+  { href: "/media/packages", label: "Packages" },
+  { href: "/media/schedule", label: "Schedule Media" },
+];
 
-  // Role-based nav
+export default function Header() {
+  const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const fetchUser = async () => {
+      try {
+        const baseURL = typeof window !== "undefined" ? window.location.origin : "";
+        const res = await fetch(`${baseURL}/api/auth/check-session`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setUser(data?.user ?? null);
+      } catch {
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+  }, [mounted]);
+
+  // Role-based nav - derived from user
   const roleNavItems = [
     { href: "/client", label: "Client Dashboard", show: user?.role === "CLIENT" },
     { href: "/creator", label: "Creator Dashboard", show: user?.role === "CREATOR" },
     { href: "/admin", label: "Admin Dashboard", show: user?.role === "ADMIN" },
     { href: "/media-agency", label: "Media Agency", show: user?.role === "MEDIA_AGENCY" },
     { href: "/onboarding", label: "Complete Profile", show: user?.role === "UNASSIGNED" },
-  ].filter(item => item.show);
+  ].filter((item) => item.show);
 
-  // Public nav (always shown)
-  const publicNavItems = [
-    { href: "/store", label: "Store" },
-    { href: "/campaigns", label: "Campaigns" },
-    { href: "/talents", label: "Find Talents" },
-    { href: "/chat", label: "Payollar AI" },
-  ];
-
-  const mediaSubItems = [
-    { href: "/media", label: "Buy Media" },
-    { href: "/media/packages", label: "Packages" },
-    { href: "/media/schedule", label: "Schedule Media" },
-  ];
-
-  // Show media menu for CLIENT, ADMIN, or MEDIA_AGENCY roles (not CREATOR)
-  const showMediaMenu = user?.role === "CLIENT" || user?.role === "ADMIN" || user?.role === "MEDIA_AGENCY";
+  const showMediaMenu =
+    user?.role === "CLIENT" || user?.role === "ADMIN" || user?.role === "MEDIA_AGENCY";
 
   return (
-    <header data-main-header="true" className="fixed top-0 left-0 right-0 w-full border-b bg-background/95 backdrop-blur-md z-30 shadow-sm">
+    <header
+      data-main-header="true"
+      className="fixed top-0 left-0 right-0 w-full border-b bg-background/95 backdrop-blur-md z-30 shadow-sm"
+    >
       <nav className="h-16 flex items-center justify-between relative container mx-auto px-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <Image src="/logo-single.png" alt="Logo" width={160} height={50} />
-        </Link>
+        {/* Logo - no link to avoid overlapping with sidebar toggle on dashboard */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Image src="/logo-single.png" alt="Payollar" width={160} height={50} />
+        </div>
 
         {/* Desktop Nav - Aligned to the right */}
         <div className="hidden md:flex items-center justify-end gap-3 md:gap-6 flex-1 min-w-0 ml-auto">
-          {/* Media dropdown - only show for CLIENT or ADMIN */}
           {showMediaMenu && (
             <NavigationMenu viewport={false}>
               <NavigationMenuList>
@@ -118,31 +107,36 @@ export default async function Header() {
             </NavigationMenu>
           )}
 
-          {/* Public */}
           {publicNavItems.map((item) => (
-            <Link key={item.href} href={item.href} className="text-xs md:text-sm font-medium hover:text-primary transition whitespace-nowrap">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-xs md:text-sm font-medium hover:text-primary transition whitespace-nowrap"
+            >
               {item.label}
             </Link>
           ))}
 
-          {/* Role-based */}
           {roleNavItems.map((item) => (
-            <Link key={item.href} href={item.href} className="text-xs md:text-sm font-medium hover:text-primary transition whitespace-nowrap">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-xs md:text-sm font-medium hover:text-primary transition whitespace-nowrap"
+            >
               {item.label}
             </Link>
           ))}
 
-          {/* Auth */}
           <HeaderAuthButtons />
         </div>
 
         {/* Mobile Menu */}
         <div className="md:hidden flex items-center gap-2">
-          <MobileMenu 
-            publicNavItems={publicNavItems} 
-            mediaSubItems={showMediaMenu ? mediaSubItems : []} 
-            roleNavItems={roleNavItems} 
-            user={user} 
+          <MobileMenu
+            publicNavItems={publicNavItems}
+            mediaSubItems={showMediaMenu ? mediaSubItems : []}
+            roleNavItems={roleNavItems}
+            user={user}
           />
         </div>
       </nav>

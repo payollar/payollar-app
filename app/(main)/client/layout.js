@@ -10,8 +10,8 @@ export default async function ClientDashboardLayout({ children }) {
   return (
     <SidebarProvider defaultOpen={true}>
       <ClientSidebar />
-      <SidebarInset className="bg-background">
-        {/* Header bar with sidebar toggle */}
+      <SidebarInset className="bg-background pt-4">
+        {/* Header bar with sidebar toggle - pt-4 creates clear separation from main header */}
         <header data-dashboard-header="true" className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background">
           <SidebarTrigger className="-ml-1" />
         </header>

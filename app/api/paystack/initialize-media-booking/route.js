@@ -31,6 +31,8 @@ export async function POST(request) {
       rateCardId, 
       selectedCells, 
       mediaCampaignName,
+      totalAmount: clientTotalAmount,
+      periodConfig,
     } = body;
 
     if (!rateCardId || !selectedCells || !Array.isArray(selectedCells) || selectedCells.length === 0) {
@@ -90,8 +92,8 @@ export async function POST(request) {
       const column = row.table.columns.find(col => col.id === columnId);
       if (!column) continue;
 
-      // If it's a currency column, add to total
-      if (column.dataType === "CURRENCY" && value) {
+      // If it's a currency or number column, add to total
+      if ((column.dataType === "CURRENCY" || column.dataType === "NUMBER") && value) {
         const amount = parseFloat(value) || 0;
         totalAmount += amount;
       }
@@ -106,7 +108,12 @@ export async function POST(request) {
       });
     }
 
-    if (totalAmount <= 0) {
+    // Use client-provided total when period calculation is applied (costPerSpot × numSpots)
+    const finalAmount = clientTotalAmount != null && clientTotalAmount > 0 
+      ? Math.round(clientTotalAmount * 100) / 100 
+      : totalAmount;
+
+    if (finalAmount <= 0) {
       return NextResponse.json(
         { error: "Total amount must be greater than 0" },
         { status: 400 }
@@ -118,7 +125,7 @@ export async function POST(request) {
     const callbackUrl = `${baseUrl}/api/paystack/callback-media-booking`;
 
     const { authorizationUrl, reference } = await initializeTransaction({
-      amount: totalAmount,
+      amount: finalAmount,
       email: clientEmail,
       callbackUrl,
       metadata: {
@@ -138,7 +145,7 @@ export async function POST(request) {
     return NextResponse.json({ 
       authorizationUrl, 
       reference,
-      amount: totalAmount 
+      amount: finalAmount 
     });
   } catch (error) {
     console.error("Paystack initialize media booking error:", error);

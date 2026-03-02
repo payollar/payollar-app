@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { BookOpen, Building2, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2 } from "lucide-react";
+import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft } from "lucide-react";
 
 // Helper to read a semantic "role" from a SmartTableColumn config JSON.
 // We use this to identify special columns like time classes.
@@ -71,6 +72,23 @@ const rowMatchesTimeClassFilter = (table, row, selectedTimeClass, getCellValueFn
 // Cart item structure
 const CART_STORAGE_KEY = "rateCardCart";
 
+// Period calculation constants
+const FREQUENCIES = [
+  { id: "once", label: "Once" },
+  { id: "daily", label: "Daily" },
+  { id: "weekly", label: "Weekly" },
+];
+
+function getDaysBetween(start, end) {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  s.setHours(0, 0, 0, 0);
+  e.setHours(0, 0, 0, 0);
+  const diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff + 1);
+}
+
 export function RateCardDisplay({ rateCard }) {
   // Track selected cells by "rowId-columnId" key
   const [selectedCells, setSelectedCells] = useState(new Set());
@@ -80,6 +98,20 @@ export function RateCardDisplay({ rateCard }) {
   const [mediaCampaignName, setMediaCampaignName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTimeClass, setSelectedTimeClass] = useState("ALL");
+
+  // Period calculator state
+  const [frequency, setFrequency] = useState("once");
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 6);
+    return d.toISOString().slice(0, 10);
+  });
+  const [timesPerFrequency, setTimesPerFrequency] = useState(1);
+  const [isPeriodCalcOpen, setIsPeriodCalcOpen] = useState(false);
 
   // Ensure dialogs are properly closed on unmount
   useEffect(() => {
@@ -109,6 +141,11 @@ export function RateCardDisplay({ rateCard }) {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     }
   }, [cart]);
+
+  // Close period calculator drawer when all selections are cleared
+  useEffect(() => {
+    if (selectedCells.size === 0) setIsPeriodCalcOpen(false);
+  }, [selectedCells.size]);
 
   const formatCellValue = (value, column) => {
     if (!value) return "-";
@@ -220,19 +257,37 @@ export function RateCardDisplay({ rateCard }) {
     return Array.from(values);
   }, [rateCard]);
 
-  // Calculate total price for selected cells
-  const calculateTotal = () => {
-    let total = 0;
+  // Cost per spot = sum of selected rate values (CURRENCY/NUMBER columns)
+  const costPerSpot = useMemo(() => {
+    let sum = 0;
     selectedCellsData.forEach(({ column, value }) => {
       if (["CURRENCY", "NUMBER"].includes(column.dataType)) {
         const price = parseFloat(value);
-        if (!isNaN(price)) {
-          total += price;
-        }
+        if (!isNaN(price)) sum += price;
       }
     });
-    return total;
-  };
+    return sum;
+  }, [selectedCellsData]);
+
+  // Number of spots based on period (frequency, dates, times per period)
+  const numSpots = useMemo(() => {
+    const multiplier = Math.max(1, timesPerFrequency);
+    if (frequency === "once") return 1 * multiplier;
+    if (frequency === "daily" && startDate && endDate) {
+      return getDaysBetween(startDate, endDate) * multiplier;
+    }
+    if (frequency === "weekly" && startDate && endDate) {
+      const weeks = Math.ceil(getDaysBetween(startDate, endDate) / 7);
+      return weeks * multiplier;
+    }
+    return 1;
+  }, [frequency, startDate, endDate, timesPerFrequency]);
+
+  // Period-calculated total: cost per spot × number of spots
+  const periodTotal = useMemo(() => costPerSpot * numSpots, [costPerSpot, numSpots]);
+
+  // Legacy: simple sum (for backward compatibility when numSpots = 1)
+  const calculateTotal = () => periodTotal;
 
   // Add selected items to cart
   const addToCart = () => {
@@ -274,7 +329,15 @@ export function RateCardDisplay({ rateCard }) {
         value,
         formattedValue,
       })),
-      total: calculateTotal(),
+      total: periodTotal,
+      costPerSpot,
+      numSpots,
+      periodConfig: {
+        frequency,
+        startDate,
+        endDate,
+        timesPerFrequency,
+      },
       mediaCampaignName: mediaCampaignName.trim(),
       createdAt: new Date().toISOString(),
     };
@@ -322,7 +385,7 @@ export function RateCardDisplay({ rateCard }) {
         value,
       }));
 
-      // Initialize Paystack payment
+      // Initialize Paystack payment (use periodTotal for period-based calculation)
       const response = await fetch("/api/paystack/initialize-media-booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -330,6 +393,8 @@ export function RateCardDisplay({ rateCard }) {
           rateCardId: rateCard.id,
           selectedCells: selectedCellsForPayment,
           mediaCampaignName: mediaCampaignName.trim(),
+          totalAmount: periodTotal,
+          periodConfig: numSpots > 1 ? { costPerSpot, numSpots, frequency, startDate, endDate, timesPerFrequency } : undefined,
         }),
       });
 
@@ -427,9 +492,16 @@ export function RateCardDisplay({ rateCard }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 pb-32">
         {/* Header */}
         <div className="mb-8">
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Products
+          </Link>
           <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="text-4xl font-bold mb-2">{rateCard.title}</h1>
@@ -460,7 +532,7 @@ export function RateCardDisplay({ rateCard }) {
         {/* Time class filter - sticky, interactive */}
         {timeClassValues.length > 0 && (
           <Card className="mt-6 sticky top-4 z-30 shadow-md">
-            <CardContent className="py-4">
+            <CardContent className="py-5 px-6 sm:px-8">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium text-muted-foreground shrink-0">
                   Filter by time class:
@@ -494,6 +566,138 @@ export function RateCardDisplay({ rateCard }) {
           </Card>
         )}
 
+        {/* Period Calculator - drawer opens when a spot is clicked */}
+        <Sheet open={isPeriodCalcOpen} onOpenChange={setIsPeriodCalcOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
+            <div className="flex flex-col h-full">
+              <SheetHeader className="px-6 pt-6 pb-4">
+                <SheetTitle>Period Calculator</SheetTitle>
+                <SheetDescription>
+                  Configure how many times your spot will run to see the total cost
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
+              {costPerSpot > 0 ? (
+                <>
+                  <div>
+                    <Label className="text-sm font-medium">Cost per spot</Label>
+                    <p className="text-xl font-bold text-primary mt-1">
+                      ₵{costPerSpot.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Sum of selected rate{selectedCellsData.filter((d) => ["CURRENCY", "NUMBER"].includes(d.column.dataType)).length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Frequency</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {FREQUENCIES.map((f) => (
+                        <Button
+                          key={f.id}
+                          size="sm"
+                          variant={frequency === f.id ? "default" : "outline"}
+                          onClick={() => setFrequency(f.id)}
+                        >
+                          {f.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(frequency === "daily" || frequency === "weekly") && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="periodStartDate">Start date</Label>
+                        <Input
+                          id="periodStartDate"
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="mt-2"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="periodEndDate">End date</Label>
+                        <Input
+                          id="periodEndDate"
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="mt-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Spots per {frequency === "once" ? "occurrence" : frequency === "daily" ? "day" : "week"}
+                    </Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        disabled={timesPerFrequency <= 1}
+                        onClick={() => setTimesPerFrequency((n) => Math.max(1, n - 1))}
+                      >
+                        −
+                      </Button>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={timesPerFrequency}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!Number.isNaN(v)) setTimesPerFrequency(Math.max(1, Math.min(20, v)));
+                        }}
+                        className="w-20 h-9 text-center"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        disabled={timesPerFrequency >= 20}
+                        onClick={() => setTimesPerFrequency((n) => Math.min(20, n + 1))}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                      <span>Number of spots</span>
+                      <span>{numSpots}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-lg font-bold mt-2">
+                      <span>Total</span>
+                      <span className="text-2xl text-primary">
+                        ₵{periodTotal.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ₵{costPerSpot.toLocaleString()} × {numSpots} spots
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Clock className="h-16 w-16 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Select a spot to add</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Click on a rate in the table to configure your period
+                  </p>
+                </div>
+              )}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+
         {/* Sections */}
         <div className="space-y-12">
           {rateCard.sections?.map((section) => (
@@ -516,7 +720,7 @@ export function RateCardDisplay({ rateCard }) {
                       <CardTitle>{table.title}</CardTitle>
                     </CardHeader>
                   )}
-                  <CardContent>
+                  <CardContent className="px-6 sm:px-8">
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse">
                         <thead>
@@ -572,7 +776,11 @@ export function RateCardDisplay({ rateCard }) {
                                           setSelectedTimeClass(cellValue);
                                           return;
                                         }
+                                        const wasSelected = isCellSelected(row.id, column.id);
                                         toggleCellSelection(row.id, column.id);
+                                        if (!wasSelected && ["CURRENCY", "NUMBER"].includes(column.dataType)) {
+                                          setIsPeriodCalcOpen(true);
+                                        }
                                       }}
                                     >
                                       {isTimeClassCell ? (
@@ -651,16 +859,17 @@ export function RateCardDisplay({ rateCard }) {
             )}
           </Button>
         </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Shopping Cart</SheetTitle>
-              <SheetDescription>
-                {cart.length > 0
-                  ? `${cart.length} item${cart.length > 1 ? "s" : ""} in your cart`
-                  : "Your cart is empty"}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-6 space-y-4">
+          <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0">
+            <div className="flex flex-col h-full">
+              <SheetHeader className="px-6 pt-6 pb-4">
+                <SheetTitle>Shopping Cart</SheetTitle>
+                <SheetDescription>
+                  {cart.length > 0
+                    ? `${cart.length} item${cart.length > 1 ? "s" : ""} in your cart`
+                    : "Your cart is empty"}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
@@ -702,6 +911,12 @@ export function RateCardDisplay({ rateCard }) {
                         +{item.selectedCellsData.length - 3} more
                       </Badge>
                     )}
+                    {item.numSpots > 1 && item.periodConfig && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.numSpots} spots ({item.periodConfig.frequency}
+                        {item.periodConfig.startDate && ` • ${item.periodConfig.startDate} to ${item.periodConfig.endDate}`})
+                      </p>
+                    )}
                   </div>
                   {item.total > 0 && (
                     <div className="mt-3 pt-3 border-t flex justify-between items-center">
@@ -713,7 +928,7 @@ export function RateCardDisplay({ rateCard }) {
                 ))
               )}
               {cart.length > 0 && (
-                <div className="sticky bottom-0 bg-background pt-4 border-t space-y-3">
+                <div className="sticky bottom-0 bg-background pt-6 mt-4 border-t space-y-4 -mx-6 px-6 pb-6">
                 <div className="flex justify-between items-center text-lg">
                   <span className="font-bold">Total:</span>
                   <span className="text-2xl font-bold text-primary">
@@ -744,6 +959,7 @@ export function RateCardDisplay({ rateCard }) {
                 </Button>
               </div>
               )}
+              </div>
             </div>
           </SheetContent>
         </Sheet>
@@ -751,7 +967,7 @@ export function RateCardDisplay({ rateCard }) {
       {/* Floating Cart Summary */}
       {selectedCells.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1 overflow-x-auto">
                 <div className="flex items-center gap-2">
@@ -783,6 +999,15 @@ export function RateCardDisplay({ rateCard }) {
                 )}
               </div>
               <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPeriodCalcOpen(true)}
+                  title="Period Calculator"
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Calculator
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -871,16 +1096,18 @@ export function RateCardDisplay({ rateCard }) {
                     );
                   })}
                 </div>
-                {calculateTotal() > 0 && (
+                {periodTotal > 0 && (
                   <div className="mt-6 pt-4 border-t">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-muted-foreground">Subtotal:</span>
-                      <span className="font-semibold">₵{calculateTotal().toLocaleString()}</span>
-                    </div>
+                    {numSpots > 1 && (
+                      <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
+                        <span>Cost per spot × {numSpots} spots</span>
+                        <span>₵{costPerSpot.toLocaleString()} × {numSpots}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-lg">
                       <span className="font-bold">Total:</span>
                       <span className="text-2xl font-bold text-primary">
-                        ₵{calculateTotal().toLocaleString()}
+                        ₵{periodTotal.toLocaleString()}
                       </span>
                     </div>
                   </div>
