@@ -100,7 +100,7 @@ export async function PATCH(request, { params }) {
     }
 
     const body = await request.json();
-    const { title, description, isPublished } = body;
+    const { title, description, isPublished, location, reach, demographics } = body;
 
     const updatedRateCard = await db.rateCard.update({
       where: { id: rateCardId },
@@ -108,6 +108,9 @@ export async function PATCH(request, { params }) {
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
         ...(isPublished !== undefined && { isPublished }),
+        ...(location !== undefined && { location }),
+        ...(reach !== undefined && { reach }),
+        ...(demographics !== undefined && Array.isArray(demographics) && { demographics }),
       },
     });
 

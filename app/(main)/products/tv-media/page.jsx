@@ -6,76 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tv, Search, MapPin, Users, Clock, Star, ArrowLeft, Eye, Calendar, ArrowRight } from "lucide-react"
+import { Tv, Search, MapPin, Users, Radio, ArrowLeft, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import InquiryFormModal from "@/components/InquiryFormModal"
-import CustomPackageBuilder from "@/components/CustomPackageBuilder"
-import { MediaStationCard } from "@/components/MediaStationCard"
 import { AdTypeSelector } from "@/components/AdTypeSelector"
 import { getHeaderImage } from "@/lib/getHeaderImage"
-import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
+import { getPublishedRateCards } from "@/actions/media-agency"
 import { TV_AD_TYPES, getAdTypeById } from "@/lib/ad-types"
 
 export default function TVMediaPage() {
   const [selectedAdType, setSelectedAdType] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedPackage, setSelectedPackage] = useState(null)
-  const [customBuilderStationId, setCustomBuilderStationId] = useState(null)
-  const [registeredListings, setRegisteredListings] = useState([])
   const [rateCards, setRateCards] = useState([])
   const headerImage = getHeaderImage("/products/tv-media")
 
   useEffect(() => {
-    getActiveMediaListings("TV").then((result) => {
-      if (result.success && result.listings?.length) {
-        setRegisteredListings(result.listings)
-      }
-    })
     getPublishedRateCards("TV").then((result) => {
       if (result.success && result.rateCards?.length) {
         setRateCards(result.rateCards)
       }
     })
   }, [])
-
-  const handlePackageClick = (stationName, pkg, listingId, agencyId) => {
-    setSelectedPackage({
-      name: `${stationName} - ${pkg.name}`,
-      price: pkg.price,
-      details: `${pkg.duration || "30 seconds"} • ${pkg.slots ?? 0} spots`,
-      mediaType: "tv",
-      defaultSpots: pkg.slots ?? 0,
-      listingId: listingId,
-      agencyId: agencyId,
-      adType: selectedAdType ? getAdTypeById("tv", selectedAdType) : null,
-    })
-    setIsModalOpen(true)
-  }
-
-  const handleCustomPackageClick = (stationId, stationName) => {
-    if (customBuilderStationId === stationId) {
-      setCustomBuilderStationId(null)
-    } else {
-      setCustomBuilderStationId(stationId)
-    }
-  }
-
-  const handleCustomPackageSubmit = (stationName, packageData, listingId, agencyId) => {
-    setSelectedPackage({
-      name: `${stationName} - Custom Package`,
-      price: packageData.calculations.finalTotal,
-      details: `${packageData.calculations.totalQuantity} spots over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
-      mediaType: "tv",
-      defaultSpots: packageData.calculations.totalQuantity,
-      customData: packageData,
-      listingId: listingId,
-      agencyId: agencyId,
-      adType: selectedAdType ? getAdTypeById("tv", selectedAdType) : null,
-    })
-    setIsModalOpen(true)
-    setCustomBuilderStationId(null)
-  }
-
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -203,7 +152,6 @@ export default function TVMediaPage() {
         </div>
       </section>
 
-      {/* Registered TV Listings - full station card with packages */}
       {/* Rate Cards Section */}
       {rateCards.length > 0 && (
         <section className="py-12 border-b">
@@ -231,12 +179,30 @@ export default function TVMediaPage() {
                       {rateCard.agency?.agencyName && (
                         <p className="text-sm text-muted-foreground mb-2">{rateCard.agency.agencyName}</p>
                       )}
-                      {rateCard.location && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                          <MapPin className="h-3 w-3" />
-                          {rateCard.location}
-                        </p>
-                      )}
+                      <div className="space-y-1.5 mb-2">
+                        {rateCard.location && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {rateCard.location}
+                          </p>
+                        )}
+                        {rateCard.reach && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Radio className="h-3 w-3 shrink-0" />
+                            {rateCard.reach}
+                          </p>
+                        )}
+                        {rateCard.demographics?.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Users className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            {rateCard.demographics.map((d, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs font-normal">
+                                {d}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       {rateCard.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2">{rateCard.description}</p>
                       )}
@@ -252,38 +218,8 @@ export default function TVMediaPage() {
           </div>
         </section>
       )}
-
-      {registeredListings.length > 0 && (
-        <section className="py-12 border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold mb-6">Registered TV Listings</h2>
-            <div className="space-y-8">
-              {registeredListings.map((listing) => (
-                <MediaStationCard
-                  key={listing.id}
-                  listing={listing}
-                  mediaType="tv"
-                  onSelectPackage={handlePackageClick}
-                  onCustomPackageClick={(stationId, stationName) => {
-                    if (customBuilderStationId === stationId) setCustomBuilderStationId(null)
-                    else setCustomBuilderStationId(stationId)
-                  }}
-                  showCustomBuilder={customBuilderStationId === listing.id}
-                  onCustomPackageSubmit={(stationName, packageData) => 
-                    handleCustomPackageSubmit(stationName, packageData, listing.id, listing.agencyId)
-                  }
-                  CustomBuilderComponent={CustomPackageBuilder}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
         </>
       )}
-
-      {/* Inquiry Form Modal */}
-      <InquiryFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} packageInfo={selectedPackage} />
     </div>
   )
 }

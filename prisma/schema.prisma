@@ -604,6 +604,8 @@ model RateCard {
   listingId   String?  // Optional: Link to existing MediaListing
   listingType MediaType? // Media type (TV, RADIO, BILLBOARD, etc.)
   location    String?  // Location/city for display on frontend
+  reach       String?  // e.g., "2M+ listeners", "5M+ viewers"
+  demographics String[] @default([]) // Target demographics
   imageUrl    String?  // Optional image/logo URL
   
   lastUpdated DateTime @updatedAt

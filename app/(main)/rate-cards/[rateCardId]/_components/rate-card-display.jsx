@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft } from "lucide-react";
+import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft, MapPin, Radio, Users } from "lucide-react";
 import { getAdTypesForMediaType, getAdTypeById } from "@/lib/ad-types";
 
 // Helper to read a semantic "role" from a SmartTableColumn config JSON.
@@ -556,7 +556,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
               />
             )}
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <span>{rateCard.agency.agencyName}</span>
@@ -565,6 +565,28 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
               <Clock className="h-4 w-4" />
               <span>Last updated: {format(new Date(rateCard.lastUpdated), "PPP")}</span>
             </div>
+            {rateCard.location && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span>{rateCard.location}</span>
+              </div>
+            )}
+            {rateCard.reach && (
+              <div className="flex items-center gap-2">
+                <Radio className="h-4 w-4" />
+                <span>{rateCard.reach}</span>
+              </div>
+            )}
+            {rateCard.demographics?.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <Users className="h-4 w-4 shrink-0" />
+                {rateCard.demographics.map((d, i) => (
+                  <span key={i} className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
