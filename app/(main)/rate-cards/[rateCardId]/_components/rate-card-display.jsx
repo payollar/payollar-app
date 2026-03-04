@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft } from "lucide-react";
+import { getAdTypesForMediaType, getAdTypeById } from "@/lib/ad-types";
 
 // Helper to read a semantic "role" from a SmartTableColumn config JSON.
 // We use this to identify special columns like time classes.
@@ -72,6 +73,9 @@ const rowMatchesTimeClassFilter = (table, row, selectedTimeClass, getCellValueFn
 // Cart item structure
 const CART_STORAGE_KEY = "rateCardCart";
 
+// Tax (VAT) rate - Ghana standard
+const VAT_RATE = 0.15;
+
 // Period calculation constants
 const FREQUENCIES = [
   { id: "once", label: "Once" },
@@ -89,7 +93,10 @@ function getDaysBetween(start, end) {
   return Math.max(0, diff + 1);
 }
 
-export function RateCardDisplay({ rateCard }) {
+export function RateCardDisplay({ rateCard, initialAdType = null }) {
+  const mediaType = (rateCard?.listingType || "TV").toLowerCase();
+  const adTypes = getAdTypesForMediaType(mediaType);
+
   // Track selected cells by "rowId-columnId" key
   const [selectedCells, setSelectedCells] = useState(new Set());
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
@@ -98,6 +105,10 @@ export function RateCardDisplay({ rateCard }) {
   const [mediaCampaignName, setMediaCampaignName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTimeClass, setSelectedTimeClass] = useState("ALL");
+  const [selectedAdType, setSelectedAdType] = useState(() => {
+    if (initialAdType && adTypes.some((t) => t.id === initialAdType)) return initialAdType;
+    return adTypes[0]?.id || null;
+  });
 
   // Period calculator state
   const [frequency, setFrequency] = useState("once");
@@ -235,6 +246,19 @@ export function RateCardDisplay({ rateCard }) {
 
   const selectedCellsData = useMemo(() => getSelectedCellsData(), [selectedCells, rateCard]);
 
+  // Get time class for current selection: from filter if set, else from first selected row
+  const selectedTimeClassForItem = useMemo(() => {
+    if (selectedTimeClass !== "ALL") return selectedTimeClass;
+    if (selectedCellsData.length === 0) return null;
+    const first = selectedCellsData[0];
+    const table = first?.table;
+    if (!table) return null;
+    const timeClassColumn = getTimeClassColumn(table);
+    if (!timeClassColumn) return null;
+    const val = getCellValue(first.row, timeClassColumn.id);
+    return val && typeof val === "string" ? val.trim() : val;
+  }, [selectedTimeClass, selectedCellsData]);
+
   // Collect distinct time class values across all tables that expose a time class column.
   const timeClassValues = useMemo(() => {
     const values = new Set();
@@ -289,7 +313,7 @@ export function RateCardDisplay({ rateCard }) {
   // Legacy: simple sum (for backward compatibility when numSpots = 1)
   const calculateTotal = () => periodTotal;
 
-  // Add selected items to cart
+  // Add selected items to cart as a line item (ad type + time class)
   const addToCart = () => {
     if (selectedCells.size === 0) {
       toast.error("Please select at least one item to add to cart");
@@ -299,12 +323,24 @@ export function RateCardDisplay({ rateCard }) {
       toast.error("Media campaign name is required");
       return;
     }
+    if (timeClassValues.length > 0 && !selectedTimeClassForItem) {
+      toast.error("Please filter by a time class above for this line item");
+      return;
+    }
+    if (!selectedAdType) {
+      toast.error("Please select an ad type for this line item");
+      return;
+    }
+
+    const adTypeObj = getAdTypeById(mediaType, selectedAdType);
 
     const cartItem = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       rateCardId: rateCard.id,
       rateCardTitle: rateCard.title,
       agencyName: rateCard.agency.agencyName,
+      adType: adTypeObj ? { id: adTypeObj.id, label: adTypeObj.label, fullName: adTypeObj.fullName } : null,
+      timeClass: selectedTimeClassForItem,
       selectedCells: Array.from(selectedCells),
       selectedCellsData: selectedCellsData.map(({ rowId, columnId, row, column, table, section, value, formattedValue }) => ({
         rowId,
@@ -344,9 +380,8 @@ export function RateCardDisplay({ rateCard }) {
 
     setCart((prevCart) => [...prevCart, cartItem]);
     setSelectedCells(new Set());
-    setMediaCampaignName("");
     setIsSummaryDialogOpen(false);
-    toast.success("Items added to cart!");
+    toast.success("Line item added! Add more ad types or time classes, or proceed to checkout.");
   };
 
   // Remove item from cart
@@ -355,10 +390,14 @@ export function RateCardDisplay({ rateCard }) {
     toast.success("Item removed from cart");
   };
 
-  // Calculate cart total
-  const cartTotal = useMemo(() => {
+  // Calculate cart subtotal (before tax)
+  const cartSubtotal = useMemo(() => {
     return cart.reduce((sum, item) => sum + (item.total || 0), 0);
   }, [cart]);
+
+  // Calculate cart VAT and total
+  const cartVat = useMemo(() => cartSubtotal * VAT_RATE, [cartSubtotal]);
+  const cartTotal = useMemo(() => cartSubtotal + cartVat, [cartSubtotal, cartVat]);
 
   // Get cart item count
   const cartItemCount = useMemo(() => {
@@ -568,7 +607,7 @@ export function RateCardDisplay({ rateCard }) {
 
         {/* Period Calculator - drawer opens when a spot is clicked */}
         <Sheet open={isPeriodCalcOpen} onOpenChange={setIsPeriodCalcOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
+          <SheetContent side="right" elevated className="w-full sm:max-w-md overflow-y-auto p-0">
             <div className="flex flex-col h-full">
               <SheetHeader className="px-6 pt-6 pb-4">
                 <SheetTitle>Period Calculator</SheetTitle>
@@ -579,6 +618,31 @@ export function RateCardDisplay({ rateCard }) {
               <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
               {costPerSpot > 0 ? (
                 <>
+                  <div>
+                    <Label className="text-sm font-medium">Ad type (line item)</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {adTypes.map((at) => (
+                        <Button
+                          key={at.id}
+                          size="sm"
+                          variant={selectedAdType === at.id ? "default" : "outline"}
+                          onClick={() => setSelectedAdType(at.id)}
+                        >
+                          {at.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  {timeClassValues.length > 0 && (
+                    <div>
+                      <Label className="text-sm font-medium">Time class (line item)</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedTimeClass === "ALL"
+                          ? "Filter by time class above, or your selection will use the first row's class"
+                          : `Selected: ${selectedTimeClass}`}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <Label className="text-sm font-medium">Cost per spot</Label>
                     <p className="text-xl font-bold text-primary mt-1">
@@ -673,10 +737,20 @@ export function RateCardDisplay({ rateCard }) {
                       <span>Number of spots</span>
                       <span>{numSpots}</span>
                     </div>
-                    <div className="flex justify-between items-center text-lg font-bold mt-2">
+                    <div className="space-y-2 mt-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>₵{periodTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">VAT (15%)</span>
+                        <span>₵{(periodTotal * VAT_RATE).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-lg font-bold mt-2 pt-2 border-t">
                       <span>Total</span>
                       <span className="text-2xl text-primary">
-                        ₵{periodTotal.toLocaleString()}
+                        ₵{(periodTotal * (1 + VAT_RATE)).toLocaleString()}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -842,7 +916,7 @@ export function RateCardDisplay({ rateCard }) {
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
           <Button
-            className={`fixed right-6 h-14 w-14 rounded-full shadow-lg z-40 hover:scale-110 transition-transform ${
+            className={`fixed right-6 h-14 w-14 rounded-full shadow-lg z-[100] hover:scale-110 transition-transform ${
               selectedCells.size > 0 ? "bottom-32" : "bottom-6"
             }`}
             size="icon"
@@ -859,23 +933,23 @@ export function RateCardDisplay({ rateCard }) {
             )}
           </Button>
         </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0">
+          <SheetContent elevated className="w-full sm:max-w-lg overflow-y-auto p-0">
             <div className="flex flex-col h-full">
               <SheetHeader className="px-6 pt-6 pb-4">
                 <SheetTitle>Shopping Cart</SheetTitle>
-                <SheetDescription>
-                  {cart.length > 0
-                    ? `${cart.length} item${cart.length > 1 ? "s" : ""} in your cart`
-                    : "Your cart is empty"}
-                </SheetDescription>
+              <SheetDescription>
+                {cart.length > 0
+                  ? `${cart.length} line item${cart.length > 1 ? "s" : ""} in your campaign`
+                  : "Your campaign is empty. Add ad types and time classes as line items."}
+              </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Your cart is empty</p>
+                  <p className="text-muted-foreground">Your campaign is empty</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Select items and click "Add to Cart" to add them here
+                    Select spots, choose ad type & time class, then add as line items
                   </p>
                 </div>
               ) : (
@@ -901,6 +975,20 @@ export function RateCardDisplay({ rateCard }) {
                     </Button>
                   </div>
                   <div className="space-y-2">
+                    {(item.adType || item.timeClass) && (
+                      <div className="flex flex-wrap gap-1">
+                        {item.adType && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.adType.label}
+                          </Badge>
+                        )}
+                        {item.timeClass && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.timeClass}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                     {item.selectedCellsData.slice(0, 3).map((cellData, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs mr-2">
                         {cellData.column.name}: {cellData.formattedValue}
@@ -929,7 +1017,17 @@ export function RateCardDisplay({ rateCard }) {
               )}
               {cart.length > 0 && (
                 <div className="sticky bottom-0 bg-background pt-6 mt-4 border-t space-y-4 -mx-6 px-6 pb-6">
-                <div className="flex justify-between items-center text-lg">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span>₵{cartSubtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">VAT (15%):</span>
+                    <span>₵{cartVat.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-lg pt-2 border-t">
                   <span className="font-bold">Total:</span>
                   <span className="text-2xl font-bold text-primary">
                     ₵{cartTotal.toLocaleString()}
@@ -966,7 +1064,7 @@ export function RateCardDisplay({ rateCard }) {
 
       {/* Floating Cart Summary */}
       {selectedCells.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-[100]">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1 overflow-x-auto">
@@ -992,9 +1090,10 @@ export function RateCardDisplay({ rateCard }) {
                     </Badge>
                   )}
                 </div>
-                {calculateTotal() > 0 && (
-                  <div className="ml-auto text-lg font-bold">
-                    Total: ₵{calculateTotal().toLocaleString()}
+                {periodTotal > 0 && (
+                  <div className="ml-auto text-right">
+                    <div className="text-sm text-muted-foreground">Subtotal: ₵{periodTotal.toLocaleString()}</div>
+                    <div className="text-lg font-bold">Total (incl. VAT): ₵{(periodTotal * (1 + VAT_RATE)).toLocaleString()}</div>
                   </div>
                 )}
               </div>
@@ -1031,9 +1130,9 @@ export function RateCardDisplay({ rateCard }) {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Summary</DialogTitle>
-            <DialogDescription>
-              Review your selected items ({selectedCells.size} item{selectedCells.size > 1 ? "s" : ""})
-            </DialogDescription>
+          <DialogDescription>
+            Review this line item before adding to your campaign. You can add multiple ad types and time classes.
+          </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             {/* Selected Items Summary */}
@@ -1104,10 +1203,20 @@ export function RateCardDisplay({ rateCard }) {
                         <span>₵{costPerSpot.toLocaleString()} × {numSpots}</span>
                       </div>
                     )}
-                    <div className="flex justify-between items-center text-lg">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Subtotal:</span>
+                        <span>₵{periodTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">VAT (15%):</span>
+                        <span>₵{(periodTotal * VAT_RATE).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-lg pt-2 border-t mt-2">
                       <span className="font-bold">Total:</span>
                       <span className="text-2xl font-bold text-primary">
-                        ₵{periodTotal.toLocaleString()}
+                        ₵{(periodTotal * (1 + VAT_RATE)).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -1147,7 +1256,7 @@ export function RateCardDisplay({ rateCard }) {
                 onClick={addToCart}
               >
                 <ShoppingBag className="h-4 w-4 mr-2" />
-                Add to Cart
+                Add as line item
               </Button>
               <Button
                 variant="outline"

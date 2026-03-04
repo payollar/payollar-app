@@ -2,8 +2,12 @@ import { db } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { RateCardDisplay } from "./_components/rate-card-display";
 
-export default async function PublicRateCardPage({ params }) {
+export default async function PublicRateCardPage({ params, searchParams }) {
   const { rateCardId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const adTypeRaw = resolvedSearchParams?.adType;
+  const adTypeFromUrl = typeof adTypeRaw === "string" ? adTypeRaw : Array.isArray(adTypeRaw) ? adTypeRaw[0] : null;
+
   const rateCard = await db.rateCard.findUnique({
     where: {
       id: rateCardId,
@@ -49,5 +53,5 @@ export default async function PublicRateCardPage({ params }) {
     notFound();
   }
 
-  return <RateCardDisplay rateCard={rateCard} />;
+  return <RateCardDisplay rateCard={rateCard} initialAdType={adTypeFromUrl} />;
 }

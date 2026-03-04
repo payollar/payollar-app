@@ -23,6 +23,9 @@ export function FloatingChat() {
                      pathname?.startsWith("/sign-up") || 
                      pathname?.startsWith("/media-agency/sign") ||
                      pathname === "/chat";
+
+  // On rate card page, align chat to the left to avoid overlapping with cart on the right
+  const isRateCardPage = pathname?.includes("/rate-cards/");
   
   if (isAuthPage) {
     return null;
@@ -78,7 +81,7 @@ export function FloatingChat() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-[200]" data-floating-chat>
+      <div className={`fixed bottom-6 z-[60] ${isRateCardPage ? "left-6" : "right-6"}`} data-floating-chat>
         <Button
           onClick={() => {
             setIsOpen(true);
@@ -95,7 +98,7 @@ export function FloatingChat() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[200] w-[calc(100vw-2rem)] sm:w-[380px] md:w-[420px] max-w-[420px]" data-floating-chat>
+    <div className={`fixed bottom-4 sm:bottom-6 z-[60] w-[calc(100vw-2rem)] sm:w-[380px] md:w-[420px] max-w-[420px] ${isRateCardPage ? "left-4 sm:left-6" : "right-4 sm:right-6"}`} data-floating-chat>
       <Card className="shadow-2xl border-2 flex flex-col h-[500px] sm:h-[600px] max-h-[85vh] bg-background">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">

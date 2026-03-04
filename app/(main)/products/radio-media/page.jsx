@@ -11,10 +11,13 @@ import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import { MediaStationCard } from "@/components/MediaStationCard"
+import { AdTypeSelector } from "@/components/AdTypeSelector"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
+import { RADIO_AD_TYPES, getAdTypeById } from "@/lib/ad-types"
 
 export default function RadioMediaPage() {
+  const [selectedAdType, setSelectedAdType] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [showCustomBuilder, setShowCustomBuilder] = useState(false)
@@ -45,6 +48,7 @@ export default function RadioMediaPage() {
       defaultSpots: pkg.slots ?? 0,
       listingId: listingId,
       agencyId: agencyId,
+      adType: selectedAdType ? getAdTypeById("radio", selectedAdType) : null,
     })
     setIsModalOpen(true)
   }
@@ -67,6 +71,7 @@ export default function RadioMediaPage() {
       customData: packageData,
       listingId: listingId,
       agencyId: agencyId,
+      adType: selectedAdType ? getAdTypeById("radio", selectedAdType) : null,
     })
     setIsModalOpen(true)
     setCustomBuilderStationId(null)
@@ -116,18 +121,43 @@ export default function RadioMediaPage() {
         </div>
       </section>
 
-      {/* Header */}
-      <section className="py-12 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* <div className="text-center space-y-4 mb-8">
-            <h1 className="text-4xl lg:text-5xl font-bold text-balance">Radio Advertising</h1>
-            <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
-              Connect with engaged audiences through AM/FM radio stations across Ghana. Perfect for local and regional
-              campaigns.
-            </p>
-          </div> */}
+      {/* Step 1: Ad Type Selection - Campaign flow begins here */}
+      <section className="pt-8 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 shadow-sm border">
+            <AdTypeSelector
+            adTypes={RADIO_AD_TYPES}
+            selectedAdType={selectedAdType}
+            onSelect={setSelectedAdType}
+            mediaType="radio"
+          />
+          {selectedAdType && (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedAdType(null)}
+                className="text-muted-foreground"
+              >
+                Change ad type
+              </Button>
+            </div>
+          )}
+          </div>
+        </div>
+      </section>
 
-          {/* Search and Filters */}
+      {/* Step 2: Browse Rate Cards & Listings (shown after ad type selection) */}
+      {selectedAdType && (
+        <>
+      {/* Search and Filters */}
+      <section className="py-8 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Badge variant="secondary" className="text-sm">
+              {getAdTypeById("radio", selectedAdType)?.fullName}
+            </Badge>
+          </div>
           <div className="max-w-4xl mx-auto space-y-4">
             <div className="grid md:grid-cols-4 gap-4">
               <div className="relative">
@@ -218,7 +248,7 @@ export default function RadioMediaPage() {
             <h2 className="text-2xl font-bold mb-6">Radio Rate Cards</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rateCards.map((rateCard) => (
-                <Link key={rateCard.id} href={`/rate-cards/${rateCard.id}`}>
+                <Link key={rateCard.id} href={`/rate-cards/${rateCard.id}?adType=${selectedAdType}`}>
                   <Card className="hover:shadow-lg transition-all cursor-pointer h-full">
                     {rateCard.imageUrl && (
                       <div className="relative h-40 w-full overflow-hidden">
@@ -286,7 +316,8 @@ export default function RadioMediaPage() {
           </div>
         </section>
       )}
-
+        </>
+      )}
 
       <InquiryFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} packageInfo={selectedPackage} />
     </div>

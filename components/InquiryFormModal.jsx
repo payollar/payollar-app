@@ -95,6 +95,7 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo, userEma
         slots: formData.numberOfSpots ? parseInt(formData.numberOfSpots) : null,
         totalAmount: totalAmount,
         notes: [
+          packageInfo?.adType && `Ad type: ${packageInfo.adType.fullName} (${packageInfo.adType.label})`,
           formData.company && `Company: ${formData.company}`,
           formData.budget && `Budget: ${formData.budget}`,
           formData.message,
@@ -129,9 +130,16 @@ export default function InquiryFormModal({ isOpen, onClose, packageInfo, userEma
         <DialogHeader>
           <DialogTitle className="text-2xl">Request Information</DialogTitle>
           {packageInfo && (
-            <div className="text-sm text-muted-foreground mt-2">
-              Package: <span className="font-medium text-foreground">{packageInfo.name}</span> •{" "}
-              <span className="font-medium text-foreground">{packageInfo.price}</span>
+            <div className="text-sm text-muted-foreground mt-2 space-y-1">
+              <div>
+                Package: <span className="font-medium text-foreground">{packageInfo.name}</span> •{" "}
+                <span className="font-medium text-foreground">{packageInfo.price}</span>
+              </div>
+              {packageInfo.adType && (
+                <div>
+                  Ad type: <span className="font-medium text-foreground">{packageInfo.adType.fullName}</span>
+                </div>
+              )}
             </div>
           )}
         </DialogHeader>
