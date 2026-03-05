@@ -728,6 +728,32 @@ export function SmartTableEditor({ table, onUpdate }) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={async () => {
+              if (!confirm("Are you sure you want to delete this table? All columns, rows, and data will be lost.")) return;
+              try {
+                const response = await fetch(`/api/media-agency/rate-cards/tables/${table.id}`, {
+                  method: "DELETE",
+                });
+                const data = await response.json();
+                if (data.success) {
+                  toast.success("Table deleted");
+                  onUpdate?.();
+                } else {
+                  toast.error(data.error || "Failed to delete table");
+                }
+              } catch (error) {
+                console.error("Error deleting table:", error);
+                toast.error("Failed to delete table");
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Delete Table
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">

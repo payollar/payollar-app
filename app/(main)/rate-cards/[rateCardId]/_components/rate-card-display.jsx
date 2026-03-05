@@ -59,6 +59,59 @@ const getTimeClassColumn = (table) => {
   );
 };
 
+// Find ad type rates table and get rate for selected ad type + time class.
+// Returns the rate (number) or null if not found.
+// Requires both ad type and time class when using ad-type-by-time-class sections.
+function getAdTypeRateFromRateCard(rateCard, selectedAdTypeId, selectedTimeClassForItem) {
+  if (!rateCard?.sections || !selectedAdTypeId) return null;
+  const norm = (v) => (v && String(v).trim().toLowerCase()) || "";
+  const targetId = norm(selectedAdTypeId);
+
+  for (const section of rateCard.sections) {
+    for (const table of section.tables || []) {
+      const adTypeCol = table.columns?.find((c) => getColumnRole(c) === "ad_type_identifier");
+      const timeClassCol = table.columns?.find((c) => getColumnRole(c) === "time_class");
+      const rateCol = table.columns?.find((c) => getColumnRole(c) === "rate_ad_type");
+      if (!adTypeCol || !rateCol) continue;
+
+      for (const row of table.rows || []) {
+        const adTypeVal = row.cells?.find((c) => c.columnId === adTypeCol.id)?.value;
+        if (norm(adTypeVal) !== targetId) continue;
+
+        // When table has time_class column, require match
+        if (timeClassCol && selectedTimeClassForItem) {
+          const tcVal = row.cells?.find((c) => c.columnId === timeClassCol.id)?.value;
+          const rowTc = tcVal && String(tcVal).trim();
+          if (rowTc !== selectedTimeClassForItem) continue;
+        }
+
+        const rateVal = row.cells?.find((c) => c.columnId === rateCol.id)?.value;
+        const num = parseFloat(rateVal);
+        if (!isNaN(num) && num > 0) return num;
+      }
+    }
+  }
+  return null;
+}
+
+// Check if a section matches the ad type filter (for ad-type sections).
+function sectionMatchesAdTypeFilter(section, selectedAdTypeFilter) {
+  if (!selectedAdTypeFilter || selectedAdTypeFilter === "ALL") return true;
+  const norm = (v) => (v && String(v).trim().toLowerCase()) || "";
+  const target = norm(selectedAdTypeFilter);
+
+  for (const table of section.tables || []) {
+    const adTypeCol = table.columns?.find((c) => getColumnRole(c) === "ad_type_identifier");
+    if (!adTypeCol) continue; // Table has no ad type - this is a generic section
+    for (const row of table.rows || []) {
+      const val = row.cells?.find((c) => c.columnId === adTypeCol.id)?.value;
+      if (norm(val) === target) return true;
+    }
+  }
+  // Section has no ad-type tables, or no matching rows - hide when filter is specific
+  return false;
+}
+
 // Check if a row matches the currently selected time class filter.
 const rowMatchesTimeClassFilter = (table, row, selectedTimeClass, getCellValueFn) => {
   if (selectedTimeClass === "ALL") return true;
@@ -73,8 +126,9 @@ const rowMatchesTimeClassFilter = (table, row, selectedTimeClass, getCellValueFn
 // Cart item structure
 const CART_STORAGE_KEY = "rateCardCart";
 
-// Tax (VAT) rate - Ghana standard
-const VAT_RATE = 0.15;
+// Tax rates - Ghana standard
+const VAT_RATE = 0.15;      // VAT 15%
+const NHIL_GETFUND_RATE = 0.05;  // NHIL 2.5% + GETFund 2.5% = 5%
 
 // Period calculation constants
 const FREQUENCIES = [
@@ -105,6 +159,10 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
   const [mediaCampaignName, setMediaCampaignName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTimeClass, setSelectedTimeClass] = useState("ALL");
+  const [selectedAdTypeFilter, setSelectedAdTypeFilter] = useState(() => {
+    if (initialAdType && adTypes.some((t) => t.id === initialAdType)) return initialAdType;
+    return "ALL";
+  });
   const [selectedAdType, setSelectedAdType] = useState(() => {
     if (initialAdType && adTypes.some((t) => t.id === initialAdType)) return initialAdType;
     return adTypes[0]?.id || null;
@@ -281,7 +339,8 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
     return Array.from(values);
   }, [rateCard]);
 
-  // Cost per spot = sum of selected rate values (CURRENCY/NUMBER columns)
+  // Cost per spot: use the spot the user selected (sum of selected rate cells).
+  // Only fall back to ad type rate when no rate cells are selected.
   const costPerSpot = useMemo(() => {
     let sum = 0;
     selectedCellsData.forEach(({ column, value }) => {
@@ -290,8 +349,16 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
         if (!isNaN(price)) sum += price;
       }
     });
-    return sum;
-  }, [selectedCellsData]);
+    if (sum > 0) return sum;
+    // Fallback: ad type rate when no rate cells selected (e.g. ad-type-only flow)
+    const adTypeRate = getAdTypeRateFromRateCard(
+      rateCard,
+      selectedAdType,
+      selectedTimeClassForItem
+    );
+    if (adTypeRate != null && adTypeRate > 0) return adTypeRate;
+    return 0;
+  }, [rateCard, selectedAdType, selectedTimeClassForItem, selectedCellsData]);
 
   // Number of spots based on period (frequency, dates, times per period)
   const numSpots = useMemo(() => {
@@ -395,9 +462,10 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
     return cart.reduce((sum, item) => sum + (item.total || 0), 0);
   }, [cart]);
 
-  // Calculate cart VAT and total
+  // Calculate cart VAT, NHIL & GETFund, and total
   const cartVat = useMemo(() => cartSubtotal * VAT_RATE, [cartSubtotal]);
-  const cartTotal = useMemo(() => cartSubtotal + cartVat, [cartSubtotal, cartVat]);
+  const cartNhilGetfund = useMemo(() => cartSubtotal * NHIL_GETFUND_RATE, [cartSubtotal]);
+  const cartTotal = useMemo(() => cartSubtotal + cartVat + cartNhilGetfund, [cartSubtotal, cartVat, cartNhilGetfund]);
 
   // Get cart item count
   const cartItemCount = useMemo(() => {
@@ -432,7 +500,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
           rateCardId: rateCard.id,
           selectedCells: selectedCellsForPayment,
           mediaCampaignName: mediaCampaignName.trim(),
-          totalAmount: periodTotal,
+          totalAmount: periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE),
           periodConfig: numSpots > 1 ? { costPerSpot, numSpots, frequency, startDate, endDate, timesPerFrequency } : undefined,
         }),
       });
@@ -590,11 +658,47 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
           </div>
         </div>
 
-        {/* Time class filter - sticky, interactive */}
-        {timeClassValues.length > 0 && (
-          <Card className="mt-6 sticky top-4 z-30 shadow-md">
-            <CardContent className="py-5 px-6 sm:px-8">
-              <div className="flex flex-wrap items-center gap-3">
+        {/* Filters - ad type first, then time class */}
+        <Card className="mt-6 sticky top-4 z-30 shadow-md">
+          <CardContent className="py-5 px-6 sm:px-8 space-y-5">
+            {/* Ad type filter - comes first */}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground shrink-0">
+                Filter by ad type:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={selectedAdTypeFilter === "ALL" ? "default" : "outline"}
+                  onClick={() => setSelectedAdTypeFilter("ALL")}
+                >
+                  All
+                </Button>
+                {adTypes.map((at) => (
+                  <Button
+                    key={at.id}
+                    size="sm"
+                    variant={selectedAdTypeFilter === at.id ? "default" : "outline"}
+                    onClick={() => {
+                      setSelectedAdTypeFilter(at.id);
+                      setSelectedAdType(at.id);
+                      setSelectedCells(new Set());
+                    }}
+                  >
+                    {at.label}
+                  </Button>
+                ))}
+              </div>
+              {selectedAdTypeFilter !== "ALL" && (
+                <span className="text-sm text-muted-foreground ml-2">
+                  Showing rates for <strong>{getAdTypeById(mediaType, selectedAdTypeFilter)?.label || selectedAdTypeFilter}</strong>
+                </span>
+              )}
+            </div>
+
+            {/* Time class filter */}
+            {timeClassValues.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 pt-3 border-t">
                 <span className="text-sm font-medium text-muted-foreground shrink-0">
                   Filter by time class:
                 </span>
@@ -623,9 +727,9 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                   </span>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {/* Period Calculator - drawer opens when a spot is clicked */}
         <Sheet open={isPeriodCalcOpen} onOpenChange={setIsPeriodCalcOpen}>
@@ -642,18 +746,9 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                 <>
                   <div>
                     <Label className="text-sm font-medium">Ad type (line item)</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {adTypes.map((at) => (
-                        <Button
-                          key={at.id}
-                          size="sm"
-                          variant={selectedAdType === at.id ? "default" : "outline"}
-                          onClick={() => setSelectedAdType(at.id)}
-                        >
-                          {at.label}
-                        </Button>
-                      ))}
-                    </div>
+                    <p className="text-sm mt-2 font-medium bg-white px-3 py-2 rounded w-fit text-black">
+                      {selectedAdType ? getAdTypeById(mediaType, selectedAdType)?.label || selectedAdType : "—"}
+                    </p>
                   </div>
                   {timeClassValues.length > 0 && (
                     <div>
@@ -671,7 +766,11 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                       ₵{costPerSpot.toLocaleString()}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Sum of selected rate{selectedCellsData.filter((d) => ["CURRENCY", "NUMBER"].includes(d.column.dataType)).length > 1 ? "s" : ""}
+                      {selectedCellsData.some((d) => ["CURRENCY", "NUMBER"].includes(d.column.dataType) && parseFloat(d.value) > 0)
+                        ? "From selected spot"
+                        : getAdTypeRateFromRateCard(rateCard, selectedAdType, selectedTimeClassForItem) != null
+                          ? "Ad type + time class rate"
+                          : "Select a spot or ad type"}
                     </p>
                   </div>
                   <div>
@@ -768,11 +867,15 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                         <span className="text-muted-foreground">VAT (15%)</span>
                         <span>₵{(periodTotal * VAT_RATE).toLocaleString()}</span>
                       </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">NHIL & GETFund (5%)</span>
+                        <span>₵{(periodTotal * NHIL_GETFUND_RATE).toLocaleString()}</span>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center text-lg font-bold mt-2 pt-2 border-t">
                       <span>Total</span>
                       <span className="text-2xl text-primary">
-                        ₵{(periodTotal * (1 + VAT_RATE)).toLocaleString()}
+                        ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -794,9 +897,13 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
           </SheetContent>
         </Sheet>
 
-        {/* Sections */}
+        {/* Sections - filtered by ad type when filter is active */}
         <div className="space-y-12">
-          {rateCard.sections?.map((section) => (
+          {rateCard.sections
+            ?.filter((section) =>
+              sectionMatchesAdTypeFilter(section, selectedAdTypeFilter)
+            )
+            ?.map((section) => (
             <div key={section.id}>
               <h2 className="text-2xl font-bold mb-6">{section.title}</h2>
 
@@ -804,10 +911,13 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                 // When filtering by a specific time class, hide the Time Class column
                 // so users see only spots (durations) and prices
                 const timeClassColumn = getTimeClassColumn(table);
+                const displayColumns = table.columns.filter(
+                  (col) => col.isVisibleOnFrontend !== false
+                );
                 const visibleColumns =
                   selectedTimeClass !== "ALL" && timeClassColumn
-                    ? table.columns.filter((col) => col.id !== timeClassColumn.id)
-                    : table.columns;
+                    ? displayColumns.filter((col) => col.id !== timeClassColumn.id)
+                    : displayColumns;
 
                 return (
                 <Card key={table.id} className="mb-8">
@@ -1048,6 +1158,10 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                     <span className="text-muted-foreground">VAT (15%):</span>
                     <span>₵{cartVat.toLocaleString()}</span>
                   </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">NHIL & GETFund (5%):</span>
+                    <span>₵{cartNhilGetfund.toLocaleString()}</span>
+                  </div>
                 </div>
                 <div className="flex justify-between items-center text-lg pt-2 border-t">
                   <span className="font-bold">Total:</span>
@@ -1097,6 +1211,16 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                   </span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
+                  {selectedAdType && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <span className="font-medium">Ad type:</span> {getAdTypeById(mediaType, selectedAdType)?.label || selectedAdType}
+                    </Badge>
+                  )}
+                  {selectedTimeClassForItem && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <span className="font-medium">Time class:</span> {selectedTimeClassForItem}
+                    </Badge>
+                  )}
                   {selectedCellsData.slice(0, 5).map(({ rowId, columnId, formattedValue, column }) => (
                     <Badge
                       key={`${rowId}-${columnId}`}
@@ -1115,7 +1239,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                 {periodTotal > 0 && (
                   <div className="ml-auto text-right">
                     <div className="text-sm text-muted-foreground">Subtotal: ₵{periodTotal.toLocaleString()}</div>
-                    <div className="text-lg font-bold">Total (incl. VAT): ₵{(periodTotal * (1 + VAT_RATE)).toLocaleString()}</div>
+                    <div className="text-lg font-bold">Total (incl. VAT & NHIL/GETFund): ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}</div>
                   </div>
                 )}
               </div>
@@ -1161,6 +1285,18 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Selected Items</CardTitle>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedAdType && (
+                    <Badge variant="outline" className="text-xs">
+                      Ad type: {getAdTypeById(mediaType, selectedAdType)?.label || selectedAdType}
+                    </Badge>
+                  )}
+                  {selectedTimeClassForItem && (
+                    <Badge variant="outline" className="text-xs">
+                      Time class: {selectedTimeClassForItem}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -1234,11 +1370,15 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                         <span className="text-muted-foreground">VAT (15%):</span>
                         <span>₵{(periodTotal * VAT_RATE).toLocaleString()}</span>
                       </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">NHIL & GETFund (5%):</span>
+                        <span>₵{(periodTotal * NHIL_GETFUND_RATE).toLocaleString()}</span>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center text-lg pt-2 border-t mt-2">
                       <span className="font-bold">Total:</span>
                       <span className="text-2xl font-bold text-primary">
-                        ₵{(periodTotal * (1 + VAT_RATE)).toLocaleString()}
+                        ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
                       </span>
                     </div>
                   </div>

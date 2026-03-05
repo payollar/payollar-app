@@ -33,7 +33,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { SmartTableEditor } from "./smart-table-editor";
 import Link from "next/link";
-import { SMART_RATE_CARD_TEMPLATES } from "@/lib/rate-card-templates";
+import {
+  SMART_RATE_CARD_TEMPLATES,
+  getAdTypeTimeClassTemplateKey,
+  TV_AD_TYPE_IDS,
+  RADIO_AD_TYPE_IDS,
+} from "@/lib/rate-card-templates";
+import { getAdTypesForMediaType } from "@/lib/ad-types";
 
 const COLUMN_DATA_TYPES = [
   { value: "TEXT", label: "Text" },
@@ -58,6 +64,8 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
   const [newReach, setNewReach] = useState("");
   const [newDemographics, setNewDemographics] = useState([]);
   const [newDemographicInput, setNewDemographicInput] = useState("");
+  const [editingSectionId, setEditingSectionId] = useState(null);
+  const [editingSectionTitle, setEditingSectionTitle] = useState("");
 
   useEffect(() => {
     fetchRateCard();
@@ -215,8 +223,23 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
       return;
     }
 
-    // TODO: Implement section deletion API
-    toast.info("Section deletion not yet implemented");
+    try {
+      const response = await fetch(
+        `/api/media-agency/rate-cards/${rateCardId}/sections/${sectionId}`,
+        { method: "DELETE" }
+      );
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Section deleted");
+        await fetchRateCard();
+        if (onUpdate) onUpdate();
+      } else {
+        toast.error(data.error || "Failed to delete section");
+      }
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      toast.error("Failed to delete section");
+    }
   };
 
   if (loading) {
@@ -442,11 +465,180 @@ export function SmartRateCardEditor({ rateCardId, onUpdate }) {
         </CardHeader>
       </Card>
 
+      {/* Add Ad Type Section - one section per ad type with time-class-linked rates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Ad Type Sections</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Add a section per ad type. Each section has rates by time class (Premium, M1–M4). Used in the period calculator.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {(() => {
+              const listingType = rateCard.listingType || "TV";
+              const adTypeIds = listingType === "RADIO" ? RADIO_AD_TYPE_IDS : TV_AD_TYPE_IDS;
+              const adTypes = getAdTypesForMediaType(listingType.toLowerCase());
+              const existingSectionTitles = new Set(
+                rateCard.sections?.map((s) => s.title.toLowerCase()) || []
+              );
+              return adTypeIds.map((adTypeId) => {
+                const adType = adTypes.find((a) => a.id === adTypeId);
+                const label = adType?.label || adTypeId;
+                const sectionTitle = label;
+                const alreadyExists = existingSectionTitles.has(sectionTitle.toLowerCase());
+                return (
+                  <Button
+                    key={adTypeId}
+                    variant="outline"
+                    size="sm"
+                    disabled={alreadyExists}
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(
+                          `/api/media-agency/rate-cards/${rateCardId}/sections`,
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              title: sectionTitle,
+                              templateKey: getAdTypeTimeClassTemplateKey(adTypeId),
+                            }),
+                          }
+                        );
+                        const data = await response.json();
+                        if (data.success) {
+                          toast.success(`${label} section added`);
+                          await fetchRateCard();
+                          if (onUpdate) onUpdate();
+                        } else {
+                          toast.error(data.error || "Failed to add section");
+                        }
+                      } catch (error) {
+                        console.error("Error adding ad type section:", error);
+                        toast.error("Failed to add section");
+                      }
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {label}
+                    {alreadyExists && " ✓"}
+                  </Button>
+                );
+              });
+            })()}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Sections */}
       {rateCard.sections?.map((section) => (
         <Card key={section.id}>
           <CardHeader>
-            <CardTitle className="text-xl">{section.title}</CardTitle>
+            <div className="flex items-center justify-between">
+              {editingSectionId === section.id ? (
+                <div className="flex items-center gap-2 flex-1 mr-4">
+                  <Input
+                    value={editingSectionTitle}
+                    onChange={(e) => setEditingSectionTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        (async () => {
+                          const title = editingSectionTitle.trim() || section.title;
+                          try {
+                            const response = await fetch(
+                              `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}`,
+                              {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ title }),
+                              }
+                            );
+                            const data = await response.json();
+                            if (data.success) {
+                              toast.success("Section renamed");
+                              setEditingSectionId(null);
+                              await fetchRateCard();
+                            } else {
+                              toast.error(data.error || "Failed to rename section");
+                            }
+                          } catch (error) {
+                            toast.error("Failed to rename section");
+                          }
+                        })();
+                      } else if (e.key === "Escape") {
+                        setEditingSectionId(null);
+                        setEditingSectionTitle("");
+                      }
+                    }}
+                    className="text-xl font-semibold h-9"
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={async () => {
+                      const title = editingSectionTitle.trim() || section.title;
+                      try {
+                        const response = await fetch(
+                          `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}`,
+                          {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ title }),
+                          }
+                        );
+                        const data = await response.json();
+                        if (data.success) {
+                          toast.success("Section renamed");
+                          setEditingSectionId(null);
+                          await fetchRateCard();
+                        } else {
+                          toast.error(data.error || "Failed to rename section");
+                        }
+                      } catch (error) {
+                        toast.error("Failed to rename section");
+                      }
+                    }}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      setEditingSectionId(null);
+                      setEditingSectionTitle("");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <CardTitle
+                  className="text-xl cursor-pointer hover:bg-muted/50 p-2 -m-2 rounded flex items-center gap-2"
+                  onClick={() => {
+                    setEditingSectionId(section.id);
+                    setEditingSectionTitle(section.title || "");
+                  }}
+                >
+                  {section.title || "Untitled Section"}
+                  <Edit className="h-4 w-4 opacity-50 shrink-0" />
+                </CardTitle>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => handleDeleteSection(section.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Section
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {section.tables?.map((table) => (

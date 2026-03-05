@@ -26,7 +26,6 @@ export default async function PublicRateCardPage({ params, searchParams }) {
           tables: {
             include: {
               columns: {
-                where: { isVisibleOnFrontend: true },
                 orderBy: { displayOrder: "asc" },
               },
               rows: {
