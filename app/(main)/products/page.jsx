@@ -89,10 +89,6 @@ export default function ProductsPage() {
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Networks:</span>
-                      <span className="font-medium">50+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Price:</span>
                       <span className="font-medium">₵2,500/spot</span>
                     </div>
@@ -102,7 +98,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View TV Stations
+                    Buy TV Media
                   </Button>
                 </CardContent>
               </Card>
@@ -128,10 +124,6 @@ export default function ProductsPage() {
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Stations:</span>
-                      <span className="font-medium">100+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Price:</span>
                       <span className="font-medium">₵250/spot</span>
                     </div>
@@ -141,7 +133,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Radio Stations
+                    Buy Radio Media
                   </Button>
                 </CardContent>
               </Card>
@@ -167,10 +159,6 @@ export default function ProductsPage() {
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Locations:</span>
-                      <span className="font-medium">200+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Price:</span>
                       <span className="font-medium">₵8,000/month</span>
                     </div>
@@ -180,7 +168,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Billboards
+                    Buy Billboard Media
                   </Button>
                 </CardContent>
               </Card>
@@ -206,10 +194,6 @@ export default function ProductsPage() {
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Platforms:</span>
-                      <span className="font-medium">15+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Price:</span>
                       <span className="font-medium">₵500/campaign</span>
                     </div>
@@ -219,7 +203,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Digital Options
+                    Buy Digital Media
                   </Button>
                 </CardContent>
               </Card>
@@ -245,10 +229,6 @@ export default function ProductsPage() {
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Influencers:</span>
-                      <span className="font-medium">500+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Price:</span>
                       <span className="font-medium">₵1,000/post</span>
                     </div>
@@ -258,7 +238,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Influencers
+                    Buy Influencer Marketing
                   </Button>
                 </CardContent>
               </Card>
@@ -297,7 +277,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    View Packages
+                    Buy Video Clipping
                   </Button>
                 </CardContent>
               </Card>

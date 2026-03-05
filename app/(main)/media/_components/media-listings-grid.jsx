@@ -1,7 +1,6 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Tv,
@@ -42,17 +41,14 @@ export function MediaListingsGrid({ listingsByType }) {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-3 left-3 flex items-center justify-between w-[calc(100%-24px)]">
+                  <div className="absolute bottom-3 left-3">
                     <h3 className="text-white text-xl font-bold">{type.name}</h3>
-                    <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                      {filteredListings.length} listing{filteredListings.length !== 1 ? "s" : ""}
-                    </Badge>
                   </div>
                 </div>
                 <CardContent className="space-y-3 pt-4">
                   <p className="text-muted-foreground text-sm line-clamp-2">{type.description}</p>
                   <Button className="w-full bg-transparent" variant="outline" size="sm">
-                    View {type.name.replace(" Media", "")} Listings
+                    Buy {type.name}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>

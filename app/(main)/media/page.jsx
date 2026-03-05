@@ -180,52 +180,6 @@ export default async function MediaPage() {
         </div>
       </section>
 
-      {/* Media Agency Registration CTA */}
-      <section className="py-12 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-y">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-card border border-emerald-500/20 rounded-lg p-8 md:p-12">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <Badge variant="secondary" className="w-fit">
-                  <Zap className="h-3 w-3 mr-1" />
-                  For Media Agencies
-                </Badge>
-                <h2 className="text-2xl md:text-3xl font-bold">List Your Media Channels</h2>
-                <p className="text-muted-foreground text-lg">
-                  Join our platform as a media agency and start receiving booking inquiries from clients. 
-                  List your TV stations, radio channels, billboards, and digital platforms in one place.
-                </p>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                    Reach thousands of potential clients
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                    Monitor booking inquiries and performance
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                    Manage all your media listings in one dashboard
-                  </li>
-                </ul>
-              </div>
-              <div className="flex flex-col gap-4">
-                <Link href="/media/register">
-                  <Button size="lg" className="w-full text-lg h-14">
-                    Register Your Agency
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <p className="text-sm text-muted-foreground text-center">
-                  Free registration • Verified agencies only • Start receiving bookings immediately
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Media Services Grid - shows registered listings by type */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -416,7 +370,7 @@ export default async function MediaPage() {
                 <p className="text-muted-foreground text-sm">
                   Reach millions with television advertising across local and national networks.
                 </p>
-                <div className="mt-4 text-primary text-sm font-medium">View TV Stations →</div>
+                <div className="mt-4 text-primary text-sm font-medium">Buy TV Media →</div>
               </Card>
             </Link>
             <Link href="/products/radio-media">
@@ -428,7 +382,7 @@ export default async function MediaPage() {
                 <p className="text-muted-foreground text-sm">
                   Connect with audiences through AM/FM radio stations nationwide.
                 </p>
-                <div className="mt-4 text-primary text-sm font-medium">View Radio Stations →</div>
+                <div className="mt-4 text-primary text-sm font-medium">Buy Radio Media →</div>
               </Card>
             </Link>
             <Link href="/products/billboard-media">
@@ -440,7 +394,7 @@ export default async function MediaPage() {
                 <p className="text-muted-foreground text-sm">
                   High-impact outdoor advertising in prime locations across cities.
                 </p>
-                <div className="mt-4 text-primary text-sm font-medium">View Billboards →</div>
+                <div className="mt-4 text-primary text-sm font-medium">Buy Billboard Media →</div>
               </Card>
             </Link>
             <Link href="/products/digital-media">
@@ -452,7 +406,7 @@ export default async function MediaPage() {
                 <p className="text-muted-foreground text-sm">
                   Social media, streaming, and online advertising platforms.
                 </p>
-                <div className="mt-4 text-primary text-sm font-medium">View Digital Options →</div>
+                <div className="mt-4 text-primary text-sm font-medium">Buy Digital Media →</div>
               </Card>
             </Link>
           </div>
