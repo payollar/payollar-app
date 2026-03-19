@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   User,
@@ -73,7 +73,6 @@ const menuItems = [
 
 export function CreatorSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
@@ -81,8 +80,8 @@ export function CreatorSidebar() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            router.push("/");
-            router.refresh();
+            // Full page reload avoids client-side transition errors
+            window.location.href = "/sign-in";
           },
           onError: (ctx) => {
             toast.error(ctx.error?.message || "Failed to sign out");

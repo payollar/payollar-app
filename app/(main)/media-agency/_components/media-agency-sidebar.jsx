@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
@@ -72,7 +72,6 @@ const menuItems = [
 
 export function MediaAgencySidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
@@ -80,8 +79,8 @@ export function MediaAgencySidebar() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            router.push("/");
-            router.refresh();
+            // Full page reload avoids client-side transition errors
+            window.location.href = "/sign-in";
           },
         },
       });

@@ -33,11 +33,13 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { SlotPicker } from "./slot-picker";
 import { AppointmentForm } from "./appointment-form";
+import { BookingAgreementModal } from "./booking-agreement-modal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function DoctorProfile({ doctor, availableDays }) {
   const [showBooking, setShowBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isAgreementOpen, setIsAgreementOpen] = useState(false);
   const router = useRouter();
 
   // Calculate total available slots
@@ -46,16 +48,23 @@ export function DoctorProfile({ doctor, availableDays }) {
     0
   );
 
-  const toggleBooking = () => {
-    setShowBooking(!showBooking);
-    if (!showBooking) {
-      // Scroll to booking section when expanding
-      setTimeout(() => {
-        document.getElementById("booking-section")?.scrollIntoView({
-          behavior: "smooth",
-        });
-      }, 100);
+  const handleBookSessionClick = () => {
+    if (showBooking) {
+      setShowBooking(false);
+    } else {
+      // Open agreement contract first before showing booking section
+      setIsAgreementOpen(true);
     }
+  };
+
+  const handleAgreementAccept = () => {
+    setShowBooking(true);
+    setIsAgreementOpen(false);
+    setTimeout(() => {
+      document.getElementById("booking-section")?.scrollIntoView({
+        behavior: "smooth",
+      });
+    }, 100);
   };
 
   const handleSlotSelect = (slot) => {
@@ -108,7 +117,7 @@ export function DoctorProfile({ doctor, availableDays }) {
                 </div>
 
                 <Button
-                  onClick={toggleBooking}
+                  onClick={handleBookSessionClick}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4"
                 >
                   {showBooking ? (
@@ -118,7 +127,7 @@ export function DoctorProfile({ doctor, availableDays }) {
                     </>
                   ) : (
                     <>
-                      Book Session
+                      Book Now
                       <ChevronDown className="ml-2 h-4 w-4" />
                     </>
                   )}
@@ -475,6 +484,15 @@ export function DoctorProfile({ doctor, availableDays }) {
           </div>
         )}
       </div>
+
+      <BookingAgreementModal
+        isOpen={isAgreementOpen}
+        onClose={() => setIsAgreementOpen(false)}
+        onAccept={handleAgreementAccept}
+        creatorName={doctor.name}
+        doctorId={doctor.id}
+        availableDays={availableDays}
+      />
     </div>
   );
 }

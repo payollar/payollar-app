@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Database,
@@ -75,7 +75,6 @@ const menuItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [currentTab, setCurrentTab] = useState("dashboard");
 
   useEffect(() => {
@@ -91,8 +90,8 @@ export function AdminSidebar() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            router.push("/");
-            router.refresh();
+            // Full page reload avoids client-side transition errors
+            window.location.href = "/sign-in";
           },
           onError: (ctx) => {
             toast.error(ctx.error?.message || "Failed to sign out");

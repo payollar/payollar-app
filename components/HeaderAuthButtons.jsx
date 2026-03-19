@@ -2,13 +2,12 @@
 
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { User, LogOut } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 
 export default function HeaderAuthButtons() {
-  const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [sessionData, setSessionData] = useState(null);
@@ -216,19 +215,8 @@ export default function HeaderAuthButtons() {
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            // Clear session data immediately
-            setSessionData(null);
-            setIsCheckingSession(false);
-            
-            // Trigger events to notify other components
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event('storage'));
-              window.dispatchEvent(new CustomEvent('auth:session-update'));
-            }
-            
-            // Redirect to home
-            router.push("/");
-            router.refresh();
+            // Full page reload avoids client-side transition errors
+            window.location.href = "/sign-in";
           },
         },
       });
@@ -236,10 +224,7 @@ export default function HeaderAuthButtons() {
       if (process.env.NODE_ENV === 'development') {
         console.error("Sign out error:", error);
       }
-      setSessionData(null);
-      setIsCheckingSession(false);
-      router.push("/");
-      router.refresh();
+      window.location.href = "/sign-in";
     }
   };
 
