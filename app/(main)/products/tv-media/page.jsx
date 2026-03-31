@@ -42,6 +42,14 @@ const BROADCAST_FREQUENCY_OPTIONS = [
 /** Sun–Sat; default Mon–Fri on */
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+/** Same teal / warm radial wash as TV hero — reused on Campaign Scheduler card */
+const TV_MEDIA_ACCENT_RADIAL_CLASS =
+  "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.6_0.12_184.704/0.12),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.2_41.116/0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.55_0.18_264.376/0.18),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.17_162.48/0.12),transparent_50%)]";
+
+/** Soft vertical blend — scheduler uses lighter stops so card stays readable */
+const TV_MEDIA_SCHEDULER_VERTICAL_FADE_CLASS =
+  "pointer-events-none absolute inset-0 bg-gradient-to-b from-background/20 via-transparent to-chart-2/[0.04] dark:from-background/15 dark:via-chart-2/[0.06] dark:to-chart-1/[0.05]";
+
 /** Match rate card: VAT 15%, NHIL + GETFund 5% on subtotal */
 const VAT_RATE = 0.15;
 const NHIL_GETFUND_RATE = 0.05;
@@ -376,7 +384,7 @@ export default function TVMediaPage() {
           className="absolute inset-0 h-full w-full object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-background" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.6_0.12_184.704/0.12),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.2_41.116/0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.55_0.18_264.376/0.18),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.17_162.48/0.12),transparent_50%)]" />
+        <div className={TV_MEDIA_ACCENT_RADIAL_CLASS} />
         <div className="relative mx-auto flex min-h-[min(52vh,380px)] max-w-6xl flex-col justify-center px-5 py-10 sm:min-h-[300px] sm:px-10 sm:py-12 lg:min-h-[340px]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-chart-2 sm:text-sm">
             Campaign planner
@@ -402,11 +410,14 @@ export default function TVMediaPage() {
       {/* Campaign Scheduler */}
       <section className="px-4 pb-20 pt-12 sm:px-8 sm:pb-28 sm:pt-16 lg:px-12">
         <div className="mx-auto max-w-5xl">
-          <div className="rounded-[1.75rem] border border-border bg-card/90 p-8 shadow-sm shadow-chart-2/5 ring-1 ring-chart-1/5 backdrop-blur-sm dark:shadow-chart-2/10 dark:ring-chart-2/10 sm:p-10 md:p-12">
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-border bg-card/90 shadow-sm shadow-chart-2/5 ring-1 ring-chart-1/5 backdrop-blur-sm dark:shadow-chart-2/10 dark:ring-chart-2/10">
+            <div className={TV_MEDIA_SCHEDULER_VERTICAL_FADE_CLASS} aria-hidden />
+            <div className={TV_MEDIA_ACCENT_RADIAL_CLASS} aria-hidden />
+            <div className="relative z-[1] p-8 sm:p-10 md:p-12">
             {/* Header */}
             <div className="mb-11 sm:mb-14">
               <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                Campaign Scheduler
+                Media Scheduler
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Select station, dates, airtime, frequency—then review. Same tax logic as rate card checkout.
@@ -1263,6 +1274,7 @@ export default function TVMediaPage() {
                 )}
               </div>
             )}
+            </div>
           </div>
 
           {/* Secondary: quick links to rate cards when step 1 not active or as reference */}
