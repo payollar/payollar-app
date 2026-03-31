@@ -147,7 +147,7 @@ function getDaysBetween(start, end) {
   return Math.max(0, diff + 1);
 }
 
-export function RateCardDisplay({ rateCard, initialAdType = null }) {
+export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaignName = null }) {
   const mediaType = (rateCard?.listingType || "TV").toLowerCase();
   const adTypes = getAdTypesForMediaType(mediaType);
 
@@ -156,7 +156,9 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState([]);
-  const [mediaCampaignName, setMediaCampaignName] = useState("");
+  const [mediaCampaignName, setMediaCampaignName] = useState(
+    () => (typeof initialCampaignName === "string" ? initialCampaignName : "")
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTimeClass, setSelectedTimeClass] = useState("ALL");
   const [selectedAdTypeFilter, setSelectedAdTypeFilter] = useState(() => {

@@ -7,6 +7,13 @@ export default async function PublicRateCardPage({ params, searchParams }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const adTypeRaw = resolvedSearchParams?.adType;
   const adTypeFromUrl = typeof adTypeRaw === "string" ? adTypeRaw : Array.isArray(adTypeRaw) ? adTypeRaw[0] : null;
+  const campaignNameRaw = resolvedSearchParams?.campaignName;
+  const campaignNameFromUrl =
+    typeof campaignNameRaw === "string"
+      ? campaignNameRaw
+      : Array.isArray(campaignNameRaw)
+        ? campaignNameRaw[0]
+        : null;
 
   const rateCard = await db.rateCard.findUnique({
     where: {
@@ -52,5 +59,11 @@ export default async function PublicRateCardPage({ params, searchParams }) {
     notFound();
   }
 
-  return <RateCardDisplay rateCard={rateCard} initialAdType={adTypeFromUrl} />;
+  return (
+    <RateCardDisplay
+      rateCard={rateCard}
+      initialAdType={adTypeFromUrl}
+      initialCampaignName={campaignNameFromUrl}
+    />
+  );
 }
