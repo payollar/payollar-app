@@ -9,15 +9,6 @@ import {
   ArrowLeft,
   ArrowRight,
   MapPin,
-  Play,
-  Mic,
-  Star,
-  Box,
-  Film,
-  Music,
-  Megaphone,
-  MessageCircle,
-  LayoutPanelTop,
   ChevronRight,
   ChevronLeft,
   Check,
@@ -55,16 +46,17 @@ const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const VAT_RATE = 0.15;
 const NHIL_GETFUND_RATE = 0.05;
 
-const AD_FORMAT_ICONS = {
-  play: Play,
-  mic: Mic,
-  star: Star,
-  box: Box,
-  film: Film,
-  music: Music,
-  megaphone: Megaphone,
-  "message-circle": MessageCircle,
-  "layout-panel-top": LayoutPanelTop,
+/** Icons from /public/icons — keyed by ad format id; filenames mirror the asset (tv, microphone, musical-note, billboard, product, video, …). */
+const AD_FORMAT_ICON_SRC = {
+  tvc: "/icons/play-record.png",
+  lpm: "/icons/microphone.png",
+  jingle: "/icons/musical-note.png",
+  sponsorship: "/icons/trust.PNG",
+  announcement: "/icons/bolt.PNG",
+  interview: "/icons/all.PNG",
+  "product-placement": "/icons/product.PNG",
+  documentary: "/icons/video.PNG",
+  billboard: "/icons/billboard.png",
 };
 
 /** Display order for TV campaign scheduler — all TV ad formats */
@@ -157,7 +149,32 @@ function isRangeEndpoint(day, start, end) {
   return t.getTime() === s.getTime() || t.getTime() === e.getTime();
 }
 
-/** Demo airtime blocks — illustrative weekly rates (`weeklyGhs` drives estimate); one slot booked */
+/**
+ * Display period for airtime card prices from campaign length (inclusive days).
+ * 1–6 days → per day; 7–27 → per week; 28+ → per month. No dates yet → weekly.
+ */
+function getAirtimePricingPeriod(dayCount) {
+  if (!dayCount || dayCount < 1) return "week";
+  if (dayCount <= 6) return "day";
+  if (dayCount <= 27) return "week";
+  return "month";
+}
+
+/** Convert stored weekly rate to the unit shown for the given period */
+function weeklyGhsToDisplayAmount(weeklyGhs, period) {
+  if (period === "day") return weeklyGhs / 7;
+  if (period === "month") return weeklyGhs * (30 / 7);
+  return weeklyGhs;
+}
+
+/** e.g. GH₵16,800/wk — uses GH₵ prefix to match station copy */
+function formatAirtimeSlotPrice(weeklyGhs, period) {
+  const n = Math.round(weeklyGhsToDisplayAmount(weeklyGhs, period));
+  const suffix = period === "day" ? "/day" : period === "week" ? "/wk" : "/month";
+  return `GH₵${n.toLocaleString()}${suffix}`;
+}
+
+/** Demo airtime blocks — `weeklyGhs` drives estimates; card copy is derived from dates + formatAirtimeSlotPrice */
 const AIRTIME_SLOTS = [
   { id: "at-1", range: "05:00–06:00", label: "Early Morning", price: "GH₵16,800/wk", weeklyGhs: 16800, booked: false },
   { id: "at-2", range: "06:00–09:00", label: "Morning Drive", price: "GH₵22,400/wk", weeklyGhs: 22400, booked: false },
@@ -232,6 +249,12 @@ export default function TVMediaPage() {
   const campaignDayCount = useMemo(
     () => getCampaignDayCount(campaignStart, campaignEnd),
     [campaignStart, campaignEnd]
+  );
+
+  /** Matches airtime card suffix: /day, /wk, /month from campaign window */
+  const airtimePricingPeriod = useMemo(
+    () => getAirtimePricingPeriod(campaignDayCount),
+    [campaignDayCount]
   );
 
   const handleCampaignDayClick = (d) => {
@@ -386,10 +409,20 @@ export default function TVMediaPage() {
               <div className="flex min-w-[min(100%,620px)] items-center justify-between gap-1 px-1 sm:gap-2">
                 {STEPS.map((step, idx) => (
                   <div key={step.id} className="flex min-w-0 flex-1 items-center">
-                    <div className="flex min-w-0 flex-1 flex-col items-center">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(step.id)}
+                      aria-current={currentStep === step.id ? "step" : undefined}
+                      aria-label={`Go to step ${step.id}: ${step.label}`}
+                      className={cn(
+                        "group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1 pt-0.5 outline-none transition-colors",
+                        "hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-chart-2/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      )}
+                    >
                       <div
                         className={cn(
                           "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-all duration-300 sm:h-11 sm:w-11 sm:text-sm",
+                          "group-hover:ring-1 group-hover:ring-chart-2/25",
                           currentStep === step.id
                             ? "bg-chart-2/20 text-chart-2 shadow-sm ring-1 ring-chart-2/35 dark:bg-chart-2/25 dark:text-chart-2"
                             : currentStep > step.id
@@ -406,12 +439,12 @@ export default function TVMediaPage() {
                       <span
                         className={cn(
                           "mt-3 max-w-[92px] text-center text-[11px] font-medium leading-snug tracking-tight sm:max-w-none sm:text-xs sm:leading-tight",
-                          currentStep === step.id ? "text-chart-2" : "text-muted-foreground"
+                          currentStep === step.id ? "text-chart-2" : "text-muted-foreground group-hover:text-foreground"
                         )}
                       >
                         {step.label}
                       </span>
-                    </div>
+                    </button>
                     {idx < STEPS.length - 1 && (
                       <div
                         className={cn(
@@ -475,7 +508,7 @@ export default function TVMediaPage() {
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5">
                     {tvAdFormats.map((format) => {
-                      const Icon = AD_FORMAT_ICONS[format.icon] || Play;
+                      const iconSrc = AD_FORMAT_ICON_SRC[format.id];
                       return (
                         <button
                           key={format.id}
@@ -490,13 +523,21 @@ export default function TVMediaPage() {
                         >
                           <div
                             className={cn(
-                              "mb-3 flex h-11 w-11 items-center justify-center rounded-xl transition-colors",
+                              "mb-3 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl transition-colors",
                               selectedAdFormatId === format.id
-                                ? "bg-chart-2/15 text-chart-2 ring-1 ring-chart-2/25"
-                                : "bg-muted/50 text-muted-foreground"
+                                ? "bg-chart-2/15 ring-1 ring-chart-2/25"
+                                : "bg-muted/50"
                             )}
                           >
-                            <Icon className="h-5 w-5" />
+                            {iconSrc ? (
+                              <img
+                                src={iconSrc}
+                                alt=""
+                                className="h-7 w-7 object-contain dark:opacity-95"
+                              />
+                            ) : (
+                              <Tv className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+                            )}
                           </div>
                           <p className="text-base font-semibold text-foreground">{format.label}</p>
                           <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">{format.fullName}</p>
@@ -689,6 +730,15 @@ export default function TVMediaPage() {
                     Choose where your ads run and which spot lengths apply. Rates shown are illustrative; your station
                     rate card has final pricing.
                   </p>
+                  {campaignStart && campaignDayCount > 0 && (
+                    <p className="mt-2 text-sm text-chart-3/95 dark:text-chart-3">
+                      Slot prices follow your campaign length ({campaignDayCount} day
+                      {campaignDayCount === 1 ? "" : "s"}):{" "}
+                      {airtimePricingPeriod === "day" && "shown per day."}
+                      {airtimePricingPeriod === "week" && "shown per week."}
+                      {airtimePricingPeriod === "month" && "shown per month (30-day basis)."}
+                    </p>
+                  )}
                 </div>
 
                 {/* Airtime slots */}
@@ -701,6 +751,12 @@ export default function TVMediaPage() {
                   </div>
                   <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
                     Greyed slots are fully booked. Your selections stack — each chosen slot runs your campaign.
+                    {!campaignStart && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        Set campaign dates in the previous step to label rates per day, week, or month.
+                      </span>
+                    )}
                   </p>
                   <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     {AIRTIME_SLOTS.map((slot) => {
@@ -735,7 +791,7 @@ export default function TVMediaPage() {
                             <p className="mt-2 text-xs font-semibold text-muted-foreground sm:text-sm">Booked</p>
                           ) : (
                             <p className="mt-2 text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
-                              {slot.price}
+                              {formatAirtimeSlotPrice(slot.weeklyGhs, airtimePricingPeriod)}
                             </p>
                           )}
                         </button>
@@ -899,75 +955,10 @@ export default function TVMediaPage() {
                     Review &amp; confirm
                   </h3>
                   <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                    Name your campaign, add billing contact details, and review the estimate. Final line items and
-                    payment are completed on the station rate card (same tax treatment as rate card checkout).
+                    Review your campaign summary and pricing estimate, then add your campaign name and billing contact.
+                    Final line items and payment are completed on the station rate card (same tax treatment as rate card
+                    checkout).
                   </p>
-                </div>
-
-                {/* Campaign name + contact */}
-                <div className="space-y-5 rounded-2xl border border-border border-l-4 border-l-chart-3/45 bg-muted/40 p-5 sm:p-7 dark:border-l-chart-3/55">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <User className="h-4 w-4 shrink-0 text-chart-3" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide sm:text-base">Campaign &amp; contact</h4>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tv-media-campaign-name" className="text-sm text-muted-foreground">
-                        Media campaign name <span className="text-red-400">*</span>
-                      </Label>
-                      <Input
-                        id="tv-media-campaign-name"
-                        value={mediaCampaignName}
-                        onChange={(e) => setMediaCampaignName(e.target.value)}
-                        placeholder="e.g. Q1 Product Launch, Summer Promo"
-                        className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                        autoComplete="off"
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="tv-media-contact-name" className="text-xs text-muted-foreground sm:text-sm">
-                          Contact name
-                        </Label>
-                        <Input
-                          id="tv-media-contact-name"
-                          value={contactFullName}
-                          onChange={(e) => setContactFullName(e.target.value)}
-                          placeholder="Full name"
-                          className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                          autoComplete="name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="tv-media-contact-phone" className="text-xs text-muted-foreground sm:text-sm">
-                          Phone
-                        </Label>
-                        <Input
-                          id="tv-media-contact-phone"
-                          type="tel"
-                          value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
-                          placeholder="+233 …"
-                          className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                          autoComplete="tel"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tv-media-contact-email" className="text-xs text-muted-foreground sm:text-sm">
-                        Email
-                      </Label>
-                      <Input
-                        id="tv-media-contact-email"
-                        type="email"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        placeholder="billing@company.com"
-                        className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Campaign summary */}
@@ -1070,11 +1061,17 @@ export default function TVMediaPage() {
                   {selectedAirtimeSlotIds.length > 0 ? (
                     <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-sm sm:text-base">
                       <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
-                        Airtime (weekly)
+                        Airtime (
+                        {airtimePricingPeriod === "day" && "per day"}
+                        {airtimePricingPeriod === "week" && "per week"}
+                        {airtimePricingPeriod === "month" && "per month"})
                       </p>
                       {selectedAirtimeSlotIds.map((id) => {
                         const slot = AIRTIME_SLOTS.find((s) => s.id === id);
                         if (!slot) return null;
+                        const unit = Math.round(weeklyGhsToDisplayAmount(slot.weeklyGhs, airtimePricingPeriod));
+                        const suffix =
+                          airtimePricingPeriod === "day" ? "/day" : airtimePricingPeriod === "week" ? "/wk" : "/month";
                         return (
                           <div
                             key={id}
@@ -1085,13 +1082,14 @@ export default function TVMediaPage() {
                               <span className="text-muted-foreground">({slot.label})</span>
                             </span>
                             <span className="shrink-0 font-medium tabular-nums text-foreground/90">
-                              ₵{slot.weeklyGhs.toLocaleString()}/wk
+                              ₵{unit.toLocaleString()}
+                              {suffix}
                             </span>
                           </div>
                         );
                       })}
                       <div className="flex justify-between pt-2 text-xs text-muted-foreground sm:text-sm">
-                        <span>Weekly subtotal</span>
+                        <span>Weekly subtotal (estimate basis)</span>
                         <span className="tabular-nums">₵{weeklyAirtimeSubtotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground sm:text-sm">
@@ -1144,6 +1142,72 @@ export default function TVMediaPage() {
                         campaign on the rate card.
                       </p>
                     )}
+                  </div>
+                </div>
+
+                {/* Campaign name + contact — last before actions */}
+                <div className="space-y-5 rounded-2xl border border-border border-l-4 border-l-chart-3/45 bg-muted/40 p-5 sm:p-7 dark:border-l-chart-3/55">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="h-4 w-4 shrink-0 text-chart-3" />
+                    <h4 className="text-sm font-semibold uppercase tracking-wide sm:text-base">Campaign &amp; contact</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tv-media-campaign-name" className="text-sm text-muted-foreground">
+                        Media campaign name <span className="text-red-400">*</span>
+                      </Label>
+                      <Input
+                        id="tv-media-campaign-name"
+                        value={mediaCampaignName}
+                        onChange={(e) => setMediaCampaignName(e.target.value)}
+                        placeholder="e.g. Q1 Product Launch, Summer Promo"
+                        className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="tv-media-contact-name" className="text-xs text-muted-foreground sm:text-sm">
+                          Contact name
+                        </Label>
+                        <Input
+                          id="tv-media-contact-name"
+                          value={contactFullName}
+                          onChange={(e) => setContactFullName(e.target.value)}
+                          placeholder="Full name"
+                          className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
+                          autoComplete="name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tv-media-contact-phone" className="text-xs text-muted-foreground sm:text-sm">
+                          Phone
+                        </Label>
+                        <Input
+                          id="tv-media-contact-phone"
+                          type="tel"
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          placeholder="+233 …"
+                          className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
+                          autoComplete="tel"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tv-media-contact-email" className="text-xs text-muted-foreground sm:text-sm">
+                        Email
+                      </Label>
+                      <Input
+                        id="tv-media-contact-email"
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        placeholder="billing@company.com"
+                        className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
+                        autoComplete="email"
+                      />
+                    </div>
                   </div>
                 </div>
 
