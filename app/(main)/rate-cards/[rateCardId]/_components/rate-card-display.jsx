@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft, MapPin, Radio, Users } from "lucide-react";
+import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft, MapPin, Radio, Users, Filter, Sparkles } from "lucide-react";
 import { getAdTypesForMediaType, getAdTypeById } from "@/lib/ad-types";
 
 // Helper to read a semantic "role" from a SmartTableColumn config JSON.
@@ -598,77 +598,106 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 pb-36 sm:pb-32">
         {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Products
-          </Link>
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{rateCard.title}</h1>
-              {rateCard.description && (
-                <p className="text-muted-foreground text-lg">{rateCard.description}</p>
+        <div className="mb-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" aria-hidden />
+          <div className="p-6 sm:p-8">
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6 rounded-full px-3 py-1.5 -ml-1 hover:bg-muted/60"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              Back to Products
+            </Link>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mb-2">
+                  Rate card
+                </p>
+                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
+                  {rateCard.title}
+                </h1>
+                {rateCard.description && (
+                  <p className="text-muted-foreground text-base sm:text-lg mt-3 leading-relaxed max-w-3xl">
+                    {rateCard.description}
+                  </p>
+                )}
+              </div>
+              {rateCard.agency.logoUrl && (
+                <div className="shrink-0 rounded-xl border border-border/80 bg-background p-2 shadow-sm">
+                  <img
+                    src={rateCard.agency.logoUrl}
+                    alt={rateCard.agency.agencyName}
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover"
+                  />
+                </div>
               )}
             </div>
-            {rateCard.agency.logoUrl && (
-              <img
-                src={rateCard.agency.logoUrl}
-                alt={rateCard.agency.agencyName}
-                className="h-16 w-16 rounded-lg object-cover"
-              />
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              <span>{rateCard.agency.agencyName}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>Last updated: {format(new Date(rateCard.lastUpdated), "PPP")}</span>
-            </div>
-            {rateCard.location && (
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground border-t border-border/50 pt-6">
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{rateCard.location}</span>
+                <Building2 className="h-4 w-4 shrink-0 text-primary/70" />
+                <span className="font-medium text-foreground/90">{rateCard.agency.agencyName}</span>
               </div>
-            )}
-            {rateCard.reach && (
               <div className="flex items-center gap-2">
-                <Radio className="h-4 w-4" />
-                <span>{rateCard.reach}</span>
+                <Clock className="h-4 w-4 shrink-0" />
+                <span>Updated {format(new Date(rateCard.lastUpdated), "PPP")}</span>
               </div>
-            )}
-            {rateCard.demographics?.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <Users className="h-4 w-4 shrink-0" />
-                {rateCard.demographics.map((d, i) => (
-                  <span key={i} className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-                    {d}
-                  </span>
-                ))}
-              </div>
-            )}
+              {rateCard.location && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>{rateCard.location}</span>
+                </div>
+              )}
+              {rateCard.reach && (
+                <div className="flex items-center gap-2">
+                  <Radio className="h-4 w-4 shrink-0" />
+                  <span>{rateCard.reach}</span>
+                </div>
+              )}
+              {rateCard.demographics?.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                  <Users className="h-4 w-4 shrink-0" />
+                  {rateCard.demographics.map((d, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Filters - ad type first, then time class */}
-        <Card className="mt-6 sticky top-4 z-30 shadow-md">
-          <CardContent className="py-5 px-6 sm:px-8 space-y-5">
+        <Card className="mt-6 sticky top-3 z-30 rounded-2xl border-border/80 shadow-md shadow-black/5 dark:shadow-black/20">
+          <CardHeader className="pb-2 pt-5 px-5 sm:px-6">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Filter className="h-4 w-4" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Refine rates</CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Narrow down by ad type and time class; then tap rates to select and build your campaign.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pb-5 px-5 sm:px-6 space-y-5">
             {/* Ad type filter - comes first */}
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground shrink-0">
-                Filter by ad type:
+            <div className="space-y-3">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Ad type
               </span>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 -mx-1 px-1 sm:overflow-visible">
                 <Button
                   size="sm"
+                  className="rounded-full h-9 px-4"
                   variant={selectedAdTypeFilter === "ALL" ? "default" : "outline"}
                   onClick={() => setSelectedAdTypeFilter("ALL")}
                 >
@@ -678,6 +707,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                   <Button
                     key={at.id}
                     size="sm"
+                    className="rounded-full h-9 px-4"
                     variant={selectedAdTypeFilter === at.id ? "default" : "outline"}
                     onClick={() => {
                       setSelectedAdTypeFilter(at.id);
@@ -690,21 +720,26 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                 ))}
               </div>
               {selectedAdTypeFilter !== "ALL" && (
-                <span className="text-sm text-muted-foreground ml-2">
-                  Showing rates for <strong>{getAdTypeById(mediaType, selectedAdTypeFilter)?.label || selectedAdTypeFilter}</strong>
-                </span>
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                  Showing rates for{" "}
+                  <span className="font-medium text-foreground">
+                    {getAdTypeById(mediaType, selectedAdTypeFilter)?.label || selectedAdTypeFilter}
+                  </span>
+                </p>
               )}
             </div>
 
             {/* Time class filter */}
             {timeClassValues.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3 pt-3 border-t">
-                <span className="text-sm font-medium text-muted-foreground shrink-0">
-                  Filter by time class:
+              <div className="space-y-3 pt-4 border-t border-border/60">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Time class
                 </span>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
+                    className="rounded-full h-9 px-4"
                     variant={selectedTimeClass === "ALL" ? "default" : "outline"}
                     onClick={() => setSelectedTimeClass("ALL")}
                   >
@@ -714,6 +749,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                     <Button
                       key={value}
                       size="sm"
+                      className="rounded-full h-9 px-4"
                       variant={selectedTimeClass === value ? "default" : "outline"}
                       onClick={() => setSelectedTimeClass(value)}
                     >
@@ -722,9 +758,10 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                   ))}
                 </div>
                 {selectedTimeClass !== "ALL" && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    Showing spots & prices for <strong>{selectedTimeClass}</strong>
-                  </span>
+                  <p className="text-sm text-muted-foreground">
+                    Spots & prices for{" "}
+                    <span className="font-medium text-foreground">{selectedTimeClass}</span>
+                  </p>
                 )}
               </div>
             )}
@@ -733,12 +770,12 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
 
         {/* Period Calculator - drawer opens when a spot is clicked */}
         <Sheet open={isPeriodCalcOpen} onOpenChange={setIsPeriodCalcOpen}>
-          <SheetContent side="right" elevated className="w-full sm:max-w-md overflow-y-auto p-0">
+          <SheetContent side="right" elevated className="w-full sm:max-w-md overflow-y-auto p-0 border-l border-border/80">
             <div className="flex flex-col h-full">
-              <SheetHeader className="px-6 pt-6 pb-4">
-                <SheetTitle>Period Calculator</SheetTitle>
-                <SheetDescription>
-                  Configure how many times your spot will run to see the total cost
+              <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/60 bg-muted/20">
+                <SheetTitle className="text-lg">Period calculator</SheetTitle>
+                <SheetDescription className="text-sm leading-relaxed">
+                  Set frequency and dates to estimate your campaign total. Tap a rate in the table first.
                 </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
@@ -884,11 +921,13 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Clock className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Select a spot to add</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Click on a rate in the table to configure your period
+                <div className="flex flex-col items-center justify-center py-14 px-4 text-center rounded-xl bg-muted/30 border border-dashed border-border/80 mx-1">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
+                    <Clock className="h-7 w-7 text-muted-foreground" />
+                  </div>
+                  <p className="font-medium text-foreground">No rate selected yet</p>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-xs leading-relaxed">
+                    Tap a price or rate cell in the table below. The calculator will open automatically when you select a numeric rate.
                   </p>
                 </div>
               )}
@@ -898,14 +937,20 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
         </Sheet>
 
         {/* Sections - filtered by ad type when filter is active */}
-        <div className="space-y-12">
+        <div className="space-y-10 sm:space-y-14">
           {rateCard.sections
             ?.filter((section) =>
               sectionMatchesAdTypeFilter(section, selectedAdTypeFilter)
             )
             ?.map((section) => (
-            <div key={section.id}>
-              <h2 className="text-2xl font-bold mb-6">{section.title}</h2>
+            <div key={section.id} className="scroll-mt-28">
+              <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                <span className="text-sm font-semibold text-primary uppercase tracking-wider">
+                  Section
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-6">{section.title}</h2>
 
               {section.tables?.map((table) => {
                 // When filtering by a specific time class, hide the Time Class column
@@ -920,21 +965,21 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                     : displayColumns;
 
                 return (
-                <Card key={table.id} className="mb-8">
+                <Card key={table.id} className="mb-8 rounded-2xl border-border/80 shadow-sm overflow-hidden">
                   {table.title && (
-                    <CardHeader>
-                      <CardTitle>{table.title}</CardTitle>
+                    <CardHeader className="bg-muted/30 border-b border-border/60 py-4">
+                      <CardTitle className="text-lg font-semibold">{table.title}</CardTitle>
                     </CardHeader>
                   )}
-                  <CardContent className="px-6 sm:px-8">
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
+                  <CardContent className="px-0 pt-0 pb-4">
+                    <div className="overflow-x-auto px-4 sm:px-6">
+                      <table className="w-full border-collapse text-sm">
                         <thead>
-                          <tr className="border-b">
+                          <tr className="border-b border-border/80 bg-muted/40">
                             {visibleColumns.map((column) => (
                               <th
                                 key={column.id}
-                                className="p-3 text-left font-semibold bg-muted/50"
+                                className="p-3 sm:p-4 text-left font-semibold text-foreground text-xs uppercase tracking-wide sm:text-sm"
                               >
                                 {column.name}
                                 {column.isRequiredForBooking && (
@@ -956,7 +1001,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                               )
                             )
                             .map((row) => (
-                              <tr key={row.id} className="border-b">
+                              <tr key={row.id} className="border-b border-border/80 last:border-0 hover:bg-muted/20 transition-colors">
                                 {visibleColumns.map((column) => {
                                   const cellValue = getCellValue(row, column.id);
                                   const isSelected = isCellSelected(row.id, column.id);
@@ -967,13 +1012,13 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                                   return (
                                     <td
                                       key={column.id}
-                                      className={`p-3 transition-all ${
+                                      className={`p-3 sm:p-4 transition-all ${
                                         isEmpty
-                                          ? "cursor-default"
-                                          : "cursor-pointer hover:bg-muted/30"
+                                          ? "cursor-default text-muted-foreground/70"
+                                          : "cursor-pointer hover:bg-primary/5 active:bg-primary/10"
                                       } ${
                                         isSelected
-                                          ? "bg-primary/10 ring-2 ring-primary/20"
+                                          ? "bg-primary/10 ring-2 ring-inset ring-primary/25"
                                           : ""
                                       }`}
                                       onClick={() => {
@@ -1030,8 +1075,8 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                             getCellValue
                           )
                         ).length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No bookable services available
+                        <div className="text-center py-10 px-4 text-muted-foreground text-sm">
+                          No bookable rows match your filters. Try &quot;All&quot; for ad type or time class.
                         </div>
                       )}
                     </div>
@@ -1044,15 +1089,16 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
         </div>
       </div>
 
-      {/* Floating Cart Bag Icon - Always visible */}
+      {/* Floating campaign cart */}
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
           <Button
-            className={`fixed right-6 h-14 w-14 rounded-full shadow-lg z-[100] hover:scale-110 transition-transform ${
-              selectedCells.size > 0 ? "bottom-32" : "bottom-6"
+            className={`fixed right-4 sm:right-6 h-14 w-14 rounded-full shadow-lg z-[100] border border-border/80 hover:scale-105 active:scale-95 transition-transform ${
+              selectedCells.size > 0 ? "bottom-[7.5rem] sm:bottom-32" : "bottom-6"
             }`}
             size="icon"
             variant={cart.length > 0 ? "default" : "outline"}
+            aria-label="Open campaign cart"
           >
             <ShoppingBag className="h-6 w-6" />
             {cartItemCount > 0 && (
@@ -1065,15 +1111,15 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
             )}
           </Button>
         </SheetTrigger>
-          <SheetContent elevated className="w-full sm:max-w-lg overflow-y-auto p-0">
+          <SheetContent elevated className="w-full sm:max-w-lg overflow-y-auto p-0 border-l border-border/80">
             <div className="flex flex-col h-full">
-              <SheetHeader className="px-6 pt-6 pb-4">
-                <SheetTitle>Shopping Cart</SheetTitle>
-              <SheetDescription>
-                {cart.length > 0
-                  ? `${cart.length} line item${cart.length > 1 ? "s" : ""} in your campaign`
-                  : "Your campaign is empty. Add ad types and time classes as line items."}
-              </SheetDescription>
+              <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/60 bg-muted/20">
+                <SheetTitle className="text-lg">Campaign cart</SheetTitle>
+                <SheetDescription className="text-sm leading-relaxed">
+                  {cart.length > 0
+                    ? `${cart.length} line item${cart.length > 1 ? "s" : ""} in your campaign`
+                    : "Add line items from the order summary after you select rates."}
+                </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
               {cart.length === 0 ? (
@@ -1198,57 +1244,64 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
           </SheetContent>
         </Sheet>
 
-      {/* Floating Cart Summary */}
+      {/* Floating selection bar */}
       {selectedCells.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-[100]">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1 overflow-x-auto">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  <span className="font-semibold">
-                    {selectedCells.size} item{selectedCells.size > 1 ? "s" : ""} selected
+        <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-primary/20 bg-background/95 backdrop-blur-md shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.4)] rounded-t-2xl sm:rounded-t-none">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 py-4 sm:py-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-3 min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-foreground">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+                    <ShoppingCart className="h-4 w-4" />
+                  </div>
+                  <span className="font-semibold text-sm sm:text-base">
+                    {selectedCells.size} cell{selectedCells.size > 1 ? "s" : ""} selected
                   </span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {selectedAdType && (
-                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                      <span className="font-medium">Ad type:</span> {getAdTypeById(mediaType, selectedAdType)?.label || selectedAdType}
+                    <Badge variant="secondary" className="text-xs font-normal border-border/80">
+                      <span className="font-medium text-foreground/90">Ad type:</span>{" "}
+                      {getAdTypeById(mediaType, selectedAdType)?.label || selectedAdType}
                     </Badge>
                   )}
                   {selectedTimeClassForItem && (
-                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                      <span className="font-medium">Time class:</span> {selectedTimeClassForItem}
+                    <Badge variant="secondary" className="text-xs font-normal border-border/80">
+                      <span className="font-medium text-foreground/90">Time class:</span> {selectedTimeClassForItem}
                     </Badge>
                   )}
                   {selectedCellsData.slice(0, 5).map(({ rowId, columnId, formattedValue, column }) => (
                     <Badge
                       key={`${rowId}-${columnId}`}
-                      variant="secondary"
-                      className="text-xs flex items-center gap-1"
+                      variant="outline"
+                      className="text-xs font-normal max-w-[200px] truncate"
                     >
                       <span className="font-medium">{column.name}:</span> {formattedValue}
                     </Badge>
                   ))}
                   {selectedCellsData.length > 5 && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="outline" className="text-xs">
                       +{selectedCellsData.length - 5} more
                     </Badge>
                   )}
                 </div>
                 {periodTotal > 0 && (
-                  <div className="ml-auto text-right">
-                    <div className="text-sm text-muted-foreground">Subtotal: ₵{periodTotal.toLocaleString()}</div>
-                    <div className="text-lg font-bold">Total (incl. VAT & NHIL/GETFund): ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}</div>
+                  <div className="text-sm sm:text-right lg:text-left">
+                    <span className="text-muted-foreground">Estimate total </span>
+                    <span className="font-bold text-primary text-base sm:text-lg tabular-nums">
+                      ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground text-xs block sm:inline sm:ml-1"> incl. VAT & NHIL/GETFund</span>
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 ml-4">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setIsPeriodCalcOpen(true)}
-                  title="Period Calculator"
+                  title="Period calculator"
                 >
                   <Calculator className="h-4 w-4 mr-2" />
                   Calculator
@@ -1256,14 +1309,19 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setSelectedCells(new Set())}
                 >
                   <X className="h-4 w-4 mr-2" />
                   Clear
                 </Button>
-                <Button size="sm" onClick={() => setIsSummaryDialogOpen(true)}>
+                <Button
+                  size="sm"
+                  className="rounded-full shadow-md"
+                  onClick={() => setIsSummaryDialogOpen(true)}
+                >
                   <Eye className="h-4 w-4 mr-2" />
-                  View Summary
+                  View summary
                 </Button>
               </div>
             </div>
@@ -1273,12 +1331,12 @@ export function RateCardDisplay({ rateCard, initialAdType = null }) {
 
       {/* Summary View Dialog */}
       <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Order Summary</DialogTitle>
-          <DialogDescription>
-            Review this line item before adding to your campaign. You can add multiple ad types and time classes.
-          </DialogDescription>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border-border/80 sm:rounded-2xl">
+          <DialogHeader className="space-y-1 pb-2">
+            <DialogTitle className="text-xl sm:text-2xl">Order summary</DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed">
+              Review this line item before adding to your campaign. You can add multiple ad types and time classes.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             {/* Selected Items Summary */}

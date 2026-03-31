@@ -1,7 +1,18 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Play, Mic, Star, Package, MessageCircle, Film, Music, Radio } from "lucide-react"
+import {
+  Play,
+  Mic,
+  Star,
+  Package,
+  MessageCircle,
+  Film,
+  Music,
+  Radio,
+  Megaphone,
+  LayoutPanelTop,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const ICON_MAP = {
@@ -13,6 +24,8 @@ const ICON_MAP = {
   film: Film,
   music: Music,
   radio: Radio,
+  megaphone: Megaphone,
+  "layout-panel-top": LayoutPanelTop,
 }
 
 export function AdTypeSelector({ adTypes, selectedAdType, onSelect, mediaType = "tv" }) {
