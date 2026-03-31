@@ -368,8 +368,8 @@ export default function TVMediaPage() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative min-h-[min(52vh,380px)] w-full overflow-hidden border-b border-border sm:min-h-[300px] lg:min-h-[340px]">
+      {/* Hero — inset rounded panel so background image & overlays have rounded corners */}
+      <section className="relative mx-3 mt-2 min-h-[min(52vh,380px)] w-auto max-w-none overflow-hidden rounded-2xl border border-border sm:mx-6 sm:mt-3 sm:min-h-[300px] sm:rounded-3xl lg:mx-8 lg:min-h-[340px]">
         <img
           src={headerImage}
           alt=""
