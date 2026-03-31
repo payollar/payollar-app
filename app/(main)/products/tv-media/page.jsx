@@ -16,10 +16,12 @@ import {
   Clock,
   User,
   Receipt,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { getHeaderImage } from "@/lib/getHeaderImage";
 import { getPublishedRateCards } from "@/actions/media-agency";
+import { getRateCardSchedulerSlots } from "@/actions/tv-media-airtime";
 import { TV_AD_TYPES } from "@/lib/ad-types";
 import { cn } from "@/lib/utils";
 
@@ -182,18 +184,6 @@ function formatAirtimeSlotPrice(weeklyGhs, period) {
   return `GH₵${n.toLocaleString()}${suffix}`;
 }
 
-/** Demo airtime blocks — `weeklyGhs` drives estimates; card copy is derived from dates + formatAirtimeSlotPrice */
-const AIRTIME_SLOTS = [
-  { id: "at-1", range: "05:00–06:00", label: "Early Morning", price: "GH₵16,800/wk", weeklyGhs: 16800, booked: false },
-  { id: "at-2", range: "06:00–09:00", label: "Morning Drive", price: "GH₵22,400/wk", weeklyGhs: 22400, booked: false },
-  { id: "at-3", range: "09:00–12:00", label: "Daytime", price: "GH₵18,900/wk", weeklyGhs: 18900, booked: false },
-  { id: "at-4", range: "12:00–15:00", label: "Midday", price: "GH₵16,800/wk", weeklyGhs: 16800, booked: false },
-  { id: "at-5", range: "15:00–18:00", label: "Afternoon", price: "GH₵20,400/wk", weeklyGhs: 20400, booked: false },
-  { id: "at-6", range: "18:00–20:00", label: "Early Prime", price: "GH₵28,000/wk", weeklyGhs: 28000, booked: false },
-  { id: "at-7", range: "20:00–22:00", label: "Evening", price: "", weeklyGhs: 0, booked: true },
-  { id: "at-8", range: "22:00–00:00", label: "Late Night", price: "GH₵12,600/wk", weeklyGhs: 12600, booked: false },
-];
-
 const SPOT_LENGTH_OPTIONS = [
   { sec: 15, short: "15s", subtitle: "Teaser" },
   { sec: 30, short: "30s", subtitle: "Standard" },
@@ -230,6 +220,10 @@ export default function TVMediaPage() {
   const [contactFullName, setContactFullName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  /** From media agency rate card smart tables (row ids = slot ids) */
+  const [airtimeSlots, setAirtimeSlots] = useState([]);
+  const [airtimeSlotsLoading, setAirtimeSlotsLoading] = useState(false);
+  const [airtimeSlotsError, setAirtimeSlotsError] = useState(null);
   const headerImage = getHeaderImage("/products/tv-media");
 
   const tvAdFormats = useMemo(() => getTvAdFormatsForGrid(), []);
@@ -241,6 +235,43 @@ export default function TVMediaPage() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    setSelectedAirtimeSlotIds([]);
+  }, [selectedStationId, selectedAdFormatId]);
+
+  useEffect(() => {
+    if (!selectedStationId) {
+      setAirtimeSlots([]);
+      setAirtimeSlotsError(null);
+      return;
+    }
+    let cancelled = false;
+    setAirtimeSlotsLoading(true);
+    setAirtimeSlotsError(null);
+    getRateCardSchedulerSlots(selectedStationId, selectedAdFormatId)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.success) {
+          setAirtimeSlots(res.slots || []);
+        } else {
+          setAirtimeSlots([]);
+          setAirtimeSlotsError(res.error || "Could not load airtime slots");
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setAirtimeSlots([]);
+          setAirtimeSlotsError(e.message || "Could not load airtime slots");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAirtimeSlotsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStationId, selectedAdFormatId]);
 
   const selectedRateCard = useMemo(
     () => rateCards.find((r) => r.id === selectedStationId),
@@ -294,7 +325,7 @@ export default function TVMediaPage() {
   };
 
   const toggleAirtimeSlot = (id) => {
-    const slot = AIRTIME_SLOTS.find((s) => s.id === id);
+    const slot = airtimeSlots.find((s) => s.id === id);
     if (slot?.booked) return;
     setSelectedAirtimeSlotIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -327,10 +358,10 @@ export default function TVMediaPage() {
 
   const weeklyAirtimeSubtotal = useMemo(() => {
     return selectedAirtimeSlotIds.reduce((sum, id) => {
-      const slot = AIRTIME_SLOTS.find((s) => s.id === id);
+      const slot = airtimeSlots.find((s) => s.id === id);
       return sum + (slot?.weeklyGhs ?? 0);
     }, 0);
-  }, [selectedAirtimeSlotIds]);
+  }, [selectedAirtimeSlotIds, airtimeSlots]);
 
   /** 30s baseline = 1×; blends multiple spot lengths */
   const spotLengthFactor = useMemo(() => {
@@ -769,8 +800,18 @@ export default function TVMediaPage() {
                       Select airtime slots
                     </h4>
                   </div>
+                  {selectedAdFormatId && (
+                    <p className="text-sm font-medium text-foreground">
+                      Showing airtime for{" "}
+                      <span className="text-chart-3">
+                        {tvAdFormats.find((f) => f.id === selectedAdFormatId)?.label ?? selectedAdFormatId}
+                      </span>
+                      — only rate-card rows for this ad format are listed (see ad-type column in the agency editor).
+                    </p>
+                  )}
                   <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Greyed slots are fully booked. Your selections stack — each chosen slot runs your campaign.
+                    Slots and prices come from this station&apos;s published rate card. Greyed slots are marked not
+                    bookable by the media agency. Your selections stack — each chosen slot runs your campaign.
                     {!campaignStart && (
                       <span className="text-muted-foreground">
                         {" "}
@@ -778,46 +819,71 @@ export default function TVMediaPage() {
                       </span>
                     )}
                   </p>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    {AIRTIME_SLOTS.map((slot) => {
-                      const selected = selectedAirtimeSlotIds.includes(slot.id);
-                      const disabled = slot.booked;
-                      return (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          disabled={disabled}
-                          onClick={() => toggleAirtimeSlot(slot.id)}
-                          aria-pressed={selected}
-                          aria-disabled={disabled}
-                          className={cn(
-                            "flex min-h-[5.5rem] flex-col justify-between rounded-xl border p-4 text-left transition-all sm:min-h-[6rem] sm:p-4",
-                            disabled &&
-                              "opacity-45 cursor-not-allowed border-border bg-muted/30 text-muted-foreground",
-                            !disabled &&
-                              selected &&
-                              "border-chart-3/40 bg-chart-3/8 ring-1 ring-chart-3/25 shadow-sm dark:bg-chart-3/12",
-                            !disabled &&
-                              !selected &&
-                              "border-border bg-muted/40 hover:border-chart-3/30 hover:bg-muted/60",
-                            !disabled && "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          )}
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-foreground tabular-nums sm:text-base">{slot.range}</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{slot.label}</p>
-                          </div>
-                          {disabled ? (
-                            <p className="mt-2 text-xs font-semibold text-muted-foreground sm:text-sm">Booked</p>
-                          ) : (
-                            <p className="mt-2 text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
-                              {formatAirtimeSlotPrice(slot.weeklyGhs, airtimePricingPeriod)}
-                            </p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {airtimeSlotsError && (
+                    <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {airtimeSlotsError}
+                    </p>
+                  )}
+                  {airtimeSlotsLoading ? (
+                    <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-16 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Loading airtime from rate card…</span>
+                    </div>
+                  ) : airtimeSlots.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground sm:text-base">
+                      No airtime rows for this ad format. Ensure the rate card table includes an{" "}
+                      <strong className="text-foreground">ad type</strong> column (or &quot;Ad format&quot; dropdown)
+                      with values matching{" "}
+                      {selectedAdFormatId
+                        ? tvAdFormats.find((f) => f.id === selectedAdFormatId)?.label ?? selectedAdFormatId
+                        : "the selected format"}
+                      , or try another format.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                      {airtimeSlots.map((slot) => {
+                        const selected = selectedAirtimeSlotIds.includes(slot.id);
+                        const disabled = slot.booked;
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => toggleAirtimeSlot(slot.id)}
+                            aria-pressed={selected}
+                            aria-disabled={disabled}
+                            className={cn(
+                              "flex min-h-[5.5rem] flex-col justify-between rounded-xl border p-4 text-left transition-all sm:min-h-[6rem] sm:p-4",
+                              disabled &&
+                                "opacity-45 cursor-not-allowed border-border bg-muted/30 text-muted-foreground",
+                              !disabled &&
+                                selected &&
+                                "border-chart-3/40 bg-chart-3/8 ring-1 ring-chart-3/25 shadow-sm dark:bg-chart-3/12",
+                              !disabled &&
+                                !selected &&
+                                "border-border bg-muted/40 hover:border-chart-3/30 hover:bg-muted/60",
+                              !disabled &&
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            )}
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-foreground sm:text-base">{slot.label}</p>
+                              {slot.range ? (
+                                <p className="mt-0.5 text-xs text-muted-foreground tabular-nums sm:text-sm">{slot.range}</p>
+                              ) : null}
+                            </div>
+                            {disabled ? (
+                              <p className="mt-2 text-xs font-semibold text-muted-foreground sm:text-sm">Not available</p>
+                            ) : (
+                              <p className="mt-2 text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
+                                {formatAirtimeSlotPrice(slot.weeklyGhs, airtimePricingPeriod)}
+                              </p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Spot lengths */}
@@ -1031,7 +1097,11 @@ export default function TVMediaPage() {
                         <dt className="text-muted-foreground shrink-0">Airtime slots</dt>
                         <dd className="text-foreground text-right max-w-md">
                           {selectedAirtimeSlotIds
-                            .map((id) => AIRTIME_SLOTS.find((s) => s.id === id)?.range)
+                            .map((id) => {
+                              const s = airtimeSlots.find((x) => x.id === id);
+                              if (!s) return null;
+                              return s.range ? `${s.label} (${s.range})` : s.label;
+                            })
                             .filter(Boolean)
                             .join(", ")}
                         </dd>
@@ -1087,7 +1157,7 @@ export default function TVMediaPage() {
                         {airtimePricingPeriod === "month" && "per month"})
                       </p>
                       {selectedAirtimeSlotIds.map((id) => {
-                        const slot = AIRTIME_SLOTS.find((s) => s.id === id);
+                        const slot = airtimeSlots.find((s) => s.id === id);
                         if (!slot) return null;
                         const unit = Math.round(weeklyGhsToDisplayAmount(slot.weeklyGhs, airtimePricingPeriod));
                         const suffix =
@@ -1098,8 +1168,13 @@ export default function TVMediaPage() {
                             className="flex justify-between gap-3 text-muted-foreground border-b border-border last:border-0 last:pb-0 pb-2"
                           >
                             <span className="min-w-0">
-                              {slot.range}{" "}
-                              <span className="text-muted-foreground">({slot.label})</span>
+                              <span className="text-foreground">{slot.label}</span>
+                              {slot.range ? (
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  · {slot.range}
+                                </span>
+                              ) : null}
                             </span>
                             <span className="shrink-0 font-medium tabular-nums text-foreground/90">
                               ₵{unit.toLocaleString()}
