@@ -369,7 +369,7 @@ export default function TVMediaPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative h-52 w-full overflow-hidden border-b border-border sm:h-60">
+      <section className="relative min-h-[min(52vh,380px)] w-full overflow-hidden border-b border-border sm:min-h-[300px] lg:min-h-[340px]">
         <img
           src={headerImage}
           alt=""
@@ -377,14 +377,23 @@ export default function TVMediaPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-background" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.6_0.12_184.704/0.12),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.2_41.116/0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.55_0.18_264.376/0.18),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.17_162.48/0.12),transparent_50%)]" />
-        <div className="relative mx-auto flex h-full max-w-6xl flex-col justify-end px-5 pb-10 sm:px-10 sm:pb-12">
+        <div className="relative mx-auto flex min-h-[min(52vh,380px)] max-w-6xl flex-col justify-center px-5 py-10 sm:min-h-[300px] sm:px-10 sm:py-12 lg:min-h-[340px]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-chart-2 sm:text-sm">
             Campaign planner
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-[1.1]">
-            Television advertising
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <div className="mt-3 flex flex-col gap-6 sm:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8 lg:gap-12">
+            <h1 className="min-w-0 max-w-xl flex-1 text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-[1.12] lg:text-[2.5rem] lg:leading-[1.1]">
+              Television advertising
+            </h1>
+            <div className="relative shrink-0 sm:flex sm:max-w-[min(40%,320px)] sm:flex-1 sm:justify-end lg:max-w-[min(38%,360px)]">
+              <img
+                src="/tvv.PNG"
+                alt=""
+                className="mx-auto h-[min(28vw,120px)] w-auto max-h-[140px] object-contain object-bottom drop-shadow-md dark:drop-shadow-[0_12px_40px_rgba(0,0,0,0.45)] sm:mx-0 sm:h-[min(22vw,150px)] sm:max-h-[170px] lg:h-[min(20vw,180px)] lg:max-h-[200px]"
+              />
+            </div>
+          </div>
+          <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:mt-6 sm:max-w-[min(100%,36rem)] sm:text-lg">
             Plan campaigns across Ghana TV networks—multi-slot booking, clear estimates, one flow.
           </p>
         </div>

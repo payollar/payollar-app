@@ -18,18 +18,15 @@ export function FloatingChat() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Hide chat on auth pages and the chat page itself
-  const isAuthPage = pathname?.startsWith("/sign-in") || 
-                     pathname?.startsWith("/sign-up") || 
-                     pathname?.startsWith("/media-agency/sign") ||
-                     pathname === "/chat";
+  // Hide chat on auth pages and the chat page itself (check AFTER hooks — never return before hooks)
+  const isAuthPage =
+    pathname?.startsWith("/sign-in") ||
+    pathname?.startsWith("/sign-up") ||
+    pathname?.startsWith("/media-agency/sign") ||
+    pathname === "/chat";
 
   // On rate card page, align chat to the left to avoid overlapping with cart on the right
   const isRateCardPage = pathname?.includes("/rate-cards/");
-  
-  if (isAuthPage) {
-    return null;
-  }
 
   const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
@@ -57,6 +54,10 @@ export function FloatingChat() {
       toast.error(error.message || "An error occurred. Please try again.");
     }
   }, [error]);
+
+  if (isAuthPage) {
+    return null;
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
