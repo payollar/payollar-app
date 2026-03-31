@@ -49,14 +49,14 @@ const NHIL_GETFUND_RATE = 0.05;
 /** Icons from /public/icons — keyed by ad format id; filenames mirror the asset (tv, microphone, musical-note, billboard, product, video, …). */
 const AD_FORMAT_ICON_SRC = {
   tvc: "/icons/play-record.png",
-  lpm: "/icons/microphone.png",
+  lpm: "/icons/mic2.PNG",
   jingle: "/icons/musical-note.png",
   sponsorship: "/icons/trust.PNG",
   announcement: "/icons/bolt.PNG",
-  interview: "/icons/all.PNG",
+  interview: "/icons/mic3.PNG",
   "product-placement": "/icons/product.PNG",
   documentary: "/icons/video.PNG",
-  billboard: "/icons/billboard.png",
+  billboard: "/icons/ad1.PNG",
 };
 
 /** Display order for TV campaign scheduler — all TV ad formats */
@@ -523,7 +523,7 @@ export default function TVMediaPage() {
                         >
                           <div
                             className={cn(
-                              "mb-3 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl transition-colors",
+                              "mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl transition-colors sm:h-16 sm:w-16",
                               selectedAdFormatId === format.id
                                 ? "bg-chart-2/15 ring-1 ring-chart-2/25"
                                 : "bg-muted/50"
@@ -533,10 +533,10 @@ export default function TVMediaPage() {
                               <img
                                 src={iconSrc}
                                 alt=""
-                                className="h-7 w-7 object-contain dark:opacity-95"
+                                className="h-10 w-10 object-contain dark:opacity-95 sm:h-11 sm:w-11"
                               />
                             ) : (
-                              <Tv className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+                              <Tv className="h-8 w-8 text-muted-foreground sm:h-9 sm:w-9" strokeWidth={1.75} />
                             )}
                           </div>
                           <p className="text-base font-semibold text-foreground">{format.label}</p>
