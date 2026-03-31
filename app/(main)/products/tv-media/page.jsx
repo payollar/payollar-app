@@ -159,40 +159,21 @@ function isRangeEndpoint(day, start, end) {
   return t.getTime() === s.getTime() || t.getTime() === e.getTime();
 }
 
-/**
- * Display period for airtime card prices from campaign length (inclusive days).
- * 1–6 days → per day; 7–27 → per week; 28+ → per month. No dates yet → weekly.
- */
-function getAirtimePricingPeriod(dayCount) {
-  if (!dayCount || dayCount < 1) return "week";
-  if (dayCount <= 6) return "day";
-  if (dayCount <= 27) return "week";
-  return "month";
+/** Campaign line total: agency rate × campaign days (rate is used as entered on the rate card) */
+function slotCampaignTotalGhs(rateGhs, dayCount) {
+  return Math.round((rateGhs ?? 0) * Math.max(1, dayCount));
 }
 
-/** Convert stored weekly rate to the unit shown for the given period */
-function weeklyGhsToDisplayAmount(weeklyGhs, period) {
-  if (period === "day") return weeklyGhs / 7;
-  if (period === "month") return weeklyGhs * (30 / 7);
-  return weeklyGhs;
-}
-
-/** e.g. GH₵16,800/wk — uses GH₵ prefix to match station copy */
-function formatAirtimeSlotPrice(weeklyGhs, period) {
-  const n = Math.round(weeklyGhsToDisplayAmount(weeklyGhs, period));
-  const suffix = period === "day" ? "/day" : period === "week" ? "/wk" : "/month";
-  return `GH₵${n.toLocaleString()}${suffix}`;
-}
-
-/** Weekly GHS for one slot at a given spot length — uses rate-card duration columns when present */
-function getSlotWeeklyRateForSec(slot, sec) {
+/** Rate for one slot at a given spot length — duration columns when present, else baseline × sec/30 */
+function getSlotRateForSec(slot, sec) {
   if (!slot) return 0;
   const r = slot.ratesBySec;
   if (r && typeof r === "object") {
     const v = r[sec] ?? r[String(sec)];
     if (typeof v === "number" && !isNaN(v) && v > 0) return v;
   }
-  return (slot.weeklyGhs ?? 0) * (sec / 30);
+  const base = slot.rateGhs ?? slot.weeklyGhs ?? 0;
+  return base * (sec / 30);
 }
 
 const SPOT_LENGTH_OPTIONS = [
@@ -301,11 +282,11 @@ export default function TVMediaPage() {
     [campaignStart, campaignEnd]
   );
 
-  /** Matches airtime card suffix: /day, /wk, /month from campaign window */
-  const airtimePricingPeriod = useMemo(
-    () => getAirtimePricingPeriod(campaignDayCount),
-    [campaignDayCount]
-  );
+  /** Inclusive campaign days for pricing; min 1 so estimates work before dates are set */
+  const pricingDayCount = useMemo(() => {
+    if (!campaignStart) return 1;
+    return Math.max(1, campaignDayCount);
+  }, [campaignStart, campaignDayCount]);
 
   const handleCampaignDayClick = (d) => {
     if (!d) return;
@@ -361,40 +342,36 @@ export default function TVMediaPage() {
     return WEEKDAY_SHORT.filter((_, i) => activeBroadcastDays[i]).join(", ");
   }, [activeBroadcastDays]);
 
-  /** Weeks covered by the campaign window (ceil days/7), min 1 for estimate */
-  const estimatedCampaignWeeks = useMemo(() => {
-    if (!campaignStart || campaignDayCount === 0) return 1;
-    return Math.max(1, Math.ceil(campaignDayCount / 7));
-  }, [campaignStart, campaignDayCount]);
-
-  const weeklyAirtimeSubtotal = useMemo(() => {
+  /** Sum of agency-entered rates for selected airtime rows (baseline 30s column) */
+  const airtimeRateSubtotal = useMemo(() => {
     return selectedAirtimeSlotIds.reduce((sum, id) => {
       const slot = airtimeSlots.find((s) => s.id === id);
-      return sum + (slot?.weeklyGhs ?? 0);
+      return sum + (slot?.rateGhs ?? slot?.weeklyGhs ?? 0);
     }, 0);
   }, [selectedAirtimeSlotIds, airtimeSlots]);
 
-  /** Sum of weekly rates per spot length across selected airtime rows (rate card 15s/30s/… columns when set) */
-  const weeklySubtotalBySec = useMemo(() => {
+  /** Sum of rate-card amounts per spot length across selected rows (15s/30s/… columns when set) */
+  const rateSubtotalBySec = useMemo(() => {
     const m = Object.fromEntries(SPOT_LENGTH_OPTIONS.map(({ sec }) => [sec, 0]));
     for (const id of selectedAirtimeSlotIds) {
       const slot = airtimeSlots.find((s) => s.id === id);
       for (const { sec } of SPOT_LENGTH_OPTIONS) {
-        m[sec] += getSlotWeeklyRateForSec(slot, sec);
+        m[sec] += getSlotRateForSec(slot, sec);
       }
     }
     return m;
   }, [selectedAirtimeSlotIds, airtimeSlots]);
 
-  /** No spot lengths selected → 30s-equivalent weekly total; otherwise sum each selected duration */
-  const spotMixWeeklySubtotal = useMemo(() => {
-    if (selectedSpotLengthsSec.length === 0) return weeklyAirtimeSubtotal;
-    return selectedSpotLengthsSec.reduce((sum, sec) => sum + (weeklySubtotalBySec[sec] ?? 0), 0);
-  }, [selectedSpotLengthsSec, weeklySubtotalBySec, weeklyAirtimeSubtotal]);
+  /** No spot lengths selected → baseline total; otherwise sum each selected duration’s rate */
+  const spotMixRateSubtotal = useMemo(() => {
+    if (selectedSpotLengthsSec.length === 0) return airtimeRateSubtotal;
+    return selectedSpotLengthsSec.reduce((sum, sec) => sum + (rateSubtotalBySec[sec] ?? 0), 0);
+  }, [selectedSpotLengthsSec, rateSubtotalBySec, airtimeRateSubtotal]);
 
+  /** Subtotal = sum of rate-card amounts for selected mix × campaign days */
   const pricingSubtotal = useMemo(() => {
-    return spotMixWeeklySubtotal * estimatedCampaignWeeks;
-  }, [spotMixWeeklySubtotal, estimatedCampaignWeeks]);
+    return spotMixRateSubtotal * pricingDayCount;
+  }, [spotMixRateSubtotal, pricingDayCount]);
 
   const pricingVat = pricingSubtotal * VAT_RATE;
   const pricingNhilGetfund = pricingSubtotal * NHIL_GETFUND_RATE;
@@ -804,11 +781,8 @@ export default function TVMediaPage() {
                   </p>
                   {campaignStart && campaignDayCount > 0 && (
                     <p className="mt-2 text-sm text-chart-3/95 dark:text-chart-3">
-                      Slot prices follow your campaign length ({campaignDayCount} day
-                      {campaignDayCount === 1 ? "" : "s"}):{" "}
-                      {airtimePricingPeriod === "day" && "shown per day."}
-                      {airtimePricingPeriod === "week" && "shown per week."}
-                      {airtimePricingPeriod === "month" && "shown per month (30-day basis)."}
+                      Campaign length: {campaignDayCount} day{campaignDayCount === 1 ? "" : "s"}. Each card shows total
+                      for those days (daily × days).
                     </p>
                   )}
                 </div>
@@ -836,7 +810,7 @@ export default function TVMediaPage() {
                     {!campaignStart && (
                       <span className="text-muted-foreground">
                         {" "}
-                        Set campaign dates in the previous step to label rates per day, week, or month.
+                        Set campaign dates in the previous step to multiply daily rates by the number of days.
                       </span>
                     )}
                   </p>
@@ -896,9 +870,19 @@ export default function TVMediaPage() {
                             {disabled ? (
                               <p className="mt-2 text-xs font-semibold text-muted-foreground sm:text-sm">Not available</p>
                             ) : (
-                              <p className="mt-2 text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
-                                {formatAirtimeSlotPrice(slot.weeklyGhs, airtimePricingPeriod)}
-                              </p>
+                              <div className="mt-2 space-y-0.5">
+                                <p className="text-sm font-semibold tabular-nums text-chart-3 sm:text-base">
+                                  GH₵
+                                  {slotCampaignTotalGhs(
+                                    slot.rateGhs ?? slot.weeklyGhs,
+                                    pricingDayCount
+                                  ).toLocaleString()}
+                                </p>
+                                <p className="text-[10px] leading-tight text-muted-foreground tabular-nums sm:text-[11px]">
+                                  {Math.round(slot.rateGhs ?? slot.weeklyGhs ?? 0).toLocaleString()} ×{" "}
+                                  {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"}
+                                </p>
+                              </div>
                             )}
                           </button>
                         );
@@ -918,8 +902,8 @@ export default function TVMediaPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {SPOT_LENGTH_OPTIONS.map(({ sec, short, subtitle }) => {
                       const selected = selectedSpotLengthsSec.includes(sec);
-                      const weeklySum = weeklySubtotalBySec[sec] ?? 0;
-                      const campaignEst = Math.round(weeklySum * estimatedCampaignWeeks);
+                      const rateSum = rateSubtotalBySec[sec] ?? 0;
+                      const campaignEst = Math.round(rateSum * pricingDayCount);
                       const showEstimate = selected && selectedAirtimeSlotIds.length > 0;
                       return (
                         <button
@@ -945,13 +929,11 @@ export default function TVMediaPage() {
                           {showEstimate && (
                             <>
                               <span className="mt-0.5 text-xs font-semibold tabular-nums text-chart-1 sm:text-sm">
-                                ~ GH₵{campaignEst.toLocaleString()}
+                                GH₵{campaignEst.toLocaleString()}
                               </span>
-                              <span className="text-[10px] leading-tight text-muted-foreground">
-                                {campaignDayCount > 0
-                                  ? `${campaignDayCount} day${campaignDayCount === 1 ? "" : "s"} · `
-                                  : ""}
-                                {estimatedCampaignWeeks} wk
+                              <span className="text-[10px] leading-tight text-muted-foreground tabular-nums">
+                                {Math.round(rateSum).toLocaleString()} × {pricingDayCount} day
+                                {pricingDayCount === 1 ? "" : "s"}
                               </span>
                             </>
                           )}
@@ -1185,26 +1167,22 @@ export default function TVMediaPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wide sm:text-base">Pricing estimate</h4>
                   </div>
                   <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                    Estimates use each spot length’s rate from the station rate card when the agency publishes
-                    per-duration columns (15s/30s/45s/60s), otherwise a 30s baseline with proportional scaling. Subtotal
-                    × campaign weeks × days in the window. VAT (15%) and NHIL &amp; GETFund (5%) apply as on the rate
-                    card. <span className="text-muted-foreground">Authoritative pricing is on the rate card.</span>
+                    Amounts use <strong className="font-medium text-foreground">the same figures the media agency entered</strong>{" "}
+                    on the rate card, then × your campaign days. Per-duration columns (15s/30s/45s/60s) when present;
+                    otherwise 30s baseline with proportional scaling. VAT (15%) and NHIL &amp; GETFund (5%) apply as on the
+                    rate card. <span className="text-muted-foreground">Authoritative pricing is on the rate card.</span>
                   </p>
 
                   {selectedAirtimeSlotIds.length > 0 ? (
                     <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-sm sm:text-base">
                       <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
-                        Airtime (
-                        {airtimePricingPeriod === "day" && "per day"}
-                        {airtimePricingPeriod === "week" && "per week"}
-                        {airtimePricingPeriod === "month" && "per month"})
+                        Airtime (× {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"})
                       </p>
                       {selectedAirtimeSlotIds.map((id) => {
                         const slot = airtimeSlots.find((s) => s.id === id);
                         if (!slot) return null;
-                        const unit = Math.round(weeklyGhsToDisplayAmount(slot.weeklyGhs, airtimePricingPeriod));
-                        const suffix =
-                          airtimePricingPeriod === "day" ? "/day" : airtimePricingPeriod === "week" ? "/wk" : "/month";
+                        const unitRate = Math.round(slot.rateGhs ?? slot.weeklyGhs ?? 0);
+                        const lineTotal = slotCampaignTotalGhs(slot.rateGhs ?? slot.weeklyGhs, pricingDayCount);
                         return (
                           <div
                             key={id}
@@ -1218,34 +1196,41 @@ export default function TVMediaPage() {
                                   · {slot.range}
                                 </span>
                               ) : null}
+                              <span className="mt-0.5 block text-[10px] text-muted-foreground/90 tabular-nums sm:text-xs">
+                                {unitRate.toLocaleString()} × {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"}
+                              </span>
                             </span>
                             <span className="shrink-0 font-medium tabular-nums text-foreground/90">
-                              ₵{unit.toLocaleString()}
-                              {suffix}
+                              ₵{lineTotal.toLocaleString()}
                             </span>
                           </div>
                         );
                       })}
                       <div className="flex justify-between pt-2 text-xs text-muted-foreground sm:text-sm">
-                        <span>Weekly subtotal (estimate basis)</span>
-                        <span className="tabular-nums">₵{weeklyAirtimeSubtotal.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground sm:text-sm">
-                        <span>× Campaign length ({estimatedCampaignWeeks} wk)</span>
-                        <span className="tabular-nums">× {estimatedCampaignWeeks}</span>
+                        <span>Airtime subtotal (slots)</span>
+                        <span className="tabular-nums">
+                          ₵{Math.round(airtimeRateSubtotal * pricingDayCount).toLocaleString()}
+                        </span>
                       </div>
                       {selectedSpotLengthsSec.length > 0 && (
                         <div className="space-y-1 border-t border-border pt-2 text-xs text-muted-foreground sm:text-sm">
                           <p className="font-medium uppercase tracking-wide text-[10px] sm:text-xs">
-                            Spot length (weekly × selected slots)
+                            Spot length (× {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"})
                           </p>
                           {selectedSpotLengthsSec.map((sec) => {
-                            const w = weeklySubtotalBySec[sec] ?? 0;
+                            const rateSum = rateSubtotalBySec[sec] ?? 0;
+                            const lineTotal = Math.round(rateSum * pricingDayCount);
                             const label = SPOT_LENGTH_OPTIONS.find((o) => o.sec === sec)?.short ?? `${sec}s`;
                             return (
-                              <div key={sec} className="flex justify-between tabular-nums">
-                                <span>{label}</span>
-                                <span>₵{Math.round(w).toLocaleString()}/wk</span>
+                              <div key={sec} className="flex flex-col gap-0.5 border-b border-border/60 pb-1.5 last:border-0 last:pb-0">
+                                <div className="flex justify-between tabular-nums">
+                                  <span>{label}</span>
+                                  <span className="font-medium text-foreground">₵{lineTotal.toLocaleString()}</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground tabular-nums">
+                                  {Math.round(rateSum).toLocaleString()} × {pricingDayCount} day
+                                  {pricingDayCount === 1 ? "" : "s"}
+                                </span>
                               </div>
                             );
                           })}
