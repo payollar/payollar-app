@@ -325,85 +325,87 @@ export default function TVMediaPage() {
   const canProceedToRateCard = Boolean(mediaCampaignName?.trim() && rateCardHref);
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 antialiased selection:bg-white/10 selection:text-white">
-      {/* Top nav — minimal, glass */}
-      <nav className="sticky top-0 z-50 border-b border-white/[0.06] bg-black/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-black/50">
-        <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-5 sm:px-8">
+    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/15">
+      {/* Top nav — matches app shell */}
+      <nav className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-10">
           <Link
             href="/products"
-            className="group flex items-center gap-2 text-[13px] font-medium text-zinc-500 transition-colors hover:text-white"
+            className="group flex items-center gap-2 text-lg font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Products
           </Link>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] ring-1 ring-white/[0.08]">
-              <Tv className="h-4 w-4 text-zinc-300" strokeWidth={1.75} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted ring-1 ring-border">
+              <Tv className="h-5 w-5 text-foreground" strokeWidth={1.75} />
             </div>
-            <span className="text-[13px] font-semibold tracking-tight text-white">TV Media</span>
+            <span className="text-lg font-semibold tracking-tight text-foreground">TV Media</span>
           </div>
         </div>
       </nav>
 
-      {/* Hero — restrained, cinematic fade */}
-      <section className="relative h-44 sm:h-52 w-full overflow-hidden border-b border-white/[0.06]">
+      {/* Hero */}
+      <section className="relative h-52 w-full overflow-hidden border-b border-border sm:h-60">
         <img
           src={headerImage}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-[0.35]"
+          className="absolute inset-0 h-full w-full object-cover opacity-40"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-black/80 to-black" />
-        <div className="relative mx-auto flex h-full max-w-5xl flex-col justify-end px-5 pb-8 sm:px-8 sm:pb-10">
-          <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">Campaign planner</p>
-          <h1 className="mt-2 text-[1.75rem] font-semibold tracking-tight text-white sm:text-[2rem] sm:leading-tight">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-background" />
+        <div className="relative mx-auto flex h-full max-w-6xl flex-col justify-end px-5 pb-10 sm:px-10 sm:pb-12">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-base">
+            Campaign planner
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-[1.08]">
             Television advertising
           </h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-zinc-500">
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
             Plan campaigns across Ghana TV networks—multi-slot booking, clear estimates, one flow.
           </p>
         </div>
       </section>
 
       {/* Campaign Scheduler */}
-      <section className="px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-12 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <div className="rounded-[1.75rem] border border-white/[0.06] bg-white/[0.02] p-7 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:p-9 md:p-10">
+      <section className="px-4 pb-20 pt-12 sm:px-8 sm:pb-28 sm:pt-16 lg:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-[1.75rem] border border-border bg-card/90 p-9 shadow-sm backdrop-blur-sm sm:p-11 md:p-14">
             {/* Header */}
-            <div className="mb-10 sm:mb-12">
-              <h2 className="text-[1.375rem] font-semibold tracking-tight text-white sm:text-2xl">
+            <div className="mb-11 sm:mb-14">
+              <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 Campaign Scheduler
               </h2>
-              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-zinc-500">
+              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
                 Select station, dates, airtime, frequency—then review. Same tax logic as rate card checkout.
               </p>
             </div>
 
-            {/* Stepper — Apple-like: active = light pill on dark */}
-            <div className="mb-11 sm:mb-12 -mx-1 overflow-x-auto pb-1">
-              <div className="flex min-w-[min(100%,560px)] items-center justify-between gap-0.5 px-1 sm:gap-1">
+            {/* Stepper */}
+            <div className="mb-12 sm:mb-14 -mx-1 overflow-x-auto pb-1">
+              <div className="flex min-w-[min(100%,620px)] items-center justify-between gap-1 px-1 sm:gap-2">
                 {STEPS.map((step, idx) => (
                   <div key={step.id} className="flex min-w-0 flex-1 items-center">
                     <div className="flex min-w-0 flex-1 flex-col items-center">
                       <div
                         className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-all duration-300 sm:h-9 sm:w-9 sm:text-xs",
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-all duration-300 sm:h-12 sm:w-12 sm:text-base",
                           currentStep === step.id
-                            ? "bg-white text-black shadow-[0_0_0_1px_rgba(255,255,255,0.12)]"
+                            ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-border"
                             : currentStep > step.id
                               ? "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25"
-                              : "border border-white/[0.1] bg-transparent text-zinc-600"
+                              : "border border-border bg-muted/30 text-muted-foreground"
                         )}
                       >
                         {currentStep > step.id ? (
-                          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
+                          <Check className="h-[18px] w-[18px] sm:h-5 sm:w-5" strokeWidth={2.5} />
                         ) : (
                           step.id
                         )}
                       </div>
                       <span
                         className={cn(
-                          "mt-2.5 max-w-[76px] text-center text-[10px] font-medium leading-snug tracking-tight sm:max-w-none sm:text-[11px]",
-                          currentStep === step.id ? "text-white" : "text-zinc-600"
+                          "mt-3 max-w-[100px] text-center text-sm font-medium leading-snug tracking-tight sm:max-w-none sm:text-base sm:leading-tight",
+                          currentStep === step.id ? "text-foreground" : "text-muted-foreground"
                         )}
                       >
                         {step.label}
@@ -412,8 +414,8 @@ export default function TVMediaPage() {
                     {idx < STEPS.length - 1 && (
                       <div
                         className={cn(
-                          "-mt-5 mx-0.5 hidden h-px min-w-[6px] flex-1 sm:mx-1 sm:block",
-                          currentStep > step.id ? "bg-emerald-500/35" : "bg-white/[0.08]"
+                          "-mt-6 mx-0.5 hidden h-px min-w-[8px] flex-1 sm:mx-1.5 sm:block",
+                          currentStep > step.id ? "bg-emerald-500/35" : "bg-border"
                         )}
                       />
                     )}
@@ -424,37 +426,37 @@ export default function TVMediaPage() {
 
             {/* Step 1: Station & Format */}
             {currentStep === 1 && (
-              <div className="space-y-10">
+              <div className="space-y-12">
                 <div>
-                  <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                  <h3 className="mb-5 text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-base">
                     Choose station
                   </h3>
                   {rateCards.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-white/[0.08] py-10 text-center text-sm text-zinc-600">
+                    <p className="rounded-2xl border border-dashed border-border py-12 text-center text-lg text-muted-foreground">
                       No TV rate cards available yet. Check back soon or contact a media agency.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
                       {rateCards.map((card) => (
                         <button
                           key={card.id}
                           type="button"
                           onClick={() => setSelectedStationId(card.id)}
                           className={cn(
-                            "text-left rounded-xl border p-4 transition-all hover:border-white/18",
+                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/35",
                             selectedStationId === card.id
-                              ? "border-white/25 bg-white/[0.06] ring-1 ring-white/12"
-                              : "border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06]"
+                              ? "border-primary/45 bg-muted/60 ring-1 ring-border"
+                              : "border-border bg-muted/50 hover:bg-muted/60"
                           )}
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="inline-flex items-center justify-center rounded-md bg-[#0071e3]/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            <span className="inline-flex items-center justify-center rounded-md bg-[#0071e3]/90 px-2.5 py-1 text-xs font-bold text-white sm:text-sm">
                               <Tv className="h-3 w-3 mr-0.5" />
                               TV
                             </span>
                           </div>
-                          <p className="font-semibold text-white text-sm leading-snug">{card.title}</p>
-                          <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
+                          <p className="text-lg font-semibold leading-snug text-foreground">{card.title}</p>
+                          <p className="mt-1.5 text-base text-muted-foreground line-clamp-2">
                             {card.location || "Nationwide"}
                           </p>
                         </button>
@@ -464,13 +466,13 @@ export default function TVMediaPage() {
                 </div>
 
                 <div>
-                  <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                  <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-base">
                     Ad format
                   </h3>
-                  <p className="text-xs text-zinc-600 mb-4">
+                  <p className="mb-5 text-base text-muted-foreground sm:text-lg">
                     All formats: TVC, LPM, jingles, sponsorship, announcements, interviews, product placement, documentary, and billboards.
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5">
                     {tvAdFormats.map((format) => {
                       const Icon = AD_FORMAT_ICONS[format.icon] || Play;
                       return (
@@ -479,17 +481,17 @@ export default function TVMediaPage() {
                           type="button"
                           onClick={() => setSelectedAdFormatId(format.id)}
                           className={cn(
-                            "text-left rounded-xl border p-4 transition-all hover:border-white/18",
+                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/35",
                             selectedAdFormatId === format.id
-                              ? "border-white/25 bg-white/[0.06] ring-1 ring-white/12"
-                              : "border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06]"
+                              ? "border-primary/45 bg-muted/60 ring-1 ring-border"
+                              : "border-border bg-muted/50 hover:bg-muted/60"
                           )}
                         >
-                          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] text-zinc-400">
+                          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground">
                             <Icon className="h-5 w-5" />
                           </div>
-                          <p className="font-semibold text-white text-sm">{format.label}</p>
-                          <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{format.fullName}</p>
+                          <p className="text-lg font-semibold text-foreground">{format.label}</p>
+                          <p className="mt-1.5 text-base text-muted-foreground line-clamp-2">{format.fullName}</p>
                         </button>
                       );
                     })}
@@ -501,7 +503,7 @@ export default function TVMediaPage() {
                     type="button"
                     disabled={!canProceedStep1}
                     onClick={() => setCurrentStep(2)}
-                    className="rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white px-6 disabled:opacity-40"
+                    className="h-14 min-w-[11rem] rounded-full bg-[#0071e3] px-10 text-lg font-medium text-white hover:bg-[#0077ed] disabled:opacity-40"
                   >
                     Next: Choose Dates
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -512,10 +514,10 @@ export default function TVMediaPage() {
 
             {/* Step 2: Campaign window — calendar + summary stay in sync */}
             {currentStep === 2 && (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Campaign dates</h3>
-                  <p className="text-zinc-500 text-sm mt-1.5 max-w-2xl leading-relaxed">
+                  <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Campaign dates</h3>
+                  <p className="mt-3 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
                     Tap a start date, then an end date to set your flight window. One tap counts as a single-day
                     campaign—your summary updates immediately.
                   </p>
@@ -523,7 +525,7 @@ export default function TVMediaPage() {
 
                 <div className="grid lg:grid-cols-[1fr_min(320px,100%)] gap-6 lg:gap-8 items-start">
                   {/* Calendar */}
-                  <div className="rounded-2xl border border-white/[0.06] bg-black/40 p-4 sm:p-5">
+                  <div className="rounded-2xl border border-border bg-muted/40 p-6 sm:p-7">
                     <div className="flex items-center justify-between mb-4">
                       <button
                         type="button"
@@ -532,12 +534,12 @@ export default function TVMediaPage() {
                             m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 }
                           )
                         }
-                        className="rounded-lg p-2 text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+                        className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         aria-label="Previous month"
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-lg font-semibold text-foreground sm:text-xl">
                         {MONTHS[calendarMonth.month]} {calendarMonth.year}
                       </span>
                       <button
@@ -547,13 +549,13 @@ export default function TVMediaPage() {
                             m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 }
                           )
                         }
-                        className="rounded-lg p-2 text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+                        className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         aria-label="Next month"
                       >
                         <ChevronRight className="h-5 w-5" />
                       </button>
                     </div>
-                    <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-wide text-zinc-600 mb-2">
+                    <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground sm:text-sm">
                       {WEEKDAY_LABELS.map((day) => (
                         <div key={day}>{day}</div>
                       ))}
@@ -566,17 +568,17 @@ export default function TVMediaPage() {
                           onClick={() => handleCampaignDayClick(d)}
                           disabled={!d}
                           className={cn(
-                            "aspect-square rounded-lg text-sm font-medium transition-colors min-h-[2.25rem]",
+                            "aspect-square min-h-[2.75rem] rounded-lg text-base font-medium transition-colors sm:min-h-[3rem]",
                             !d && "invisible pointer-events-none",
                             d &&
                               isDateInCampaignRange(d, campaignStart, campaignEnd) &&
-                              "bg-white/12 text-white",
+                              "bg-primary/15 text-foreground",
                             d &&
                               !isDateInCampaignRange(d, campaignStart, campaignEnd) &&
-                              "text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-200",
+                              "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                             d &&
                               isRangeEndpoint(d, campaignStart, campaignEnd) &&
-                              "ring-2 ring-white/40 ring-offset-2 ring-offset-black z-10"
+                              "ring-2 ring-ring ring-offset-2 ring-offset-background z-10"
                           )}
                         >
                           {d ? d.getDate() : ""}
@@ -586,24 +588,24 @@ export default function TVMediaPage() {
                   </div>
 
                   {/* Campaign window summary */}
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-5 space-y-5">
-                    <div className="flex items-center gap-2 text-zinc-500">
-                      <CalendarRange className="h-4 w-4 shrink-0 text-zinc-500" />
-                      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  <div className="space-y-6 rounded-2xl border border-border bg-muted/40 p-6 sm:p-7">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CalendarRange className="h-5 w-5 shrink-0 text-muted-foreground" />
+                      <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                         Campaign window
                       </span>
                     </div>
 
                     <div className="space-y-4">
                       <div>
-                        <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-1">Start</p>
-                        <p className="text-base font-semibold text-white tabular-nums">
+                        <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground sm:text-sm">Start</p>
+                        <p className="text-lg font-semibold text-foreground tabular-nums sm:text-xl">
                           {campaignStart ? formatCampaignDate(campaignStart) : "— Not selected"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-1">End</p>
-                        <p className="text-base font-semibold text-white tabular-nums">
+                        <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground sm:text-sm">End</p>
+                        <p className="text-lg font-semibold text-foreground tabular-nums sm:text-xl">
                           {campaignStart
                             ? campaignEnd
                               ? formatCampaignDate(campaignEnd)
@@ -613,16 +615,16 @@ export default function TVMediaPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-1 pt-1 border-t border-white/[0.08]">
-                      <p className="text-[11px] uppercase tracking-wide text-zinc-600">Total days (inclusive)</p>
-                      <p className="text-2xl sm:text-3xl font-semibold text-white tabular-nums tracking-tight">
+                    <div className="space-y-1 pt-1 border-t border-border">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground sm:text-sm">Total days (inclusive)</p>
+                      <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground sm:text-4xl">
                         {campaignDayCount}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-[11px] uppercase tracking-wide text-zinc-600">Quick select</p>
-                      <p className="text-xs text-zinc-600 mb-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground sm:text-sm">Quick select</p>
+                      <p className="mb-4 text-sm text-muted-foreground sm:text-base">
                         From {campaignStart ? "your start date" : "today"}—tap a preset to fill the range.
                       </p>
                       <div className="grid grid-cols-2 gap-2">
@@ -636,7 +638,7 @@ export default function TVMediaPage() {
                             key={label}
                             type="button"
                             onClick={() => applyQuickSelect(days)}
-                            className="rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-medium text-zinc-200 shadow-sm transition-colors hover:bg-white/[0.08] hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                            className="rounded-xl border border-border bg-muted/50 px-4 py-3 text-base font-medium text-foreground shadow-sm transition-colors hover:bg-muted/80 hover:border-border hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           >
                             {label}
                           </button>
@@ -650,7 +652,7 @@ export default function TVMediaPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-white/12 bg-transparent text-zinc-200 hover:bg-white/[0.06]"
+                    className="h-12 rounded-full border-border bg-transparent px-6 text-lg text-foreground hover:bg-muted/60"
                     onClick={() => setCurrentStep(1)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -658,7 +660,7 @@ export default function TVMediaPage() {
                   </Button>
                   <Button
                     type="button"
-                    className="rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white px-6"
+                    className="h-14 rounded-full bg-[#0071e3] px-10 text-lg font-medium text-white hover:bg-[#0077ed]"
                     onClick={() => setCurrentStep(3)}
                   >
                     Next: Airtimes &amp; spots
@@ -670,10 +672,12 @@ export default function TVMediaPage() {
 
             {/* Step 3: Airtimes & spots */}
             {currentStep === 3 && (
-              <div className="space-y-10">
+              <div className="space-y-12">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Airtimes &amp; spots</h3>
-                  <p className="text-zinc-500 text-sm mt-1.5 max-w-2xl leading-relaxed">
+                  <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    Airtimes &amp; spots
+                  </h3>
+                  <p className="mt-3 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
                     Choose where your ads run and which spot lengths apply. Rates shown are illustrative; your station
                     rate card has final pricing.
                   </p>
@@ -682,15 +686,15 @@ export default function TVMediaPage() {
                 {/* Airtime slots */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 shrink-0 text-zinc-500" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                    <Clock className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-lg">
                       Select airtime slots
                     </h4>
                   </div>
-                  <p className="text-sm text-zinc-600 leading-relaxed">
+                  <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
                     Greyed slots are fully booked. Your selections stack — each chosen slot runs your campaign.
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     {AIRTIME_SLOTS.map((slot) => {
                       const selected = selectedAirtimeSlotIds.includes(slot.id);
                       const disabled = slot.booked;
@@ -703,26 +707,28 @@ export default function TVMediaPage() {
                           aria-pressed={selected}
                           aria-disabled={disabled}
                           className={cn(
-                            "rounded-xl border p-3 sm:p-4 text-left transition-all min-h-[5.5rem] flex flex-col justify-between",
+                            "flex min-h-[6rem] flex-col justify-between rounded-xl border p-4 text-left transition-all sm:min-h-[6.5rem] sm:p-5",
                             disabled &&
-                              "opacity-45 cursor-not-allowed border-white/[0.06] bg-black/30 text-zinc-600",
+                              "opacity-45 cursor-not-allowed border-border bg-muted/30 text-muted-foreground",
                             !disabled &&
                               selected &&
-                              "border-white/25 bg-white/[0.06] ring-1 ring-white/12 shadow-sm shadow-black/40",
+                              "border-primary/45 bg-muted/60 ring-1 ring-border shadow-sm",
                             !disabled &&
                               !selected &&
-                              "border-white/[0.08] bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.06]",
-                            !disabled && "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                              "border-border bg-muted/40 hover:border-primary/35 hover:bg-muted/60",
+                            !disabled && "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           )}
                         >
                           <div>
-                            <p className="text-sm font-semibold text-white tabular-nums">{slot.range}</p>
-                            <p className="text-xs text-zinc-600 mt-0.5">{slot.label}</p>
+                            <p className="text-base font-semibold text-foreground tabular-nums sm:text-lg">{slot.range}</p>
+                            <p className="mt-0.5 text-sm text-muted-foreground">{slot.label}</p>
                           </div>
                           {disabled ? (
-                            <p className="text-xs font-semibold text-zinc-600 mt-2">Booked</p>
+                            <p className="mt-2 text-sm font-semibold text-muted-foreground">Booked</p>
                           ) : (
-                            <p className="mt-2 text-xs font-medium tabular-nums text-zinc-400">{slot.price}</p>
+                            <p className="mt-2 text-sm font-medium tabular-nums text-muted-foreground sm:text-base">
+                              {slot.price}
+                            </p>
                           )}
                         </button>
                       );
@@ -732,10 +738,10 @@ export default function TVMediaPage() {
 
                 {/* Spot lengths */}
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                  <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-lg">
                     Select spot lengths
                   </h4>
-                  <p className="text-sm text-zinc-600 leading-relaxed">
+                  <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
                     Different spot lengths can run in the same campaign — e.g. 15s teaser + 30s full spot.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -748,15 +754,15 @@ export default function TVMediaPage() {
                           onClick={() => toggleSpotLength(sec)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-xl border p-4 text-center transition-all min-h-[5.25rem] flex flex-col items-center justify-center gap-1",
+                            "flex min-h-[6.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border p-5 text-center transition-all sm:min-h-[7rem]",
                             selected
-                              ? "border-white/25 bg-white/[0.06] ring-1 ring-white/12"
-                              : "border-white/[0.08] bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.06]",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                              ? "border-primary/45 bg-muted/60 ring-1 ring-border"
+                              : "border-border bg-muted/40 hover:border-primary/35 hover:bg-muted/60",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           )}
                         >
-                          <span className="text-lg font-bold text-white">{short}</span>
-                          <span className="text-xs text-zinc-600">{subtitle}</span>
+                          <span className="text-xl font-bold text-foreground sm:text-2xl">{short}</span>
+                          <span className="text-sm text-muted-foreground sm:text-base">{subtitle}</span>
                         </button>
                       );
                     })}
@@ -767,7 +773,7 @@ export default function TVMediaPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-white/12 bg-transparent text-zinc-200 hover:bg-white/[0.06]"
+                    className="h-12 rounded-full border-border bg-transparent px-6 text-lg text-foreground hover:bg-muted/60"
                     onClick={() => setCurrentStep(2)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -775,7 +781,7 @@ export default function TVMediaPage() {
                   </Button>
                   <Button
                     type="button"
-                    className="rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white px-6"
+                    className="h-14 rounded-full bg-[#0071e3] px-10 text-lg font-medium text-white hover:bg-[#0077ed]"
                     onClick={() => setCurrentStep(4)}
                   >
                     Next: Frequency
@@ -787,18 +793,20 @@ export default function TVMediaPage() {
 
             {/* Step 4: Frequency */}
             {currentStep === 4 && (
-              <div className="space-y-10">
+              <div className="space-y-12">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Frequency</h3>
-                  <p className="text-zinc-500 text-sm mt-1.5 max-w-2xl leading-relaxed">
+                  <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Frequency</h3>
+                  <p className="mt-3 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
                     Set how often spots run and which days of the week apply. This pairs with the airtime slots you chose
                     in the previous step.
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Broadcast frequency</h4>
-                  <p className="text-sm text-zinc-600 leading-relaxed">
+                  <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-lg">
+                    Broadcast frequency
+                  </h4>
+                  <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
                     How often should each spot air within each selected time block?
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -811,11 +819,11 @@ export default function TVMediaPage() {
                           onClick={() => setBroadcastFrequencyId(id)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                            "rounded-full px-5 py-2.5 text-base font-medium transition-colors sm:px-6 sm:py-3",
                             selected
-                              ? "bg-[#0071e3] text-white ring-2 ring-white/20"
-                              : "border border-white/12 bg-white/[0.04] text-zinc-400 hover:border-white/18 hover:bg-white/[0.06]",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                              ? "bg-[#0071e3] text-white ring-2 ring-white/25"
+                              : "border border-border bg-muted/50 text-muted-foreground hover:border-primary/35 hover:bg-muted/60",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           )}
                         >
                           {label}
@@ -826,7 +834,9 @@ export default function TVMediaPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Active broadcast days</h4>
+                  <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-lg">
+                    Active broadcast days
+                  </h4>
                   <div className="flex flex-wrap gap-2">
                     {WEEKDAY_SHORT.map((label, i) => {
                       const on = activeBroadcastDays[i];
@@ -837,11 +847,11 @@ export default function TVMediaPage() {
                           onClick={() => toggleBroadcastDay(i)}
                           aria-pressed={on}
                           className={cn(
-                            "h-11 w-11 rounded-full text-xs font-semibold transition-colors shrink-0",
+                            "h-12 w-12 shrink-0 rounded-full text-sm font-semibold transition-colors sm:h-[3.25rem] sm:w-[3.25rem] sm:text-base",
                             on
                               ? "bg-[#0071e3] text-white shadow-sm"
-                              : "border border-white/[0.08] bg-black/35 text-zinc-600 hover:border-white/18 hover:text-zinc-500",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                              : "border border-border bg-muted/40 text-muted-foreground hover:border-primary/35 hover:text-muted-foreground",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           )}
                         >
                           {label}
@@ -855,7 +865,7 @@ export default function TVMediaPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-white/12 bg-transparent text-zinc-200 hover:bg-white/[0.06]"
+                    className="h-12 rounded-full border-border bg-transparent px-6 text-lg text-foreground hover:bg-muted/60"
                     onClick={() => setCurrentStep(3)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -863,7 +873,7 @@ export default function TVMediaPage() {
                   </Button>
                   <Button
                     type="button"
-                    className="rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white px-6"
+                    className="h-14 rounded-full bg-[#0071e3] px-10 text-lg font-medium text-white hover:bg-[#0077ed]"
                     onClick={() => setCurrentStep(5)}
                   >
                     Next: Review &amp; confirm
@@ -875,24 +885,26 @@ export default function TVMediaPage() {
 
             {/* Step 5: Confirm — checkout-style review */}
             {currentStep === 5 && (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Review &amp; confirm</h3>
-                  <p className="text-zinc-500 text-sm mt-1.5 max-w-2xl leading-relaxed">
+                  <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    Review &amp; confirm
+                  </h3>
+                  <p className="mt-3 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
                     Name your campaign, add billing contact details, and review the estimate. Final line items and
                     payment are completed on the station rate card (same tax treatment as rate card checkout).
                   </p>
                 </div>
 
                 {/* Campaign name + contact */}
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6 space-y-5">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <User className="h-4 w-4 shrink-0 text-zinc-500" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide">Campaign &amp; contact</h4>
+                <div className="space-y-6 rounded-2xl border border-border bg-muted/40 p-6 sm:p-8">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <User className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <h4 className="text-base font-semibold uppercase tracking-wide sm:text-lg">Campaign &amp; contact</h4>
                   </div>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="tv-media-campaign-name" className="text-zinc-400">
+                      <Label htmlFor="tv-media-campaign-name" className="text-base text-muted-foreground">
                         Media campaign name <span className="text-red-400">*</span>
                       </Label>
                       <Input
@@ -900,13 +912,13 @@ export default function TVMediaPage() {
                         value={mediaCampaignName}
                         onChange={(e) => setMediaCampaignName(e.target.value)}
                         placeholder="e.g. Q1 Product Launch, Summer Promo"
-                        className="bg-black/50 border-white/10 text-white placeholder:text-zinc-600"
+                        className="h-12 border-border bg-background text-lg text-foreground placeholder:text-muted-foreground"
                         autoComplete="off"
                       />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="tv-media-contact-name" className="text-zinc-500 text-xs">
+                        <Label htmlFor="tv-media-contact-name" className="text-muted-foreground text-sm sm:text-base">
                           Contact name
                         </Label>
                         <Input
@@ -914,12 +926,12 @@ export default function TVMediaPage() {
                           value={contactFullName}
                           onChange={(e) => setContactFullName(e.target.value)}
                           placeholder="Full name"
-                          className="bg-black/50 border-white/10 text-white placeholder:text-zinc-600"
+                          className="h-12 border-border bg-background text-lg text-foreground placeholder:text-muted-foreground"
                           autoComplete="name"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="tv-media-contact-phone" className="text-zinc-500 text-xs">
+                        <Label htmlFor="tv-media-contact-phone" className="text-muted-foreground text-sm sm:text-base">
                           Phone
                         </Label>
                         <Input
@@ -928,13 +940,13 @@ export default function TVMediaPage() {
                           value={contactPhone}
                           onChange={(e) => setContactPhone(e.target.value)}
                           placeholder="+233 …"
-                          className="bg-black/50 border-white/10 text-white placeholder:text-zinc-600"
+                          className="h-12 border-border bg-background text-lg text-foreground placeholder:text-muted-foreground"
                           autoComplete="tel"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="tv-media-contact-email" className="text-zinc-500 text-xs">
+                      <Label htmlFor="tv-media-contact-email" className="text-muted-foreground text-sm sm:text-base">
                         Email
                       </Label>
                       <Input
@@ -943,7 +955,7 @@ export default function TVMediaPage() {
                         value={contactEmail}
                         onChange={(e) => setContactEmail(e.target.value)}
                         placeholder="billing@company.com"
-                        className="bg-black/50 border-white/10 text-white placeholder:text-zinc-600"
+                        className="h-12 border-border bg-background text-lg text-foreground placeholder:text-muted-foreground"
                         autoComplete="email"
                       />
                     </div>
@@ -951,19 +963,21 @@ export default function TVMediaPage() {
                 </div>
 
                 {/* Campaign summary */}
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Campaign summary</h4>
-                  <dl className="space-y-3 text-sm">
+                <div className="space-y-5 rounded-2xl border border-border bg-muted/30 p-6 sm:p-8">
+                  <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-lg">
+                    Campaign summary
+                  </h4>
+                  <dl className="space-y-3 text-base sm:text-lg">
                     {selectedRateCard && (
                       <>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                          <dt className="text-zinc-600 shrink-0">Station</dt>
-                          <dd className="text-white font-medium text-right">{selectedRateCard.title}</dd>
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                          <dt className="text-muted-foreground shrink-0">Station</dt>
+                          <dd className="text-foreground font-medium text-right">{selectedRateCard.title}</dd>
                         </div>
                         {selectedRateCard.location && (
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                            <dt className="text-zinc-600 shrink-0">Market / reach</dt>
-                            <dd className="text-zinc-400 text-right flex items-center sm:justify-end gap-1">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                            <dt className="text-muted-foreground shrink-0">Market / reach</dt>
+                            <dd className="text-muted-foreground text-right flex items-center sm:justify-end gap-1">
                               <MapPin className="h-3.5 w-3.5 shrink-0" />
                               {selectedRateCard.location}
                             </dd>
@@ -972,21 +986,21 @@ export default function TVMediaPage() {
                       </>
                     )}
                     {selectedAdFormatId && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                        <dt className="text-zinc-600 shrink-0">Ad format</dt>
-                        <dd className="text-white font-medium text-right">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                        <dt className="text-muted-foreground shrink-0">Ad format</dt>
+                        <dd className="text-foreground font-medium text-right">
                           {tvAdFormats.find((t) => t.id === selectedAdFormatId)?.label}
                         </dd>
                       </div>
                     )}
                     {campaignStart && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                        <dt className="text-zinc-600 shrink-0">Campaign window</dt>
-                        <dd className="text-white font-medium text-right">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                        <dt className="text-muted-foreground shrink-0">Campaign window</dt>
+                        <dd className="text-foreground font-medium text-right">
                           {formatCampaignDate(campaignStart)}
                           {" — "}
                           {campaignEnd ? formatCampaignDate(campaignEnd) : formatCampaignDate(campaignStart)}
-                          <span className="text-zinc-500 font-normal">
+                          <span className="text-muted-foreground font-normal">
                             {" "}
                             ({campaignDayCount} day{campaignDayCount === 1 ? "" : "s"})
                           </span>
@@ -994,9 +1008,9 @@ export default function TVMediaPage() {
                       </div>
                     )}
                     {selectedAirtimeSlotIds.length > 0 && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                        <dt className="text-zinc-600 shrink-0">Airtime slots</dt>
-                        <dd className="text-white text-right max-w-md">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                        <dt className="text-muted-foreground shrink-0">Airtime slots</dt>
+                        <dd className="text-foreground text-right max-w-md">
                           {selectedAirtimeSlotIds
                             .map((id) => AIRTIME_SLOTS.find((s) => s.id === id)?.range)
                             .filter(Boolean)
@@ -1005,9 +1019,9 @@ export default function TVMediaPage() {
                       </div>
                     )}
                     {selectedSpotLengthsSec.length > 0 && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                        <dt className="text-zinc-600 shrink-0">Spot lengths</dt>
-                        <dd className="text-white text-right">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                        <dt className="text-muted-foreground shrink-0">Spot lengths</dt>
+                        <dd className="text-foreground text-right">
                           {selectedSpotLengthsSec
                             .map(
                               (sec) => SPOT_LENGTH_OPTIONS.find((o) => o.sec === sec)?.short ?? `${sec}s`
@@ -1017,105 +1031,107 @@ export default function TVMediaPage() {
                       </div>
                     )}
                     {broadcastFrequencyId && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-white/[0.08] pb-3">
-                        <dt className="text-zinc-600 shrink-0">Broadcast frequency</dt>
-                        <dd className="text-white font-medium text-right">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
+                        <dt className="text-muted-foreground shrink-0">Broadcast frequency</dt>
+                        <dd className="text-foreground font-medium text-right">
                           {BROADCAST_FREQUENCY_OPTIONS.find((f) => f.id === broadcastFrequencyId)?.label}
                         </dd>
                       </div>
                     )}
                     {activeDaysLabel && (
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 pb-1">
-                        <dt className="text-zinc-600 shrink-0">Active broadcast days</dt>
-                        <dd className="text-white text-right">{activeDaysLabel}</dd>
+                        <dt className="text-muted-foreground shrink-0">Active broadcast days</dt>
+                        <dd className="text-foreground text-right">{activeDaysLabel}</dd>
                       </div>
                     )}
                   </dl>
                 </div>
 
                 {/* Pricing estimate + tax */}
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 space-y-4">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <Receipt className="h-4 w-4 shrink-0 text-zinc-500" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide">Pricing estimate</h4>
+                <div className="space-y-5 rounded-2xl border border-border bg-muted/30 p-6 sm:p-8">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Receipt className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <h4 className="text-base font-semibold uppercase tracking-wide sm:text-lg">Pricing estimate</h4>
                   </div>
-                  <p className="text-xs text-zinc-600 leading-relaxed">
+                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
                     Illustrative weekly rates from the scheduler × campaign length × spot-length mix (30s = 1×). VAT
                     (15%) and NHIL &amp; GETFund (5%) apply to the subtotal as on the rate card.{" "}
-                    <span className="text-zinc-500">Authoritative pricing is on the rate card.</span>
+                    <span className="text-muted-foreground">Authoritative pricing is on the rate card.</span>
                   </p>
 
                   {selectedAirtimeSlotIds.length > 0 ? (
-                    <div className="space-y-2 text-sm border border-white/[0.08] rounded-xl p-3 bg-black/35">
-                      <p className="text-[11px] uppercase tracking-wide text-zinc-600 mb-2">Airtime (weekly)</p>
+                    <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-4 text-base sm:text-lg">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:text-sm">
+                        Airtime (weekly)
+                      </p>
                       {selectedAirtimeSlotIds.map((id) => {
                         const slot = AIRTIME_SLOTS.find((s) => s.id === id);
                         if (!slot) return null;
                         return (
                           <div
                             key={id}
-                            className="flex justify-between gap-3 text-zinc-400 border-b border-white/[0.06] last:border-0 last:pb-0 pb-2"
+                            className="flex justify-between gap-3 text-muted-foreground border-b border-border last:border-0 last:pb-0 pb-2"
                           >
                             <span className="min-w-0">
                               {slot.range}{" "}
-                              <span className="text-zinc-600">({slot.label})</span>
+                              <span className="text-muted-foreground">({slot.label})</span>
                             </span>
-                            <span className="shrink-0 font-medium tabular-nums text-zinc-300">
+                            <span className="shrink-0 font-medium tabular-nums text-foreground/90">
                               ₵{slot.weeklyGhs.toLocaleString()}/wk
                             </span>
                           </div>
                         );
                       })}
-                      <div className="flex justify-between text-zinc-500 pt-2 text-xs">
+                      <div className="flex justify-between pt-2 text-sm text-muted-foreground sm:text-base">
                         <span>Weekly subtotal</span>
                         <span className="tabular-nums">₵{weeklyAirtimeSubtotal.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-zinc-500 text-xs">
+                      <div className="flex justify-between text-sm text-muted-foreground sm:text-base">
                         <span>× Campaign length ({estimatedCampaignWeeks} wk)</span>
                         <span className="tabular-nums">× {estimatedCampaignWeeks}</span>
                       </div>
                       {selectedSpotLengthsSec.length > 0 && (
-                        <div className="flex justify-between text-zinc-500 text-xs">
+                        <div className="flex justify-between text-sm text-muted-foreground sm:text-base">
                           <span>× Spot mix vs 30s baseline</span>
                           <span className="tabular-nums">× {spotLengthFactor.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-zinc-600 rounded-xl border border-dashed border-white/[0.08] p-4">
+                    <p className="rounded-xl border border-dashed border-border p-5 text-base text-muted-foreground sm:text-lg">
                       No airtime slots selected in the scheduler—add slots in the previous step to see an estimate, or
                       build your campaign on the rate card.
                     </p>
                   )}
 
-                  <div className="space-y-2 text-sm pt-2 border-t border-white/[0.08]">
+                  <div className="space-y-3 border-t border-border pt-4 text-base sm:text-lg">
                     {selectedAirtimeSlotIds.length > 0 ? (
                       <>
-                        <div className="flex justify-between items-center text-zinc-500">
+                        <div className="flex items-center justify-between text-muted-foreground">
                           <span>Subtotal</span>
-                          <span className="text-white tabular-nums">
+                          <span className="tabular-nums text-foreground">
                             ₵{Math.round(pricingSubtotal).toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-zinc-500">
+                        <div className="flex items-center justify-between text-muted-foreground">
                           <span>VAT (15%)</span>
-                          <span className="text-white tabular-nums">₵{Math.round(pricingVat).toLocaleString()}</span>
+                          <span className="tabular-nums text-foreground">₵{Math.round(pricingVat).toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between items-center text-zinc-500">
+                        <div className="flex items-center justify-between text-muted-foreground">
                           <span>NHIL &amp; GETFund (5%)</span>
-                          <span className="text-white tabular-nums">
+                          <span className="tabular-nums text-foreground">
                             ₵{Math.round(pricingNhilGetfund).toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-lg font-bold pt-3 border-t border-white/[0.08]">
-                          <span className="text-white">Total (est.)</span>
-                          <span className="text-2xl font-semibold tabular-nums tracking-tight text-white">
+                        <div className="flex items-center justify-between border-t border-border pt-4 text-xl font-bold">
+                          <span className="text-foreground">Total (est.)</span>
+                          <span className="text-3xl font-semibold tabular-nums tracking-tight text-foreground sm:text-4xl">
                             ₵{Math.round(pricingTotal).toLocaleString()}
                           </span>
                         </div>
                       </>
                     ) : (
-                      <p className="text-sm text-zinc-600 py-2">
+                      <p className="py-2 text-base text-muted-foreground sm:text-lg">
                         Tax and total will reflect your line items once you add airtime slots—or when you build the
                         campaign on the rate card.
                       </p>
@@ -1127,7 +1143,7 @@ export default function TVMediaPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-white/12 bg-transparent text-zinc-200 hover:bg-white/[0.06]"
+                    className="h-12 rounded-full border-border bg-transparent px-6 text-lg text-foreground hover:bg-muted/60"
                     onClick={() => setCurrentStep(4)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -1135,7 +1151,7 @@ export default function TVMediaPage() {
                   </Button>
                   {rateCardHref ? (
                     canProceedToRateCard ? (
-                      <Button asChild className="rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white px-6">
+                      <Button asChild className="h-14 rounded-full bg-[#0071e3] px-10 text-lg font-medium text-white hover:bg-[#0077ed]">
                         <Link
                           href={`${rateCardHref}&campaignName=${encodeURIComponent(mediaCampaignName.trim())}`}
                         >
@@ -1160,7 +1176,7 @@ export default function TVMediaPage() {
                   )}
                 </div>
                 {!canProceedToRateCard && rateCardHref && (
-                  <p className="text-center text-xs text-zinc-500 sm:text-right">
+                  <p className="text-center text-sm text-muted-foreground sm:text-right sm:text-base">
                     Enter a media campaign name to continue.
                   </p>
                 )}
@@ -1170,7 +1186,7 @@ export default function TVMediaPage() {
 
           {/* Secondary: quick links to rate cards when step 1 not active or as reference */}
           {rateCards.length > 0 && currentStep === 1 && selectedStationId && selectedAdFormatId && (
-            <p className="text-center text-xs text-zinc-600 mt-6">
+            <p className="mt-8 text-center text-sm text-muted-foreground sm:text-base">
               Or skip ahead:{" "}
               <Link
                 href={rateCardHref}
@@ -1183,8 +1199,8 @@ export default function TVMediaPage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/[0.06] py-10 text-center">
-        <p className="text-[11px] font-medium tracking-wide text-zinc-600">
+      <footer className="border-t border-border py-10 text-center">
+        <p className="text-base font-medium text-muted-foreground">
           © {new Date().getFullYear()} Payollar. All rights reserved.
         </p>
       </footer>
