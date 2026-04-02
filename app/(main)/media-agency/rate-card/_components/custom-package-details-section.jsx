@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Save, FileText, Calendar } from "lucide-react";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 function formatDate(d) {
   if (!d) return "—";
@@ -67,7 +68,7 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
   };
 
   return (
-    <Card>
+    <Card className={DASHBOARD_CARD_CLASS}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />

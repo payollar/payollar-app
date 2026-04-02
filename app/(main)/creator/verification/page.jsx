@@ -27,21 +27,21 @@ export default async function VerificationPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-2xl mx-auto">
-        <Card className="border-emerald-900/20">
+      <div className="mx-auto max-w-2xl">
+        <Card className="rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm">
           <CardHeader className="text-center">
             <div
-              className={`mx-auto p-4 ${
-                isRejected ? "bg-red-900/20" : "bg-amber-900/20"
-              } rounded-full mb-4 w-fit`}
+              className={`mx-auto mb-4 w-fit rounded-full p-4 ${
+                isRejected ? "bg-destructive/15" : "bg-amber-500/15"
+              }`}
             >
               {isRejected ? (
-                <XCircle className="h-8 w-8 text-red-400" />
+                <XCircle className="h-8 w-8 text-destructive" />
               ) : (
-                <ClipboardCheck className="h-8 w-8 text-amber-400" />
+                <ClipboardCheck className="h-8 w-8 text-amber-500" />
               )}
             </div>
-            <CardTitle className="text-2xl font-bold text-white">
+            <CardTitle className="text-2xl font-semibold text-foreground">
               {isRejected
                 ? "Verification Declined"
                 : "Verification in Progress"}
@@ -94,34 +94,20 @@ export default async function VerificationPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {isRejected ? (
                 <>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-emerald-900/30"
-                  >
+                  <Button asChild variant="glass">
                     <Link href="/">Return to Home</Link>
                   </Button>
-                  <Button
-                    asChild
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    <Link href="/creator">Dashboard</Link>
+                  <Button asChild variant="marketing">
+                    <Link href="/creator">Go to dashboard</Link>
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-emerald-900/30"
-                  >
+                  <Button asChild variant="glass">
                     <Link href="/">Return to Home</Link>
                   </Button>
-                  <Button
-                    asChild
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    <Link href="/contact-support">Contact Support</Link>
+                  <Button asChild variant="marketing">
+                    <Link href="/contact-support">Contact support</Link>
                   </Button>
                 </>
               )}

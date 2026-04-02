@@ -508,6 +508,7 @@ model Service {
   rateType    RateType @default(PER_HOUR) // PER_HOUR, PER_SESSION, FIXED
   duration    Int? // Duration in minutes (for sessions)
   category    String? // e.g., "Consultation", "Performance", "Content Creation"
+  imageUrl    String? // Optional cover / marketing image for the service card
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

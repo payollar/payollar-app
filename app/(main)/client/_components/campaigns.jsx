@@ -45,6 +45,7 @@ import { CampaignApplicationsModal } from "./campaign-applications-modal";
 import { updateCampaignStatus } from "@/actions/campaigns";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
 export function ClientCampaigns({ campaigns = [] }) {
   const router = useRouter();
@@ -123,98 +124,88 @@ export function ClientCampaigns({ campaigns = [] }) {
   const draftCampaigns = filteredCampaigns.filter((c) => c.status === "DRAFT");
   const closedCampaigns = filteredCampaigns.filter((c) => c.status === "CLOSED");
 
+  const fieldClass = "border-border/60 bg-background text-foreground";
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-white">Campaigns</h2>
-          <p className="text-muted-foreground mt-1">
-            Create and manage campaigns to find talented creators
-          </p>
-        </div>
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-white hover:bg-gray-100 text-gray-900"
-          size="lg"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Campaign
+    <ClientPageShell
+      eyebrow="Growth"
+      title="Campaigns"
+      description="Create and manage campaigns to find talented creators."
+      actions={
+        <Button variant="marketing" size="lg" className="gap-2" onClick={() => setIsCreateModalOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Create campaign
         </Button>
-      </div>
-
+      }
+    >
+    <div className="space-y-6">
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Total Campaigns</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Total campaigns</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.total}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                <FileText className="h-10 w-10 text-blue-400 relative z-10" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <FileText className="relative z-10 h-8 w-8 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Active</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.active}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Active</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-primary">{stats.active}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                <Sparkles className="h-10 w-10 text-emerald-400 relative z-10" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Sparkles className="relative z-10 h-8 w-8 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Draft</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.draft}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Draft</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.draft}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl"></div>
-                <Edit className="h-10 w-10 text-amber-400 relative z-10" />
+              <div className="rounded-lg bg-amber-500/10 p-3">
+                <Edit className="relative z-10 h-8 w-8 text-amber-600 dark:text-amber-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Closed</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.closed}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Closed</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-muted-foreground">{stats.closed}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gray-400/20 rounded-full blur-xl"></div>
-                <Archive className="h-10 w-10 text-gray-400 relative z-10" />
+              <div className="rounded-lg bg-muted/50 p-3">
+                <Archive className="relative z-10 h-8 w-8 text-muted-foreground" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-gradient-to-br from-blue-900/20 via-blue-900/10 to-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Total Applications</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.totalApplications}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Total applications</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.totalApplications}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                <Users className="h-10 w-10 text-blue-400 relative z-10" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Users className="relative z-10 h-8 w-8 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -222,18 +213,18 @@ export function ClientCampaigns({ campaigns = [] }) {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search campaigns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-900/50 border-gray-800 text-white"
+            className={`pl-10 ${fieldClass}`}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px] bg-gray-900/50 border-gray-800 text-white">
+          <SelectTrigger className={`w-full sm:w-[180px] ${fieldClass}`}>
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -245,7 +236,7 @@ export function ClientCampaigns({ campaigns = [] }) {
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-[180px] bg-gray-900/50 border-gray-800 text-white">
+          <SelectTrigger className={`w-full sm:w-[180px] ${fieldClass}`}>
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -262,9 +253,9 @@ export function ClientCampaigns({ campaigns = [] }) {
       {/* Active Campaigns */}
       {activeCampaigns.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-emerald-400" />
-            Active Campaigns ({activeCampaigns.length})
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Active campaigns ({activeCampaigns.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeCampaigns.map((campaign) => (
@@ -282,9 +273,9 @@ export function ClientCampaigns({ campaigns = [] }) {
       {/* Draft Campaigns */}
       {draftCampaigns.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Edit className="h-5 w-5 text-amber-400" />
-            Draft Campaigns ({draftCampaigns.length})
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <Edit className="h-5 w-5 text-amber-500" />
+            Draft campaigns ({draftCampaigns.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {draftCampaigns.map((campaign) => (
@@ -302,9 +293,9 @@ export function ClientCampaigns({ campaigns = [] }) {
       {/* Closed Campaigns */}
       {closedCampaigns.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-gray-400" />
-            Closed Campaigns ({closedCampaigns.length})
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <CheckCircle className="h-5 w-5 text-muted-foreground" />
+            Closed campaigns ({closedCampaigns.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {closedCampaigns.map((campaign) => (
@@ -321,36 +312,27 @@ export function ClientCampaigns({ campaigns = [] }) {
 
       {/* No Results State */}
       {filteredCampaigns.length === 0 && campaigns.length > 0 && (
-        <Card className="border-gray-800">
+        <Card className={clientCardClass}>
           <CardContent className="p-12 text-center">
-            <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-xl font-medium text-white mb-2">
-              No campaigns found
-            </h3>
-            <p className="text-muted-foreground">
-              Try adjusting your search or filter criteria.
-            </p>
+            <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No campaigns found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
           </CardContent>
         </Card>
       )}
 
       {/* Empty State */}
       {campaigns.length === 0 && (
-        <Card className="border-gray-800">
+        <Card className={clientCardClass}>
           <CardContent className="p-12 text-center">
-            <Sparkles className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-xl font-medium text-white mb-2">
-              No campaigns yet
-            </h3>
-            <p className="text-muted-foreground mb-6">
+            <Sparkles className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No campaigns yet</h3>
+            <p className="mb-6 text-muted-foreground">
               Create your first campaign to connect with talented creators and grow your brand.
             </p>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-white hover:bg-gray-100 text-gray-900"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Campaign
+            <Button variant="marketing" onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create your first campaign
             </Button>
           </CardContent>
         </Card>
@@ -371,6 +353,7 @@ export function ClientCampaigns({ campaigns = [] }) {
         />
       )}
     </div>
+    </ClientPageShell>
   );
 }
 
@@ -384,16 +367,18 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
     : "Budget not specified";
 
   const statusColors = {
-    ACTIVE: "bg-emerald-900/20 border-emerald-900/30 text-emerald-400",
-    DRAFT: "bg-amber-900/20 border-amber-900/30 text-amber-400",
-    CLOSED: "bg-gray-900/20 border-gray-900/30 text-gray-400",
-    CANCELLED: "bg-red-900/20 border-red-900/30 text-red-400",
+    ACTIVE: "border-primary/30 bg-primary/10 text-primary",
+    DRAFT: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    CLOSED: "border-border/60 bg-muted/50 text-muted-foreground",
+    CANCELLED: "border-destructive/30 bg-destructive/10 text-destructive",
   };
 
   const applicantsCount = campaign.applicants || campaign._count?.applications || 0;
 
   return (
-    <Card className="border-gray-800 hover:border-gray-700 transition-all overflow-hidden group bg-gray-900/50">
+    <Card
+      className={`${clientCardClass} group overflow-hidden transition-all hover:border-primary/25 hover:shadow-md`}
+    >
       {campaign.imageUrl && (
         <div className="relative h-48 w-full">
           <Image
@@ -412,12 +397,12 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
                   {campaign.status}
                 </Badge>
                 {campaign.category && (
-                  <Badge variant="outline" className="text-xs border-gray-700">
+                  <Badge variant="outline" className="text-xs">
                     {campaign.category}
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-lg font-bold text-white mb-1">
+              <CardTitle className="mb-1 text-lg font-bold text-foreground">
                 {campaign.title}
               </CardTitle>
               <p className="text-sm text-muted-foreground">{campaign.brand}</p>
@@ -432,30 +417,25 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-gray-900 border-gray-800">
+              <DropdownMenuContent align="end">
                 {campaign.status === "DRAFT" && (
-                  <DropdownMenuItem
-                    onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}
-                    className="text-emerald-400"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Publish Campaign
+                  <DropdownMenuItem onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Publish campaign
                   </DropdownMenuItem>
                 )}
                 {campaign.status === "ACTIVE" && (
                   <>
-                    <DropdownMenuItem
-                      onClick={() => onStatusUpdate(campaign.id, "CLOSED")}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Close Campaign
+                    <DropdownMenuItem onClick={() => onStatusUpdate(campaign.id, "CLOSED")}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Close campaign
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onStatusUpdate(campaign.id, "CANCELLED")}
-                      className="text-red-400"
+                      className="text-destructive"
                     >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Cancel Campaign
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancel campaign
                     </DropdownMenuItem>
                   </>
                 )}
@@ -463,8 +443,8 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
                   onClick={() => onViewApplications(campaign)}
                   disabled={applicantsCount === 0}
                 >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Applications ({applicantsCount})
+                  <Eye className="mr-2 h-4 w-4" />
+                  View applications ({applicantsCount})
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -477,8 +457,8 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
 
         <div className="space-y-2 text-sm">
           <div className="flex items-center text-muted-foreground">
-            <DollarSign className="h-4 w-4 mr-2 text-emerald-400" />
-            <span className="font-medium text-white">{budgetDisplay}</span>
+            <DollarSign className="mr-2 h-4 w-4 text-primary" />
+            <span className="font-medium text-foreground">{budgetDisplay}</span>
           </div>
           <div className="flex items-center text-muted-foreground">
             <MapPin className="h-4 w-4 mr-2" />
@@ -496,7 +476,7 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
               <span>{applicantsCount} applicant{applicantsCount !== 1 ? 's' : ''}</span>
             </div>
             {campaign.pendingApplications > 0 && (
-              <Badge variant="outline" className="text-emerald-400 border-emerald-900/30">
+              <Badge variant="outline" className="border-primary/30 text-primary">
                 {campaign.pendingApplications} pending
               </Badge>
             )}
@@ -520,40 +500,36 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
 
         <div className="flex flex-col gap-2 pt-2">
           <Button
-            variant="outline"
-            className="w-full border-gray-700 hover:bg-gray-800"
+            variant="glass"
+            className="w-full"
             onClick={() => onViewApplications(campaign)}
             disabled={applicantsCount === 0}
           >
-            <Eye className="h-4 w-4 mr-2" />
-            View Applications ({applicantsCount})
+            <Eye className="mr-2 h-4 w-4" />
+            View applications ({applicantsCount})
           </Button>
           {campaign.status === "DRAFT" && (
-            <Button
-              variant="outline"
-              className="w-full border-gray-700 text-white hover:bg-gray-800"
-              onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Publish Campaign
+            <Button variant="marketing" className="w-full" onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Publish campaign
             </Button>
           )}
           {campaign.status === "ACTIVE" && (
             <div className="flex gap-2">
               <Button
-                variant="outline"
-                className="flex-1 border-gray-700 hover:bg-gray-800"
+                variant="glass"
+                className="flex-1"
                 onClick={() => onStatusUpdate(campaign.id, "CLOSED")}
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircle className="mr-2 h-4 w-4" />
                 Close
               </Button>
               <Button
                 variant="outline"
-                className="flex-1 border-red-900/30 text-red-400 hover:bg-red-900/10"
+                className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
                 onClick={() => onStatusUpdate(campaign.id, "CANCELLED")}
               >
-                <XCircle className="h-4 w-4 mr-2" />
+                <XCircle className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
             </div>

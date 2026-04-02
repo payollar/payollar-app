@@ -10,6 +10,8 @@ import { RateCardForm } from "./_components/rate-card-form";
 import { ListingPackagesSection } from "./_components/listing-packages-section";
 import { ListingTimeClassesSection } from "./_components/listing-time-classes-section";
 import { CustomPackageDetailsSection } from "./_components/custom-package-details-section";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 export default async function MediaAgencyRateCardPage() {
   const user = await checkUser();
@@ -67,27 +69,24 @@ export default async function MediaAgencyRateCardPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Custom Packages</h1>
-          <p className="text-muted-foreground">
-            Configure custom package options and manage packages for your media listings
-          </p>
-        </div>
-        <Button asChild>
+    <MediaAgencyPageShell
+      eyebrow="Listings"
+      title="Custom packages"
+      description="Configure custom package options and manage packages for your media listings."
+      actions={
+        <Button variant="marketing" className="rounded-full" asChild>
           <a href="#add-listing">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Listing
+            <Plus className="mr-2 h-4 w-4" />
+            Add listing
           </a>
         </Button>
-      </div>
-
+      }
+    >
       {/* Custom Package Settings */}
       <CustomPackageDetailsSection mediaAgency={mediaAgency} />
 
       {/* Add/Edit Listing Form */}
-      <Card id="add-listing">
+      <Card id="add-listing" className={DASHBOARD_CARD_CLASS}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
@@ -103,7 +102,7 @@ export default async function MediaAgencyRateCardPage() {
       </Card>
 
       {/* Existing Listings */}
-      <Card>
+      <Card className={DASHBOARD_CARD_CLASS}>
         <CardHeader>
           <CardTitle>Your Media Listings</CardTitle>
           <CardDescription>
@@ -125,7 +124,7 @@ export default async function MediaAgencyRateCardPage() {
                 return (
                   <div
                     key={listing.id}
-                    className="border rounded-lg p-6 space-y-4"
+                    className="space-y-4 rounded-xl border border-border/50 bg-background/40 p-6"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
@@ -222,6 +221,6 @@ export default async function MediaAgencyRateCardPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </MediaAgencyPageShell>
   );
 }

@@ -1,12 +1,14 @@
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Inbox, CheckCircle, XCircle, Clock, FileText, Upload } from "lucide-react";
 import { updateBookingStatus } from "./actions";
 import Link from "next/link";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 export default async function MediaAgencyRequestsPage() {
   const user = await checkUser();
@@ -58,17 +60,15 @@ export default async function MediaAgencyRequestsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Booking Requests</h1>
-        <p className="text-muted-foreground">
-          Manage and respond to booking requests from clients
-        </p>
-      </div>
-
-      <Card>
+    <MediaAgencyPageShell
+      eyebrow="Inbox"
+      title="Booking requests"
+      description="Manage and respond to booking requests from clients."
+    >
+      <Card className={DASHBOARD_CARD_CLASS}>
         <CardHeader>
-          <CardTitle>All Requests</CardTitle>
+          <CardTitle>All requests</CardTitle>
+          <CardDescription>Media listings and smart rate card bookings</CardDescription>
         </CardHeader>
         <CardContent>
           {mediaAgency.bookings.length === 0 && mediaAgency.rateCardBookings.length === 0 ? (
@@ -83,7 +83,7 @@ export default async function MediaAgencyRequestsPage() {
               {mediaAgency.bookings.map((booking) => (
                 <div
                   key={`media-${booking.id}`}
-                  className="border rounded-lg p-6 space-y-4"
+                  className="space-y-4 rounded-xl border border-border/50 bg-background/40 p-6"
                 >
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
@@ -219,7 +219,7 @@ export default async function MediaAgencyRequestsPage() {
               {mediaAgency.rateCardBookings.map((booking) => (
                 <div
                   key={`ratecard-${booking.id}`}
-                  className="border rounded-lg p-6 space-y-4"
+                  className="space-y-4 rounded-xl border border-border/50 bg-background/40 p-6"
                 >
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
@@ -360,6 +360,6 @@ export default async function MediaAgencyRequestsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </MediaAgencyPageShell>
   );
 }

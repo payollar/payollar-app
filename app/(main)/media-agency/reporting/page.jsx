@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { BarChart3, FileText, Plus, Download } from "lucide-react";
 import { ReportingForm } from "./_components/reporting-form";
 import { getAgencyBookingsForLinking } from "@/actions/media-agency-bookings";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 export default async function MediaAgencyReportingPage() {
   const user = await checkUser();
@@ -34,17 +36,14 @@ export default async function MediaAgencyReportingPage() {
   const availableBookings = bookingsResult.success ? bookingsResult.bookings : [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Reporting</h1>
-        <p className="text-muted-foreground">
-          Create and manage performance reports for your media campaigns
-        </p>
-      </div>
-
+    <MediaAgencyPageShell
+      eyebrow="Analytics"
+      title="Reporting"
+      description="Create and manage performance reports for your media campaigns."
+    >
       <div className="grid gap-6 md:grid-cols-2">
         {/* Create Report Form */}
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -63,7 +62,7 @@ export default async function MediaAgencyReportingPage() {
         </Card>
 
         {/* Recent Reports */}
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
@@ -85,7 +84,7 @@ export default async function MediaAgencyReportingPage() {
                 {mediaAgency.reports.map((report) => (
                   <div
                     key={report.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className="flex items-center justify-between rounded-xl border border-border/50 bg-background/40 p-4"
                   >
                     <div>
                       <h4 className="font-medium">{report.title}</h4>
@@ -106,6 +105,6 @@ export default async function MediaAgencyReportingPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </MediaAgencyPageShell>
   );
 }

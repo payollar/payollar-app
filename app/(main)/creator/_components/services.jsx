@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +33,8 @@ import {
   Search,
   Filter,
   TrendingUp,
-  Eye,
-  EyeOff,
   MoreVertical,
+  User,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,11 +45,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateServiceModal } from "./create-service-modal";
 import { EditServiceModal } from "./edit-service-modal";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 import { deleteService } from "@/actions/services";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function CreatorServices({ services = [] }) {
+export function CreatorServices({
+  services = [],
+  creator = { imageUrl: null, name: "Creator" },
+}) {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
@@ -136,112 +140,106 @@ export function CreatorServices({ services = [] }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header with Stats */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h2 className="text-3xl font-bold text-white">Services</h2>
-            <p className="text-muted-foreground mt-1">
-              Manage your services and set your rates for clients to book
-            </p>
-          </div>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-white hover:bg-gray-100 text-gray-900"
-            size="lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Service
-          </Button>
-        </div>
-
+    <CreatorPageShell
+      eyebrow="Offerings"
+      title="Services"
+      description="Manage your services and set your rates for clients to book."
+      actions={
+        <Button
+          variant="marketing"
+          size="lg"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add service
+        </Button>
+      }
+    >
+      <div className="space-y-6">
         {/* Statistics Cards */}
         {services.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-white/20 bg-transparent backdrop-blur-md">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Total Services</p>
-                    <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+                    <p className="mb-1 text-sm text-muted-foreground">Total services</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
+                      {stats.total}
+                    </p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                    <Briefcase className="h-10 w-10 text-emerald-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <Briefcase className="relative z-10 h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/20 bg-transparent backdrop-blur-md">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Active</p>
-                    <p className="text-3xl font-bold text-emerald-400 mt-1">
+                    <p className="mb-1 text-sm text-muted-foreground">Active</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-primary">
                       {stats.active}
                     </p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                    <CheckCircle2 className="h-10 w-10 text-emerald-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <CheckCircle2 className="relative z-10 h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/20 bg-transparent backdrop-blur-md">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Inactive</p>
-                    <p className="text-3xl font-bold text-gray-400 mt-1">
+                    <p className="mb-1 text-sm text-muted-foreground">Inactive</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-muted-foreground">
                       {stats.inactive}
                     </p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gray-400/20 rounded-full blur-xl"></div>
-                    <XCircle className="h-10 w-10 text-gray-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 ring-1 ring-border/60">
+                    <XCircle className="relative z-10 h-8 w-8 text-muted-foreground" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/20 bg-gradient-to-br from-blue-900/20 via-blue-900/10 to-transparent backdrop-blur-md">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Avg. Rate</p>
-                    <p className="text-3xl font-bold text-blue-400 mt-1">
+                    <p className="mb-1 text-sm text-muted-foreground">Avg. rate</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
                       ₵{stats.avgRate.toFixed(0)}
                     </p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                    <TrendingUp className="h-10 w-10 text-blue-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <TrendingUp className="relative z-10 h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
-      </div>
 
       {/* Search and Filters */}
       {services.length > 0 && (
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col gap-4 md:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-background border-emerald-900/30"
+                  className="border-border/60 bg-background/80 pl-10 backdrop-blur-sm"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px] bg-background border-emerald-900/30">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
+                  <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,7 +250,7 @@ export function CreatorServices({ services = [] }) {
               </Select>
               {categories.length > 0 && (
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full md:w-[180px] bg-background border-emerald-900/30">
+                  <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -274,9 +272,9 @@ export function CreatorServices({ services = [] }) {
       {activeServices.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-              Active Services ({activeServices.length})
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Active services ({activeServices.length})
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -284,6 +282,7 @@ export function CreatorServices({ services = [] }) {
               <ServiceCard
                 key={service.id}
                 service={service}
+                creator={creator}
                 getRateDisplay={getRateDisplay}
                 onEdit={() => setEditingService(service)}
                 onDelete={() => handleDelete(service.id)}
@@ -297,9 +296,9 @@ export function CreatorServices({ services = [] }) {
       {inactiveServices.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-gray-400" />
-              Inactive Services ({inactiveServices.length})
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <XCircle className="h-5 w-5 text-muted-foreground" />
+              Inactive services ({inactiveServices.length})
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -307,6 +306,7 @@ export function CreatorServices({ services = [] }) {
               <ServiceCard
                 key={service.id}
                 service={service}
+                creator={creator}
                 getRateDisplay={getRateDisplay}
                 onEdit={() => setEditingService(service)}
                 onDelete={() => handleDelete(service.id)}
@@ -318,22 +318,22 @@ export function CreatorServices({ services = [] }) {
 
       {/* No Results */}
       {services.length > 0 && filteredServices.length === 0 && (
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-12 text-center">
-            <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">No services found</h3>
-            <p className="text-muted-foreground mb-6">
+            <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No services found</h3>
+            <p className="mb-6 text-muted-foreground">
               Try adjusting your search or filter criteria
             </p>
             <Button
-              variant="outline"
+              variant="glass"
               onClick={() => {
                 setSearchQuery("");
                 setStatusFilter("all");
                 setCategoryFilter("all");
               }}
             >
-              Clear Filters
+              Clear filters
             </Button>
           </CardContent>
         </Card>
@@ -341,21 +341,17 @@ export function CreatorServices({ services = [] }) {
 
       {/* Empty State */}
       {services.length === 0 && (
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-12 text-center">
-            <Briefcase className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">No services yet</h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            <Briefcase className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No services yet</h3>
+            <p className="mx-auto mb-6 max-w-md text-muted-foreground">
               Create your first service to let clients know what you offer and at what rate.
               You can set hourly rates, per-session rates, or fixed prices.
             </p>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700"
-              size="lg"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Service
+            <Button variant="marketing" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create your first service
             </Button>
           </CardContent>
         </Card>
@@ -375,40 +371,73 @@ export function CreatorServices({ services = [] }) {
           service={editingService}
         />
       )}
-    </div>
+      </div>
+    </CreatorPageShell>
   );
 }
 
-function ServiceCard({ service, getRateDisplay, onEdit, onDelete }) {
+function ServiceCard({ service, creator, getRateDisplay, onEdit, onDelete }) {
+  const creatorName = creator?.name || "Creator";
+  const creatorImage = creator?.imageUrl || null;
+
   return (
     <Card
-      className={`group border-emerald-900/20 hover:border-emerald-700/40 transition-all ${
+      className={`group overflow-hidden ${creatorCardClass} transition-all hover:border-primary/25 hover:shadow-md ${
         !service.isActive ? "opacity-60" : ""
-      } hover:shadow-lg hover:shadow-emerald-900/10`}
+      }`}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between mb-2">
-          <CardTitle className="text-lg font-bold text-white line-clamp-2 flex-1 pr-2">
-            {service.title}
-          </CardTitle>
+      {service.imageUrl ? (
+        <div className="relative aspect-[2/1] w-full bg-muted">
+          <Image
+            src={service.imageUrl}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 33vw"
+          />
+        </div>
+      ) : null}
+      <CardHeader className={service.imageUrl ? "pt-4" : undefined}>
+        <div className="mb-3 flex items-start gap-3">
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-border/60 bg-primary/10 ring-2 ring-background">
+            {creatorImage ? (
+              <Image
+                src={creatorImage}
+                alt={creatorName}
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                <User className="h-6 w-6" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-muted-foreground">{creatorName}</p>
+            <CardTitle className="line-clamp-2 text-lg font-semibold leading-snug text-foreground">
+              {service.title}
+            </CardTitle>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onEdit}>
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onDelete} className="text-red-400">
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -418,8 +447,8 @@ function ServiceCard({ service, getRateDisplay, onEdit, onDelete }) {
           <Badge
             className={
               service.isActive
-                ? "bg-emerald-900/20 border-emerald-900/30 text-emerald-400"
-                : "bg-gray-900/20 border-gray-900/30 text-gray-400"
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-border/60 bg-muted/50 text-muted-foreground"
             }
           >
             {service.isActive ? (
@@ -448,11 +477,11 @@ function ServiceCard({ service, getRateDisplay, onEdit, onDelete }) {
           </p>
         )}
 
-        <div className="space-y-3 pt-3 border-t border-gray-800">
+        <div className="space-y-3 border-t border-border/50 pt-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-emerald-400" />
-              <p className="text-2xl font-bold text-white">{getRateDisplay(service)}</p>
+              <DollarSign className="h-5 w-5 text-primary" />
+              <p className="text-2xl font-bold tabular-nums text-foreground">{getRateDisplay(service)}</p>
             </div>
           </div>
           {service.duration && (
@@ -463,24 +492,24 @@ function ServiceCard({ service, getRateDisplay, onEdit, onDelete }) {
           )}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-gray-800">
+        <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs text-muted-foreground">
           <span>Created {format(new Date(service.createdAt), "MMM d, yyyy")}</span>
         </div>
 
         <div className="flex gap-2 pt-2">
           <Button
-            variant="outline"
+            variant="glass"
             size="sm"
-            className="flex-1 border-emerald-900/30 hover:bg-emerald-900/10"
+            className="flex-1"
             onClick={onEdit}
           >
-            <Edit className="h-4 w-4 mr-2" />
+            <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="border-red-900/30 text-red-400 hover:bg-red-900/20"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
             onClick={onDelete}
           >
             <Trash2 className="h-4 w-4" />

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
 // Simple bar chart component
 function BarChart({ data }) {
@@ -29,16 +30,15 @@ function BarChart({ data }) {
             <div className="w-full flex flex-col items-center justify-end h-full gap-1 relative">
               {/* Earnings bar */}
               <div
-                className="w-full bg-emerald-600 rounded-t transition-all"
+                className="w-full rounded-t bg-primary shadow-[0_0_10px_rgba(0,85,255,0.25)] transition-all"
                 style={{
                   height: `${(item.earnings / maxEarnings) * 100}%`,
                   minHeight: item.earnings > 0 ? "4px" : "0px",
                 }}
                 title={`₵${item.earnings.toFixed(2)}`}
               />
-              {/* Bookings bar */}
               <div
-                className="w-full bg-emerald-400/60 rounded-t transition-all"
+                className="w-full rounded-t bg-primary/40 transition-all"
                 style={{
                   height: `${(item.bookings / maxBookings) * 100}%`,
                   minHeight: item.bookings > 0 ? "4px" : "0px",
@@ -52,11 +52,11 @@ function BarChart({ data }) {
       </div>
       <div className="flex items-center gap-4 justify-center text-xs sm:text-sm pt-2">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-emerald-600 rounded" />
+          <div className="h-3 w-3 rounded bg-primary shadow-[0_0_8px_rgba(0,85,255,0.35)]" />
           <span className="text-muted-foreground">Earnings</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-emerald-400/60 rounded" />
+          <div className="h-3 w-3 rounded bg-primary/40" />
           <span className="text-muted-foreground">Bookings</span>
         </div>
       </div>
@@ -75,7 +75,7 @@ function RevenueChart({ data }) {
           <div key={index} className="flex-1 flex flex-col items-center gap-2">
             <div className="w-full flex items-end justify-center h-full">
               <div
-                className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t transition-all"
+                className="w-full rounded-t bg-gradient-to-t from-primary to-primary/60 transition-all"
                 style={{
                   height: `${(item.revenue / maxRevenue) * 100}%`,
                   minHeight: item.revenue > 0 ? "4px" : "0px",
@@ -98,7 +98,7 @@ function TrendIndicator({ value, isPositive = true }) {
   }
   
   return (
-    <div className={`flex items-center gap-1 text-xs ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+    <div className={`flex items-center gap-1 text-xs ${isPositive ? 'text-primary' : 'text-red-600'}`}>
       {isPositive ? (
         <ArrowUpRight className="h-3 w-3" />
       ) : (
@@ -113,24 +113,22 @@ export function CreatorAnalyticsClient({ analytics, user }) {
   const { productSales, appointments, monthlyData, topProducts, categoryBreakdown, recentSales, recentAppointments } = analytics;
 
   return (
+    <CreatorPageShell
+      eyebrow="Insights"
+      title="Analytics"
+      description="Track your performance, earnings, and growth."
+    >
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Analytics Dashboard</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Track your performance, earnings, and growth
-        </p>
-      </div>
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Revenue */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1 min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white truncate">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground truncate">
                   ₵{productSales.totalRevenue.toFixed(2)}
                 </p>
                 <div className="flex items-center gap-2">
@@ -141,20 +139,20 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                   <span className="text-xs text-muted-foreground">vs last month</span>
                 </div>
               </div>
-              <div className="bg-emerald-900/20 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-emerald-400" />
+              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
+                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Earnings */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1 min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-muted-foreground">Total Earnings</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white truncate">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground truncate">
                   ₵{productSales.totalEarnings.toFixed(2)}
                 </p>
                 <div className="flex items-center gap-2">
@@ -165,20 +163,20 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                   <span className="text-xs text-muted-foreground">vs last month</span>
                 </div>
               </div>
-              <div className="bg-emerald-900/20 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-emerald-400" />
+              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
+                <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Bookings */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1 min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-muted-foreground">Total Bookings</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
                   {appointments.total}
                 </p>
                 <div className="flex items-center gap-2">
@@ -189,28 +187,28 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                   <span className="text-xs text-muted-foreground">vs last month</span>
                 </div>
               </div>
-              <div className="bg-emerald-900/20 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <Calendar className="h-4 w-4 sm:h-6 sm:w-6 text-emerald-400" />
+              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
+                <Calendar className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Sales */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1 min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-muted-foreground">Product Sales</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
                   {productSales.totalSales}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {productSales.thisMonthSales} this month
                 </p>
               </div>
-              <div className="bg-emerald-900/20 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <ShoppingBag className="h-4 w-4 sm:h-6 sm:w-6 text-emerald-400" />
+              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
+                <ShoppingBag className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -220,10 +218,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Earnings & Bookings Trend */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Earnings & Bookings Trend
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -242,10 +240,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
         </Card>
 
         {/* Revenue Trend */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Revenue Trend
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -266,7 +264,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
 
       {/* This Month Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl">This Month</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -277,25 +275,25 @@ export function CreatorAnalyticsClient({ analytics, user }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                 <span className="text-sm text-muted-foreground">Revenue</span>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   ₵{productSales.thisMonthRevenue.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                 <span className="text-sm text-muted-foreground">Earnings</span>
-                <span className="text-base sm:text-lg font-bold text-emerald-400">
+                <span className="text-base sm:text-lg font-bold text-primary">
                   ₵{productSales.thisMonthEarnings.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                 <span className="text-sm text-muted-foreground">Product Sales</span>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   {productSales.thisMonthSales}
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                 <span className="text-sm text-muted-foreground">Bookings</span>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   {appointments.thisMonth}
                 </span>
               </div>
@@ -304,7 +302,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
         </Card>
 
         {/* Appointment Status */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl">Appointment Status</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -313,12 +311,12 @@ export function CreatorAnalyticsClient({ analytics, user }) {
           </CardHeader>
           <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-900/20 border border-emerald-900/30">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/25">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-400" />
                   <span className="text-sm text-muted-foreground">Completed</span>
                 </div>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   {appointments.completed}
                 </span>
               </div>
@@ -327,7 +325,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
                   <span className="text-sm text-muted-foreground">Scheduled</span>
                 </div>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   {appointments.scheduled}
                 </span>
               </div>
@@ -336,13 +334,13 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                   <div className="w-2 h-2 rounded-full bg-red-400" />
                   <span className="text-sm text-muted-foreground">Cancelled</span>
                 </div>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   {appointments.cancelled}
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                 <span className="text-sm text-muted-foreground">Total</span>
-                <span className="text-base sm:text-lg font-bold text-white">
+                <span className="text-base sm:text-lg font-bold text-foreground">
                   {appointments.total}
                 </span>
               </div>
@@ -354,10 +352,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
       {/* Top Products & Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Top Performing Products */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Top Products
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -370,14 +368,14 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                 {topProducts.map((product, index) => (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-emerald-900/10"
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border/50"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-900/20 flex items-center justify-center text-xs font-bold text-emerald-400">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                         {index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm sm:text-base text-white truncate">
+                        <p className="font-medium text-sm sm:text-base text-foreground truncate">
                           {product.title}
                         </p>
                         {product.category && (
@@ -388,7 +386,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-2">
-                      <p className="text-sm sm:text-base font-bold text-white">
+                      <p className="text-sm sm:text-base font-bold text-foreground">
                         ₵{product.earnings.toFixed(2)}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -402,7 +400,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No products yet</p>
-                <Link href="/creator/products" className="text-emerald-400 hover:underline text-sm mt-2 inline-block">
+                <Link href="/creator/products" className="text-primary hover:underline text-sm mt-2 inline-block">
                   Create your first product
                 </Link>
               </div>
@@ -411,10 +409,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
         </Card>
 
         {/* Category Breakdown */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Sales by Category
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -440,13 +438,13 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                             {category.sales} sales
                           </span>
                         </div>
-                        <span className="text-sm font-bold text-white">
+                        <span className="text-sm font-bold text-foreground">
                           ₵{category.earnings.toFixed(2)}
                         </span>
                       </div>
                       <div className="w-full bg-muted/20 rounded-full h-2 overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -467,10 +465,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Sales */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+              <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Recent Sales
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -483,10 +481,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                 {recentSales.map((sale) => (
                   <div
                     key={sale.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/10 border border-emerald-900/10"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/10 border border-border/50"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base text-white truncate">
+                      <p className="font-medium text-sm sm:text-base text-foreground truncate">
                         {sale.product?.title || "Product"}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -494,7 +492,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                       </p>
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
-                      <p className="text-sm sm:text-base font-bold text-emerald-400">
+                      <p className="text-sm sm:text-base font-bold text-primary">
                         ₵{sale.creatorEarnings.toFixed(2)}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -514,10 +512,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
         </Card>
 
         {/* Recent Appointments */}
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Recent Bookings
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
@@ -530,10 +528,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                 {recentAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/10 border border-emerald-900/10"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/10 border border-border/50"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base text-white">
+                      <p className="font-medium text-sm sm:text-base text-foreground">
                         {apt.client?.name || "Client"}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -544,7 +542,7 @@ export function CreatorAnalyticsClient({ analytics, user }) {
                       variant="outline"
                       className={`flex-shrink-0 ${
                         apt.status === "COMPLETED"
-                          ? "bg-emerald-900/20 border-emerald-900/30 text-emerald-400"
+                          ? "bg-primary/10 border-primary/25 text-primary"
                           : apt.status === "SCHEDULED"
                           ? "bg-blue-900/20 border-blue-900/30 text-blue-400"
                           : "bg-red-900/20 border-red-900/30 text-red-400"
@@ -566,10 +564,10 @@ export function CreatorAnalyticsClient({ analytics, user }) {
       </div>
 
       {/* Payout Summary */}
-      <Card className="border-emerald-900/20">
+      <Card className={creatorCardClass}>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
+            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Payout Summary
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
@@ -578,21 +576,21 @@ export function CreatorAnalyticsClient({ analytics, user }) {
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-muted/20 border border-emerald-900/20">
+            <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
               <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Revenue</p>
-              <p className="text-xl sm:text-2xl font-bold text-white">
+              <p className="text-xl sm:text-2xl font-bold text-foreground">
                 ₵{productSales.totalRevenue.toFixed(2)}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/20 border border-emerald-900/20">
+            <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
               <p className="text-xs sm:text-sm text-muted-foreground mb-1">Platform Fees (1%)</p>
-              <p className="text-xl sm:text-2xl font-bold text-white">
+              <p className="text-xl sm:text-2xl font-bold text-foreground">
                 ₵{productSales.totalPlatformFees.toFixed(2)}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-emerald-900/20 border border-emerald-900/30">
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/25">
               <p className="text-xs sm:text-sm text-muted-foreground mb-1">Your Earnings</p>
-              <p className="text-xl sm:text-2xl font-bold text-emerald-400">
+              <p className="text-xl sm:text-2xl font-bold text-primary">
                 ₵{productSales.totalEarnings.toFixed(2)}
               </p>
             </div>
@@ -608,5 +606,6 @@ export function CreatorAnalyticsClient({ analytics, user }) {
         </CardContent>
       </Card>
     </div>
+    </CreatorPageShell>
   );
 }

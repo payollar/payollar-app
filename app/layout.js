@@ -1,13 +1,23 @@
-import { Inter } from "next/font/google";
+import { Inter, DM_Sans, Caveat } from "next/font/google";
 import "./globals.css";
 // import { ClerkProvider } from "@clerk/nextjs"; // Clerk - removed, using Better Auth
 import { Toaster } from "sonner";
-import Header from "@/components/header";
+import ConditionalHeader from "@/components/conditional-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FloatingChat } from "@/components/FloatingChat";
 import { MainWrapper } from "@/components/main-wrapper";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-geist-sans" });
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["400", "500", "600", "700"],
+});
+const caveat = Caveat({
+  subsets: ["latin"],
+  variable: "--font-handwriting",
+  weight: ["500", "600", "700"],
+});
 
 export const metadata = {
   title: "Payollar App",
@@ -20,7 +30,9 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="icon" href="/logo.png" sizes="any" />
       </head>
-      <body className={`${inter.className}`}>
+      <body
+        className={`${inter.className} ${inter.variable} ${dmSans.variable} ${caveat.variable} antialiased`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -28,7 +40,7 @@ export default function RootLayout({ children }) {
           disableTransitionOnChange
         >
           <div className="flex flex-col min-h-screen">
-            <Header />
+            <ConditionalHeader />
 
             <MainWrapper>
               {children}

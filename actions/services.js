@@ -57,6 +57,9 @@ export async function createService(formData) {
     const duration = formData.get("duration") ? parseInt(formData.get("duration")) : null;
     const category = formData.get("category") || null;
     const isActive = formData.get("isActive") === "true" || formData.get("isActive") === true;
+    const imageUrlRaw = formData.get("imageUrl");
+    const imageUrl =
+      typeof imageUrlRaw === "string" && imageUrlRaw.trim() ? imageUrlRaw.trim() : null;
 
     if (!title || !rate || isNaN(rate) || rate <= 0) {
       return { success: false, error: "Title and valid rate are required" };
@@ -71,6 +74,7 @@ export async function createService(formData) {
         rateType,
         duration,
         category: category?.trim() || null,
+        imageUrl,
         isActive,
       },
     });
@@ -110,6 +114,9 @@ export async function updateService(formData) {
     const duration = formData.get("duration") ? parseInt(formData.get("duration")) : null;
     const category = formData.get("category") || null;
     const isActive = formData.get("isActive") === "true" || formData.get("isActive") === true;
+    const imageUrlRaw = formData.get("imageUrl");
+    const imageUrl =
+      typeof imageUrlRaw === "string" && imageUrlRaw.trim() ? imageUrlRaw.trim() : null;
 
     if (!serviceId || !title || !rate || isNaN(rate) || rate <= 0) {
       return { success: false, error: "Service ID, title, and valid rate are required" };
@@ -133,6 +140,7 @@ export async function updateService(formData) {
         rateType,
         duration,
         category: category?.trim() || null,
+        imageUrl,
         isActive,
       },
     });

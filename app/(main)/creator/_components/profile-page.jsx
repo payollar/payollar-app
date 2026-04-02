@@ -34,9 +34,11 @@ import {
   Settings
 } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { updateCreatorProfile } from "@/actions/doctor";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
 export function ProfilePage({ user, availabilitySlots = [] }) {
   const router = useRouter();
@@ -395,58 +397,53 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
-          <p className="text-gray-400 mt-1">Manage your profile and public information</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <CreatorPageShell
+      eyebrow="Profile"
+      title="Profile settings"
+      description="Manage your profile, public page, and availability."
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             onClick={copyToClipboard}
-            variant="outline"
-            className="border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/20"
+            variant="glass"
+            size="sm"
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="mr-2 h-4 w-4" />
                 Copied!
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Profile Link
+                <Copy className="mr-2 h-4 w-4" />
+                Copy link
               </>
             )}
           </Button>
           {publicProfileUrl && (
             <Link href={publicProfileUrl} target="_blank">
-              <Button
-                variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View Public Profile
+              <Button variant="marketingOutline" size="sm">
+                <Eye className="mr-2 h-4 w-4" />
+                Public profile
               </Button>
             </Link>
           )}
         </div>
-      </div>
-
-      {/* Tabs Navigation */}
+      }
+    >
+      <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-900 border-gray-800">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-emerald-600">
-            <User className="h-4 w-4 mr-2" />
-            Profile Info
+        <TabsList className="grid w-full grid-cols-3 rounded-xl border border-border/60 bg-card/60 p-1 backdrop-blur-sm">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <User className="mr-2 h-4 w-4" />
+            Profile
           </TabsTrigger>
-          <TabsTrigger value="public" className="data-[state=active]:bg-emerald-600">
-            <Globe className="h-4 w-4 mr-2" />
-            Public Profile
+          <TabsTrigger value="public" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Globe className="mr-2 h-4 w-4" />
+            Public
           </TabsTrigger>
-          <TabsTrigger value="availability" className="data-[state=active]:bg-emerald-600">
-            <Calendar className="h-4 w-4 mr-2" />
+          <TabsTrigger value="availability" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Calendar className="mr-2 h-4 w-4" />
             Availability
           </TabsTrigger>
         </TabsList>
@@ -455,11 +452,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
         <TabsContent value="profile" className="space-y-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Profile Summary */}
-            <Card className="lg:col-span-1 border-emerald-900/20 bg-gray-900/50">
+            <Card className={cn("lg:col-span-1", creatorCardClass)}>
               <CardContent className="p-6">
                 <div className="flex flex-col items-center text-center space-y-6">
                   {/* Profile Picture */}
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800 border-4 border-emerald-900/30">
+                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800 border-4 border-primary/25">
                     {profileImage ? (
                       <Image
                         src={profileImage}
@@ -468,8 +465,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                        <span className="text-4xl text-emerald-400 font-bold">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/15 to-purple-900/20">
+                        <span className="text-4xl text-primary font-bold">
                           {fullName.charAt(0) || "U"}
                         </span>
                       </div>
@@ -518,7 +515,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         skills.slice(0, 6).map((skill) => (
                           <Badge
                             key={skill.id}
-                            className="bg-purple-600/20 text-purple-400 border-purple-600/30 px-2 py-1 text-xs"
+                            className="border-primary/25 bg-primary/10 px-2 py-1 text-xs text-primary"
                           >
                             {skill.name}
                           </Badge>
@@ -533,10 +530,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
             </Card>
 
             {/* Right Column - Edit Form */}
-            <Card className="lg:col-span-2 border-emerald-900/20 bg-gray-900/50">
+            <Card className={cn("lg:col-span-2", creatorCardClass)}>
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-emerald-400" />
+                  <Settings className="h-5 w-5 text-primary" />
                   Edit Profile Information
                 </CardTitle>
                 <CardDescription className="text-gray-400">
@@ -553,7 +550,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white focus:border-emerald-600"
+                    className="bg-gray-800 border-gray-700 text-white focus:border-primary"
                     placeholder="Alex Chen"
                   />
                 </div>
@@ -567,7 +564,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     id="professionalTitle"
                     value={professionalTitle}
                     onChange={(e) => setProfessionalTitle(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white focus:border-emerald-600"
+                    className="bg-gray-800 border-gray-700 text-white focus:border-primary"
                     placeholder="e.g., Content Creator, Musician, Actor"
                   />
                 </div>
@@ -582,7 +579,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     rows={5}
-                    className="bg-gray-800 border-gray-700 text-white resize-none focus:border-emerald-600"
+                    className="bg-gray-800 border-gray-700 text-white resize-none focus:border-primary"
                     placeholder="Tell clients about yourself, your experience, and what you offer..."
                   />
                   <p className="text-xs text-gray-500">
@@ -595,7 +592,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   <Label className="text-gray-300">Profile Picture</Label>
                   <div className="flex items-center gap-4">
                     {profileImage && (
-                      <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-emerald-600/30">
+                      <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary/30">
                         <Image
                           src={profileImage}
                           alt="Profile"
@@ -652,7 +649,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         skills.map((skill) => (
                           <Badge
                             key={skill.id}
-                            className="bg-purple-600/20 text-purple-400 border-purple-600/30 px-3 py-1 flex items-center gap-2"
+                            className="flex items-center gap-2 border-primary/25 bg-primary/10 px-3 py-1 text-primary"
                           >
                             {skill.name}
                             <button
@@ -679,12 +676,12 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             addSkill();
                           }
                         }}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-emerald-600"
+                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
                       />
                       <Button
                         onClick={addSkill}
                         disabled={!newSkill.trim()}
-                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        variant="default"
                       >
                         Add
                       </Button>
@@ -696,7 +693,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 <Button
                   onClick={handleSaveProfile}
                   disabled={isSaving || !fullName.trim() || !bio.trim()}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  variant="marketing"
+                  className="w-full"
                   size="lg"
                 >
                   {isSaving ? (
@@ -720,10 +718,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
         <TabsContent value="public" className="space-y-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column - Preview */}
-            <Card className="border-emerald-900/20 bg-gray-900/50">
+            <Card className={creatorCardClass}>
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-emerald-400" />
+                  <Eye className="h-5 w-5 text-primary" />
                   Public Profile Preview
                 </CardTitle>
                 <CardDescription className="text-gray-400">
@@ -734,7 +732,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 <div className="space-y-6">
                   {/* Profile Image */}
                   <div className="flex flex-col items-center">
-                    <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800 border-4 border-emerald-900/30 mb-4">
+                    <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800 border-4 border-primary/25 mb-4">
                       {profileImage ? (
                         <Image
                           src={profileImage}
@@ -743,8 +741,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                          <span className="text-4xl text-emerald-400 font-bold">
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/15 to-purple-900/20">
+                          <span className="text-4xl text-primary font-bold">
                             {(fullName || "U").charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -760,7 +758,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                       <Link
                         href={publicProfileUrl}
                         target="_blank"
-                        className="text-emerald-400 hover:text-emerald-300 text-sm flex items-center gap-1"
+                        className="text-primary hover:text-primary/80 text-sm flex items-center gap-1"
                       >
                         View Public Profile
                         <ExternalLink className="h-3 w-3" />
@@ -784,7 +782,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         {skills.map((skill) => (
                           <Badge
                             key={skill.id}
-                            className="bg-purple-600/20 text-purple-400 border-purple-600/30"
+                            className="border-primary/25 bg-primary/10 text-primary"
                           >
                             {skill.name}
                           </Badge>
@@ -804,7 +802,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm"
+                            className="flex items-center gap-2 text-primary hover:text-primary/80 text-sm"
                           >
                             <ExternalLink className="h-3 w-3" />
                             {url}
@@ -820,10 +818,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
             {/* Right Column - Portfolio & Share */}
             <div className="space-y-6">
               {/* Portfolio URLs */}
-              <Card className="border-emerald-900/20 bg-gray-900/50">
+              <Card className={creatorCardClass}>
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Briefcase className="h-5 w-5 text-emerald-400" />
+                    <Briefcase className="h-5 w-5 text-primary" />
                     Portfolio Links
                   </CardTitle>
                   <CardDescription className="text-gray-400">
@@ -862,12 +860,12 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             addPortfolioUrl();
                           }
                         }}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-emerald-600"
+                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
                       />
                       <Button
                         onClick={addPortfolioUrl}
                         disabled={!newPortfolioUrl.trim()}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        variant="marketing"
                       >
                         Add
                       </Button>
@@ -877,10 +875,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
               </Card>
 
               {/* Share Options */}
-              <Card className="border-emerald-900/20 bg-gray-900/50">
+              <Card className={creatorCardClass}>
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Share2 className="h-5 w-5 text-emerald-400" />
+                    <Share2 className="h-5 w-5 text-primary" />
                     Share Your Profile
                   </CardTitle>
                   <CardDescription className="text-gray-400">
@@ -891,8 +889,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   <div className="flex flex-wrap items-center gap-3">
                     <Button
                       onClick={copyToClipboard}
-                      variant="outline"
-                      className="border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/20"
+                      variant="glass"
                     >
                       {copied ? (
                         <>
@@ -942,7 +939,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   {publicProfileUrl && (
                     <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
                       <p className="text-gray-400 text-xs mb-1">Your Profile URL:</p>
-                      <p className="text-emerald-400 text-sm break-all">{publicProfileUrl}</p>
+                      <p className="text-primary text-sm break-all">{publicProfileUrl}</p>
                     </div>
                   )}
                 </CardContent>
@@ -953,12 +950,12 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
 
         {/* Availability Tab */}
         <TabsContent value="availability" className="space-y-6 mt-6">
-          <Card className="border-emerald-900/20 bg-gray-900/50">
+          <Card className={creatorCardClass}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-emerald-400" />
+                    <Calendar className="h-5 w-5 text-primary" />
                     Availability Schedule
                   </CardTitle>
                   <CardDescription className="text-gray-400 mt-1">
@@ -968,11 +965,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 {!editingAvailability && (
                   <Button
                     onClick={() => setEditingAvailability(true)}
-                    variant="outline"
-                    className="border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/20"
+                    variant="glass"
                   >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Availability
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit availability
                   </Button>
                 )}
               </div>
@@ -980,7 +976,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
             <CardContent>
               {isLoadingAvailability ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   <span className="ml-2 text-gray-400">Loading availability...</span>
                 </div>
               ) : editingAvailability ? (
@@ -996,7 +992,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         type="time"
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-emerald-600"
+                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1008,7 +1004,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         type="time"
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-emerald-600"
+                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
                       />
                     </div>
                   </div>
@@ -1024,15 +1020,15 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             key={day}
                             type="button"
                             onClick={() => toggleDay(day)}
-                            className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                            className={`flex items-center gap-2 rounded-lg border-2 p-3 transition-all ${
                               isSelected
-                                ? "bg-emerald-900/30 border-emerald-500 text-emerald-400"
-                                : "bg-gray-800/50 border-gray-700 text-gray-400 hover:border-gray-600"
+                                ? "border-primary bg-primary/15 text-primary"
+                                : "border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600"
                             }`}
                           >
                             {isSelected ? (
-                              <div className="h-5 w-5 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center">
-                                <Check className="h-3 w-3 text-emerald-400" />
+                              <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary/15">
+                                <Check className="h-3 w-3 text-primary" />
                               </div>
                             ) : (
                               <div className="h-5 w-5 rounded-full border-2 border-gray-600" />
@@ -1076,7 +1072,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     <Button
                       onClick={handleSaveAvailability}
                       disabled={isSavingAvailability || !startTime || !endTime || selectedDays.size === 0}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      variant="marketing"
                     >
                       {isSavingAvailability ? (
                         <>
@@ -1101,8 +1097,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     >
                       <div className="flex items-center gap-3">
                         {available ? (
-                          <div className="h-5 w-5 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center">
-                            <Check className="h-3 w-3 text-emerald-400" />
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary/15">
+                            <Check className="h-3 w-3 text-primary" />
                           </div>
                         ) : (
                           <div className="h-5 w-5 rounded-full border-2 border-gray-600" />
@@ -1110,7 +1106,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         <span className="text-white font-medium">{day}</span>
                       </div>
                       {available && time ? (
-                        <span className="text-emerald-400 font-medium">{time}</span>
+                        <span className="text-primary font-medium">{time}</span>
                       ) : (
                         <span className="text-gray-500">Not available</span>
                       )}
@@ -1122,6 +1118,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </CreatorPageShell>
   );
 }

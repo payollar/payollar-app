@@ -1,30 +1,26 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton";
 
+/** Matches chat page: min-height below navbar, flows with document (no inner scroll box). */
 export default function ChatLoading() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-10 w-32" />
-          </div>
+    <div className="mx-auto flex min-h-[calc(100dvh-5.25rem)] w-full max-w-[56rem] flex-col md:min-h-[calc(100dvh-7rem)] xl:max-w-[64rem]">
+      <div className="flex flex-1 flex-col space-y-4 p-4 sm:p-6">
+        <Skeleton className="mx-auto h-8 w-2/3 max-w-sm rounded-lg bg-white/10" />
+        <Skeleton className="mx-auto h-4 w-full max-w-md rounded bg-white/10" />
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Skeleton className="h-32 rounded-2xl bg-white/10 sm:h-36" />
+          <Skeleton className="h-32 rounded-2xl bg-white/10 sm:h-36" />
+          <Skeleton className="h-32 rounded-2xl bg-white/10 sm:h-36" />
+          <Skeleton className="h-32 rounded-2xl bg-white/10 sm:h-36" />
         </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="p-8 mb-8">
-          <div className="flex items-start space-x-4">
-            <Skeleton className="w-12 h-12 rounded-full" />
-            <div className="flex-1 space-y-3">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          </div>
-        </Card>
+      </div>
+      <div className="sticky bottom-0 z-30 mt-auto shrink-0 space-y-3 border-t border-white/10 bg-black/95 p-4 backdrop-blur-md">
+        <div className="flex justify-end gap-2">
+          <Skeleton className="h-8 w-24 rounded-full bg-white/10" />
+          <Skeleton className="h-8 w-16 rounded-full bg-white/10" />
+        </div>
+        <Skeleton className="h-12 w-full rounded-full bg-white/10" />
       </div>
     </div>
-  )
+  );
 }

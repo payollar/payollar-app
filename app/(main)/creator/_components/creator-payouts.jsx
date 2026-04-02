@@ -49,6 +49,7 @@ import { useRouter } from "next/navigation";
 import useFetch from "@/hooks/use-fetch";
 import { requestPayout } from "@/actions/payout";
 import { updateBankAccount, removeBankAccount, removeMobileMoney } from "@/actions/products";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
 export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
   const router = useRouter();
@@ -205,7 +206,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
       );
     }
     return (
-      <Badge variant="default" className="flex items-center gap-1 bg-green-900/20 text-green-400">
+      <Badge variant="default" className="flex items-center gap-1 border-primary/20 bg-primary/10 text-primary">
         <CheckCircle className="h-3 w-3" />
         Processed
       </Badge>
@@ -213,24 +214,22 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Payouts & Earnings</h1>
-          <p className="text-gray-400 mt-1">Manage your earnings and request payouts</p>
-        </div>
+    <CreatorPageShell
+      eyebrow="Payments"
+      title="Payouts & earnings"
+      description="Manage your earnings, payment methods, and payout requests."
+      actions={
         <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-white hover:bg-gray-100 text-gray-900">
-              <Wallet className="h-4 w-4 mr-2" />
-              Request Payout
+            <Button variant="marketing" className="gap-2">
+              <Wallet className="h-4 w-4" />
+              Request payout
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 max-w-md">
+          <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-sm">
             <DialogHeader>
-              <DialogTitle className="text-white">Request Payout</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogTitle className="text-foreground">Request payout</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 {hasBankAccount || hasMobileMoney
                   ? "Request payout to your payment method"
                   : "Please add your payment method details first"}
@@ -239,18 +238,18 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
             <div className="space-y-4 py-4">
               {!hasBankAccount && !hasMobileMoney ? (
                 <>
-                  <Alert className="bg-yellow-900/20 border-yellow-700/30">
-                    <AlertCircle className="h-4 w-4 text-yellow-400" />
-                    <AlertDescription className="text-sm text-gray-300">
+                  <Alert className="border-amber-500/30 bg-amber-500/10">
+                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    <AlertDescription className="text-sm text-muted-foreground">
                       You need to add your payment method details before requesting a payout.
                     </AlertDescription>
                   </Alert>
-                  <div className="p-4 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                  <div className="rounded-lg border border-primary/25 bg-primary/5 p-4">
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5" />
-                      <div className="text-sm text-gray-300">
+                      <AlertCircle className="mt-0.5 h-5 w-5 text-primary" />
+                      <div className="text-sm text-muted-foreground">
                         <p className="font-medium mb-1">Available for Payout:</p>
-                        <p className="text-2xl font-bold text-emerald-400">
+                        <p className="text-2xl font-bold tabular-nums text-primary">
                           ₵{availableForPayout.toFixed(2)}
                         </p>
                       </div>
@@ -261,7 +260,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                       setShowRequestDialog(false);
                       setShowBankDialog(true);
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    variant="default" className="w-full"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Add Payment Method
@@ -269,19 +268,19 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                 </>
               ) : (
                 <>
-                  <div className="p-4 bg-emerald-900/10 border border-emerald-700/30 rounded-lg">
+                  <div className="rounded-lg border border-primary/25 bg-primary/10 p-4">
                     <div className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-emerald-400 mt-0.5" />
-                      <div className="text-sm text-gray-300 flex-1">
+                      <CheckCircle className="mt-0.5 h-5 w-5 text-primary" />
+                      <div className="text-sm text-muted-foreground flex-1">
                         <p className="font-medium mb-2">Payout Details</p>
                         <div className="space-y-1">
                           {hasBankAccount && (
                             <>
                               <p>
-                                <span className="text-gray-400">Bank:</span> {user.bankName}
+                                <span className="text-muted-foreground">Bank:</span> {user.bankName}
                               </p>
                               <p>
-                                <span className="text-gray-400">Account:</span> ****
+                                <span className="text-muted-foreground">Account:</span> ****
                                 {user.bankAccountNumber.slice(-4)}
                               </p>
                             </>
@@ -289,23 +288,23 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                           {hasMobileMoney && (
                             <>
                               <p>
-                                <span className="text-gray-400">Provider:</span> {user.mobileMoneyProvider}
+                                <span className="text-muted-foreground">Provider:</span> {user.mobileMoneyProvider}
                               </p>
                               <p>
-                                <span className="text-gray-400">Number:</span> {user.mobileMoneyNumber}
+                                <span className="text-muted-foreground">Number:</span> {user.mobileMoneyNumber}
                               </p>
                             </>
                           )}
-                          <p className="font-bold text-emerald-400 mt-2">
+                          <p className="mt-2 font-bold tabular-nums text-primary">
                             Amount: ₵{availableForPayout.toFixed(2)}
                           </p>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <Alert className="bg-blue-900/20 border-blue-700/30">
-                    <AlertCircle className="h-4 w-4 text-blue-400" />
-                    <AlertDescription className="text-sm text-gray-300">
+                  <Alert className="border-primary/25 bg-primary/5">
+                    <AlertCircle className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-sm text-muted-foreground">
                       This amount will be transferred to your bank account within 3-5 business
                       days.
                     </AlertDescription>
@@ -313,7 +312,8 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                   <Button
                     onClick={handleRequestPayout}
                     disabled={loading || availableForPayout < 1}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    variant="marketing"
+                    className="w-full"
                   >
                     {loading ? (
                       <>
@@ -332,63 +332,64 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
+      }
+    >
+      <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-emerald-900/20 bg-gray-900/50">
+        <Card className={creatorCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Available for Payout</p>
-                <p className="text-2xl font-bold text-white">₵{availableForPayout.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Available for payout</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">₵{availableForPayout.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-emerald-900/20 rounded-lg">
-                <Wallet className="h-6 w-6 text-emerald-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Wallet className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-blue-900/20 bg-gray-900/50">
+        <Card className={creatorCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Total Earnings</p>
-                <p className="text-2xl font-bold text-white">₵{totalEarnings.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Total earnings</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">₵{totalEarnings.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-blue-900/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-blue-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <TrendingUp className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-purple-900/20 bg-gray-900/50">
+        <Card className={creatorCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">This Month</p>
-                <p className="text-2xl font-bold text-white">₵{thisMonthEarnings.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">This month</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">₵{thisMonthEarnings.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-purple-900/20 rounded-lg">
-                <Banknote className="h-6 w-6 text-purple-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Banknote className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-900/20 bg-gray-900/50">
+        <Card className={creatorCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Pending Payouts</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="mb-1 text-sm text-muted-foreground">Pending payouts</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">
                   {payouts.filter((p) => p.status === "PROCESSING").length}
                 </p>
               </div>
-              <div className="p-3 bg-yellow-900/20 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Clock className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -396,22 +397,21 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
       </div>
 
       {/* Payment Methods Section */}
-      <Card className="border-emerald-900/20 bg-gray-900/50">
+      <Card className={creatorCardClass}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-emerald-400" />
-                Payment Methods
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Payment methods
               </CardTitle>
-              <CardDescription className="text-gray-400 mt-1">
+              <CardDescription className="mt-1 text-muted-foreground">
                 Add your bank account or mobile money details to receive payouts
               </CardDescription>
             </div>
             <Button
-              variant="outline"
+              variant="glass"
               onClick={() => setShowBankDialog(true)}
-              className="border-emerald-900/30"
             >
               {(hasBankAccount || hasMobileMoney) ? (
                 <>
@@ -432,11 +432,11 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
             <div className="space-y-4">
               {/* Bank Account Info */}
               {hasBankAccount && (
-                <div className="p-4 bg-emerald-900/10 rounded-lg border border-emerald-900/20">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-emerald-400" />
-                      <h3 className="text-sm font-semibold text-white">Bank Account</h3>
+                      <CreditCard className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">Bank account</h3>
                     </div>
                     <Button
                       variant="ghost"
@@ -450,13 +450,13 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Account Holder Name</p>
-                      <p className="text-white font-medium">{user.bankAccountName}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Account holder name</p>
+                      <p className="font-medium text-foreground">{user.bankAccountName}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Account Number</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Account number</p>
                       <div className="flex items-center gap-2">
-                        <p className="text-white font-medium">
+                        <p className="font-medium text-foreground">
                           {showAccountNumber
                             ? user.bankAccountNumber
                             : `****${user.bankAccountNumber.slice(-4)}`}
@@ -468,20 +468,20 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                           onClick={() => setShowAccountNumber(!showAccountNumber)}
                         >
                           {showAccountNumber ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                           )}
                         </Button>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Bank Name</p>
-                      <p className="text-white font-medium">{user.bankName}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Bank name</p>
+                      <p className="font-medium text-foreground">{user.bankName}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Routing/Sort Code</p>
-                      <p className="text-white font-medium">{user.bankRoutingNumber}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Routing / sort code</p>
+                      <p className="font-medium text-foreground">{user.bankRoutingNumber}</p>
                     </div>
                   </div>
                 </div>
@@ -489,11 +489,11 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
               {/* Mobile Money Info */}
               {hasMobileMoney && (
-                <div className="p-4 bg-blue-900/10 rounded-lg border border-blue-900/20">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+                  <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Smartphone className="h-4 w-4 text-blue-400" />
-                      <h3 className="text-sm font-semibold text-white">Mobile Money</h3>
+                      <Smartphone className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">Mobile money</h3>
                     </div>
                     <Button
                       variant="ghost"
@@ -507,24 +507,24 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Provider</p>
-                      <p className="text-white font-medium">{user.mobileMoneyProvider}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Provider</p>
+                      <p className="font-medium text-foreground">{user.mobileMoneyProvider}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Phone Number</p>
-                      <p className="text-white font-medium">{user.mobileMoneyNumber}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Phone number</p>
+                      <p className="font-medium text-foreground">{user.mobileMoneyNumber}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400 mb-1">Account Name</p>
-                      <p className="text-white font-medium">{user.mobileMoneyName}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">Account name</p>
+                      <p className="font-medium text-foreground">{user.mobileMoneyName}</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              <Alert className="bg-emerald-900/10 border-emerald-900/30">
-                <CheckCircle className="h-4 w-4 text-emerald-400" />
-                <AlertDescription className="text-sm text-gray-300">
+              <Alert className="border-primary/25 bg-primary/5">
+                <CheckCircle className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-sm text-muted-foreground">
                   Your payment method{hasBankAccount && hasMobileMoney ? "s are" : " is"} set up. Payouts will be sent to{" "}
                   {hasBankAccount && hasMobileMoney
                     ? "your selected payment method"
@@ -537,15 +537,12 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
             </div>
           ) : (
             <div className="text-center py-8">
-              <Building2 className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-              <p className="text-gray-400 mb-2">No payment method added yet</p>
-              <p className="text-sm text-gray-500 mb-4">
+              <Building2 className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
+              <p className="mb-2 text-muted-foreground">No payment method added yet</p>
+              <p className="mb-4 text-sm text-muted-foreground/80">
                 Add your bank account or mobile money details to receive payouts from your earnings
               </p>
-              <Button
-                onClick={() => setShowBankDialog(true)}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
+              <Button variant="marketing" onClick={() => setShowBankDialog(true)}>
                 <CreditCard className="h-4 w-4 mr-2" />
                 Add Payment Method
               </Button>
@@ -556,30 +553,36 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Main Content */}
       <Tabs defaultValue="payouts" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-900 border-gray-800">
-          <TabsTrigger value="payouts" className="data-[state=active]:bg-emerald-600">
-            <Wallet className="h-4 w-4 mr-2" />
-            Payout History
+        <TabsList className="grid w-full grid-cols-2 rounded-xl border border-border/60 bg-card/60 p-1">
+          <TabsTrigger
+            value="payouts"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Wallet className="mr-2 h-4 w-4" />
+            Payout history
           </TabsTrigger>
-          <TabsTrigger value="escrow" className="data-[state=active]:bg-emerald-600">
-            <Shield className="h-4 w-4 mr-2" />
-            Escrow Payments
+          <TabsTrigger
+            value="escrow"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            Escrow payments
           </TabsTrigger>
         </TabsList>
 
         {/* Payout History Tab */}
         <TabsContent value="payouts" className="space-y-4 mt-6">
-          <Card className="border-emerald-900/20 bg-gray-900/50">
+          <Card className={creatorCardClass}>
             <CardHeader>
-              <CardTitle className="text-white">Payout History</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-foreground">Payout history</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Track all your payout requests and processed payments
               </CardDescription>
             </CardHeader>
             <CardContent>
               {payouts.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <Wallet className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <div className="py-8 text-center text-muted-foreground">
+                  <Wallet className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
                   <p>No payout history yet</p>
                   <p className="text-sm mt-2">Request your first payout when you have earnings available</p>
                 </div>
@@ -588,36 +591,36 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                   {payouts.map((payout) => (
                     <div
                       key={payout.id}
-                      className="p-4 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-emerald-700/30 transition-colors"
+                      className="rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-primary/30"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-white font-semibold">Payout Request</h3>
+                            <h3 className="font-semibold text-foreground">Payout request</h3>
                             {getStatusBadge(payout.status)}
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <p className="text-gray-400">Net Amount</p>
-                              <p className="text-white font-medium text-lg">₵{payout.netAmount.toFixed(2)}</p>
+                              <p className="text-muted-foreground">Net amount</p>
+                              <p className="text-lg font-medium tabular-nums text-foreground">₵{payout.netAmount.toFixed(2)}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Credits</p>
-                              <p className="text-white font-medium">{payout.credits}</p>
+                              <p className="text-muted-foreground">Credits</p>
+                              <p className="font-medium text-foreground">{payout.credits}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Platform Fee</p>
-                              <p className="text-white font-medium">-₵{payout.platformFee.toFixed(2)}</p>
+                              <p className="text-muted-foreground">Platform fee</p>
+                              <p className="font-medium tabular-nums text-foreground">-₵{payout.platformFee.toFixed(2)}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Date</p>
-                              <p className="text-white font-medium">
+                              <p className="text-muted-foreground">Date</p>
+                              <p className="font-medium text-foreground">
                                 {format(new Date(payout.createdAt), "MMM d, yyyy")}
                               </p>
                             </div>
                           </div>
                           {payout.processedAt && (
-                            <p className="text-gray-400 text-sm mt-2">
+                            <p className="mt-2 text-sm text-muted-foreground">
                               Processed on {format(new Date(payout.processedAt), "MMM d, yyyy 'at' h:mm a")}
                             </p>
                           )}
@@ -633,16 +636,16 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
         {/* Escrow Payments Tab */}
         <TabsContent value="escrow" className="space-y-4 mt-6">
-          <Card className="border-emerald-900/20 bg-gray-900/50">
+          <Card className={creatorCardClass}>
             <CardHeader>
-              <CardTitle className="text-white">Escrow Payments</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-foreground">Escrow payments</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Payments held in escrow until services are completed
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-400">
-                <Shield className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+              <div className="py-8 text-center text-muted-foreground">
+                <Shield className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
                 <p>Escrow payments will appear here</p>
                 <p className="text-sm mt-2">Payments are held securely until services are completed</p>
               </div>
@@ -653,12 +656,12 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Payment Method Dialog */}
       <Dialog open={showBankDialog} onOpenChange={setShowBankDialog}>
-        <DialogContent className="max-w-2xl bg-gray-900 border-gray-800 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border/60 bg-card/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
-              Payment Method Information
+            <DialogTitle className="text-xl font-bold text-foreground">
+              Payment method information
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Add or update your bank account or mobile money details to receive payouts
             </DialogDescription>
           </DialogHeader>
@@ -666,21 +669,27 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
           <form onSubmit={handleBankSubmit} className="space-y-4">
             {/* Payment Method Tabs */}
             <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v)}>
-              <TabsList className="grid w-full grid-cols-2 bg-gray-800 border-gray-700">
-                <TabsTrigger value="bank" className="data-[state=active]:bg-emerald-600">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Bank Account
+              <TabsList className="grid w-full grid-cols-2 rounded-xl border border-border/60 bg-card/60 p-1">
+                <TabsTrigger
+                  value="bank"
+                  className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Bank account
                 </TabsTrigger>
-                <TabsTrigger value="mobile" className="data-[state=active]:bg-emerald-600">
-                  <Smartphone className="h-4 w-4 mr-2" />
-                  Mobile Money
+                <TabsTrigger
+                  value="mobile"
+                  className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Smartphone className="mr-2 h-4 w-4" />
+                  Mobile money
                 </TabsTrigger>
               </TabsList>
 
               {/* Bank Account Form */}
               <TabsContent value="bank" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bankAccountName" className="text-gray-300">
+                  <Label htmlFor="bankAccountName" className="text-muted-foreground">
                     Account Holder Name *
                   </Label>
                   <Input
@@ -689,7 +698,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                     onChange={(e) =>
                       setBankFormData({ ...bankFormData, bankAccountName: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="border-border/60 bg-background text-foreground"
                     placeholder="John Doe"
                     required={paymentMethod === "bank"}
                   />
@@ -697,7 +706,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="bankAccountNumber" className="text-gray-300">
+                    <Label htmlFor="bankAccountNumber" className="text-muted-foreground">
                       Account Number *
                     </Label>
                     <Input
@@ -706,13 +715,13 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                       onChange={(e) =>
                         setBankFormData({ ...bankFormData, bankAccountNumber: e.target.value })
                       }
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="border-border/60 bg-background text-foreground"
                       placeholder="1234567890"
                       required={paymentMethod === "bank"}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bankName" className="text-gray-300">
+                    <Label htmlFor="bankName" className="text-muted-foreground">
                       Bank Name *
                     </Label>
                     <Input
@@ -721,7 +730,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                       onChange={(e) =>
                         setBankFormData({ ...bankFormData, bankName: e.target.value })
                       }
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="border-border/60 bg-background text-foreground"
                       placeholder="GT Bank, Access Bank, etc."
                       required={paymentMethod === "bank"}
                     />
@@ -730,7 +739,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="bankRoutingNumber" className="text-gray-300">
+                    <Label htmlFor="bankRoutingNumber" className="text-muted-foreground">
                       Routing/Sort Code *
                     </Label>
                     <Input
@@ -739,13 +748,13 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                       onChange={(e) =>
                         setBankFormData({ ...bankFormData, bankRoutingNumber: e.target.value })
                       }
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="border-border/60 bg-background text-foreground"
                       placeholder="000123456"
                       required={paymentMethod === "bank"}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bankCountry" className="text-gray-300">
+                    <Label htmlFor="bankCountry" className="text-muted-foreground">
                       Country *
                     </Label>
                     <Input
@@ -754,7 +763,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                       onChange={(e) =>
                         setBankFormData({ ...bankFormData, bankCountry: e.target.value })
                       }
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="border-border/60 bg-background text-foreground"
                       placeholder="GH"
                       required={paymentMethod === "bank"}
                     />
@@ -765,7 +774,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
               {/* Mobile Money Form */}
               <TabsContent value="mobile" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="mobileMoneyProvider" className="text-gray-300">
+                  <Label htmlFor="mobileMoneyProvider" className="text-muted-foreground">
                     Mobile Money Provider *
                   </Label>
                   <Select
@@ -775,7 +784,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                     }
                     required={paymentMethod === "mobile"}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="border-border/60 bg-background text-foreground">
                       <SelectValue placeholder="Select provider" />
                     </SelectTrigger>
                     <SelectContent>
@@ -787,7 +796,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="mobileMoneyNumber" className="text-gray-300">
+                  <Label htmlFor="mobileMoneyNumber" className="text-muted-foreground">
                     Phone Number *
                   </Label>
                   <Input
@@ -796,14 +805,14 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                     onChange={(e) =>
                       setMobileMoneyData({ ...mobileMoneyData, mobileMoneyNumber: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="border-border/60 bg-background text-foreground"
                     placeholder="0244123456"
                     required={paymentMethod === "mobile"}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="mobileMoneyName" className="text-gray-300">
+                  <Label htmlFor="mobileMoneyName" className="text-muted-foreground">
                     Account Name *
                   </Label>
                   <Input
@@ -812,7 +821,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                     onChange={(e) =>
                       setMobileMoneyData({ ...mobileMoneyData, mobileMoneyName: e.target.value })
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="border-border/60 bg-background text-foreground"
                     placeholder="John Doe"
                     required={paymentMethod === "mobile"}
                   />
@@ -820,9 +829,9 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
               </TabsContent>
             </Tabs>
 
-            <Alert className="bg-blue-900/20 border-blue-700/30">
-              <AlertCircle className="h-4 w-4 text-blue-400" />
-              <AlertDescription className="text-sm text-gray-300">
+            <Alert className="border-primary/25 bg-primary/5">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm text-muted-foreground">
                 Your payment information is secure and will only be used for processing payouts.
                 All earnings will be transferred to your selected payment method.
               </AlertDescription>
@@ -831,18 +840,13 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
             <DialogFooter>
               <Button
                 type="button"
-                variant="outline"
+                variant="glass"
                 onClick={() => setShowBankDialog(false)}
                 disabled={isSubmittingBank}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmittingBank}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
+              <Button type="submit" disabled={isSubmittingBank} variant="marketing">
                 {isSubmittingBank ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -859,17 +863,17 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Delete Bank Account Confirmation Dialog */}
       <Dialog open={showDeleteBankDialog} onOpenChange={setShowDeleteBankDialog}>
-        <DialogContent className="max-w-md bg-gray-900 border-gray-800">
+        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="text-white">Remove Bank Account?</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Are you sure you want to remove your bank account? You won't be able to receive payouts until you add a payment method again.
+            <DialogTitle className="text-foreground">Remove bank account?</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to remove your bank account? You won&apos;t be able to receive payouts until you add a payment method again.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Alert className="bg-yellow-900/20 border-yellow-700/30">
-              <AlertCircle className="h-4 w-4 text-yellow-400" />
-              <AlertDescription className="text-sm text-gray-300">
+            <Alert className="border-amber-500/30 bg-amber-500/10">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-sm text-muted-foreground">
                 This action cannot be undone. Make sure you have another payment method set up if you need to receive payouts.
               </AlertDescription>
             </Alert>
@@ -877,18 +881,17 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
           <DialogFooter>
             <Button
               type="button"
-              variant="outline"
+              variant="glass"
               onClick={() => setShowDeleteBankDialog(false)}
               disabled={isDeletingBank}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
               Cancel
             </Button>
             <Button
               type="button"
+              variant="destructive"
               onClick={handleRemoveBankAccount}
               disabled={isDeletingBank}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isDeletingBank ? (
                 <>
@@ -908,17 +911,17 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Delete Mobile Money Confirmation Dialog */}
       <Dialog open={showDeleteMobileDialog} onOpenChange={setShowDeleteMobileDialog}>
-        <DialogContent className="max-w-md bg-gray-900 border-gray-800">
+        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="text-white">Remove Mobile Money?</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Are you sure you want to remove your mobile money account? You won't be able to receive payouts until you add a payment method again.
+            <DialogTitle className="text-foreground">Remove mobile money?</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to remove your mobile money account? You won&apos;t be able to receive payouts until you add a payment method again.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Alert className="bg-yellow-900/20 border-yellow-700/30">
-              <AlertCircle className="h-4 w-4 text-yellow-400" />
-              <AlertDescription className="text-sm text-gray-300">
+            <Alert className="border-amber-500/30 bg-amber-500/10">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-sm text-muted-foreground">
                 This action cannot be undone. Make sure you have another payment method set up if you need to receive payouts.
               </AlertDescription>
             </Alert>
@@ -926,18 +929,17 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
           <DialogFooter>
             <Button
               type="button"
-              variant="outline"
+              variant="glass"
               onClick={() => setShowDeleteMobileDialog(false)}
               disabled={isDeletingMobile}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
               Cancel
             </Button>
             <Button
               type="button"
+              variant="destructive"
               onClick={handleRemoveMobileMoney}
               disabled={isDeletingMobile}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isDeletingMobile ? (
                 <>
@@ -954,6 +956,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </CreatorPageShell>
   );
 }

@@ -11,6 +11,13 @@ export const ourFileRouter = {
   ).onUploadComplete(async ({ file }) => {
     return { url: file.url || `https://utfs.io/f/${file.key}` };
   }),
+  /** Optional hero/cover image for creator services (same limits as profile photos) */
+  serviceImage: f(
+    { image: { maxFileSize: "4MB" } },
+    { awaitServerData: false }
+  ).onUploadComplete(async ({ file }) => {
+    return { url: file.url || `https://utfs.io/f/${file.key}` };
+  }),
   portfolioUploader: f(
     {
       image: { maxFileSize: "16MB" },

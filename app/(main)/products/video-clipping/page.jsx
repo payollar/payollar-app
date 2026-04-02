@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Video, Search, Clock, Star, ArrowLeft, MapPin, Calendar, ArrowRight } from "lucide-react"
+import { Video, Search, Clock, Star, MapPin, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
+import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar"
 
 export default function VideoClippingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -213,26 +214,7 @@ export default function VideoClippingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/products"
-                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Products</span>
-              </Link>
-              <div className="h-6 w-px bg-border"></div>
-              <div className="flex items-center space-x-2">
-                <Video className="h-6 w-6 text-cyan-500" />
-                <span className="text-lg font-semibold">Video Clipping</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <ProductsChannelTopBar title="Video clipping" icon={Video} />
 
       {/* Header Cover */}
       <section className="relative h-64 md:h-80 w-full">

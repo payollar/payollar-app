@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, UserPlus, Search, Calendar, CheckCircle } from "lucide-react"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, UserPlus, Search, Calendar, CheckCircle, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { SectionParticles } from "@/components/landing/section-particles";
 
 export function HowItWorksSection() {
   const steps = [
@@ -36,54 +37,55 @@ export function HowItWorksSection() {
       description: "Complete your performance, get reviewed, and receive secure payment",
       color: "bg-white",
     },
-  ]
+  ];
 
   return (
-    <section className="py-24 bg-black relative overflow-hidden rounded-3xl mx-4 sm:mx-6 lg:mx-8 xl:mx-12">
-      {/* Background decoration */}
+    <section className="relative mx-4 overflow-hidden rounded-3xl bg-black sm:mx-6 lg:mx-8 xl:mx-12">
       <div className="absolute inset-0">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute right-1/4 top-0 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <SectionParticles className="inset-0" opacityClass="opacity-[0.14]" quantity={44} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-20">
-          <Badge className="mb-4 px-4 py-2 bg-emerald-500/20 border-emerald-500/30 text-emerald-400">
-            🚀 Simple Process
+        <div className="mb-20 text-center">
+          <Badge
+            variant="default"
+            className="mb-4 rounded-full border-0 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md shadow-primary/30"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Simple Process
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="mb-6 text-4xl font-bold text-white md:text-5xl">
             How{" "}
-            <span className="bg-white bg-clip-text text-transparent ">
+            <span className="mt-1 inline-block rounded-xl bg-primary px-3 py-1.5 text-white shadow-lg shadow-primary/35 md:mt-0 md:px-4 md:py-2">
               Payollar
             </span>{" "}
             Works
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="mx-auto max-w-3xl text-xl text-white/80">
             Get started in minutes and begin connecting with opportunities that match your talent
           </p>
         </div>
 
         {/* Steps */}
         <div className="relative">
-          {/* Connection lines */}
-          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500/30 via-blue-500/30 via-emerald-500/30 to-orange-500/30 transform -translate-y-1/2"></div>
+          <div className="absolute left-0 right-0 top-1/2 hidden h-0.5 -translate-y-1/2 bg-gradient-to-r from-primary/20 via-primary/45 to-primary/20 lg:block"></div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+          <div className="relative z-10 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, index) => (
               <div key={index} className="relative">
-                <Card className="group hover:shadow-2xl hover:shadow-white/10 transition-all duration-500 transform hover:-translate-y-4 border-white/10 bg-white/[0.03] backdrop-blur-2xl hover:border-white/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+                <Card className="group border border-white/10 bg-white/[0.04] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-2xl transition-all duration-500 hover:-translate-y-2 hover:border-primary/45 hover:shadow-2xl hover:shadow-primary/15">
                   <CardContent className="p-8 text-center">
-                    {/* Step number */}
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="w-8 h-8 bg-white rounded-full border-4 border-black flex items-center justify-center text-sm font-bold text-black">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 transform">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border-4 border-black bg-primary text-sm font-bold text-primary-foreground shadow-md shadow-primary/40">
                         {index + 1}
                       </div>
                     </div>
 
-                    {/* Icon or Video */}
                     <div
-                      className={`inline-flex p-6 rounded-full ${step.color.includes('bg-') ? step.color : `bg-gradient-to-r ${step.color}`} mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg overflow-hidden`}
+                      className={`mb-6 inline-flex overflow-hidden rounded-full p-6 shadow-lg transition-transform duration-300 group-hover:scale-105 ${step.color.includes("bg-") ? step.color : `bg-gradient-to-r ${step.color}`}`}
                     >
                       {step.video ? (
                         <video
@@ -92,21 +94,21 @@ export function HowItWorksSection() {
                           loop
                           muted
                           playsInline
-                          className="w-16 h-16 object-contain"
+                          className="h-16 w-16 object-contain"
                         />
                       ) : (
-                        <step.icon className={`w-16 h-16 ${step.color === 'bg-white' ? 'text-black' : 'text-white'}`} />
+                        <step.icon
+                          className={`h-16 w-16 ${step.color === "bg-white" ? "text-gray-900" : "text-white"}`}
+                        />
                       )}
                     </div>
 
-                    {/* Content */}
-                    <h3 className="text-xl font-bold text-white mb-4">{step.title}</h3>
-                    <p className="text-gray-300 leading-relaxed mb-6">{step.description}</p>
+                    <h3 className="mb-4 text-xl font-bold text-white">{step.title}</h3>
+                    <p className="mb-6 leading-relaxed text-gray-300">{step.description}</p>
 
-                    {/* Arrow for desktop */}
                     {index < steps.length - 1 && (
-                      <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                        <ArrowRight className="w-6 h-6 text-emerald-500/50" />
+                      <div className="absolute top-1/2 -right-4 hidden -translate-y-1/2 transform lg:block">
+                        <ArrowRight className="h-6 w-6 text-primary/55" />
                       </div>
                     )}
                   </CardContent>
@@ -117,20 +119,8 @@ export function HowItWorksSection() {
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-16">
-          <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-4 bg-slate-800/50 backdrop-blur-sm border border-emerald-900/30 rounded-full px-8 py-4 shadow-lg">
-            <span className="text-gray-300">Ready to get started?</span>
-            <Button
-              asChild
-              className="bg-white hover:from-emerald-700 hover:to-cyan-700 text-black px-6 py-2 rounded-full font-semibold "
-            >
-              <Link href="/onboarding">
-                Join Now <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
+  
       </div>
     </section>
-  )
+  );
 }

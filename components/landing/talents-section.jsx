@@ -20,6 +20,7 @@ import {
   Eye,
 } from "lucide-react"
 import Link from "next/link"
+import { SectionParticles } from "@/components/landing/section-particles"
 
 export function TalentsSection() {
   const [activeCategory, setActiveCategory] = useState("all")
@@ -216,26 +217,33 @@ export function TalentsSection() {
   }
 
   return (
-    <section className="py-16 md:py-24 bg-white relative overflow-hidden">
-      {/* Background decoration */}
+    <section className="relative overflow-hidden bg-background py-16 md:py-24">
       <div className="absolute inset-0">
-        <div className="absolute top-1/2 left-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute left-0 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <SectionParticles
+          className="left-0 top-0 h-[min(36rem,80vh)] w-[min(100%,32rem)]"
+          opacityClass="opacity-[0.12]"
+          quantity={34}
+        />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <Badge className="mb-4 px-4 py-2 bg-emerald-50 border-emerald-200 text-emerald-600">
+          <Badge
+            variant="default"
+            className="mb-4 rounded-full border-0 bg-primary px-4 py-2 text-sm font-medium text-white shadow-md shadow-primary/25"
+          >
             🎭 Featured Talents
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h2 className="mb-6 text-4xl font-bold text-gray-900 dark:text-white md:text-5xl">
             Meet Our{" "}
-            <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+            <span className="inline-block rounded-xl bg-primary px-3 py-1.5 text-white shadow-lg shadow-primary/30 md:px-4 md:py-2">
               Top Performers
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="mx-auto max-w-3xl text-xl text-muted-foreground dark:text-white/75">
             Discover verified professionals ready to bring your projects to life
           </p>
         </div>
@@ -247,18 +255,18 @@ export function TalentsSection() {
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`group p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
+                className={`group rounded-xl border-2 bg-white p-4 transition-all duration-300 hover:shadow-lg ${
                   activeCategory === category.id
-                    ? "border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-500/20"
-                    : "border-gray-200 bg-gray-50 hover:border-emerald-300"
+                    ? "border-primary shadow-lg shadow-primary/25 ring-2 ring-primary/20"
+                    : "border-gray-200 hover:border-primary/50"
                 }`}
               >
                 <div className="flex flex-col items-center text-center space-y-3">
                   <div
-                    className={`p-3 rounded-lg transition-colors duration-300 ${
+                    className={`rounded-lg p-3 transition-colors duration-300 ${
                       activeCategory === category.id
-                        ? "bg-emerald-500 text-white"
-                        : "bg-white text-emerald-600 group-hover:bg-emerald-50"
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-gray-100 bg-gray-50 text-primary group-hover:bg-primary/5"
                     }`}
                   >
                     <img 
@@ -289,12 +297,12 @@ export function TalentsSection() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+              <h3 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
                 {activeCategory === "all"
                   ? "Popular talents"
                   : `${categories.find((c) => c.id === activeCategory)?.label}`}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-white/70">
                 {filteredTalents.length} {filteredTalents.length === 1 ? "talent" : "talents"} available
               </p>
             </div>
@@ -305,17 +313,17 @@ export function TalentsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("left")}
-                className="rounded-full w-10 h-10 p-0 bg-gray-100 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                className="h-10 w-10 rounded-full border-border bg-muted/50 p-0 text-foreground hover:border-primary/40 hover:bg-primary/10"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("right")}
-                className="rounded-full w-10 h-10 p-0 bg-gray-100 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                className="h-10 w-10 rounded-full border-border bg-muted/50 p-0 text-foreground hover:border-primary/40 hover:bg-primary/10"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -328,9 +336,9 @@ export function TalentsSection() {
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {filteredTalents.map((talent) => (
-                <div key={talent.id} className="flex-shrink-0 w-80">
-                  <Card className="group hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 transform hover:-translate-y-2 border-gray-200 bg-white hover:border-emerald-300 overflow-hidden">
-                    <div className="relative">
+                <div key={talent.id} className="w-80 shrink-0">
+                  <Card className="group flex transform flex-col gap-0 overflow-hidden rounded-xl border border-gray-200 bg-white p-0 py-0 shadow-md transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/15 dark:border-gray-200">
+                    <div className="relative shrink-0">
                       <img
                         src={talent.image || "/placeholder.svg"}
                         alt={talent.name}
@@ -342,7 +350,7 @@ export function TalentsSection() {
                       <div className="absolute top-4 right-4">
                         <Badge
                           className={`${
-                            talent.availability === "Available" ? "bg-emerald-500 text-white" : "bg-yellow-500 text-white"
+                            talent.availability === "Available" ? "bg-primary text-primary-foreground" : "bg-yellow-500 text-white"
                           }`}
                         >
                           <Clock className="w-3 h-3 mr-1" />
@@ -352,8 +360,8 @@ export function TalentsSection() {
 
                       {/* Verified badge */}
                       {talent.verified && (
-                        <div className="absolute top-4 left-4">
-                          <Badge className="bg-blue-500 text-white">✓ Verified</Badge>
+                        <div className="absolute left-4 top-4">
+                          <Badge className="border-0 bg-primary text-primary-foreground shadow-sm">✓ Verified</Badge>
                         </div>
                       )}
 
@@ -367,33 +375,33 @@ export function TalentsSection() {
                       </div>
                     </div>
 
-                    <CardContent className="p-6">
+                    <CardContent className="border-t border-gray-100 bg-white p-6">
                       <div className="space-y-4">
                         {/* Name and title */}
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">{talent.name}</h3>
+                          <h3 className="mb-1 text-xl font-bold text-gray-900">{talent.name}</h3>
                           <p className="text-gray-600">{talent.title}</p>
                         </div>
 
                         {/* Location and rate */}
                         <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center space-x-1 text-gray-600">
-                            <MapPin className="w-4 h-4" />
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <MapPin className="h-4 w-4 shrink-0" />
                             <span>{talent.location}</span>
                           </div>
-                          <div className="flex items-center space-x-1 font-semibold text-gray-900">
-                            <DollarSign className="w-4 h-4 text-emerald-600" />
-                            <span>{talent.rate}</span>
+                          <div className="flex items-center gap-1 font-semibold text-gray-900">
+                            <DollarSign className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="text-primary">{talent.rate}</span>
                           </div>
                         </div>
 
                         {/* Specialties */}
                         <div className="flex flex-wrap gap-2">
                           {talent.specialties.map((specialty, index) => (
-                            <Badge 
-                              key={index} 
-                              variant="outline" 
-                              className="text-xs bg-emerald-50 border-emerald-200 text-emerald-700"
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="border-primary/35 bg-white text-xs text-primary"
                             >
                               {specialty}
                             </Badge>
@@ -401,21 +409,20 @@ export function TalentsSection() {
                         </div>
 
                         {/* Action buttons */}
-                        <div className="flex space-x-2 pt-2">
+                        <div className="flex gap-2 pt-2">
                           <Link
                             href="/talents"
-                            className="flex-1 inline-flex items-center justify-center gap-2 h-9 rounded-md px-4 text-sm font-medium text-white border-0 transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: "#000" }}
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md border-0 bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                           >
                             Book Now
                           </Link>
-                          <Button 
+                          <Button
                             asChild
-                            variant="outline" 
-                            className="flex-1 border-gray-300 text-black bg-white hover:bg-white hover:text-black"
+                            variant="outline"
+                            className="flex-1 border-gray-200 bg-white text-gray-900 hover:border-primary/40 hover:bg-primary/5 hover:text-gray-900"
                           >
                             <Link href="/talents">
-                              <Eye className="w-4 h-4 mr-1" />
+                              <Eye className="mr-1 h-4 w-4" />
                               View Profile
                             </Link>
                           </Button>
@@ -433,17 +440,17 @@ export function TalentsSection() {
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("left")}
-                className="rounded-full w-10 h-10 p-0 bg-gray-100 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                className="h-10 w-10 rounded-full border-border bg-muted/50 p-0 text-foreground hover:border-primary/40 hover:bg-primary/10"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => scroll("right")}
-                className="rounded-full w-10 h-10 p-0 bg-gray-100 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                className="h-10 w-10 rounded-full border-border bg-muted/50 p-0 text-foreground hover:border-primary/40 hover:bg-primary/10"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -455,7 +462,7 @@ export function TalentsSection() {
             asChild
             variant="outline"
             size="lg"
-            className="px-8 py-3 text-lg font-semibold border-emerald-300 text-gray-700 hover:bg-gradient-to-r hover:from-emerald-600 hover:to-cyan-600 hover:text-white hover:border-transparent transition-all duration-300 bg-transparent"
+            className="border-primary/40 bg-transparent px-8 py-3 text-lg font-semibold text-foreground transition-all duration-300 hover:border-primary hover:bg-primary hover:text-primary-foreground"
           >
             <Link href="/talents">
               View All Talents

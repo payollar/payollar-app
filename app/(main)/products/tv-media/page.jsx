@@ -24,6 +24,7 @@ import { getPublishedRateCards } from "@/actions/media-agency";
 import { getRateCardSchedulerSlots } from "@/actions/tv-media-airtime";
 import { TV_AD_TYPES } from "@/lib/ad-types";
 import { cn } from "@/lib/utils";
+import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
 
 const STEPS = [
   { id: 1, label: "Station & Format" },
@@ -386,24 +387,7 @@ export default function TVMediaPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-chart-2/25">
-      {/* Top nav — matches app shell */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-10">
-          <Link
-            href="/products"
-            className="group flex items-center gap-2 text-base font-medium text-muted-foreground transition-colors hover:text-chart-2"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            Products
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-chart-2/10 ring-1 ring-chart-2/25 dark:bg-chart-2/15 dark:ring-chart-2/30">
-              <Tv className="h-[18px] w-[18px] text-chart-2" strokeWidth={1.75} />
-            </div>
-            <span className="text-base font-semibold tracking-tight text-foreground">TV Media</span>
-          </div>
-        </div>
-      </nav>
+      <ProductsChannelTopBar title="TV Media" icon={Tv} />
 
       {/* Hero — inset rounded panel so background image & overlays have rounded corners */}
       <section className="relative mx-3 mt-2 min-h-[min(52vh,380px)] w-auto max-w-none overflow-hidden rounded-2xl border border-border sm:mx-6 sm:mt-3 sm:min-h-[300px] sm:rounded-3xl lg:mx-8 lg:min-h-[340px]">

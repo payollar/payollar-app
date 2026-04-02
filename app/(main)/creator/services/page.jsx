@@ -20,7 +20,13 @@ export default async function CreatorServicesPage() {
   const servicesData = await getCreatorServices().catch(() => ({ services: [] }));
 
   return (
-    <CreatorServices services={servicesData.services || []} />
+    <CreatorServices
+      services={servicesData.services || []}
+      creator={{
+        imageUrl: user.imageUrl ?? null,
+        name: user.name?.trim() || "Creator",
+      }}
+    />
   );
 }
 

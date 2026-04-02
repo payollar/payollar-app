@@ -1,136 +1,158 @@
-import { User, Star, MapPin, DollarSign, Check, Clock, Eye } from "lucide-react";
+import {
+  User,
+  Star,
+  MapPin,
+  DollarSign,
+  Check,
+  Clock,
+  Eye,
+  ArrowUpRight,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 export function DoctorCard({ doctor }) {
-  // Extract skills from doctor object
+  const profileBase = `/talents/${encodeURIComponent(String(doctor.specialty ?? "").trim())}/${doctor.id}`;
+
   const skills = doctor.skills?.map((skill) => skill.name) || [];
-  
-  // Check if doctor has available time slots
-  const isAvailable = doctor.availabilities && doctor.availabilities.length > 0;
-  
-  // Mock data - can be enhanced with actual data from appointments/reviews
+  const isAvailable =
+    doctor.availabilities && doctor.availabilities.length > 0;
+
   const rating = 4.9;
   const reviews = 127;
-  
-  // Default location and rate - can be added to doctor model later
-  const location = "Available Worldwide"; // Can be enhanced with location field
-  const rate = "Book to see rates"; // Can calculate from appointments or add rate field
-  
-  // Experience display
-  const experienceText = doctor.experience 
+
+  const location = "Available Worldwide";
+  const rate = "Book to see rates";
+
+  const experienceText = doctor.experience
     ? `${doctor.experience} years experience`
     : doctor.specialty || "Talent";
 
   return (
-    <Card className="overflow-hidden border-emerald-900/20 hover:border-emerald-700/40 transition-all bg-white dark:bg-gray-900 rounded-xl shadow-lg">
-      {/* Image Section - Takes up top half */}
-      <div className="relative w-full h-64 overflow-hidden">
+    <Card
+      className={cn(
+        "group overflow-hidden rounded-2xl border border-border bg-card shadow-md",
+        "transition-all duration-300",
+        "hover:-translate-y-1 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/12"
+      )}
+    >
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         {doctor.imageUrl ? (
           <Image
             src={doctor.imageUrl}
             alt={doctor.name || "Talent"}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-emerald-500/20 to-purple-500/20 flex items-center justify-center">
-            <User className="h-16 w-16 text-emerald-400/50" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/8 to-muted">
+            <div className="rounded-full bg-primary/10 p-6">
+              <User className="h-12 w-12 text-primary/70" />
+            </div>
           </div>
         )}
 
-        {/* Overlay badges */}
-        {/* Verified Badge - Top Left */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+
         {doctor.verificationStatus === "VERIFIED" && (
-          <div className="absolute top-3 left-3">
-            <Badge className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+          <div className="absolute left-3 top-3 z-[1]">
+            <Badge className="flex items-center gap-1 rounded-full border border-white/20 bg-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm backdrop-blur-sm">
               <Check className="h-3 w-3" />
               Verified
             </Badge>
           </div>
         )}
 
-        {/* Available Badge - Top Right */}
         {isAvailable && (
-          <div className="absolute top-3 right-3">
-            <Badge className="bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+          <div className="absolute right-3 top-3 z-[1]">
+            <Badge className="flex items-center gap-1 rounded-full border border-white/25 bg-white/15 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
               <Clock className="h-3 w-3" />
               Available
             </Badge>
           </div>
         )}
 
-        {/* Rating Badge - Bottom Left */}
-        <div className="absolute bottom-3 left-3">
-          <Badge className="bg-black/80 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span className="font-semibold">{rating}</span>
-            <span className="text-gray-300">({reviews})</span>
-          </Badge>
+        <div className="absolute bottom-3 left-3 z-[1]">
+          <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/65 px-2.5 py-1.5 text-xs font-medium text-white backdrop-blur-md">
+            <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />
+            <span className="font-semibold tabular-nums">{rating}</span>
+            <span className="text-white/65">({reviews})</span>
+          </div>
         </div>
+
+        <Link
+          href={profileBase}
+          className="absolute right-3 bottom-3 z-[1] flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/15 text-white opacity-0 shadow-md backdrop-blur-md transition-all duration-300 hover:bg-white/25 group-hover:opacity-100"
+          aria-label={`View ${doctor.name || "talent"} profile`}
+        >
+          <ArrowUpRight className="h-4 w-4" />
+        </Link>
       </div>
 
-      {/* Content Section */}
-      <CardContent className="p-6 space-y-4">
-        {/* Name */}
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {doctor.name || "Talent"}
-        </h3>
+      <CardContent className="space-y-4 p-5 md:p-6">
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground md:text-[1.35rem]">
+            {doctor.name || "Talent"}
+          </h3>
+          <p className="text-sm leading-snug text-muted-foreground md:text-base">
+            {experienceText}
+          </p>
+        </div>
 
-        {/* Profession/Origin */}
-        <p className="text-base text-gray-600 dark:text-gray-400">
-          {experienceText}
-        </p>
-
-        {/* Location and Rate */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-            <MapPin className="h-4 w-4" />
-            <span>{location}</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/60 pb-4 text-sm">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-muted-foreground">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/80">
+              <MapPin className="h-4 w-4 text-primary" />
+            </span>
+            <span className="truncate">{location}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-gray-900 dark:text-white font-semibold">
-            <DollarSign className="h-4 w-4 text-emerald-500" />
-            <span>{rate}</span>
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <DollarSign className="h-4 w-4 text-primary" />
+            </span>
+            <span className="text-sm md:text-base">{rate}</span>
           </div>
         </div>
 
-        {/* Skills/Genres Tags */}
-        {skills && skills.length > 0 && (
+        {skills.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {skills.slice(0, 3).map((skill, index) => (
-              <Badge
+            {skills.slice(0, 4).map((skill, index) => (
+              <span
                 key={index}
-                variant="outline"
-                className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 text-xs px-3 py-1 rounded-full"
+                className="inline-flex rounded-full border border-border/80 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-foreground/90"
               >
                 {skill}
-              </Badge>
+              </span>
             ))}
+            {skills.length > 4 && (
+              <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                +{skills.length - 4}
+              </span>
+            )}
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
           <Button
             asChild
-            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-medium"
+            variant="marketing"
+            className="flex-1 rounded-full font-semibold shadow-md shadow-primary/15"
           >
-            <Link href={`/talents/${doctor.specialty}/${doctor.id}`}>
-              Book Now
-            </Link>
+            <Link href={profileBase}>Book now</Link>
           </Button>
           <Button
             asChild
-            variant="outline"
-            className="flex-1 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg font-medium"
+            variant="glass"
+            className="flex-1 rounded-full border-border/70 font-semibold"
           >
-            <Link href={`/talents/${doctor.specialty}/${doctor.id}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              View Profile
+            <Link href={profileBase} className="gap-2">
+              <Eye className="h-4 w-4" />
+              Profile
             </Link>
           </Button>
         </div>

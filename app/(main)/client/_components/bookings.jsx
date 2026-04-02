@@ -25,6 +25,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
 const PAYMENT_ERROR_MESSAGES = {
   missing_reference: "Payment reference was missing.",
@@ -100,92 +101,89 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
 
   if (error) {
     return (
-      <Card className="border-emerald-900/20">
-        <CardContent className="p-6">
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 mx-auto text-red-400 mb-3" />
-            <p className="text-red-400">Error: {error}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <ClientPageShell eyebrow="Bookings" title="Bookings" description="Your appointments">
+        <Card className={clientCardClass}>
+          <CardContent className="p-6">
+            <div className="py-8 text-center">
+              <AlertCircle className="mx-auto mb-3 h-12 w-12 text-destructive" />
+              <p className="text-destructive">Error: {error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </ClientPageShell>
     );
   }
 
+  const inputClass = "border-border/60 bg-background text-foreground";
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Bookings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your appointments and consultations
-          </p>
-        </div>
-        <Link href="/client/talents">
-          <Button className="bg-white hover:bg-gray-100 text-gray-900">
-            <Search className="h-4 w-4 mr-2" />
-            Find Talents
-          </Button>
-        </Link>
-      </div>
-
+    <ClientPageShell
+      eyebrow="Schedule"
+      title="Bookings"
+      description="Manage your appointments and consultations."
+      actions={
+        <Button variant="marketing" className="gap-2" asChild>
+          <Link href="/client/talents">
+            <Search className="h-4 w-4" />
+            Find talents
+          </Link>
+        </Button>
+      }
+    >
+      <div className="space-y-6">
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Total Bookings</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Total bookings</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.total}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                <Calendar className="h-10 w-10 text-blue-400 relative z-10" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Calendar className="relative z-10 h-8 w-8 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Upcoming</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.upcoming}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Upcoming</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.upcoming}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl"></div>
-                <Clock className="h-10 w-10 text-amber-400 relative z-10" />
+              <div className="rounded-lg bg-amber-500/10 p-3">
+                <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Completed</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.completed}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Completed</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-primary">{stats.completed}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                <CheckCircle className="h-10 w-10 text-emerald-400 relative z-10" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <CheckCircle className="h-8 w-8 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/20 bg-transparent backdrop-blur-md">
+        <Card className={clientCardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground/80 mb-1">Cancelled</p>
-                <p className="text-3xl font-bold text-white mt-1">{stats.cancelled}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Cancelled</p>
+                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.cancelled}</p>
               </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-red-400/20 rounded-full blur-xl"></div>
-                <XCircle className="h-10 w-10 text-red-400 relative z-10" />
+              <div className="rounded-lg bg-destructive/10 p-3">
+                <XCircle className="h-8 w-8 text-destructive" />
               </div>
             </div>
           </CardContent>
@@ -193,18 +191,18 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by creator name, specialty, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-900/50 border-gray-800 text-white"
+            className={`pl-10 ${inputClass}`}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px] bg-gray-900/50 border-gray-800 text-white">
+          <SelectTrigger className={`w-full sm:w-[180px] ${inputClass}`}>
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -218,17 +216,26 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
 
       {/* Tabs for Bookings */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-900 border-gray-800">
-          <TabsTrigger value="upcoming" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
-            <Clock className="h-4 w-4 mr-2" />
+        <TabsList className="grid w-full grid-cols-3 rounded-xl border border-border/60 bg-card/60 p-1">
+          <TabsTrigger
+            value="upcoming"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Clock className="mr-2 h-4 w-4" />
             Upcoming ({upcoming.length})
           </TabsTrigger>
-          <TabsTrigger value="completed" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
-            <CheckCircle className="h-4 w-4 mr-2" />
+          <TabsTrigger
+            value="completed"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
             Completed ({completed.length})
           </TabsTrigger>
-          <TabsTrigger value="cancelled" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
-            <XCircle className="h-4 w-4 mr-2" />
+          <TabsTrigger
+            value="cancelled"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <XCircle className="mr-2 h-4 w-4" />
             Cancelled ({cancelled.length})
           </TabsTrigger>
         </TabsList>
@@ -246,32 +253,24 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
               ))}
             </div>
           ) : upcoming.length === 0 ? (
-            <Card className="border-gray-800">
+            <Card className={clientCardClass}>
               <CardContent className="p-12 text-center">
-                <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  No upcoming bookings
-                </h3>
-                <p className="text-muted-foreground mb-6">
+                <Calendar className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h3 className="mb-2 text-xl font-medium text-foreground">No upcoming bookings</h3>
+                <p className="mb-6 text-muted-foreground">
                   Browse our talented creators and book your next session.
                 </p>
-                <Link href="/client/talents">
-                  <Button className="bg-white hover:bg-gray-100 text-gray-900">
-                    Browse Talents
-                  </Button>
-                </Link>
+                <Button variant="marketing" asChild>
+                  <Link href="/client/talents">Browse talents</Link>
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-gray-800">
+            <Card className={clientCardClass}>
               <CardContent className="p-12 text-center">
-                <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  No upcoming bookings found
-                </h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter criteria.
-                </p>
+                <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h3 className="mb-2 text-xl font-medium text-foreground">No upcoming bookings found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
               </CardContent>
             </Card>
           )}
@@ -290,27 +289,19 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
               ))}
             </div>
           ) : completed.length === 0 ? (
-            <Card className="border-gray-800">
+            <Card className={clientCardClass}>
               <CardContent className="p-12 text-center">
-                <CheckCircle className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  No completed bookings yet
-                </h3>
-                <p className="text-muted-foreground">
-                  Your completed appointments will appear here.
-                </p>
+                <CheckCircle className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h3 className="mb-2 text-xl font-medium text-foreground">No completed bookings yet</h3>
+                <p className="text-muted-foreground">Your completed appointments will appear here.</p>
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-gray-800">
+            <Card className={clientCardClass}>
               <CardContent className="p-12 text-center">
-                <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  No completed bookings found
-                </h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter criteria.
-                </p>
+                <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h3 className="mb-2 text-xl font-medium text-foreground">No completed bookings found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
               </CardContent>
             </Card>
           )}
@@ -329,27 +320,19 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
               ))}
             </div>
           ) : cancelled.length === 0 ? (
-            <Card className="border-gray-800">
+            <Card className={clientCardClass}>
               <CardContent className="p-12 text-center">
-                <XCircle className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  No cancelled bookings
-                </h3>
-                <p className="text-muted-foreground">
-                  You haven't cancelled any appointments.
-                </p>
+                <XCircle className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h3 className="mb-2 text-xl font-medium text-foreground">No cancelled bookings</h3>
+                <p className="text-muted-foreground">You haven&apos;t cancelled any appointments.</p>
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-gray-800">
+            <Card className={clientCardClass}>
               <CardContent className="p-12 text-center">
-                <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  No cancelled bookings found
-                </h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter criteria.
-                </p>
+                <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h3 className="mb-2 text-xl font-medium text-foreground">No cancelled bookings found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
               </CardContent>
             </Card>
           )}
@@ -358,25 +341,22 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
 
       {/* Empty State - No appointments at all */}
       {appointments.length === 0 && (
-        <Card className="border-gray-800">
+        <Card className={clientCardClass}>
           <CardContent className="p-12 text-center">
-            <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-xl font-medium text-white mb-2">
-              No appointments scheduled
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              You don't have any appointments scheduled yet. Browse our talented creators
-              and book your first consultation.
+            <Calendar className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No appointments scheduled</h3>
+            <p className="mb-6 text-muted-foreground">
+              You don&apos;t have any appointments scheduled yet. Browse our talented creators and book
+              your first consultation.
             </p>
-            <Link href="/client/talents">
-              <Button className="bg-white hover:bg-gray-100 text-gray-900">
-                Browse Talents
-              </Button>
-            </Link>
+            <Button variant="marketing" asChild>
+              <Link href="/client/talents">Browse talents</Link>
+            </Button>
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </ClientPageShell>
   );
 }
 

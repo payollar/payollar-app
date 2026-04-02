@@ -12,6 +12,7 @@ import { Save, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { updateCreatorProfile } from "@/actions/doctor";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
 export function CreatorProfile({ user }) {
   const router = useRouter();
@@ -63,11 +64,14 @@ export function CreatorProfile({ user }) {
   };
 
   return (
+    <CreatorPageShell
+      eyebrow="Settings"
+      title="Account"
+      description="Update your creator profile and account details."
+    >
     <div className="space-y-8">
-      {/* Profile Summary and Information Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Profile Summary */}
-        <Card className="bg-gray-900 border-gray-800">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className={creatorCardClass}>
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-6">
               {/* Profile Picture */}
@@ -92,20 +96,20 @@ export function CreatorProfile({ user }) {
 
               {/* Name */}
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="mb-1 text-2xl font-semibold text-foreground">
                   {fullName || "Your Name"}
                 </h2>
-                <p className="text-gray-400 text-sm">{user?.email || ""}</p>
+                <p className="text-sm text-muted-foreground">{user?.email || ""}</p>
                 {specialty && (
-                  <p className="text-emerald-400 text-sm mt-1">{specialty}</p>
+                  <p className="mt-1 text-sm text-primary">{specialty}</p>
                 )}
               </div>
 
               {/* Account Type */}
               <div className="w-full">
                 <p className="text-gray-400 text-xs uppercase mb-2">Account Type</p>
-                <div className="bg-emerald-900/20 text-emerald-200 px-4 py-2 rounded-full text-sm font-semibold">
-                  Creator Account
+                <div className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+                  Creator account
                 </div>
               </div>
             </div>
@@ -113,9 +117,9 @@ export function CreatorProfile({ user }) {
         </Card>
 
         {/* Right Column - Profile Information Form */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className={creatorCardClass}>
           <CardHeader>
-            <CardTitle className="text-white">Profile Information</CardTitle>
+            <CardTitle className="text-foreground">Profile information</CardTitle>
             <p className="text-gray-400 text-sm">
               Update your account details and profile information.
             </p>
@@ -128,7 +132,7 @@ export function CreatorProfile({ user }) {
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="border-border/60 bg-background"
                 placeholder="Your Name"
               />
             </div>
@@ -140,7 +144,7 @@ export function CreatorProfile({ user }) {
                 id="specialty"
                 value={specialty}
                 onChange={(e) => setSpecialty(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="border-border/60 bg-background"
                 placeholder="e.g., Musician, Actor, Influencer"
               />
             </div>
@@ -152,7 +156,7 @@ export function CreatorProfile({ user }) {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="border-border/60 bg-background"
                 placeholder="Tell us about yourself..."
                 rows={5}
               />
@@ -230,7 +234,8 @@ export function CreatorProfile({ user }) {
             <Button
               onClick={handleSaveProfile}
               disabled={isSaving || !fullName.trim() || !description.trim()}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              variant="marketing"
+              className="w-full"
             >
               {isSaving ? (
                 <>
@@ -249,15 +254,15 @@ export function CreatorProfile({ user }) {
       </div>
 
       {/* Account Information */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className={creatorCardClass}>
         <CardHeader>
-          <CardTitle className="text-white">Account Information</CardTitle>
+          <CardTitle className="text-foreground">Account information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-4">
             <div>
-              <p className="text-gray-400 text-sm">Member Since</p>
-              <p className="text-white font-medium">
+              <p className="text-sm text-muted-foreground">Member since</p>
+              <p className="font-medium text-foreground">
                 {user?.createdAt
                   ? new Date(user.createdAt).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -268,17 +273,17 @@ export function CreatorProfile({ user }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-4">
             <div>
-              <p className="text-gray-400 text-sm">Account Status</p>
-              <p className="text-white font-medium">Active</p>
+              <p className="text-sm text-muted-foreground">Account status</p>
+              <p className="font-medium text-foreground">Active</p>
             </div>
           </div>
           {user?.verificationStatus && (
-            <div className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+            <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-4">
               <div>
-                <p className="text-gray-400 text-sm">Verification Status</p>
-                <p className="text-white font-medium capitalize">
+                <p className="text-sm text-muted-foreground">Verification</p>
+                <p className="font-medium capitalize text-foreground">
                   {user.verificationStatus.toLowerCase()}
                 </p>
               </div>
@@ -287,5 +292,6 @@ export function CreatorProfile({ user }) {
         </CardContent>
       </Card>
     </div>
+    </CreatorPageShell>
   );
 }

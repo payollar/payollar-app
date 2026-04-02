@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { SmartRateCardEditor } from "./_components/smart-rate-card-editor";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 export default function SmartRateCardPage() {
   const router = useRouter();
@@ -183,35 +185,34 @@ export default function SmartRateCardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading rate cards...</div>
-      </div>
+      <MediaAgencyPageShell
+        eyebrow="Pricing"
+        title="Smart rate cards"
+        description="Create flexible, table-based rate cards for your media services."
+      >
+        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading rate cards…</div>
+      </MediaAgencyPageShell>
     );
   }
 
   const selectedRateCard = rateCards.find((rc) => rc.id === selectedRateCardId);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Smart Rate Cards</h1>
-          <p className="text-muted-foreground">
-            Create flexible, table-based rate cards for your media services
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {!showCreateForm && (
-            <Button onClick={() => setShowCreateForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Rate Card
-            </Button>
-          )}
-        </div>
-      </div>
-
+    <MediaAgencyPageShell
+      eyebrow="Pricing"
+      title="Smart rate cards"
+      description="Create flexible, table-based rate cards for your media services."
+      actions={
+        !showCreateForm ? (
+          <Button variant="marketing" className="rounded-full" onClick={() => setShowCreateForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New rate card
+          </Button>
+        ) : null
+      }
+    >
       {showCreateForm && (
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>
             <CardTitle>Create New Rate Card</CardTitle>
           </CardHeader>
@@ -377,7 +378,7 @@ export default function SmartRateCardPage() {
       )}
 
       {rateCards.length === 0 && !showCreateForm && (
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">No rate cards yet</p>
             <Button onClick={() => setShowCreateForm(true)}>
@@ -391,7 +392,7 @@ export default function SmartRateCardPage() {
       {rateCards.length > 0 && (
         <div className="grid md:grid-cols-4 gap-4">
           <div className="md:col-span-1">
-            <Card>
+            <Card className={DASHBOARD_CARD_CLASS}>
               <CardHeader>
                 <CardTitle className="text-lg">Rate Cards</CardTitle>
               </CardHeader>
@@ -459,7 +460,7 @@ export default function SmartRateCardPage() {
                 onUpdate={fetchRateCards}
               />
             ) : (
-              <Card>
+              <Card className={DASHBOARD_CARD_CLASS}>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   Select a rate card to edit
                 </CardContent>
@@ -468,6 +469,6 @@ export default function SmartRateCardPage() {
           </div>
         </div>
       )}
-    </div>
+    </MediaAgencyPageShell>
   );
 }

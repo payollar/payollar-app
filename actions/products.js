@@ -439,7 +439,7 @@ export async function purchaseDigitalProduct(formData) {
     });
 
     revalidatePath("/creator");
-    revalidatePath("/store");
+    revalidatePath("/products");
     return { success: true, sale };
   } catch (error) {
     console.error("Failed to purchase product:", error);

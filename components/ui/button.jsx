@@ -22,6 +22,22 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
+        /* Landing (Avento-style): gradient primary, glass outline, solid white CTA */
+        marketing:
+          "rounded-full bg-linear-to-r from-primary via-blue-500 to-primary bg-size-[200%_100%] bg-left hover:bg-right text-primary-foreground shadow-lg hover:shadow-primary/30 border-0 active:scale-[0.98] transition-all duration-300",
+        marketingOutline:
+          "rounded-full border border-foreground/20 bg-background/25 backdrop-blur-md hover:bg-foreground/10 hover:border-foreground/35 text-foreground transition-all duration-300 active:scale-[0.98]",
+        marketingWhite:
+          "rounded-full bg-white text-black hover:bg-primary hover:text-white shadow-md transition-all duration-300",
+        /* Avento: glass outline + full-round */
+        glass:
+          "rounded-full border border-foreground/20 bg-background/25 backdrop-blur-lg hover:bg-foreground/10 hover:border-foreground/40 text-foreground transition-all duration-300 active:scale-[0.98]",
+        /* Avento: solid white CTA → primary on hover */
+        ctaWhite:
+          "rounded-full bg-white text-black shadow-md hover:bg-primary hover:text-white transition-all duration-300 active:scale-[0.98]",
+        /* Avento: dark + subtle border */
+        shimmerDark:
+          "rounded-full border border-white/10 bg-neutral-900 text-white hover:bg-neutral-800 transition-all duration-300",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

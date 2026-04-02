@@ -40,6 +40,7 @@ import {
 import Image from "next/image";
 import { CreateProductModal } from "./create-product-modal";
 import { EditProductModal } from "./edit-product-modal";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 import { deleteDigitalProduct } from "@/actions/products";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -117,87 +118,71 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
   }, [products, productEarnings]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h2 className="text-3xl font-bold text-white">Digital Products</h2>
-            <p className="text-muted-foreground mt-1">
-              Create and manage your digital products to sell directly to clients
-            </p>
-          </div>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-white hover:bg-gray-100 text-gray-900"
-            size="lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Product
-          </Button>
-        </div>
-
+    <CreatorPageShell
+      eyebrow="Store"
+      title="Digital products"
+      description="Create and manage digital products to sell directly to clients."
+      actions={
+        <Button variant="marketing" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create product
+        </Button>
+      }
+    >
+      <div className="space-y-6">
         {/* Statistics Cards */}
         {products.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-white/20 bg-transparent backdrop-blur-md">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Total Products</p>
-                    <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+                    <p className="mb-1 text-sm text-muted-foreground">Total products</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.total}</p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                    <Package className="h-10 w-10 text-emerald-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <Package className="h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/20 bg-transparent backdrop-blur-md">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Active</p>
-                    <p className="text-3xl font-bold text-emerald-400 mt-1">
-                      {stats.active}
-                    </p>
+                    <p className="mb-1 text-sm text-muted-foreground">Active</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-primary">{stats.active}</p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl"></div>
-                    <CheckCircle2 className="h-10 w-10 text-emerald-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <CheckCircle2 className="h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/20 bg-transparent backdrop-blur-md">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Total Sales</p>
-                    <p className="text-3xl font-bold text-blue-400 mt-1">
-                      {stats.totalSales}
-                    </p>
+                    <p className="mb-1 text-sm text-muted-foreground">Total sales</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.totalSales}</p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                    <TrendingUp className="h-10 w-10 text-blue-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <TrendingUp className="h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/20 bg-gradient-to-br from-blue-900/20 via-blue-900/10 to-transparent backdrop-blur-md">
+            <Card className={creatorCardClass}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground/80 mb-1">Total Revenue</p>
-                    <p className="text-3xl font-bold text-blue-400 mt-1">
+                    <p className="mb-1 text-sm text-muted-foreground">Total revenue</p>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
                       ₵{stats.totalRevenue.toFixed(0)}
                     </p>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-xl"></div>
-                    <DollarSign className="h-10 w-10 text-blue-400 relative z-10" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <DollarSign className="h-8 w-8 text-primary" />
                   </div>
                 </div>
               </CardContent>
@@ -205,58 +190,56 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
           </div>
         )}
 
-        {/* Earnings Summary - Show if there are earnings */}
         {(stats.totalRevenue > 0 || stats.totalEarnings > 0) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-emerald-900/20 bg-emerald-900/5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card className={creatorCardClass}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-                    <p className="text-2xl font-bold text-white">₵{stats.totalRevenue.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">All time sales</p>
+                    <p className="mb-1 text-sm text-muted-foreground">Total revenue</p>
+                    <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.totalRevenue.toFixed(2)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">All time sales</p>
                   </div>
-                  <div className="bg-emerald-900/20 p-3 rounded-full">
-                    <TrendingUp className="h-6 w-6 text-emerald-400" />
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <TrendingUp className="h-6 w-6 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-emerald-900/20 bg-emerald-900/5">
+            <Card className={creatorCardClass}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Your Earnings</p>
-                    <p className="text-2xl font-bold text-white">₵{stats.totalEarnings.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">After 1% platform fee</p>
+                    <p className="mb-1 text-sm text-muted-foreground">Your earnings</p>
+                    <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.totalEarnings.toFixed(2)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">After platform fee</p>
                   </div>
-                  <div className="bg-emerald-900/20 p-3 rounded-full">
-                    <DollarSign className="h-6 w-6 text-emerald-400" />
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <DollarSign className="h-6 w-6 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
-      </div>
 
       {/* Search and Filters */}
       {products.length > 0 && (
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col gap-4 md:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-background border-emerald-900/30"
+                  className="border-border/60 bg-background/80 pl-10 backdrop-blur-sm"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px] bg-background border-emerald-900/30">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
+                  <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,7 +251,7 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
               </Select>
               {categories.length > 0 && (
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full md:w-[180px] bg-background border-emerald-900/30">
+                  <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -290,9 +273,9 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
       {activeProducts.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-              Active Products ({activeProducts.length})
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Active products ({activeProducts.length})
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -312,9 +295,9 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
       {draftProducts.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <FileText className="h-5 w-5 text-amber-400" />
-              Draft Products ({draftProducts.length})
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <FileText className="h-5 w-5 text-amber-500" />
+              Draft products ({draftProducts.length})
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -334,9 +317,9 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
       {archivedProducts.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Archive className="h-5 w-5 text-gray-400" />
-              Archived Products ({archivedProducts.length})
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <Archive className="h-5 w-5 text-muted-foreground" />
+              Archived products ({archivedProducts.length})
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -354,22 +337,22 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
 
       {/* No Results */}
       {products.length > 0 && filteredProducts.length === 0 && (
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-12 text-center">
-            <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">No products found</h3>
-            <p className="text-muted-foreground mb-6">
+            <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No products found</h3>
+            <p className="mb-6 text-muted-foreground">
               Try adjusting your search or filter criteria
             </p>
             <Button
-              variant="outline"
+              variant="glass"
               onClick={() => {
                 setSearchQuery("");
                 setStatusFilter("all");
                 setCategoryFilter("all");
               }}
             >
-              Clear Filters
+              Clear filters
             </Button>
           </CardContent>
         </Card>
@@ -377,20 +360,16 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
 
       {/* Empty State */}
       {products.length === 0 && (
-        <Card className="border-emerald-900/20">
+        <Card className={creatorCardClass}>
           <CardContent className="p-12 text-center">
-            <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">No products yet</h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            <ShoppingBag className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No products yet</h3>
+            <p className="mx-auto mb-6 max-w-md text-muted-foreground">
               Create your first digital product to start earning. Sell music, videos, courses, templates, and more!
             </p>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700"
-              size="lg"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Product
+            <Button variant="marketing" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create your first product
             </Button>
           </CardContent>
         </Card>
@@ -410,19 +389,20 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
           product={editingProduct}
         />
       )}
-    </div>
+      </div>
+    </CreatorPageShell>
   );
 }
 
 function ProductCard({ product, onEdit, onDelete }) {
   const statusColors = {
-    ACTIVE: "bg-emerald-900/20 border-emerald-900/30 text-emerald-400",
-    DRAFT: "bg-amber-900/20 border-amber-900/30 text-amber-400",
-    ARCHIVED: "bg-gray-900/20 border-gray-900/30 text-gray-400",
+    ACTIVE: "border-primary/30 bg-primary/10 text-primary",
+    DRAFT: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    ARCHIVED: "border-border/60 bg-muted/50 text-muted-foreground",
   };
 
   return (
-    <Card className="group border-emerald-900/20 hover:border-emerald-700/40 transition-all overflow-hidden hover:shadow-lg hover:shadow-emerald-900/10">
+    <Card className={`group ${creatorCardClass} overflow-hidden transition-all hover:border-primary/25 hover:shadow-md`}>
       {product.imageUrl && (
         <div className="relative h-48 w-full overflow-hidden">
           <Image
@@ -473,7 +453,7 @@ function ProductCard({ product, onEdit, onDelete }) {
         </div>
       )}
       <CardHeader>
-        <CardTitle className="text-lg font-bold text-white mb-1 line-clamp-2">
+        <CardTitle className="mb-1 line-clamp-2 text-lg font-semibold text-foreground">
           {product.title}
         </CardTitle>
         {product.category && (
@@ -487,15 +467,15 @@ function ProductCard({ product, onEdit, onDelete }) {
           {product.description}
         </p>
 
-        <div className="space-y-2 pt-2 border-t border-gray-800">
+        <div className="space-y-2 border-t border-border/50 pt-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-white">₵{product.price.toFixed(2)}</p>
+              <p className="text-2xl font-bold tabular-nums text-foreground">₵{product.price.toFixed(2)}</p>
             </div>
             <div className="text-right text-sm">
               <p className="text-muted-foreground">{product.salesCount || 0} sales</p>
               {product.totalEarnings > 0 && (
-                <p className="text-emerald-400 font-medium">
+                <p className="font-medium text-primary">
                   ₵{product.totalEarnings.toFixed(2)} earned
                 </p>
               )}
@@ -511,19 +491,14 @@ function ProductCard({ product, onEdit, onDelete }) {
         </div>
 
         <div className="flex gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 border-emerald-900/30 hover:bg-emerald-900/10"
-            onClick={onEdit}
-          >
-            <Edit className="h-4 w-4 mr-2" />
+          <Button variant="glass" size="sm" className="flex-1" onClick={onEdit}>
+            <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="border-red-900/30 text-red-400 hover:bg-red-900/20"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
             onClick={onDelete}
           >
             <Trash2 className="h-4 w-4" />

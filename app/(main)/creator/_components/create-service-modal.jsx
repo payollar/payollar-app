@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Briefcase } from "lucide-react";
+import { UploadButton } from "@uploadthing/react";
+import { Loader2, Briefcase, ImageIcon, X } from "lucide-react";
 import { createService } from "@/actions/services";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { uploadThingResultToUrl } from "@/lib/utils";
 
 const SERVICE_CATEGORIES = [
   "Consultation",
@@ -38,6 +41,9 @@ const SERVICE_CATEGORIES = [
   "Other",
 ];
 
+const inputClass =
+  "border-border/60 bg-background text-foreground placeholder:text-muted-foreground";
+
 export function CreateServiceModal({ open, onOpenChange }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,6 +57,7 @@ export function CreateServiceModal({ open, onOpenChange }) {
     category: "",
     isActive: true,
   });
+  const [imageUrl, setImageUrl] = useState(null);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -58,7 +65,7 @@ export function CreateServiceModal({ open, onOpenChange }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.rate) {
       toast.error("Title and rate are required");
       return;
@@ -80,13 +87,15 @@ export function CreateServiceModal({ open, onOpenChange }) {
       submitFormData.append("duration", formData.duration || "");
       submitFormData.append("category", formData.category || "");
       submitFormData.append("isActive", formData.isActive.toString());
+      if (imageUrl) {
+        submitFormData.append("imageUrl", imageUrl);
+      }
 
       const result = await createService(submitFormData);
 
       if (result?.success) {
         toast.success("Service created successfully!");
         onOpenChange(false);
-        // Reset form
         setFormData({
           title: "",
           description: "",
@@ -96,6 +105,7 @@ export function CreateServiceModal({ open, onOpenChange }) {
           category: "",
           isActive: true,
         });
+        setImageUrl(null);
         router.refresh();
       } else {
         toast.error(result?.error || "Failed to create service");
@@ -109,41 +119,38 @@ export function CreateServiceModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border/60 bg-card/95 backdrop-blur-sm">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">
-            Create Service
-          </DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-foreground">Create service</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Add a new service that clients can book. Set your rate and availability.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          {/* Service Title & Category */}
-          <div className="grid md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-gray-300">
-                Service Title *
+              <Label htmlFor="title" className="text-muted-foreground">
+                Service title *
               </Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
-                placeholder="e.g., Music Production Consultation"
+                className={inputClass}
+                placeholder="e.g., Music production consultation"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-gray-300">
+              <Label htmlFor="category" className="text-muted-foreground">
                 Category
               </Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) => handleInputChange("category", value)}
               >
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className={inputClass}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -157,25 +164,69 @@ export function CreateServiceModal({ open, onOpenChange }) {
             </div>
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-gray-300">
-              Service Description
+            <Label htmlFor="description" className="text-muted-foreground">
+              Service description
             </Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
               rows={4}
-              className="bg-gray-800 border-gray-700 text-white resize-none"
+              className={`${inputClass} resize-none`}
               placeholder="Describe what clients will receive, what you'll cover, and what makes your service special..."
             />
           </div>
 
-          {/* Rate & Rate Type */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <div className="flex items-start gap-2">
+              <ImageIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div>
+                <Label className="text-foreground">Service image (optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  A cover image for this listing. Your profile photo always appears on the card so
+                  clients know who they&apos;re booking.
+                </p>
+              </div>
+            </div>
+            {imageUrl ? (
+              <div className="relative aspect-[2/1] max-h-44 w-full overflow-hidden rounded-lg border border-border/60 bg-muted">
+                <Image src={imageUrl} alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-2 top-2 h-8 w-8 rounded-full shadow-md"
+                  onClick={() => setImageUrl(null)}
+                  aria-label="Remove image"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <UploadButton
+                endpoint="serviceImage"
+                onClientUploadComplete={(res) => {
+                  const url = uploadThingResultToUrl(res);
+                  if (url) {
+                    setImageUrl(url);
+                    toast.success("Image uploaded");
+                  } else {
+                    toast.error("Upload completed but URL was not found");
+                  }
+                }}
+                onUploadError={(err) => {
+                  console.error(err);
+                  toast.error(err?.message || "Upload failed");
+                }}
+              />
+            )}
+            <p className="text-xs text-muted-foreground">JPG, PNG, or WebP. Max 4MB.</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="rate" className="text-gray-300">
+              <Label htmlFor="rate" className="text-muted-foreground">
                 Rate (GHS) *
               </Label>
               <Input
@@ -185,35 +236,34 @@ export function CreateServiceModal({ open, onOpenChange }) {
                 min="0"
                 value={formData.rate}
                 onChange={(e) => handleInputChange("rate", e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className={inputClass}
                 placeholder="0.00"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rateType" className="text-gray-300">
-                Rate Type *
+              <Label htmlFor="rateType" className="text-muted-foreground">
+                Rate type *
               </Label>
               <Select
                 value={formData.rateType}
                 onValueChange={(value) => handleInputChange("rateType", value)}
               >
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className={inputClass}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PER_HOUR">Per Hour</SelectItem>
-                  <SelectItem value="PER_SESSION">Per Session</SelectItem>
-                  <SelectItem value="FIXED">Fixed Price</SelectItem>
+                  <SelectItem value="PER_HOUR">Per hour</SelectItem>
+                  <SelectItem value="PER_SESSION">Per session</SelectItem>
+                  <SelectItem value="FIXED">Fixed price</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Duration (optional, for sessions) */}
           {formData.rateType === "PER_SESSION" && (
             <div className="space-y-2">
-              <Label htmlFor="duration" className="text-gray-300">
+              <Label htmlFor="duration" className="text-muted-foreground">
                 Duration (minutes)
               </Label>
               <Input
@@ -222,40 +272,36 @@ export function CreateServiceModal({ open, onOpenChange }) {
                 min="1"
                 value={formData.duration}
                 onChange={(e) => handleInputChange("duration", e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className={inputClass}
                 placeholder="e.g., 60"
               />
-              <p className="text-xs text-muted-foreground">
-                How long does this service typically take?
-              </p>
+              <p className="text-xs text-muted-foreground">How long does this service typically take?</p>
             </div>
           )}
 
-          {/* Active Status */}
           <div className="space-y-2">
-            <Label htmlFor="isActive" className="text-gray-300">
+            <Label htmlFor="isActive" className="text-muted-foreground">
               Status
             </Label>
             <Select
               value={formData.isActive.toString()}
               onValueChange={(value) => handleInputChange("isActive", value === "true")}
             >
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="true">Active (Visible to clients)</SelectItem>
-                <SelectItem value="false">Inactive (Hidden from clients)</SelectItem>
+                <SelectItem value="true">Active (visible to clients)</SelectItem>
+                <SelectItem value="false">Inactive (hidden from clients)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Submit Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
               type="button"
-              variant="outline"
-              className="flex-1 border-gray-700"
+              variant="glass"
+              className="flex-1"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
@@ -263,18 +309,19 @@ export function CreateServiceModal({ open, onOpenChange }) {
             </Button>
             <Button
               type="submit"
+              variant="marketing"
+              className="flex-1"
               disabled={isSubmitting || !formData.title || !formData.rate}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating...
                 </>
               ) : (
                 <>
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  Create Service
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  Create service
                 </>
               )}
             </Button>

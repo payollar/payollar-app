@@ -17,7 +17,6 @@ import {
 // Public nav (always shown)
 const publicNavItems = [
   { href: "/", label: "Home" },
-  { href: "/store", label: "Store" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/talents", label: "Find Talents" },
   { href: "/chat", label: "Payollar AI" },

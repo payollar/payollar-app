@@ -12,7 +12,6 @@ const isProtectedRoute = (pathname) => {
     "/media-agency",
     "/video-call",
     "/appointments",
-    "/store",
     "/campaigns",
     "/media",
     "/products",

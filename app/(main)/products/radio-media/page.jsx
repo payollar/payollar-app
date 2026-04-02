@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Radio, Search, MapPin, Users, Clock, Star, ArrowLeft, Eye, Calendar, ArrowRight } from "lucide-react"
+import { Radio, Search, MapPin, Users, Clock, Star, Eye, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
@@ -15,6 +15,7 @@ import { AdTypeSelector } from "@/components/AdTypeSelector"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
 import { RADIO_AD_TYPES, getAdTypeById } from "@/lib/ad-types"
+import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar"
 
 export default function RadioMediaPage() {
   const [selectedAdType, setSelectedAdType] = useState(null)
@@ -80,27 +81,7 @@ export default function RadioMediaPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/products"
-                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Products</span>
-              </Link>
-              <div className="h-6 w-px bg-border"></div>
-              <div className="flex items-center space-x-2">
-                <Radio className="h-6 w-6 text-green-500" />
-                <span className="text-lg font-semibold">Radio Media</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <ProductsChannelTopBar title="Radio Media" icon={Radio} />
 
       {/* Header Cover */}
       <section className="relative h-64 md:h-80 w-full overflow-hidden">

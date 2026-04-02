@@ -18,14 +18,12 @@ export default async function DashboardHeader() {
 
   // Public nav (always shown)
   const publicNavItems = [
-    { href: "/store", label: "Store" },
     { href: "/campaigns", label: "Campaigns" },
     { href: "/talents", label: "Find Talents" },
     { href: "/chat", label: "Payollar AI" },
   ];
 
   const mediaSubItems = [
-    { href: "/media", label: "Buy Media" },
     { href: "/media", label: "Buy Media" },
     { href: "/media/packages", label: "Packages" },
     { href: "/media/schedule", label: "Schedule Media" },

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Download, Calendar, Clock, Radio, Tv, Eye, Trash2 } from "lucide-react";
 import { TransmissionCertificateForm } from "./_components/tc-upload-form";
 import { getAgencyBookingsForLinking } from "@/actions/media-agency-bookings";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 export default async function TransmissionCertificatesPage() {
   const user = await checkUser();
@@ -48,16 +50,13 @@ export default async function TransmissionCertificatesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Transmission Certificates</h1>
-        <p className="text-muted-foreground">
-          Upload and manage transmission certificates confirming ad airing
-        </p>
-      </div>
-
+    <MediaAgencyPageShell
+      eyebrow="Compliance"
+      title="Transmission certificates"
+      description="Upload and manage certificates that confirm your ads aired on radio or TV."
+    >
       {/* Upload Form */}
-      <Card>
+      <Card className={DASHBOARD_CARD_CLASS}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -76,7 +75,7 @@ export default async function TransmissionCertificatesPage() {
       </Card>
 
       {/* Uploaded Certificates */}
-      <Card>
+      <Card className={DASHBOARD_CARD_CLASS}>
         <CardHeader>
           <CardTitle>Uploaded Certificates</CardTitle>
           <CardDescription>
@@ -95,7 +94,7 @@ export default async function TransmissionCertificatesPage() {
               {mediaAgency.transmissionCertificates.map((cert) => (
                 <div
                   key={cert.id}
-                  className="border rounded-lg p-6 space-y-4 hover:bg-muted/50 transition-colors"
+                  className="space-y-4 rounded-xl border border-border/50 bg-background/40 p-6 transition-colors hover:border-primary/20"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
@@ -173,6 +172,6 @@ export default async function TransmissionCertificatesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </MediaAgencyPageShell>
   );
 }

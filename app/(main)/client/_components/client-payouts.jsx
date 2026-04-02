@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
 export function ClientPayoutsPage({ user }) {
   const [transactions, setTransactions] = useState([]);
@@ -78,66 +79,65 @@ export function ClientPayoutsPage({ user }) {
   };
 
   return (
+    <ClientPageShell
+      eyebrow="Payments"
+      title="Payouts & payments"
+      description="Track escrow, completed payments, and your payment history."
+    >
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Payouts & Payments</h1>
-        <p className="text-gray-400 mt-1">Manage your payments and track escrow transactions</p>
-      </div>
-
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-emerald-900/20 bg-gray-900/50">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className={clientCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Total Spent</p>
-                <p className="text-2xl font-bold text-white">₵{stats.totalSpent.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Total spent</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.totalSpent.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-emerald-900/20 rounded-lg">
-                <DollarSign className="h-6 w-6 text-emerald-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <DollarSign className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-blue-900/20 bg-gray-900/50">
+        <Card className={clientCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">In Escrow</p>
-                <p className="text-2xl font-bold text-white">₵{stats.inEscrow.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">In escrow</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.inEscrow.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-blue-900/20 rounded-lg">
-                <Shield className="h-6 w-6 text-blue-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Shield className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-900/20 bg-gray-900/50">
+        <Card className={clientCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Pending</p>
-                <p className="text-2xl font-bold text-white">₵{stats.pendingPayments.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.pendingPayments.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-yellow-900/20 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-400" />
+              <div className="rounded-lg bg-amber-500/10 p-3">
+                <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-900/20 bg-gray-900/50">
+        <Card className={clientCardClass}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Completed</p>
-                <p className="text-2xl font-bold text-white">₵{stats.completedPayments.toFixed(2)}</p>
+                <p className="mb-1 text-sm text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold tabular-nums text-primary">₵{stats.completedPayments.toFixed(2)}</p>
               </div>
-              <div className="p-3 bg-green-900/20 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-400" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <CheckCircle className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -146,32 +146,38 @@ export function ClientPayoutsPage({ user }) {
 
       {/* Main Content */}
       <Tabs defaultValue="escrow" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-900 border-gray-800">
-          <TabsTrigger value="escrow" className="data-[state=active]:bg-emerald-600">
-            <Shield className="h-4 w-4 mr-2" />
-            Escrow Payments
+        <TabsList className="grid w-full grid-cols-2 rounded-xl border border-border/60 bg-card/60 p-1">
+          <TabsTrigger
+            value="escrow"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            Escrow
           </TabsTrigger>
-          <TabsTrigger value="transactions" className="data-[state=active]:bg-emerald-600">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Payment History
+          <TabsTrigger
+            value="transactions"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <CreditCard className="mr-2 h-4 w-4" />
+            History
           </TabsTrigger>
         </TabsList>
 
         {/* Escrow Payments Tab */}
-        <TabsContent value="escrow" className="space-y-4 mt-6">
-          <Card className="border-emerald-900/20 bg-gray-900/50">
+        <TabsContent value="escrow" className="mt-6 space-y-4">
+          <Card className={clientCardClass}>
             <CardHeader>
-              <CardTitle className="text-white">Escrow Payments</CardTitle>
-              <CardDescription className="text-gray-400">
-                Payments held in escrow until services are completed
+              <CardTitle className="text-foreground">Escrow</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Payments held until services are completed
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="text-center py-8 text-gray-400">Loading...</div>
+                <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : escrowPayments.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <Shield className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <div className="py-8 text-center text-muted-foreground">
+                  <Shield className="mx-auto mb-4 h-12 w-12 opacity-50" />
                   <p>No escrow payments at this time</p>
                 </div>
               ) : (
@@ -179,42 +185,42 @@ export function ClientPayoutsPage({ user }) {
                   {escrowPayments.map((payment) => (
                     <div
                       key={payment.id}
-                      className="p-4 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-emerald-700/30 transition-colors"
+                      className="rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-primary/30"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-white font-semibold">{payment.title}</h3>
+                          <div className="mb-2 flex items-center gap-3">
+                            <h3 className="font-semibold text-foreground">{payment.title}</h3>
                             {getStatusBadge(payment.status)}
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                             <div>
-                              <p className="text-gray-400">Amount</p>
-                              <p className="text-white font-medium">₵{payment.amount.toFixed(2)}</p>
+                              <p className="text-muted-foreground">Amount</p>
+                              <p className="font-medium tabular-nums text-foreground">₵{payment.amount.toFixed(2)}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">To</p>
-                              <p className="text-white font-medium">{payment.recipientName}</p>
+                              <p className="text-muted-foreground">To</p>
+                              <p className="font-medium text-foreground">{payment.recipientName}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Date</p>
-                              <p className="text-white font-medium">
+                              <p className="text-muted-foreground">Date</p>
+                              <p className="font-medium text-foreground">
                                 {format(new Date(payment.createdAt), "MMM d, yyyy")}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Payment ID</p>
-                              <p className="text-white font-mono text-xs">{payment.paymentReference}</p>
+                              <p className="text-muted-foreground">Reference</p>
+                              <p className="font-mono text-xs text-foreground">{payment.paymentReference}</p>
                             </div>
                           </div>
                           {payment.description && (
-                            <p className="text-gray-400 text-sm mt-2">{payment.description}</p>
+                            <p className="mt-2 text-sm text-muted-foreground">{payment.description}</p>
                           )}
                         </div>
                         <div className="ml-4">
                           {payment.status === "IN_ESCROW" && (
-                            <Button variant="outline" size="sm" className="border-emerald-700/50 text-emerald-400">
-                              View Details
+                            <Button variant="glass" size="sm">
+                              Details
                             </Button>
                           )}
                         </div>
@@ -228,20 +234,20 @@ export function ClientPayoutsPage({ user }) {
         </TabsContent>
 
         {/* Payment History Tab */}
-        <TabsContent value="transactions" className="space-y-4 mt-6">
-          <Card className="border-emerald-900/20 bg-gray-900/50">
+        <TabsContent value="transactions" className="mt-6 space-y-4">
+          <Card className={clientCardClass}>
             <CardHeader>
-              <CardTitle className="text-white">Payment History</CardTitle>
-              <CardDescription className="text-gray-400">
-                All your payment transactions and credit purchases
+              <CardTitle className="text-foreground">Payment history</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Transactions and credit purchases
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="text-center py-8 text-gray-400">Loading...</div>
+                <div className="py-8 text-center text-muted-foreground">Loading...</div>
               ) : transactions.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <CreditCard className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <div className="py-8 text-center text-muted-foreground">
+                  <CreditCard className="mx-auto mb-4 h-12 w-12 opacity-50" />
                   <p>No payment history yet</p>
                 </div>
               ) : (
@@ -249,36 +255,32 @@ export function ClientPayoutsPage({ user }) {
                   {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="p-4 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-emerald-700/30 transition-colors"
+                      className="rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-primary/30"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div
-                            className={`p-3 rounded-lg ${
-                              transaction.type === "CREDIT_PURCHASE"
-                                ? "bg-emerald-900/20"
-                                : "bg-blue-900/20"
+                            className={`rounded-lg p-3 ${
+                              transaction.type === "CREDIT_PURCHASE" ? "bg-primary/10" : "bg-muted"
                             }`}
                           >
                             {transaction.type === "CREDIT_PURCHASE" ? (
-                              <ArrowDownRight className="h-5 w-5 text-emerald-400" />
+                              <ArrowDownRight className="h-5 w-5 text-primary" />
                             ) : (
-                              <ArrowUpRight className="h-5 w-5 text-blue-400" />
+                              <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
                             )}
                           </div>
                           <div>
-                            <h3 className="text-white font-semibold">{transaction.description}</h3>
-                            <p className="text-gray-400 text-sm">
+                            <h3 className="font-semibold text-foreground">{transaction.description}</h3>
+                            <p className="text-sm text-muted-foreground">
                               {format(new Date(transaction.createdAt), "MMM d, yyyy 'at' h:mm a")}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p
-                            className={`font-bold ${
-                              transaction.type === "CREDIT_PURCHASE"
-                                ? "text-emerald-400"
-                                : "text-blue-400"
+                            className={`font-bold tabular-nums ${
+                              transaction.type === "CREDIT_PURCHASE" ? "text-primary" : "text-foreground"
                             }`}
                           >
                             {transaction.type === "CREDIT_PURCHASE" ? "+" : "-"}₵
@@ -296,5 +298,6 @@ export function ClientPayoutsPage({ user }) {
         </TabsContent>
       </Tabs>
     </div>
+    </ClientPageShell>
   );
 }

@@ -263,114 +263,113 @@ export default function OnboardingPage() {
   // Role selection screen
   if (step === "choose-role") {
     return (
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Welcome to Payollar</h1>
-          <p className="text-gray-400 text-lg">Choose how you'd like to join our platform</p>
+      <>
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <Badge variant="glow" className="mb-4 px-4 py-2 text-sm font-medium">
+            <Sparkles className="mr-2 h-4 w-4 text-primary" />
+            Get started
+          </Badge>
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+            Welcome to Payollar
+          </h1>
+          <p className="mt-3 text-lg text-muted-foreground">
+            Choose how you&apos;d like to join our platform
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
           <Card
-            className="border-emerald-900/20 hover:border-emerald-700/40 cursor-pointer transition-all hover:scale-105"
+            className="cursor-pointer border-border bg-card shadow-md transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
             onClick={() => !loading && handlePatientSelection()}
           >
-            <CardContent className="pt-6 pb-6 flex flex-col items-center text-center">
-              <div className="p-4 bg-emerald-900/20 rounded-full mb-4">
-                <User className="h-8 w-8 text-emerald-400" />
+            <CardContent className="flex flex-col items-center px-6 pb-8 pt-8 text-center">
+              <div className="mb-4 rounded-full bg-primary p-4">
+                <User className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-xl font-semibold text-white mb-2">
-                Join as a Client
-              </CardTitle>
-              <CardDescription className="mb-4">
-                Book appointments, consult with talent managers, and manage your booking experience
+              <CardTitle className="mb-2 text-xl font-semibold text-foreground">Join as a client</CardTitle>
+              <CardDescription className="mb-6 text-pretty">
+                Book media, post and manage your campaigns, discover talents, and keep your bookings in one place.
               </CardDescription>
-              <Button
-                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700"
-                disabled={loading}
-              >
+              <Button variant="marketing" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
-                  "Continue as Client"
+                  "Continue as client"
                 )}
               </Button>
             </CardContent>
           </Card>
 
           <Card
-            className="border-emerald-900/20 hover:border-emerald-700/40 cursor-pointer transition-all hover:scale-105"
+            className="cursor-pointer border-border bg-card shadow-md transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
             onClick={() => !loading && setStep("talent-form")}
           >
-            <CardContent className="pt-6 pb-6 flex flex-col items-center text-center">
-              <div className="p-4 bg-emerald-900/20 rounded-full mb-4">
-                <Briefcase className="h-8 w-8 text-emerald-400" />
+            <CardContent className="flex flex-col items-center px-6 pb-8 pt-8 text-center">
+              <div className="mb-4 rounded-full bg-primary p-4">
+                <Briefcase className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-xl font-semibold text-white mb-2">
-                Join as a Talent
-              </CardTitle>
-              <CardDescription className="mb-4">
-                Create your professional profile, showcase your work, and start getting bookings
+              <CardTitle className="mb-2 text-xl font-semibold text-foreground">Join as a talent</CardTitle>
+              <CardDescription className="mb-6 text-pretty">
+                Build your profile, share your portfolio, and get booked by clients.
               </CardDescription>
-              <Button
-                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700"
-                disabled={loading}
-              >
-                Continue as Talent
+              <Button variant="marketing" className="w-full" disabled={loading}>
+                Continue as talent
               </Button>
             </CardContent>
           </Card>
         </div>
-      </div>
+      </>
     );
   }
 
   // Talent registration form with multi-step flow
   if (step === "talent-form") {
     return (
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-8 text-center md:text-left">
+          <Badge className="mb-3 rounded-full border-0 bg-primary/15 text-primary md:mb-0">
+            Talent onboarding
+          </Badge>
+          <p className="mt-2 text-sm text-muted-foreground md:hidden">
+            Step {currentStep} of {STEPS.length}
+          </p>
+        </div>
+
         {/* Progress Indicator */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-8 overflow-x-auto pb-2">
+          <div className="mb-4 flex min-w-[520px] items-center justify-between md:min-w-0">
             {STEPS.map((stepItem, index) => {
               const StepIcon = stepItem.icon;
               const isActive = currentStep === stepItem.id;
               const isCompleted = currentStep > stepItem.id;
 
               return (
-                <div key={stepItem.id} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
+                <div key={stepItem.id} className="flex flex-1 items-center">
+                  <div className="flex flex-1 flex-col items-center">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+                      className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all ${
                         isActive
-                          ? "bg-emerald-600 border-emerald-600 text-white"
+                          ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/25"
                           : isCompleted
-                          ? "bg-emerald-600/20 border-emerald-600 text-emerald-400"
-                          : "bg-gray-800 border-gray-700 text-gray-500"
+                            ? "border-primary bg-primary/15 text-primary"
+                            : "border-border bg-muted text-muted-foreground"
                       }`}
                     >
-                      {isCompleted ? (
-                        <Check className="h-6 w-6" />
-                      ) : (
-                        <StepIcon className="h-6 w-6" />
-                      )}
+                      {isCompleted ? <Check className="h-6 w-6" /> : <StepIcon className="h-6 w-6" />}
                     </div>
                     <span
-                      className={`mt-2 text-sm font-medium ${
-                        isActive ? "text-white" : isCompleted ? "text-emerald-400" : "text-gray-500"
+                      className={`mt-2 text-center text-xs font-medium sm:text-sm ${
+                        isActive ? "text-foreground" : isCompleted ? "text-primary" : "text-muted-foreground"
                       }`}
                     >
                       {stepItem.name}
                     </span>
                   </div>
                   {index < STEPS.length - 1 && (
-                    <div
-                      className={`h-1 flex-1 mx-2 ${
-                        isCompleted ? "bg-emerald-600" : "bg-gray-700"
-                      }`}
-                    />
+                    <div className={`mx-1 h-0.5 flex-1 rounded-full sm:mx-2 ${isCompleted ? "bg-primary" : "bg-border"}`} />
                   )}
                 </div>
               );
@@ -378,14 +377,14 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <Card className="border-emerald-900/20">
-          <CardContent className="pt-6">
+        <Card className="border-border bg-card shadow-xl">
+          <CardContent className="px-4 pb-2 pt-6 sm:px-6">
             <form onSubmit={handleSubmit(onDoctorSubmit)} className="space-y-6">
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <div>
-                    <CardTitle className="text-2xl font-bold text-white mb-2">
+                    <CardTitle className="mb-2 text-2xl font-bold text-foreground">
                       Basic Information
                     </CardTitle>
                     <CardDescription>
@@ -422,8 +421,8 @@ export default function OnboardingPage() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center">
-                          <UserCircle className="h-12 w-12 text-gray-600" />
+                        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
+                          <UserCircle className="h-12 w-12 text-muted-foreground" />
                         </div>
                       )}
                       <UploadButton
@@ -550,7 +549,7 @@ export default function OnboardingPage() {
               {currentStep === 2 && (
                 <div className="space-y-6">
                   <div>
-                    <CardTitle className="text-2xl font-bold text-white mb-2">
+                    <CardTitle className="mb-2 text-2xl font-bold text-foreground">
                       Portfolio & Work Samples
                     </CardTitle>
                     <CardDescription>
@@ -572,11 +571,7 @@ export default function OnboardingPage() {
                           }
                         }}
                       />
-                      <Button
-                        type="button"
-                        onClick={addPortfolioUrl}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
+                      <Button type="button" onClick={addPortfolioUrl} variant="marketing">
                         <Plus className="h-4 w-4 mr-2" />
                         Add
                       </Button>
@@ -589,14 +584,14 @@ export default function OnboardingPage() {
                           {portfolioUrls.map((url, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
+                              className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3"
                             >
-                              <Link2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                              <Link2 className="h-4 w-4 shrink-0 text-primary" />
                               <a
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex-1 text-sm text-emerald-400 hover:text-emerald-300 truncate"
+                                className="flex-1 truncate text-sm text-primary hover:text-primary/80"
                               >
                                 {url}
                               </a>
@@ -616,10 +611,10 @@ export default function OnboardingPage() {
                     )}
 
                     {portfolioUrls.length === 0 && (
-                      <div className="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
-                        <Link2 className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400">No portfolio links added yet</p>
-                        <p className="text-sm text-gray-500 mt-2">
+                      <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
+                        <Link2 className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">No portfolio links added yet</p>
+                        <p className="mt-2 text-sm text-muted-foreground/80">
                           Add at least one link to showcase your work
                         </p>
                       </div>
@@ -636,7 +631,7 @@ export default function OnboardingPage() {
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div>
-                    <CardTitle className="text-2xl font-bold text-white mb-2">
+                    <CardTitle className="mb-2 text-2xl font-bold text-foreground">
                       Skills & Expertise
                     </CardTitle>
                     <CardDescription>
@@ -658,11 +653,7 @@ export default function OnboardingPage() {
                           }
                         }}
                       />
-                      <Button
-                        type="button"
-                        onClick={addSkill}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
+                      <Button type="button" onClick={addSkill} variant="marketing">
                         <Plus className="h-4 w-4 mr-2" />
                         Add
                       </Button>
@@ -676,7 +667,7 @@ export default function OnboardingPage() {
                             <Badge
                               key={index}
                               variant="secondary"
-                              className="bg-emerald-900/30 text-emerald-400 border-emerald-700/50 px-3 py-1.5 flex items-center gap-2"
+                              className="flex items-center gap-2 border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary"
                             >
                               {skill}
                               <Button
@@ -686,7 +677,7 @@ export default function OnboardingPage() {
                                 onClick={() => removeSkill(index)}
                                 className="h-4 w-4 p-0 hover:bg-transparent"
                               >
-                                <X className="h-3 w-3 text-emerald-400 hover:text-red-400" />
+                                <X className="h-3 w-3 text-primary hover:text-destructive" />
                               </Button>
                             </Badge>
                           ))}
@@ -695,10 +686,10 @@ export default function OnboardingPage() {
                     )}
 
                     {skills.length === 0 && (
-                      <div className="text-center py-8 border-2 border-dashed border-gray-700 rounded-lg">
-                        <Sparkles className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400">No skills added yet</p>
-                        <p className="text-sm text-gray-500 mt-2">
+                      <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
+                        <Sparkles className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">No skills added yet</p>
+                        <p className="mt-2 text-sm text-muted-foreground/80">
                           Add at least one skill to showcase your expertise
                         </p>
                       </div>
@@ -715,7 +706,7 @@ export default function OnboardingPage() {
               {currentStep === 4 && (
                 <div className="space-y-6">
                   <div>
-                    <CardTitle className="text-2xl font-bold text-white mb-2">
+                    <CardTitle className="mb-2 text-2xl font-bold text-foreground">
                       Review Your Information
                     </CardTitle>
                     <CardDescription>
@@ -741,31 +732,31 @@ export default function OnboardingPage() {
                     )}
 
                     {/* Basic Info */}
-                    <div className="space-y-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                      <h3 className="font-semibold text-white flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-emerald-400" />
+                    <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-4">
+                      <h3 className="flex items-center gap-2 font-semibold text-foreground">
+                        <FileText className="h-5 w-5 text-primary" />
                         Basic Information
                       </h3>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-400">Specialty:</span>
-                          <p className="text-white font-medium">{specialtyValue || "Not set"}</p>
+                          <span className="text-muted-foreground">Specialty:</span>
+                          <p className="font-medium text-foreground">{specialtyValue || "Not set"}</p>
                         </div>
                         <div>
-                          <span className="text-gray-400">Experience:</span>
-                          <p className="text-white font-medium">
+                          <span className="text-muted-foreground">Experience:</span>
+                          <p className="font-medium text-foreground">
                             {experienceValue ? `${experienceValue} years` : "Not set"}
                           </p>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-gray-400">Social Media Link:</span>
-                          <p className="text-white font-medium break-all">
+                          <span className="text-muted-foreground">Social Media Link:</span>
+                          <p className="break-all font-medium text-foreground">
                             {credentialUrlValue || "Not set"}
                           </p>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-gray-400">Description:</span>
-                          <p className="text-white mt-1 line-clamp-3">
+                          <span className="text-muted-foreground">Description:</span>
+                          <p className="mt-1 line-clamp-3 text-foreground">
                             {descriptionValue || "Not set"}
                           </p>
                         </div>
@@ -773,28 +764,28 @@ export default function OnboardingPage() {
                     </div>
 
                     {/* Portfolio Links */}
-                    <div className="space-y-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                      <h3 className="font-semibold text-white flex items-center gap-2">
-                        <Link2 className="h-5 w-5 text-emerald-400" />
+                    <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-4">
+                      <h3 className="flex items-center gap-2 font-semibold text-foreground">
+                        <Link2 className="h-5 w-5 text-primary" />
                         Portfolio Links ({portfolioUrls.length})
                       </h3>
                       {portfolioUrls.length > 0 ? (
                         <ul className="space-y-2">
                           {portfolioUrls.map((url, index) => (
-                            <li key={index} className="text-sm text-emerald-400 break-all">
+                            <li key={index} className="break-all text-sm text-primary">
                               {index + 1}. {url}
                             </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-gray-400 text-sm">No portfolio links added</p>
+                        <p className="text-sm text-muted-foreground">No portfolio links added</p>
                       )}
                     </div>
 
                     {/* Skills */}
-                    <div className="space-y-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                      <h3 className="font-semibold text-white flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-emerald-400" />
+                    <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-4">
+                      <h3 className="flex items-center gap-2 font-semibold text-foreground">
+                        <Sparkles className="h-5 w-5 text-primary" />
                         Skills ({skills.length})
                       </h3>
                       {skills.length > 0 ? (
@@ -803,14 +794,14 @@ export default function OnboardingPage() {
                             <Badge
                               key={index}
                               variant="secondary"
-                              className="bg-emerald-900/30 text-emerald-400 border-emerald-700/50"
+                              className="border border-primary/30 bg-primary/10 text-primary"
                             >
                               {skill}
                             </Badge>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">No skills added</p>
+                        <p className="text-sm text-muted-foreground">No skills added</p>
                       )}
                     </div>
                   </div>
@@ -818,21 +809,21 @@ export default function OnboardingPage() {
               )}
 
               {/* Navigation Buttons */}
-              <div className="pt-6 flex items-center justify-between border-t border-gray-700">
+              <div className="flex items-center justify-between border-t border-border pt-6">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  className="border-emerald-900/30"
+                  className="border-primary/30 hover:bg-primary/10"
                   disabled={loading}
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  {currentStep === 1 ? "Back to Selection" : "Previous"}
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  {currentStep === 1 ? "Back to selection" : "Previous"}
                 </Button>
                 <Button
                   type={currentStep === 4 ? "submit" : "button"}
+                  variant="marketing"
                   onClick={currentStep === 4 ? undefined : nextStep}
-                  className="bg-emerald-600 hover:bg-emerald-700"
                   disabled={loading}
                 >
                   {loading ? (

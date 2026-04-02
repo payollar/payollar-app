@@ -12,6 +12,8 @@ import {
   LogOut,
   Package,
   FileCheck,
+  HelpCircle,
+  ScrollText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,7 +52,7 @@ const menuItems = [
   },
   {
     title: "Terms & Conditions",
-    icon: FileText,
+    icon: ScrollText,
     href: "/media-agency/terms",
   },
   {
@@ -79,27 +81,38 @@ export function MediaAgencySidebar() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            // Full page reload avoids client-side transition errors
             window.location.href = "/sign-in";
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error?.message || "Failed to sign out");
           },
         },
       });
     } catch (error) {
       console.error("Sign out error:", error);
-      toast.error("Failed to sign out");
+      toast.error("An error occurred while signing out");
     }
   };
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-border">
-        <div className="flex items-center gap-2 px-2 py-4">
-          <Building2 className="h-6 w-6 text-blue-600" />
-          <div className="group-data-[collapsible=icon]:hidden">
-            <h2 className="font-semibold text-sm">Media Agency</h2>
-            <p className="text-xs text-muted-foreground">Dashboard</p>
+    <Sidebar
+      collapsible="icon"
+      variant="floating"
+      className="[&_[data-slot=sidebar-inner]]:border-border/50 [&_[data-slot=sidebar-inner]]:bg-sidebar/95 [&_[data-slot=sidebar-inner]]:shadow-sm [&_[data-slot=sidebar-inner]]:backdrop-blur-md"
+    >
+      <SidebarHeader className="border-b border-sidebar-border/80 p-4">
+        <Link
+          href="/"
+          className="flex items-center gap-3 rounded-xl outline-none ring-offset-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-bold text-sm text-primary-foreground shadow-sm ring-1 ring-primary/30">
+            <Building2 className="h-4 w-4" />
           </div>
-        </div>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate font-semibold tracking-tight text-sidebar-foreground">Media agency</p>
+            <p className="truncate text-xs text-muted-foreground">Dashboard</p>
+          </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -107,14 +120,20 @@ export function MediaAgencySidebar() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || 
+                const isActive =
+                  pathname === item.href ||
                   (item.href !== "/media-agency" && pathname?.startsWith(item.href));
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton 
-                      asChild 
+                    <SidebarMenuButton
+                      asChild
                       isActive={isActive}
                       tooltip={item.title}
+                      className={
+                        isActive
+                          ? "rounded-lg bg-primary !text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary hover:!text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
+                          : "rounded-lg"
+                      }
                     >
                       <Link href={item.href}>
                         <Icon className="h-4 w-4" />
@@ -128,16 +147,20 @@ export function MediaAgencySidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-border">
+      <SidebarFooter className="space-y-2 border-t border-sidebar-border/80 p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              onClick={handleSignOut} 
-              className="text-destructive"
-              tooltip="Sign Out"
-            >
+            <SidebarMenuButton asChild tooltip="Help">
+              <Link href="/help">
+                <HelpCircle className="h-4 w-4" />
+                <span>Help</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="w-full" tooltip="Logout" onClick={handleSignOut}>
               <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

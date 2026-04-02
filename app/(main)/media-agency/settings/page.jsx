@@ -2,7 +2,11 @@ import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Building2, Mail, Phone, Globe, MapPin } from "lucide-react";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
+import { cn } from "@/lib/utils";
 
 export default async function MediaAgencySettingsPage() {
   const user = await checkUser();
@@ -17,34 +21,29 @@ export default async function MediaAgencySettingsPage() {
 
   if (!mediaAgency) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
-            Complete your media agency profile
-          </p>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
+      <MediaAgencyPageShell
+        eyebrow="Agency"
+        title="Settings"
+        description="Complete your media agency profile."
+      >
+        <Card className={DASHBOARD_CARD_CLASS}>
+          <CardContent className="pt-8 pb-8">
             <p className="text-center text-muted-foreground">
               Media agency profile not found. Please contact support.
             </p>
           </CardContent>
         </Card>
-      </div>
+      </MediaAgencyPageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your media agency profile and preferences
-        </p>
-      </div>
-
-      <Card>
+    <MediaAgencyPageShell
+      eyebrow="Agency"
+      title="Settings"
+      description="Manage your media agency profile and preferences."
+    >
+      <Card className={DASHBOARD_CARD_CLASS}>
         <CardHeader>
           <CardTitle>Agency Information</CardTitle>
         </CardHeader>
@@ -90,7 +89,7 @@ export default async function MediaAgencySettingsPage() {
                   href={mediaAgency.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   {mediaAgency.website}
                 </a>
@@ -117,27 +116,34 @@ export default async function MediaAgencySettingsPage() {
               <p className="text-sm text-muted-foreground">{mediaAgency.description}</p>
             </div>
           )}
-          <div className="pt-4 border-t">
-            <div className="flex items-center justify-between">
+          <div className="border-t border-border/50 pt-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium">Verification Status</p>
+                <p className="text-sm font-medium">Verification status</p>
                 <p className="text-xs text-muted-foreground">
                   {mediaAgency.verificationStatus === "VERIFIED" && "Your agency is verified"}
                   {mediaAgency.verificationStatus === "PENDING" && "Your agency is pending verification"}
                   {mediaAgency.verificationStatus === "REJECTED" && "Your agency verification was rejected"}
                 </p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                mediaAgency.verificationStatus === "VERIFIED" ? "bg-green-100 text-green-800" :
-                mediaAgency.verificationStatus === "PENDING" ? "bg-yellow-100 text-yellow-800" :
-                "bg-red-100 text-red-800"
-              }`}>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "w-fit font-medium",
+                  mediaAgency.verificationStatus === "VERIFIED" &&
+                    "border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+                  mediaAgency.verificationStatus === "PENDING" &&
+                    "border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+                  mediaAgency.verificationStatus === "REJECTED" &&
+                    "border-destructive/35 bg-destructive/10 text-destructive"
+                )}
+              >
                 {mediaAgency.verificationStatus}
-              </span>
+              </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </MediaAgencyPageShell>
   );
 }

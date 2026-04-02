@@ -8,6 +8,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-cardbox: var(--cardbox);
+  --animate-background-shine: background-shine 5s linear infinite;
+  --animate-shimmer-text: shimmer 3s ease-in-out infinite;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -41,10 +46,31 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  @keyframes background-shine {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
 }
 
 :root {
   --radius: 0.625rem;
+  --tertiary: hsl(280 70% 60%);
+  --tertiary-foreground: hsl(0 0% 100%);
+  --cardbox: oklch(0.97 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -79,16 +105,19 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  /* Avento-inspired marketing theme (electric blue on near-black) */
+  --background: #010104;
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: #0055ff;
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
+  --tertiary: hsl(280 70% 60%);
+  --tertiary-foreground: hsl(0 0% 100%);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
@@ -96,7 +125,8 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: #0055ff;
+  --cardbox: #111112;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -118,6 +148,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
   }
   
   /* Prevent elements from overflowing outside viewport */
@@ -153,7 +192,9 @@
   main[data-slot="sidebar-inset"] header {
     position: relative !important;
     pointer-events: auto !important;
-    z-index: auto !important;
+    /* Above inset decorative layers (z-0) and scroll area (z-10) so sidebar toggle stays clickable */
+    z-index: 20 !important;
+    isolation: isolate;
     top: auto !important;
     left: auto !important;
     right: auto !important;
@@ -203,6 +244,71 @@ body:has([data-auth-page]) [data-floating-chat] {
 /* Never hide dashboard headers */
 body:has([data-auth-page]) header[data-dashboard-header="true"] {
   display: flex !important;
+}
+
+/* Creator dashboard: align shell with LandingNavbar (same vertical rhythm as campaigns/products) */
+[data-creator-dashboard-nav] [data-slot="sidebar-wrapper"] {
+  min-height: calc(100dvh - 5.25rem) !important;
+}
+@media (min-width: 768px) {
+  [data-creator-dashboard-nav] [data-slot="sidebar-wrapper"] {
+    min-height: calc(100dvh - 7rem) !important;
+  }
+}
+
+/* Fixed sidebar rail starts below the floating navbar */
+[data-creator-dashboard-nav] [data-slot="sidebar-container"] {
+  top: 5.25rem !important;
+  bottom: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+@media (min-width: 768px) {
+  [data-creator-dashboard-nav] [data-slot="sidebar-container"] {
+    top: 7rem !important;
+  }
+}
+
+/* Client dashboard: same vertical rhythm as creator (LandingNavbar + sidebar) */
+[data-client-dashboard-nav] [data-slot="sidebar-wrapper"] {
+  min-height: calc(100dvh - 5.25rem) !important;
+}
+@media (min-width: 768px) {
+  [data-client-dashboard-nav] [data-slot="sidebar-wrapper"] {
+    min-height: calc(100dvh - 7rem) !important;
+  }
+}
+[data-client-dashboard-nav] [data-slot="sidebar-container"] {
+  top: 5.25rem !important;
+  bottom: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+@media (min-width: 768px) {
+  [data-client-dashboard-nav] [data-slot="sidebar-container"] {
+    top: 7rem !important;
+  }
+}
+
+/* Media agency dashboard: same shell as creator/client */
+[data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"] {
+  min-height: calc(100dvh - 5.25rem) !important;
+}
+@media (min-width: 768px) {
+  [data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"] {
+    min-height: calc(100dvh - 7rem) !important;
+  }
+}
+[data-media-agency-dashboard-nav] [data-slot="sidebar-container"] {
+  top: 5.25rem !important;
+  bottom: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+@media (min-width: 768px) {
+  [data-media-agency-dashboard-nav] [data-slot="sidebar-container"] {
+    top: 7rem !important;
+  }
 }
 
 @utility gradient {
@@ -263,4 +369,28 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   .animate-marquee-reverse {
     animation: none;
   }
+}
+
+/* Marketing / Avento-style utilities */
+.badge-glow {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 0 20px rgba(0, 85, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Avento-style minimal pill badge */
+.badge-minimal {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.title-marketing {
+  @apply text-3xl md:text-4xl font-medium tracking-tight text-balance text-center leading-tight text-foreground;
+}
+
+.desc-marketing {
+  @apply text-base md:text-lg text-muted-foreground text-balance text-center max-w-lg mx-auto;
 }

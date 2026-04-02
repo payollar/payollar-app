@@ -28,41 +28,13 @@ import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 const menuItems = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/client",
-  },
-  {
-    title: "Browse Talents",
-    icon: Search,
-    href: "/client/talents",
-  },
-  {
-    title: "Bookings",
-    icon: Calendar,
-    href: "/client/bookings",
-  },
-  {
-    title: "Campaigns",
-    icon: BarChart3,
-    href: "/client/campaigns",
-  },
-  {
-    title: "Media Library",
-    icon: FolderOpen,
-    href: "/client/media",
-  },
-  {
-    title: "Payouts",
-    icon: Wallet,
-    href: "/client/payouts",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/client/settings",
-  },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/client" },
+  { title: "Browse talents", icon: Search, href: "/client/talents" },
+  { title: "Bookings", icon: Calendar, href: "/client/bookings" },
+  { title: "Campaigns", icon: BarChart3, href: "/client/campaigns" },
+  { title: "Media library", icon: FolderOpen, href: "/client/media" },
+  { title: "Payouts", icon: Wallet, href: "/client/payouts" },
+  { title: "Settings", icon: Settings, href: "/client/settings" },
 ];
 
 export function ClientSidebar() {
@@ -74,7 +46,6 @@ export function ClientSidebar() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            // Full page reload avoids client-side transition errors
             window.location.href = "/sign-in";
           },
           onError: (ctx) => {
@@ -89,21 +60,34 @@ export function ClientSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-white font-bold text-sm">TH</span>
+    <Sidebar
+      collapsible="icon"
+      variant="floating"
+      className="[&_[data-slot=sidebar-inner]]:border-border/50 [&_[data-slot=sidebar-inner]]:bg-sidebar/95 [&_[data-slot=sidebar-inner]]:shadow-sm [&_[data-slot=sidebar-inner]]:backdrop-blur-md"
+    >
+      <SidebarHeader className="border-b border-sidebar-border/80 p-4">
+        <Link
+          href="/"
+          className="flex items-center gap-3 rounded-xl outline-none ring-offset-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-sm ring-1 ring-primary/30">
+            P
           </div>
-          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden"></span>
-        </div>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">
+              Client
+            </p>
+            <p className="truncate text-xs text-muted-foreground">Payollar</p>
+          </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
-                const isActive = pathname === item.href || 
+                const isActive =
+                  pathname === item.href ||
                   (item.href !== "/client" && pathname?.startsWith(item.href));
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -111,7 +95,11 @@ export function ClientSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={isActive ? "bg-primary text-white" : ""}
+                      className={
+                        isActive
+                          ? "rounded-lg bg-primary !text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary hover:!text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
+                          : "rounded-lg"
+                      }
                     >
                       <Link href={item.href}>
                         <item.icon className="h-4 w-4" />
@@ -125,7 +113,7 @@ export function ClientSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 border-t border-sidebar-border space-y-2">
+      <SidebarFooter className="space-y-2 border-t border-sidebar-border/80 p-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Help">
@@ -136,13 +124,9 @@ export function ClientSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              className="w-full" 
-              tooltip="Logout"
-              onClick={handleSignOut}
-            >
+            <SidebarMenuButton className="w-full" tooltip="Log out" onClick={handleSignOut}>
               <LogOut className="h-4 w-4" />
-              <span>Logout</span>
+              <span>Log out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

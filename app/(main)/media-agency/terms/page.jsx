@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Edit, Check } from "lucide-react";
 import { TermsAndConditionsForm } from "./_components/terms-form";
+import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
 export default async function MediaAgencyTermsPage() {
   const user = await checkUser();
@@ -31,17 +33,14 @@ export default async function MediaAgencyTermsPage() {
   const activeTC = mediaAgency.termsAndConditions.find(tc => tc.isActive);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Terms & Conditions</h1>
-        <p className="text-muted-foreground">
-          Upload and manage your terms and conditions for clients
-        </p>
-      </div>
-
+    <MediaAgencyPageShell
+      eyebrow="Legal"
+      title="Terms & conditions"
+      description="Upload and manage terms for clients booking your media."
+    >
       <div className="grid gap-6 md:grid-cols-2">
         {/* Current Active TC */}
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -81,7 +80,7 @@ export default async function MediaAgencyTermsPage() {
         </Card>
 
         {/* Create/Update Form */}
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -101,7 +100,7 @@ export default async function MediaAgencyTermsPage() {
 
       {/* Version History */}
       {mediaAgency.termsAndConditions.length > 0 && (
-        <Card>
+        <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>
             <CardTitle>Version History</CardTitle>
             <CardDescription>
@@ -113,7 +112,7 @@ export default async function MediaAgencyTermsPage() {
               {mediaAgency.termsAndConditions.map((tc) => (
                 <div
                   key={tc.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between rounded-xl border border-border/50 bg-background/40 p-4"
                 >
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
@@ -136,6 +135,6 @@ export default async function MediaAgencyTermsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </MediaAgencyPageShell>
   );
 }

@@ -6,8 +6,9 @@ import { AppointmentCard } from "@/components/appointment-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import useFetch from "@/hooks/use-fetch";
+import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
-export default function CreatorAppointmentsList() {
+export default function CreatorAppointmentsList({ appointments: initialAppointments = [] }) {
   const {
     loading,
     data,
@@ -16,47 +17,52 @@ export default function CreatorAppointmentsList() {
 
   useEffect(() => {
     fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only refresh
   }, []);
 
-  const appointments = data?.appointments || [];
+  const appointments = data?.appointments ?? initialAppointments;
 
   return (
-    <Card className="border-emerald-900/20">
-      <CardHeader>
-        <CardTitle className="text-xl font-bold text-white flex items-center">
-          <Calendar className="h-5 w-5 mr-2 text-emerald-400" />
-          Upcoming Bookings
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Loading bookings...</p>
-          </div>
-        ) : appointments.length > 0 ? (
-          <div className="space-y-4">
-            {appointments.map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                userRole="CREATOR"
-                refetchAppointments={fetchAppointments}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <h3 className="text-xl font-medium text-white mb-2">
-              No upcoming bookings
-            </h3>
-            <p className="text-muted-foreground">
-              You don&apos;t have any scheduled bookings yet. Make sure
-              you&apos;ve set your availability to allow clients to book sessions with you.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <CreatorPageShell
+      eyebrow="Calendar"
+      title="Bookings"
+      description="Upcoming sessions and requests from clients."
+    >
+      <Card className={creatorCardClass}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Calendar className="h-5 w-5 text-primary" />
+            Upcoming bookings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading && appointments.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-muted-foreground">Loading bookings…</p>
+            </div>
+          ) : appointments.length > 0 ? (
+            <div className="space-y-4">
+              {appointments.map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  userRole="CREATOR"
+                  refetchAppointments={fetchAppointments}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-10 text-center text-muted-foreground">
+              <Calendar className="mx-auto mb-3 h-12 w-12 opacity-40" />
+              <h3 className="mb-2 text-lg font-medium text-foreground">No upcoming bookings</h3>
+              <p className="mx-auto max-w-md text-sm">
+                You don&apos;t have any scheduled bookings yet. Set your availability so clients can
+                book sessions with you.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </CreatorPageShell>
   );
 }

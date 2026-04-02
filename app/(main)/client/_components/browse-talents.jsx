@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { ClientPageShell, clientCardClass } from "./client-page-shell";
+
+const fieldClass = "border-border/60 bg-background text-foreground";
 
 export function BrowseTalents({ talents = [], categories = [], specialties = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,36 +58,33 @@ export function BrowseTalents({ talents = [], categories = [], specialties = [] 
   }, [talents]);
 
   return (
+    <ClientPageShell
+      eyebrow="Discover"
+      title="Browse talents"
+      description="Discover talented creators and their available services."
+      actions={
+        <Button variant="marketing" className="gap-2" asChild>
+          <Link href="/talents">
+            <Search className="h-4 w-4" />
+            Public directory
+          </Link>
+        </Button>
+      }
+    >
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Browse Talents</h1>
-          <p className="text-muted-foreground mt-1">
-            Discover talented creators and their available services
-          </p>
-        </div>
-        <Link href="/talents">
-          <Button className="bg-white hover:bg-gray-100 text-gray-900">
-            <Search className="h-4 w-4 mr-2" />
-            Find Talents
-          </Button>
-        </Link>
-      </div>
-
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search talents by name, specialty, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-900/50 border-gray-800 text-white"
+            className={`pl-10 ${fieldClass}`}
           />
         </div>
         <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] bg-gray-900/50 border-gray-800 text-white">
+          <SelectTrigger className={`w-full sm:w-[200px] ${fieldClass}`}>
             <SelectValue placeholder="All Specialties" />
           </SelectTrigger>
           <SelectContent>
@@ -97,7 +97,7 @@ export function BrowseTalents({ talents = [], categories = [], specialties = [] 
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] bg-gray-900/50 border-gray-800 text-white">
+          <SelectTrigger className={`w-full sm:w-[200px] ${fieldClass}`}>
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -119,19 +119,16 @@ export function BrowseTalents({ talents = [], categories = [], specialties = [] 
           ))}
         </div>
       ) : (
-        <Card className="border-gray-800">
+        <Card className={clientCardClass}>
           <CardContent className="p-12 text-center">
-            <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-xl font-medium text-white mb-2">
-              No talents found
-            </h3>
-            <p className="text-muted-foreground">
-              Try adjusting your search or filter criteria.
-            </p>
+            <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+            <h3 className="mb-2 text-xl font-medium text-foreground">No talents found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
           </CardContent>
         </Card>
       )}
     </div>
+    </ClientPageShell>
   );
 }
 
@@ -140,10 +137,12 @@ function TalentCard({ talent }) {
   const displayedServices = talent.services?.slice(0, 3) || [];
 
   return (
-    <Card className="border-gray-800 hover:border-gray-700 transition-all overflow-hidden group bg-gray-900/50">
+    <Card
+      className={`${clientCardClass} group overflow-hidden transition-all hover:border-primary/25 hover:shadow-md`}
+    >
       <CardHeader className="relative">
         <div className="flex items-start gap-4">
-          <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-gray-700 flex-shrink-0">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-border/60">
             {talent.imageUrl ? (
               <Image
                 src={talent.imageUrl}
@@ -152,17 +151,17 @@ function TalentCard({ talent }) {
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                <User className="h-8 w-8 text-gray-600" />
+              <div className="flex h-full w-full items-center justify-center bg-muted">
+                <User className="h-8 w-8 text-muted-foreground" />
               </div>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-bold text-white mb-1 truncate">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="mb-1 truncate text-lg font-bold text-foreground">
               {talent.name || "Unknown Talent"}
             </CardTitle>
             {talent.specialty && (
-              <Badge variant="outline" className="text-xs border-gray-700 mb-2">
+              <Badge variant="outline" className="mb-2 text-xs">
                 {talent.specialty}
               </Badge>
             )}
@@ -185,20 +184,20 @@ function TalentCard({ talent }) {
         {servicesCount > 0 ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-emerald-400" />
-                Available Services ({servicesCount})
+              <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Briefcase className="h-4 w-4 text-primary" />
+                Available services ({servicesCount})
               </h4>
             </div>
             <div className="space-y-2">
               {displayedServices.map((service) => (
                 <div
                   key={service.id}
-                  className="p-2 rounded-lg bg-gray-800/50 border border-gray-700/50"
+                  className="rounded-lg border border-border/50 bg-muted/30 p-2"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">
                         {service.title}
                       </p>
                       {service.description && (
@@ -207,8 +206,8 @@ function TalentCard({ talent }) {
                         </p>
                       )}
                     </div>
-                    <div className="ml-2 flex-shrink-0">
-                      <p className="text-sm font-bold text-emerald-400">
+                    <div className="ml-2 shrink-0">
+                      <p className="text-sm font-bold tabular-nums text-primary">
                         ₵{service.rate.toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -234,10 +233,8 @@ function TalentCard({ talent }) {
             </div>
           </div>
         ) : (
-          <div className="p-4 rounded-lg bg-gray-800/30 border border-gray-700/30 text-center">
-            <p className="text-sm text-muted-foreground">
-              No services available yet
-            </p>
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-center">
+            <p className="text-sm text-muted-foreground">No services listed yet</p>
           </div>
         )}
 
@@ -262,11 +259,9 @@ function TalentCard({ talent }) {
         )}
 
         {/* View Profile Button */}
-        <Link href={`/talents/${talent.specialty || "all"}/${talent.id}`}>
-          <Button className="w-full bg-white hover:bg-gray-100 text-gray-900">
-            View Profile
-          </Button>
-        </Link>
+        <Button variant="marketing" className="w-full" asChild>
+          <Link href={`/talents/${talent.specialty || "all"}/${talent.id}`}>View profile</Link>
+        </Button>
       </CardContent>
     </Card>
   );

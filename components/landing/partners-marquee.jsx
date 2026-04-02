@@ -20,16 +20,16 @@ export function PartnersMarquee() {
   ];
 
   return (
-    <section className="py-16 md:py-20 bg-white overflow-hidden">
+    <section className="py-16 md:py-20 bg-background border-y border-border/40 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-xs md:text-sm text-gray-500 mb-3 font-medium uppercase tracking-widest">
+          <p className="text-xs md:text-sm text-muted-foreground mb-3 font-medium uppercase tracking-widest">
             Trusted Partners & Brands
           </p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
             We Work With{" "}
-            <span className="bg-gradient-to-r from-emerald-600 via-cyan-600 to-emerald-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent">
               Industry Leaders
             </span>
           </h2>
@@ -38,8 +38,8 @@ export function PartnersMarquee() {
         {/* Marquee Container */}
         <div className="relative">
           {/* Minimal Gradient Overlays */}
-          <div className="absolute left-0 top-0 bottom-0 w-20 md:w-24 bg-gradient-to-r from-white via-white/40 to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-20 md:w-24 bg-gradient-to-l from-white via-white/40 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-20 md:w-24 bg-linear-to-r from-background via-background/50 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-20 md:w-24 bg-linear-to-l from-background via-background/50 to-transparent z-10 pointer-events-none" />
 
           {/* Marquee */}
           <div className="flex overflow-hidden marquee-container">
@@ -49,8 +49,8 @@ export function PartnersMarquee() {
                   key={`${partner}-${index}`}
                   className="mx-3 md:mx-4 flex-shrink-0"
                 >
-                  <div className="px-4 md:px-5 py-2 md:py-3 bg-gray-50 border border-gray-200 rounded-lg cursor-default">
-                    <span className="text-base md:text-lg lg:text-xl font-semibold text-gray-700">
+                  <div className="px-4 md:px-5 py-2 md:py-3 bg-card/60 border border-border/80 rounded-xl cursor-default backdrop-blur-sm">
+                    <span className="text-base md:text-lg lg:text-xl font-semibold text-foreground/85">
                       {partner}
                     </span>
                   </div>
@@ -64,8 +64,8 @@ export function PartnersMarquee() {
                   key={`${partner}-duplicate-${index}`}
                   className="mx-3 md:mx-4 flex-shrink-0"
                 >
-                  <div className="px-4 md:px-5 py-2 md:py-3 bg-gray-50 border border-gray-200 rounded-lg cursor-default">
-                    <span className="text-base md:text-lg lg:text-xl font-semibold text-gray-700">
+                  <div className="px-4 md:px-5 py-2 md:py-3 bg-card/60 border border-border/80 rounded-xl cursor-default backdrop-blur-sm">
+                    <span className="text-base md:text-lg lg:text-xl font-semibold text-foreground/85">
                       {partner}
                     </span>
                   </div>
