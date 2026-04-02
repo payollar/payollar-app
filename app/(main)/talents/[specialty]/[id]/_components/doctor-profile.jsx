@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -21,6 +21,7 @@ import {
   Download,
   Briefcase,
   ArrowRight,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,10 +35,13 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Particles } from "@/components/ui/particles";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import { SlotPicker } from "./slot-picker";
 import { AppointmentForm } from "./appointment-form";
 import { BookingAgreementModal } from "./booking-agreement-modal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useSession } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 const cardSurface =
   "rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm";
@@ -191,6 +195,112 @@ export function DoctorProfile({ doctor, availableDays }) {
   /** Set when visitor clicks "Book this service" on a service card (prefills session notes) */
   const [bookingServiceNote, setBookingServiceNote] = useState(null);
   const router = useRouter();
+
+  const { data: session } = useSession();
+  const sessionUser = session?.user;
+  const canReview = sessionUser?.role === "CLIENT";
+
+  // Ratings/reviews (client-side for now; can be wired to DB later)
+  const reviewsStorageKey = doctor?.id ? `creator-reviews:${doctor.id}` : null;
+  const [reviews, setReviews] = useState([]);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  useEffect(() => {
+    if (!reviewsStorageKey) return;
+    try {
+      const raw = window.localStorage.getItem(reviewsStorageKey);
+      if (!raw) {
+        setReviews([]);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setReviews(parsed);
+      else setReviews([]);
+    } catch {
+      setReviews([]);
+    }
+  }, [reviewsStorageKey]);
+
+  useEffect(() => {
+    if (!sessionUser?.id || !reviewsStorageKey) return;
+    const myReview = reviews.find((r) => r.clientId === sessionUser.id);
+    if (!myReview) return;
+    setSelectedRating(myReview.rating || 0);
+    setReviewComment(myReview.comment || "");
+  }, [sessionUser?.id, reviews, reviewsStorageKey]);
+
+  const getSatisfactoryLabel = (rating) => {
+    switch (rating) {
+      case 1:
+        return "Poor";
+      case 2:
+        return "Fair";
+      case 3:
+        return "Good";
+      case 4:
+        return "Very good";
+      case 5:
+        return "Excellent";
+      default:
+        return "Select a rating";
+    }
+  };
+
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
+        reviews.length
+      : 0;
+
+  const handleSubmitReview = async () => {
+    if (!reviewsStorageKey) return;
+    if (!sessionUser?.id) {
+      toast.error("Please sign in to leave a review.");
+      return;
+    }
+    if (!canReview) {
+      toast.error("Only clients can leave reviews.");
+      return;
+    }
+    if (!selectedRating || selectedRating < 1 || selectedRating > 5) {
+      toast.error("Please select a rating.");
+      return;
+    }
+    if (!reviewComment.trim() || reviewComment.trim().length < 3) {
+      toast.error("Please add a short comment (at least 3 characters).");
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      const now = new Date().toISOString();
+      const myName = sessionUser.name || "Client";
+      const myReview = {
+        id: `${sessionUser.id}:${doctor.id}`,
+        clientId: sessionUser.id,
+        clientName: myName,
+        rating: selectedRating,
+        comment: reviewComment.trim(),
+        createdAt: now,
+      };
+
+      const existingIndex = reviews.findIndex((r) => r.clientId === sessionUser.id);
+      const next =
+        existingIndex >= 0
+          ? reviews.map((r, idx) => (idx === existingIndex ? { ...r, ...myReview } : r))
+          : [myReview, ...reviews];
+
+      setReviews(next);
+      window.localStorage.setItem(reviewsStorageKey, JSON.stringify(next));
+      toast.success("Review submitted!");
+    } catch {
+      toast.error("Failed to submit review.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   const totalSlots = availableDays?.reduce(
     (total, day) => total + day.slots.length,
@@ -369,6 +479,184 @@ export function DoctorProfile({ doctor, availableDays }) {
                 ) : (
                   <p className="text-sm text-muted-foreground">No skills listed yet.</p>
                 )}
+              </div>
+
+              <Separator className="bg-border/60" />
+
+              <div className="space-y-4">
+                <SectionTitle icon={Star}>Ratings & Reviews</SectionTitle>
+
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, idx) => {
+                          const starNum = idx + 1;
+                          const isFilled = starNum <= Math.round(avgRating);
+                          return (
+                            <Star
+                              key={starNum}
+                              className={cn(
+                                "h-4 w-4 transition-colors",
+                                isFilled ? "text-primary fill-primary" : "text-muted-foreground/35"
+                              )}
+                              fill={isFilled ? "currentColor" : "transparent"}
+                              aria-hidden
+                            />
+                          );
+                        })}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {reviews.length > 0 ? (
+                          <>
+                            <span className="font-semibold text-foreground">{avgRating.toFixed(1)}</span>{" "}
+                            average
+                          </>
+                        ) : (
+                          "No ratings yet"
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground">
+                      {reviews.length > 0
+                        ? `${reviews.length} review${reviews.length === 1 ? "" : "s"}`
+                        : "Be the first to leave a review"}
+                    </div>
+                  </div>
+                </div>
+
+                {reviews.length > 0 ? (
+                  <div className="space-y-3">
+                    {reviews
+                      .slice()
+                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                      .map((r) => (
+                        <Card
+                          key={r.id}
+                          className="rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur-sm"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <div className="text-sm font-semibold text-foreground">
+                                  {r.clientName || "Client"}
+                                </div>
+                                <div className="mt-1 flex items-center gap-1">
+                                  {Array.from({ length: 5 }).map((_, idx) => {
+                                    const starNum = idx + 1;
+                                    const isFilled = starNum <= (Number(r.rating) || 0);
+                                    return (
+                                      <Star
+                                        key={starNum}
+                                        className={cn(
+                                          "h-4 w-4",
+                                          isFilled ? "text-primary fill-primary" : "text-muted-foreground/35"
+                                        )}
+                                        fill={isFilled ? "currentColor" : "transparent"}
+                                        aria-hidden
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : null}
+                              </div>
+                            </div>
+                            {r.comment ? (
+                              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                                {r.comment}
+                              </p>
+                            ) : null}
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                ) : null}
+
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
+                  {!sessionUser ? (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-foreground">Sign in to leave a review</div>
+                      <p className="text-sm text-muted-foreground">
+                        Rating and comments help other clients choose the right talent.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="marketing"
+                        className="w-full rounded-full"
+                        onClick={() => router.push("/sign-in")}
+                      >
+                        Sign in
+                      </Button>
+                    </div>
+                  ) : !canReview ? (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-foreground">Clients only</div>
+                      <p className="text-sm text-muted-foreground">
+                        You must be signed in as a client to rate creators.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">Your satisfaction level</div>
+                          <div className="text-xs text-muted-foreground">{getSatisfactoryLabel(selectedRating || 0)}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1" role="radiogroup" aria-label="Satisfaction rating">
+                        {Array.from({ length: 5 }).map((_, idx) => {
+                          const starNum = idx + 1;
+                          const isSelected = starNum <= selectedRating;
+                          return (
+                            <button
+                              key={starNum}
+                              type="button"
+                              className="rounded-full p-1 transition-colors hover:bg-primary/10"
+                              onClick={() => setSelectedRating(starNum)}
+                              aria-label={`${starNum} star${starNum === 1 ? "" : "s"}`}
+                            >
+                              <Star
+                                className={cn(
+                                  "h-6 w-6 transition-colors",
+                                  isSelected ? "text-primary fill-primary" : "text-muted-foreground/40"
+                                )}
+                                fill={isSelected ? "currentColor" : "transparent"}
+                                aria-hidden
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-foreground">Comments</div>
+                        <Textarea
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          placeholder="What went well? What should others know?"
+                          className="min-h-24 resize-none"
+                        />
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{reviewComment.trim().length ? `${reviewComment.trim().length} chars` : "Optional, but recommended"}</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="marketing"
+                        className="w-full rounded-full"
+                        onClick={handleSubmitReview}
+                        disabled={isSubmittingReview}
+                      >
+                        {isSubmittingReview ? "Submitting..." : "Submit review"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {doctor.services && doctor.services.length > 0 ? (
