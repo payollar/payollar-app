@@ -209,6 +209,10 @@ export default function TVMediaPage() {
     true,
     false,
   ]);
+
+  /** When exactly one spot length is selected, show airtime prices for that duration. */
+  const selectedSingleSpotSec =
+    selectedSpotLengthsSec.length === 1 ? selectedSpotLengthsSec[0] : null;
   const [mediaCampaignName, setMediaCampaignName] = useState("");
   const [contactFullName, setContactFullName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -326,9 +330,7 @@ export default function TVMediaPage() {
   };
 
   const toggleSpotLength = (sec) => {
-    setSelectedSpotLengthsSec((prev) =>
-      prev.includes(sec) ? prev.filter((x) => x !== sec) : [...prev, sec]
-    );
+    setSelectedSpotLengthsSec((prev) => (prev[0] === sec ? [] : [sec]));
   };
 
   const toggleBroadcastDay = (index) => {
@@ -823,6 +825,10 @@ export default function TVMediaPage() {
                       {airtimeSlots.map((slot) => {
                         const selected = selectedAirtimeSlotIds.includes(slot.id);
                         const disabled = slot.booked;
+                        const displayedDailyRate =
+                          selectedSingleSpotSec != null
+                            ? getSlotRateForSec(slot, selectedSingleSpotSec)
+                            : null;
                         return (
                           <button
                             key={slot.id}
@@ -855,17 +861,26 @@ export default function TVMediaPage() {
                               <p className="mt-2 text-xs font-semibold text-muted-foreground sm:text-sm">Not available</p>
                             ) : (
                               <div className="mt-2 space-y-0.5">
-                                <p className="text-sm font-semibold tabular-nums text-chart-3 sm:text-base">
-                                  GH₵
-                                  {slotCampaignTotalGhs(
-                                    slot.rateGhs ?? slot.weeklyGhs,
-                                    pricingDayCount
-                                  ).toLocaleString()}
-                                </p>
-                                <p className="text-[10px] leading-tight text-muted-foreground tabular-nums sm:text-[11px]">
-                                  {Math.round(slot.rateGhs ?? slot.weeklyGhs ?? 0).toLocaleString()} ×{" "}
-                                  {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"}
-                                </p>
+                                {selectedSingleSpotSec == null ? (
+                                  <p className="text-xs font-semibold text-muted-foreground sm:text-sm">
+                                    Select a spot length to see pricing
+                                  </p>
+                                ) : (
+                                  <>
+                                    <p className="text-sm font-semibold tabular-nums text-chart-3 sm:text-base">
+                                      GH₵
+                                      {slotCampaignTotalGhs(
+                                        displayedDailyRate,
+                                        pricingDayCount
+                                      ).toLocaleString()}
+                                    </p>
+                                    <p className="text-[10px] leading-tight text-muted-foreground tabular-nums sm:text-[11px]">
+                                      {Math.round(displayedDailyRate ?? 0).toLocaleString()} ×{" "}
+                                      {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"} •{" "}
+                                      {selectedSingleSpotSec}s
+                                    </p>
+                                  </>
+                                )}
                               </div>
                             )}
                           </button>
@@ -878,10 +893,10 @@ export default function TVMediaPage() {
                 {/* Spot lengths */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
-                    Select spot lengths
+                    Select spot length
                   </h4>
                   <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Different spot lengths can run in the same campaign — e.g. 15s teaser + 30s full spot.
+                    Pick one spot duration. Airtime pricing updates to match your selection.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {SPOT_LENGTH_OPTIONS.map(({ sec, short, subtitle }) => {

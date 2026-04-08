@@ -16,7 +16,7 @@ const quickLinks = [
 ];
 
 const forUsers = [
-  ["/onboarding", "Join as talent"],
+  // ["/onboarding", "Join as talent"],
   ["/products", "Services"],
   ["/help", "Help center"],
   ["/contact-support", "Contact support"],
