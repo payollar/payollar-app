@@ -23,31 +23,12 @@ const MEDIA_TYPES = [
   {
     id: "BILLBOARD",
     name: "Billboard Media",
-    href: "/products/billboard-media",
+    href: null,
     image: "/billboard.jpg",
     description: "High-impact outdoor advertising in prime locations across cities.",
+    comingSoon: true,
   },
-  {
-    id: "DIGITAL",
-    name: "Digital Media",
-    href: "/products/digital-media",
-    image: "/social-media2.jpg",
-    description: "Social media, streaming, and online advertising platforms.",
-  },
-  {
-    id: "INFLUENCER_MARKETING",
-    name: "Influencer Marketing",
-    href: "/products/influencer-marketing",
-    image: "/radio.jpeg",
-    description: "Partner with top influencers to reach engaged audiences authentically.",
-  },
-  {
-    id: "VIDEO_CLIPPING",
-    name: "Video Clipping",
-    href: "/products/video-clipping",
-    image: "/clipping.jpg",
-    description: "Professional video editing and clipping services for all platforms.",
-  },
+  // Digital Media / Influencer Marketing / Video Clipping hidden for now.
 ];
 
 export function MediaListingsGrid({ listingsByType }) {
@@ -58,13 +39,43 @@ export function MediaListingsGrid({ listingsByType }) {
         const filteredListings = allListings.filter(
           (listing) => !listing.name?.toLowerCase().includes("payollar")
         );
+        const isComingSoon = Boolean(type.comingSoon);
         return (
           <div key={type.id} className="space-y-4">
-            <Link href={type.href} className="block">
+            {type.href ? (
+              <Link href={type.href} className="block">
+                <Card
+                  className={cn(
+                    "group h-full overflow-hidden rounded-xl border border-foreground/10 bg-cardbox shadow-lg transition-all duration-500",
+                    "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 lg:rounded-2xl"
+                  )}
+                >
+                  <div className="relative h-40 w-full overflow-hidden">
+                    <img
+                      src={type.image}
+                      alt={type.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <h3 className="text-lg font-bold text-white drop-shadow-sm md:text-xl">{type.name}</h3>
+                    </div>
+                  </div>
+                  <CardContent className="space-y-3 border-t border-border/40 pt-4">
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{type.description}</p>
+                    <div className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary/35 bg-transparent text-sm font-medium text-foreground transition-colors group-hover:border-primary/50 group-hover:bg-primary/10 group-hover:text-primary">
+                      Buy {type.name}
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ) : (
               <Card
                 className={cn(
                   "group h-full overflow-hidden rounded-xl border border-foreground/10 bg-cardbox shadow-lg transition-all duration-500",
-                  "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 lg:rounded-2xl"
+                  "lg:rounded-2xl",
+                  isComingSoon && "opacity-90"
                 )}
               >
                 <div className="relative h-40 w-full overflow-hidden">
@@ -74,19 +85,23 @@ export function MediaListingsGrid({ listingsByType }) {
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                  {isComingSoon && (
+                    <div className="absolute left-3 top-3 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
+                      Coming soon
+                    </div>
+                  )}
                   <div className="absolute bottom-3 left-3 right-3">
                     <h3 className="text-lg font-bold text-white drop-shadow-sm md:text-xl">{type.name}</h3>
                   </div>
                 </div>
                 <CardContent className="space-y-3 border-t border-border/40 pt-4">
                   <p className="line-clamp-2 text-sm text-muted-foreground">{type.description}</p>
-                  <div className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary/35 bg-transparent text-sm font-medium text-foreground transition-colors group-hover:border-primary/50 group-hover:bg-primary/10 group-hover:text-primary">
-                    Buy {type.name}
-                    <ArrowRight className="h-4 w-4" />
+                  <div className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-border/50 bg-transparent text-sm font-medium text-muted-foreground">
+                    Coming soon
                   </div>
                 </CardContent>
               </Card>
-            </Link>
+            )}
             {filteredListings.length > 0 && (
               <div className="space-y-2 pl-0.5">
                 {filteredListings.slice(0, 4).map((listing) => (

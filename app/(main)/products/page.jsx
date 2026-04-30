@@ -139,9 +139,8 @@ export default function ProductsPage() {
               </Card>
             </Link>
 
-            {/* Billboard Media */}
-            <Link href="/products/billboard-media">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
+            {/* Billboard Media (Coming soon) */}
+            <Card className="h-full transition-all group overflow-hidden opacity-90">
                 <div className="relative h-48 w-full overflow-hidden">
                   <img
                     src="/billboard.jpg"
@@ -149,6 +148,11 @@ export default function ProductsPage() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute top-4 left-4">
+                    <Badge className="border-0 bg-white/15 text-white backdrop-blur-md">
+                      Coming soon
+                    </Badge>
+                  </div>
                   <div className="absolute bottom-4 left-4">
                     <h3 className="text-white text-2xl font-bold">Billboard Media</h3>
                   </div>
@@ -167,234 +171,14 @@ export default function ProductsPage() {
                       <span className="font-medium">5K-100K</span>
                     </div>
                   </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    Buy Billboard Media
+                  <Button className="w-full mt-4 bg-transparent" variant="outline" disabled>
+                    Coming soon
                   </Button>
                 </CardContent>
               </Card>
-            </Link>
+            
 
-            {/* Digital Media */}
-            <Link href="/products/digital-media">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/social-media2.jpg"
-                    alt="Digital Media"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Digital Media</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Social media, streaming, and online advertising platforms.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵500/campaign</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Targeting Options:</span>
-                      <span className="font-medium">Advanced</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    Buy Digital Media
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Influencer Marketing */}
-            <Link href="/products/influencer-marketing">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/radio.jpeg"
-                    alt="Influencer Marketing"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Influencer Marketing</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Partner with top influencers to reach engaged audiences authentically.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵1,000/post</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Avg. Engagement:</span>
-                      <span className="font-medium">5K-500K</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    Buy Influencer Marketing
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Video Clipping */}
-            <Link href="/products/video-clipping">
-              <Card className="h-full hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                <div className="relative h-48 w-full overflow-hidden">
-                  <img
-                    src="/clipping.jpg"
-                    alt="Video Clipping"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="text-white text-2xl font-bold">Video Clipping</h3>
-                  </div>
-                </div>
-                <CardContent className="space-y-4 pt-4">
-                  <p className="text-muted-foreground text-sm">
-                    Professional video editing and clipping services for all platforms.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Turnaround Time:</span>
-                      <span className="font-medium">24-48 hrs</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Starting Price:</span>
-                      <span className="font-medium">₵300/video</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Formats:</span>
-                      <span className="font-medium">All Platforms</span>
-                    </div>
-                  </div>
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    Buy Video Clipping
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Packages */}
-      <section className="py-16 bg-muted/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-balance">Popular Package Deals</h2>
-            <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
-              Save more with our curated multi-channel advertising packages.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="relative">
-              <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">Most Popular</Badge>
-              <CardHeader className="text-center pt-8">
-                <CardTitle className="text-2xl">Multi-Channel Starter</CardTitle>
-                <div className="text-3xl font-bold mt-2">
-                  ₵12,000<span className="text-lg font-normal text-muted-foreground">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>5 Radio Stations
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>2 TV Networks
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Digital Campaign Setup
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Basic Analytics
-                  </li>
-                </ul>
-                <Button className="w-full">Get Started</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Premium Mix</CardTitle>
-                <div className="text-3xl font-bold mt-2">
-                  ₵35,000<span className="text-lg font-normal text-muted-foreground">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    15 Radio Stations
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>5 TV Networks
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>3 Billboard Locations
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Advanced Digital Campaigns
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Premium Analytics
-                  </li>
-                </ul>
-                <Button className="w-full bg-transparent" variant="outline">
-                  Choose Plan
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Enterprise</CardTitle>
-                <div className="text-3xl font-bold mt-2">
-                  Custom<span className="text-lg font-normal text-muted-foreground"> pricing</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Unlimited Channels
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    National Coverage
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Dedicated Account Manager
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    Custom Analytics Dashboard
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                    24/7 Priority Support
-                  </li>
-                </ul>
-                <Button className="w-full bg-transparent" variant="outline">
-                  Contact Sales
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Digital Media / Influencer Marketing / Video Clipping hidden for now */}
           </div>
         </div>
       </section>
