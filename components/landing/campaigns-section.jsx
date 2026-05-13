@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Target, Users, TrendingUp, Plus, CheckCircle } from "lucide-react";
+import { Sparkles, Target, Users, TrendingUp, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { SectionParticles } from "@/components/landing/section-particles";
 
@@ -102,17 +102,6 @@ export function CampaignsSection() {
                 <Link href="/campaigns">
                   <Target className="h-5 w-5" />
                   Browse Campaigns
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="border-primary/40 bg-transparent text-foreground hover:border-primary hover:bg-primary/10"
-              >
-                <Link href="/client">
-                  <Plus className="h-5 w-5" />
-                  Post Campaign
                 </Link>
               </Button>
             </div>

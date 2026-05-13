@@ -226,6 +226,9 @@ export function AppointmentCard({
   const otherPartyLabel = userRole === "CREATOR" ? "Client" : "Creator";
   const otherPartyIcon = userRole === "CREATOR" ? <User /> : <User />;
 
+  const clientProjectBrief =
+    appointment.clientDescription ?? appointment.patientDescription ?? null;
+
   return (
     <>
       <Card className="border-emerald-900/20 hover:border-emerald-700/30 transition-all">
@@ -394,21 +397,17 @@ export function AppointmentCard({
               </Badge>
             </div>
 
-            {/* Patient Description */}
-            {appointment.patientDescription && (
+            {/* Client project brief (from booking flow) */}
+            {clientProjectBrief ? (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground">
-                  {userRole === "CREATOR"
-                    ? "Client Description"
-                    : "Your Description"}
+                  {userRole === "CREATOR" ? "Client project brief" : "Your project brief"}
                 </h4>
-                <div className="p-3 rounded-md bg-muted/20 border border-emerald-900/20">
-                  <p className="text-white whitespace-pre-line">
-                    {appointment.patientDescription}
-                  </p>
+                <div className="rounded-md border border-emerald-900/20 bg-muted/20 p-3">
+                  <p className="whitespace-pre-line text-white">{clientProjectBrief}</p>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Join Video Call Button */}
             {appointment.status === "SCHEDULED" && (

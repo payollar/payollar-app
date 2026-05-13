@@ -32,6 +32,95 @@ export async function getCreatorServices() {
 }
 
 /**
+ * Active services from verified creators — for public landing / discovery (no auth).
+ */
+export async function getPublicMarketplaceServices(options = {}) {
+  const limit = Math.min(Math.max(Number(options.limit) || 12, 1), 96);
+  const category = options.category;
+
+  const creatorWhere = {
+    role: "CREATOR",
+    verificationStatus: "VERIFIED",
+  };
+
+  const categoryWhere =
+    category === "__none__"
+      ? { OR: [{ category: null }, { category: "" }] }
+      : typeof category === "string" && category.trim().length > 0
+        ? { category: category.trim() }
+        : {};
+
+  try {
+    const services = await db.service.findMany({
+      where: {
+        isActive: true,
+        creator: creatorWhere,
+        ...categoryWhere,
+      },
+      take: limit,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            specialty: true,
+            imageUrl: true,
+          },
+        },
+      },
+    });
+
+    return { services };
+  } catch (error) {
+    console.error("Error fetching public marketplace services:", error);
+    return { services: [], error: "Failed to fetch services" };
+  }
+}
+
+/**
+ * Distinct non-empty categories for the public services marketplace (verified creators only).
+ */
+export async function getPublicServiceMarketplaceCategories() {
+  try {
+    const rows = await db.service.findMany({
+      where: {
+        isActive: true,
+        creator: {
+          role: "CREATOR",
+          verificationStatus: "VERIFIED",
+        },
+      },
+      select: { category: true },
+    });
+
+    const trimmed = rows
+      .map((r) => (typeof r.category === "string" ? r.category.trim() : ""))
+      .filter(Boolean);
+    const categories = [...new Set(trimmed)].sort((a, b) => a.localeCompare(b));
+
+    const uncategorizedCount = await db.service.count({
+      where: {
+        isActive: true,
+        creator: {
+          role: "CREATOR",
+          verificationStatus: "VERIFIED",
+        },
+        OR: [{ category: null }, { category: "" }],
+      },
+    });
+
+    return {
+      categories,
+      hasUncategorized: uncategorizedCount > 0,
+    };
+  } catch (error) {
+    console.error("Error fetching public service categories:", error);
+    return { categories: [], hasUncategorized: false };
+  }
+}
+
+/**
  * Create a new service for the current creator
  */
 export async function createService(formData) {

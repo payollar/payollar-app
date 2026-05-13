@@ -14,6 +14,7 @@ export function MainWrapper({ children }) {
 
   const isHome = pathname === "/";
   const isMediaMarketing = pathname?.startsWith("/media");
+  const isServicesMarketplace = pathname?.startsWith("/services");
   const isOnboarding = pathname?.startsWith("/onboarding");
   const isAuthPage =
     pathname?.startsWith("/sign-in") ||
@@ -27,6 +28,7 @@ export function MainWrapper({ children }) {
       className={
         isHome ||
         isMediaMarketing ||
+        isServicesMarketplace ||
         isOnboarding ||
         isDashboardPage ||
         isAuthPage

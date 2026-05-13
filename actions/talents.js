@@ -77,8 +77,10 @@ export async function getServiceCategories() {
     const services = await db.service.findMany({
       where: {
         isActive: true,
+        category: { not: null },
         creator: {
           verificationStatus: "VERIFIED",
+          role: "CREATOR",
         },
       },
       select: {

@@ -46,7 +46,7 @@ export default function FindTalentsPage() {
               </Link>
             </Button>
             <Button asChild variant="glass" size="lg">
-              <Link href="/products">
+              <Link href="/services">
                 <Search className="mr-2 h-5 w-5" />
                 Browse services
               </Link>

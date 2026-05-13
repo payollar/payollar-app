@@ -154,6 +154,37 @@ export function MediaPageView({ listingsByType }) {
         </SectionShell>
       </section>
 
+      {/* Listings */}
+      <section id="browse" className="relative w-full overflow-hidden py-16 md:py-24">
+        <div className="pointer-events-none absolute -left-1/4 top-0 -z-10 hidden size-1/3 rounded-full bg-primary/10 blur-[8rem] lg:block" />
+        <SectionShell className="relative z-10 max-w-[90rem]">
+          <div className="flex flex-col items-center text-center">
+            <SectionBadge title="Inventory" />
+            <motion.h2
+              className={cn(sectionTitle, "mt-6")}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              Channels & listings
+            </motion.h2>
+            <motion.p
+              className={sectionDesc}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              Choose a channel to buy media, or open a listing to schedule with a partner.
+            </motion.p>
+          </div>
+          <div className="mt-12">
+            <MediaListingsGrid listingsByType={listingsByType} />
+          </div>
+        </SectionShell>
+      </section>
+
       {/* Workflow — Avento `workflow.tsx` large numerals */}
       <section className="relative w-full overflow-hidden py-16 lg:py-24">
         <div className="pointer-events-none absolute -right-1/4 top-0 -z-10 hidden size-1/3 rounded-full bg-primary/10 blur-[8rem] lg:block" />
@@ -223,7 +254,7 @@ export function MediaPageView({ listingsByType }) {
               </Badge>
               <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">Find the right placement</h2>
               <p className="mt-3 max-w-2xl text-white/70">
-                Filter by location, audience, or format—then jump into channels below.
+                Filter by location, audience, or format to narrow your next media buy.
               </p>
             </div>
             <div className="mx-auto max-w-2xl space-y-4">
@@ -251,37 +282,6 @@ export function MediaPageView({ listingsByType }) {
                 ))}
               </div>
             </div>
-          </div>
-        </SectionShell>
-      </section>
-
-      {/* Listings */}
-      <section id="browse" className="relative w-full overflow-hidden py-16 md:py-24">
-        <div className="pointer-events-none absolute -left-1/4 top-0 -z-10 hidden size-1/3 rounded-full bg-primary/10 blur-[8rem] lg:block" />
-        <SectionShell className="relative z-10 max-w-[90rem]">
-          <div className="flex flex-col items-center text-center">
-            <SectionBadge title="Inventory" />
-            <motion.h2
-              className={cn(sectionTitle, "mt-6")}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              Channels & listings
-            </motion.h2>
-            <motion.p
-              className={sectionDesc}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              Choose a channel to buy media, or open a listing to schedule with a partner.
-            </motion.p>
-          </div>
-          <div className="mt-12">
-            <MediaListingsGrid listingsByType={listingsByType} />
           </div>
         </SectionShell>
       </section>

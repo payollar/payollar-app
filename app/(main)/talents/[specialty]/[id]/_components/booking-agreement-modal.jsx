@@ -19,7 +19,7 @@ const BOOKING_AGREEMENT_TERMS = [
   "You agree to pay the rate shown for your chosen time slot. Payment is processed securely via Paystack before the booking is confirmed.",
   "You will join the session at the scheduled time. Cancellations or no-shows may follow the creator’s stated policy where applicable.",
   "You agree to our Terms of Service. Payollar connects clients and creators and may help with disputes, but the service agreement is between you and the creator.",
-  "After you accept, you’ll choose an available time slot and add optional notes (for example, which service you’re booking).",
+  "After you accept, you’ll choose a time slot and write a project brief for the talent (what you’re working on, what you need from the session, and any deadlines).",
 ];
 
 export function BookingAgreementModal({

@@ -43,7 +43,7 @@ export async function bookAppointment(formData) {
     const doctorId = formData.get("doctorId");
     const startTime = new Date(formData.get("startTime"));
     const endTime = new Date(formData.get("endTime"));
-    const patientDescription = formData.get("description") || null;
+    const clientDescription = formData.get("description") || null;
 
     // Validate input
     if (!doctorId || !startTime || !endTime) {
@@ -114,7 +114,7 @@ export async function bookAppointment(formData) {
         creatorId: doctor.id,
         startTime,
         endTime,
-        patientDescription,
+        clientDescription,
         status: "SCHEDULED",
         videoSessionId: sessionId, // Store the Vonage session ID
       },

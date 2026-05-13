@@ -12,5 +12,5 @@ export default async function ClientPayoutsPageRoute() {
     redirect("/onboarding");
   }
 
-  return <ClientPayoutsPage user={user} />;
+  return <ClientPayoutsPage />;
 }

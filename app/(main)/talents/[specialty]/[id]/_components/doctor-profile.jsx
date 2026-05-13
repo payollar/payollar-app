@@ -853,7 +853,8 @@ export function DoctorProfile({ doctor, availableDays }) {
                   <p className="text-xs font-medium uppercase tracking-wider text-primary">Booking</p>
                   <CardTitle className="text-xl font-semibold text-foreground">Book a session</CardTitle>
                   <CardDescription>
-                    Pick a time and share a few details — you’ll confirm payment on the next step.
+                    Pick a time, then write a short project brief for the talent (goals, context, deliverables). You’ll
+                    confirm payment on the last step.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">

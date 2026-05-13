@@ -19,13 +19,14 @@ const publicNavItems = [
   { href: "/", label: "Home" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/talents", label: "Find Talents" },
+  { href: "/services", label: "Services" },
   { href: "/chat", label: "Payollar AI" },
 ];
 
 const mediaSubItems = [
   { href: "/media", label: "Buy Media" },
   { href: "/media/packages", label: "Packages" },
-  { href: "/media/schedule", label: "Schedule Media" },
+  { href: "/media", label: "Schedule Media" },
 ];
 
 export default function Header() {

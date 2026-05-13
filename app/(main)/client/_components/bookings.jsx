@@ -86,7 +86,9 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
         searchQuery === "" ||
         apt.creator?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         apt.creator?.specialty?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        apt.patientDescription?.toLowerCase().includes(searchQuery.toLowerCase());
+        (apt.clientDescription || apt.patientDescription)
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || apt.status === statusFilter;

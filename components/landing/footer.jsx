@@ -11,6 +11,7 @@ const quickLinks = [
   ["/#features", "Features"],
   ["/pricing", "Pricing"],
   ["/talents", "Find talents"],
+  ["/services", "Book services"],
   ["/campaigns", "Campaigns"],
   ["/products", "Products"],
 ];

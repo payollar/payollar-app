@@ -29,7 +29,11 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { doctorId, startTime, endTime, description } = body;
+    const { doctorId, startTime, endTime, description: rawDescription } = body;
+
+    /** Paystack metadata is stringified; keep brief within a safe length. */
+    const description =
+      typeof rawDescription === "string" ? rawDescription.trim().slice(0, 2000) : "";
 
     if (!doctorId || !startTime || !endTime) {
       return NextResponse.json(

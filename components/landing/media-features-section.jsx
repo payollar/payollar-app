@@ -60,7 +60,7 @@ export function MediaFeaturesSection() {
                 size="lg"
                 className="gap-2 rounded-lg bg-white font-semibold text-gray-900 shadow-md hover:bg-gray-100"
               >
-                <Link href="/media/schedule">
+                <Link href="/media">
                   <Calendar className="h-5 w-5" />
                   Schedule Media
                 </Link>

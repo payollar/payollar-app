@@ -1,22 +1,23 @@
 "use client";
 
 export function PartnersMarquee() {
+  /** Illustrative fictional brands for layout only — not real partners. */
   const partners = [
-    "TV3",
-    "JoyFM",
-    "Adom FM",
-    "Joy Prime",
-    "Citi FM",
-    "Peace FM",
-    "Starr FM",
-    "Class FM",
-    "YFM",
-    "Hitz FM",
-    "Pluzz FM",
-    "Okay FM",
-    "Radio Gold",
-    "Asempa FM",
-    "Happy FM",
+    "Meridian Broadcasting",
+    "Coastline Radio",
+    "Volt Media Network",
+    "Pulse Digital Studios",
+    "Horizon TV",
+    "Echo FM",
+    "Nexus News Group",
+    "Starfield Communications",
+    "Catalyst Media Group",
+    "PrimeWave Radio",
+    "Summit Studios",
+    "Aurora Network",
+    "Keystone Broadcasting",
+    "Velocity Digital",
+    "Lighthouse Media",
   ];
 
   return (
@@ -25,14 +26,17 @@ export function PartnersMarquee() {
         {/* Section Header */}
         <div className="text-center mb-12 md:mb-16">
           <p className="text-xs md:text-sm text-muted-foreground mb-3 font-medium uppercase tracking-widest">
-            Trusted Partners & Brands
+            Media ecosystem preview
           </p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
-            We Work With{" "}
+            Built for{" "}
             <span className="bg-linear-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent">
-              Industry Leaders
+              how media runs today
             </span>
           </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
+            Names below are placeholder examples for illustration — not affiliated stations or partners.
+          </p>
         </div>
 
         {/* Marquee Container */}
