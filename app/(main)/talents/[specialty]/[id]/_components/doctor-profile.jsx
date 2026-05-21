@@ -35,6 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Particles } from "@/components/ui/particles";
 import { cn } from "@/lib/utils";
+import { getDisplaySkillLabels } from "@/lib/skill-labels";
 import { Textarea } from "@/components/ui/textarea";
 import { SlotPicker } from "./slot-picker";
 import { AppointmentForm } from "./appointment-form";
@@ -352,11 +353,13 @@ export function DoctorProfile({ doctor, availableDays }) {
       ? `${doctor.experience} years experience`
       : null;
 
+  const skillLabels = getDisplaySkillLabels(doctor.skills);
+
   return (
     <div className="relative">
       <ProfileParticles />
 
-      <div className="relative z-[1] grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="relative z-[1] grid min-w-0 grid-cols-1 gap-8 md:grid-cols-3">
         {/* Sidebar */}
         <div className="md:col-span-1">
           <div className="md:sticky md:top-28">
@@ -439,8 +442,8 @@ export function DoctorProfile({ doctor, availableDays }) {
         </div>
 
         {/* Main */}
-        <div className="space-y-6 md:col-span-2">
-          <Card className={cardSurface}>
+        <div className="min-w-0 space-y-6 md:col-span-2">
+          <Card className={cn(cardSurface, "min-w-0 overflow-hidden")}>
             <CardHeader className="space-y-1 pb-2">
               <p className="text-xs font-medium uppercase tracking-wider text-primary">About</p>
               <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">
@@ -450,7 +453,7 @@ export function DoctorProfile({ doctor, availableDays }) {
                 Professional background, services, and portfolio
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-8">
+            <CardContent className="min-w-0 space-y-8">
               <div className="space-y-3">
                 <SectionTitle icon={FileText}>Bio</SectionTitle>
                 <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
@@ -462,19 +465,21 @@ export function DoctorProfile({ doctor, availableDays }) {
 
               <Separator className="bg-border/60" />
 
-              <div className="space-y-3">
+              <div className="min-w-0 space-y-3">
                 <SectionTitle icon={Award}>Skills</SectionTitle>
-                {doctor.skills?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {doctor.skills.map((skill) => (
-                      <Badge
-                        key={skill.id}
-                        variant="outline"
-                        className="border-primary/30 bg-primary/10 font-medium text-primary"
-                      >
-                        {skill.name}
-                      </Badge>
-                    ))}
+                {skillLabels.length > 0 ? (
+                  <div className="min-w-0 rounded-lg border border-border/50 bg-muted/20 p-2.5">
+                    <div className="flex min-w-0 max-w-full flex-wrap gap-1.5">
+                      {skillLabels.map((label) => (
+                        <Badge
+                          key={label}
+                          variant="outline"
+                          className="max-w-full shrink whitespace-normal break-words border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] font-medium leading-snug text-white"
+                        >
+                          {label}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No skills listed yet.</p>

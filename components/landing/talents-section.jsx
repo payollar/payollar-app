@@ -83,6 +83,20 @@ export function TalentsSection() {
       image: "/icons/t5.PNG",
       description: "Stage and event performers",
     },
+    {
+      id: "model",
+      label: "Models",
+      icon: Users,
+      image: "/models.png",
+      description: "Fashion and commercial talent",
+    },
+    {
+      id: "dancer",
+      label: "Dancers",
+      icon: Zap,
+      image: "/dancers.png",
+      description: "Professional dancers & choreographers",
+    },
   ]
 
   const allTalents = [
@@ -250,7 +264,7 @@ export function TalentsSection() {
 
         {/* Categories */}
         <div className="mb-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {categories.map((category) => (
               <button
                 key={category.id}
@@ -272,7 +286,7 @@ export function TalentsSection() {
                     <img 
                       src={category.image} 
                       alt={category.label}
-                      className="w-14 h-14 object-contain"
+                      className="h-14 w-14 rounded-lg object-cover"
                     />
                   </div>
                   <div>

@@ -4,6 +4,41 @@ import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 
+const CAMPAIGN_OWNER_ROLES = ["CLIENT", "MEDIA_AGENCY"];
+
+function revalidateCampaignPaths() {
+  revalidatePath("/campaigns");
+  revalidatePath("/client");
+  revalidatePath("/client/campaigns");
+  revalidatePath("/media-agency");
+  revalidatePath("/media-agency/campaigns");
+}
+
+/** Users who can create and manage talent campaigns (clients and media agencies). */
+async function getCampaignOwner(userId) {
+  const owner = await db.user.findFirst({
+    where: {
+      id: userId,
+      role: { in: CAMPAIGN_OWNER_ROLES },
+    },
+    select: {
+      id: true,
+      role: true,
+      mediaAgency: {
+        select: { id: true, agencyName: true, verificationStatus: true },
+      },
+    },
+  });
+
+  if (!owner) return null;
+
+  if (owner.role === "MEDIA_AGENCY" && !owner.mediaAgency) {
+    throw new Error("Media agency profile not found. Complete setup in settings first.");
+  }
+
+  return owner;
+}
+
 /**
  * Create a new campaign
  */
@@ -15,15 +50,10 @@ export async function createCampaign(formData) {
   }
 
   try {
-    const client = await db.user.findUnique({
-      where: {
-        id: authResult.userId,
-        role: "CLIENT",
-      },
-    });
+    const owner = await getCampaignOwner(authResult.userId);
 
-    if (!client) {
-      throw new Error("Client not found");
+    if (!owner) {
+      throw new Error("Only clients and media agencies can create campaigns");
     }
 
     // Get form data
@@ -58,7 +88,7 @@ export async function createCampaign(formData) {
     // Create campaign
     const campaign = await db.campaign.create({
       data: {
-        clientId: client.id,
+        clientId: owner.id,
         title: title.trim(),
         brand: brand.trim(),
         description: description.trim(),
@@ -73,8 +103,7 @@ export async function createCampaign(formData) {
       },
     });
 
-    revalidatePath("/campaigns");
-    revalidatePath("/client");
+    revalidateCampaignPaths();
     return { success: true, campaign };
   } catch (error) {
     console.error("Failed to create campaign:", error);
@@ -125,7 +154,7 @@ export async function getActiveCampaigns() {
 }
 
 /**
- * Get campaigns created by the current client
+ * Get campaigns created by the current client or media agency user
  */
 export async function getClientCampaigns() {
   const authResult = await getAuthUserId();
@@ -135,23 +164,15 @@ export async function getClientCampaigns() {
   }
 
   try {
-    const client = await db.user.findUnique({
-      where: {
-        id: authResult.userId,
-        role: "CLIENT",
-      },
-      select: {
-        id: true,
-      },
-    });
+    const owner = await getCampaignOwner(authResult.userId);
 
-    if (!client) {
-      throw new Error("Client not found");
+    if (!owner) {
+      throw new Error("Only clients and media agencies can view campaigns");
     }
 
     const campaigns = await db.campaign.findMany({
       where: {
-        clientId: client.id,
+        clientId: owner.id,
       },
       include: {
         applications: {
@@ -200,18 +221,10 @@ export async function updateCampaignStatus(formData) {
   }
 
   try {
-    const client = await db.user.findUnique({
-      where: {
-        id: authResult.userId,
-        role: "CLIENT",
-      },
-      select: {
-        id: true,
-      },
-    });
+    const owner = await getCampaignOwner(authResult.userId);
 
-    if (!client) {
-      throw new Error("Client not found");
+    if (!owner) {
+      throw new Error("Only clients and media agencies can update campaigns");
     }
 
     const campaignId = formData.get("campaignId");
@@ -221,11 +234,10 @@ export async function updateCampaignStatus(formData) {
       throw new Error("Campaign ID and status are required");
     }
 
-    // Verify the campaign belongs to this client
     const campaign = await db.campaign.findUnique({
       where: {
         id: campaignId,
-        clientId: client.id,
+        clientId: owner.id,
       },
     });
 
@@ -233,7 +245,6 @@ export async function updateCampaignStatus(formData) {
       throw new Error("Campaign not found or unauthorized");
     }
 
-    // Update campaign status
     const updatedCampaign = await db.campaign.update({
       where: {
         id: campaignId,
@@ -243,8 +254,7 @@ export async function updateCampaignStatus(formData) {
       },
     });
 
-    revalidatePath("/campaigns");
-    revalidatePath("/client");
+    revalidateCampaignPaths();
     return { success: true, campaign: updatedCampaign };
   } catch (error) {
     console.error("Failed to update campaign status:", error);
@@ -360,18 +370,10 @@ export async function updateApplicationStatus(formData) {
   }
 
   try {
-    const client = await db.user.findUnique({
-      where: {
-        id: authResult.userId,
-        role: "CLIENT",
-      },
-      select: {
-        id: true,
-      },
-    });
+    const owner = await getCampaignOwner(authResult.userId);
 
-    if (!client) {
-      throw new Error("Client not found");
+    if (!owner) {
+      throw new Error("Only clients and media agencies can update applications");
     }
 
     const applicationId = formData.get("applicationId");
@@ -381,7 +383,6 @@ export async function updateApplicationStatus(formData) {
       throw new Error("Application ID and status are required");
     }
 
-    // Verify the application belongs to a campaign owned by this client
     const application = await db.campaignApplication.findUnique({
       where: {
         id: applicationId,
@@ -395,11 +396,10 @@ export async function updateApplicationStatus(formData) {
       },
     });
 
-    if (!application || application.campaign.clientId !== client.id) {
+    if (!application || application.campaign.clientId !== owner.id) {
       throw new Error("Application not found or unauthorized");
     }
 
-    // Update application status
     const updatedApplication = await db.campaignApplication.update({
       where: {
         id: applicationId,
@@ -409,7 +409,7 @@ export async function updateApplicationStatus(formData) {
       },
     });
 
-    revalidatePath("/client");
+    revalidateCampaignPaths();
     return { success: true, application: updatedApplication };
   } catch (error) {
     console.error("Failed to update application status:", error);

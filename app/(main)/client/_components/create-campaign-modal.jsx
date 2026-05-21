@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +45,7 @@ const LOCATIONS = [
   "Multiple Cities",
 ];
 
-export function CreateCampaignModal({ open, onOpenChange }) {
+export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requirements, setRequirements] = useState([]);
@@ -53,7 +53,7 @@ export function CreateCampaignModal({ open, onOpenChange }) {
 
   const [formData, setFormData] = useState({
     title: "",
-    brand: "",
+    brand: defaultBrand,
     description: "",
     category: "",
     budgetMin: "",
@@ -63,6 +63,12 @@ export function CreateCampaignModal({ open, onOpenChange }) {
     imageUrl: "",
     status: "DRAFT",
   });
+
+  useEffect(() => {
+    if (open && defaultBrand) {
+      setFormData((prev) => (prev.brand ? prev : { ...prev, brand: defaultBrand }));
+    }
+  }, [open, defaultBrand]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

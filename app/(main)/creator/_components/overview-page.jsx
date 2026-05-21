@@ -18,9 +18,23 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { CreatorParticles } from "./creator-page-shell";
 
+function formatPercentTrend(value, emptyLabel = "No activity yet") {
+  if (!value || Number.isNaN(value)) return emptyLabel;
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}% from last month`;
+}
+
+function completionRate(completed, total) {
+  if (!total) return 0;
+  return (completed / total) * 100;
+}
+
 // Simple bar chart component
 function BarChart({ data }) {
-  const maxValue = Math.max(...data.map((d) => Math.max(d.earnings, d.bookings)));
+  const maxValue = Math.max(
+    ...data.map((d) => Math.max(d.earnings, d.bookings)),
+    1
+  );
   
   return (
     <div className="space-y-4">
@@ -61,29 +75,68 @@ function BarChart({ data }) {
   );
 }
 
-export function OverviewPage({ user, earnings = {}, payouts = [], appointments = [] }) {
-  // Extract first name from user name
+export function OverviewPage({
+  user,
+  earnings = {},
+  payouts = [],
+  appointments = [],
+  analytics = null,
+}) {
   const firstName = user?.name?.split(" ")[0] || "Creator";
-  
-  // Calculate metrics
-  const totalEarnings = earnings?.totalEarnings || 0;
-  const bookingsCount = earnings?.completedAppointments || appointments.length || 0;
-  const profileViews = 1240; // Mock data - you can replace with actual data
-  const conversionRate = 3.4; // Mock data - you can replace with actual calculation
-  
-  // Calculate trends
-  const earningsTrend = 12; // +12% from last month
-  const bookingsTrend = 8; // +8 this month
-  const viewsTrend = 18; // +18% growth
-  const conversionTrend = 0.5; // +0.5% improvement
-  
-  // Generate chart data (last 6 months)
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-  const chartData = months.map((month, index) => ({
-    month,
-    earnings: Math.floor(Math.random() * 8000) + 2000,
-    bookings: Math.floor(Math.random() * 20) + 5,
+
+  const totalEarnings = earnings?.totalEarnings ?? 0;
+  const appointmentStats = analytics?.appointments ?? {};
+  const productSales = analytics?.productSales ?? {};
+
+  const bookingsCount =
+    (appointmentStats.completed ?? 0) + (appointmentStats.scheduled ?? 0);
+  const bookingsThisMonth = appointmentStats.thisMonth ?? 0;
+  const bookingsLastMonth = appointmentStats.lastMonth ?? 0;
+
+  const earningsTrend = productSales.earningsTrend ?? 0;
+  const bookingsTrendPercent = appointmentStats.trend ?? 0;
+
+  const totalAppointments = appointmentStats.total ?? 0;
+  const completedAppointments = appointmentStats.completed ?? 0;
+  const conversionRate = completionRate(completedAppointments, totalAppointments);
+
+  const profileViewStats = analytics?.profileViews ?? {};
+  const profileViews = profileViewStats.total ?? 0;
+  const profileViewsThisMonth = profileViewStats.thisMonth ?? 0;
+  const profileViewsLastMonth = profileViewStats.lastMonth ?? 0;
+  const profileViewsTrend = profileViewStats.trend ?? 0;
+
+  const chartData = (analytics?.monthlyData ?? []).map((row) => ({
+    month: row.month,
+    earnings: row.earnings ?? 0,
+    bookings: row.bookings ?? 0,
   }));
+
+  const earningsTrendText =
+    totalEarnings === 0 && (productSales.thisMonthEarnings ?? 0) === 0
+      ? "No earnings yet"
+      : (productSales.lastMonthEarnings ?? 0) === 0
+        ? `₵${(productSales.thisMonthEarnings ?? 0).toLocaleString()} this month`
+        : formatPercentTrend(earningsTrend);
+
+  const bookingsTrendText =
+    bookingsThisMonth === 0 && bookingsLastMonth === 0
+      ? "No bookings yet"
+      : bookingsLastMonth === 0
+        ? `${bookingsThisMonth} this month`
+        : formatPercentTrend(bookingsTrendPercent, `${bookingsThisMonth} this month`);
+
+  const conversionTrendText =
+    totalAppointments === 0
+      ? "No bookings yet"
+      : `${completedAppointments} of ${totalAppointments} completed`;
+
+  const profileViewsTrendText =
+    profileViews === 0
+      ? "No profile views yet"
+      : profileViewsLastMonth === 0
+        ? `${profileViewsThisMonth} this month`
+        : formatPercentTrend(profileViewsTrend, `${profileViewsThisMonth} this month`);
   
   // Get recent bookings (last 5)
   const recentBookings = appointments
@@ -127,9 +180,7 @@ export function OverviewPage({ user, earnings = {}, payouts = [], appointments =
                 <p className="text-2xl font-bold tabular-nums">
                   ₵{totalEarnings.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  +{earningsTrend}% from last month
-                </p>
+                <p className="text-xs text-muted-foreground">{earningsTrendText}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
                 <DollarSign className="h-6 w-6 text-primary" />
@@ -144,9 +195,7 @@ export function OverviewPage({ user, earnings = {}, payouts = [], appointments =
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Bookings</p>
                 <p className="text-2xl font-bold tabular-nums">{bookingsCount}</p>
-                <p className="text-xs text-muted-foreground">
-                  +{bookingsTrend} this month
-                </p>
+                <p className="text-xs text-muted-foreground">{bookingsTrendText}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
                 <Calendar className="h-6 w-6 text-primary" />
@@ -163,9 +212,7 @@ export function OverviewPage({ user, earnings = {}, payouts = [], appointments =
                 <p className="text-2xl font-bold tabular-nums">
                   {profileViews.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  +{viewsTrend}% growth
-                </p>
+                <p className="text-xs text-muted-foreground">{profileViewsTrendText}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
                 <UserSearch className="h-6 w-6 text-primary" />
@@ -179,10 +226,10 @@ export function OverviewPage({ user, earnings = {}, payouts = [], appointments =
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Conversion Rate</p>
-                <p className="text-2xl font-bold tabular-nums">{conversionRate}%</p>
-                <p className="text-xs text-muted-foreground">
-                  +{conversionTrend}% improvement
+                <p className="text-2xl font-bold tabular-nums">
+                  {conversionRate.toFixed(1)}%
                 </p>
+                <p className="text-xs text-muted-foreground">{conversionTrendText}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
                 <TrendingUp className="h-6 w-6 text-primary" />
@@ -198,10 +245,16 @@ export function OverviewPage({ user, earnings = {}, payouts = [], appointments =
           <CardTitle className="text-lg font-semibold">
             Earnings &amp; bookings trend
           </CardTitle>
-          <p className="text-sm text-muted-foreground">Last 6 months (sample)</p>
+          <p className="text-sm text-muted-foreground">Last 6 months</p>
         </CardHeader>
         <CardContent>
-          <BarChart data={chartData} />
+          {chartData.length > 0 ? (
+            <BarChart data={chartData} />
+          ) : (
+            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+              No earnings or booking data yet
+            </div>
+          )}
         </CardContent>
       </Card>
 

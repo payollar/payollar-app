@@ -64,6 +64,16 @@ model User {
   services             Service[]
   sessions             Session[]
   accounts             Account[]
+  profileViews         ProfileView[] @relation("CreatorProfileViews")
+}
+
+model ProfileView {
+  id        String   @id @default(uuid())
+  creatorId String
+  creator   User     @relation("CreatorProfileViews", fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([creatorId, createdAt])
 }
 
 // Better Auth Account model - stores authentication credentials

@@ -19,7 +19,7 @@ export async function getDoctorsBySpecialty(specialty) {
             id: true,
             name: true,
           },
-          take: 3, // Limit to first 3 skills for display
+          orderBy: { createdAt: "asc" },
         },
         availabilities: {
           where: {

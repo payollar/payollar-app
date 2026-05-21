@@ -14,6 +14,7 @@ import {
   FileCheck,
   HelpCircle,
   ScrollText,
+  Megaphone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -49,6 +50,11 @@ const menuItems = [
     title: "Requests",
     icon: Inbox,
     href: "/media-agency/requests",
+  },
+  {
+    title: "Campaigns",
+    icon: Megaphone,
+    href: "/media-agency/campaigns",
   },
   {
     title: "Terms & Conditions",

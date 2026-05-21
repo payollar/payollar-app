@@ -7,6 +7,7 @@ import {
   Clock,
   Eye,
   ArrowUpRight,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +15,16 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { getDisplaySkillLabels } from "@/lib/skill-labels";
+
+const MAX_VISIBLE_SKILLS = 3;
 
 export function DoctorCard({ doctor }) {
   const profileBase = `/talents/${encodeURIComponent(String(doctor.specialty ?? "").trim())}/${doctor.id}`;
 
-  const skills = doctor.skills?.map((skill) => skill.name) || [];
+  const skillLabels = getDisplaySkillLabels(doctor.skills);
+  const visibleSkills = skillLabels.slice(0, MAX_VISIBLE_SKILLS);
+  const hiddenSkillCount = Math.max(0, skillLabels.length - visibleSkills.length);
   const isAvailable =
     doctor.availabilities && doctor.availabilities.length > 0;
 
@@ -35,12 +41,12 @@ export function DoctorCard({ doctor }) {
   return (
     <Card
       className={cn(
-        "group overflow-hidden rounded-2xl border border-border bg-card shadow-md",
+        "group gap-0 overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-md",
         "transition-all duration-300",
         "hover:-translate-y-1 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/12"
       )}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
         {doctor.imageUrl ? (
           <Image
             src={doctor.imageUrl}
@@ -51,8 +57,8 @@ export function DoctorCard({ doctor }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/8 to-muted">
-            <div className="rounded-full bg-primary/10 p-6">
-              <User className="h-12 w-12 text-primary/70" />
+            <div className="rounded-full bg-primary/10 p-4">
+              <User className="h-10 w-10 text-primary/70" />
             </div>
           </div>
         )}
@@ -94,64 +100,76 @@ export function DoctorCard({ doctor }) {
         </Link>
       </div>
 
-      <CardContent className="space-y-4 p-5 md:p-6">
-        <div className="space-y-1">
-          <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground md:text-[1.35rem]">
+      <CardContent className="min-w-0 space-y-3 p-4">
+        <div className="space-y-0.5">
+          <h3 className="text-lg font-bold leading-tight tracking-tight text-foreground">
             {doctor.name || "Talent"}
           </h3>
-          <p className="text-sm leading-snug text-muted-foreground md:text-base">
+          <p className="text-sm leading-snug text-muted-foreground">
             {experienceText}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/60 pb-4 text-sm">
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-muted-foreground">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/80">
-              <MapPin className="h-4 w-4 text-primary" />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border/60 pb-3 text-xs">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-muted-foreground">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/80">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
             </span>
             <span className="truncate">{location}</span>
           </div>
-          <div className="flex items-center gap-2 font-semibold text-foreground">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <DollarSign className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+              <DollarSign className="h-3.5 w-3.5 text-primary" />
             </span>
-            <span className="text-sm md:text-base">{rate}</span>
+            <span>{rate}</span>
           </div>
         </div>
 
-        {skills.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {skills.slice(0, 4).map((skill, index) => (
-              <span
-                key={index}
-                className="inline-flex rounded-full border border-border/80 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-foreground/90"
-              >
-                {skill}
-              </span>
-            ))}
-            {skills.length > 4 && (
-              <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
-                +{skills.length - 4}
-              </span>
-            )}
+        {skillLabels.length > 0 && (
+          <div className="min-w-0 rounded-lg border border-border/50 bg-muted/20 p-2.5">
+            <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-white/70">
+              <Sparkles className="h-3 w-3 shrink-0 text-white/80" aria-hidden />
+              Skills
+            </p>
+            <div className="flex min-w-0 max-w-full flex-wrap gap-1.5">
+              {visibleSkills.map((skill) => (
+                <Badge
+                  key={skill}
+                  variant="outline"
+                  className="max-w-full shrink whitespace-normal break-words border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] font-medium leading-snug text-white"
+                >
+                  {skill}
+                </Badge>
+              ))}
+              {hiddenSkillCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 border-white/15 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-white/70"
+                >
+                  +{hiddenSkillCount} more
+                </Badge>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             asChild
+            size="sm"
             variant="marketing"
-            className="flex-1 rounded-full font-semibold shadow-md shadow-primary/15"
+            className="h-9 flex-1 rounded-full text-sm font-semibold shadow-md shadow-primary/15"
           >
             <Link href={profileBase}>Book now</Link>
           </Button>
           <Button
             asChild
-            variant="glass"
-            className="flex-1 rounded-full border-border/70 font-semibold"
+            size="sm"
+            variant="marketing"
+            className="h-9 flex-1 rounded-full text-sm font-semibold shadow-md shadow-primary/15"
           >
-            <Link href={profileBase} className="gap-2">
-              <Eye className="h-4 w-4" />
+            <Link href={profileBase} className="gap-1.5">
+              <Eye className="h-3.5 w-3.5" />
               Profile
             </Link>
           </Button>

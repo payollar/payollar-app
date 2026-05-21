@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
+import { getCreatorProfileViewStats } from "@/actions/profile-views";
 
 /**
  * Get comprehensive analytics for creator dashboard
@@ -102,12 +103,16 @@ export async function getCreatorAnalytics() {
     const appointmentsThisMonth = allAppointments.filter(
       (apt) => new Date(apt.startTime) >= currentMonth
     );
-    const appointmentsLastMonth = allAppointments.filter(
-      (apt) => {
-        const aptDate = new Date(apt.startTime);
-        return aptDate >= lastMonth && aptDate <= lastMonthEnd;
-      }
-    );
+    const appointmentsLastMonth = allAppointments.filter((apt) => {
+      const aptDate = new Date(apt.startTime);
+      return aptDate >= lastMonth && aptDate <= lastMonthEnd;
+    });
+    const completedThisMonth = appointmentsThisMonth.filter(
+      (apt) => apt.status === "COMPLETED"
+    ).length;
+    const completedLastMonth = appointmentsLastMonth.filter(
+      (apt) => apt.status === "COMPLETED"
+    ).length;
 
     const completedAppointments = allAppointments.filter(
       (apt) => apt.status === "COMPLETED"
@@ -215,6 +220,8 @@ export async function getCreatorAnalytics() {
       (a, b) => b.revenue - a.revenue
     );
 
+    const profileViews = await getCreatorProfileViewStats(creator.id);
+
     return {
       // Product Sales Stats
       productSales: {
@@ -239,6 +246,8 @@ export async function getCreatorAnalytics() {
         cancelled: cancelledAppointments.length,
         thisMonth: appointmentsThisMonth.length,
         lastMonth: appointmentsLastMonth.length,
+        completedThisMonth,
+        completedLastMonth,
         trend: appointmentsTrend,
       },
       // Chart Data
@@ -247,6 +256,8 @@ export async function getCreatorAnalytics() {
       topProducts,
       // Category Breakdown
       categoryBreakdown,
+      // Profile views
+      profileViews,
       // Recent Activity
       recentSales: allSales.slice(0, 10),
       recentAppointments: allAppointments.slice(0, 10),

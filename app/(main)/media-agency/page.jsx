@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Inbox, BarChart3, TrendingUp, Calendar, Eye, Plus } from "lucide-react";
+import { Building2, Inbox, BarChart3, TrendingUp, Calendar, Eye, Plus, Megaphone } from "lucide-react";
+import { getClientCampaigns } from "@/actions/campaigns";
 import { MediaAgencyPageShell } from "./_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,14 @@ export default async function MediaAgencyDashboard() {
   const pendingBookings = mediaAgency.bookings.filter((b) => b.status === "PENDING").length;
   const confirmedBookings = mediaAgency.bookings.filter((b) => b.status === "CONFIRMED").length;
 
+  const campaignsData = await getClientCampaigns().catch(() => ({ campaigns: [] }));
+  const talentCampaigns = campaignsData.campaigns || [];
+  const activeTalentCampaigns = talentCampaigns.filter((c) => c.status === "ACTIVE").length;
+  const pendingApplications = talentCampaigns.reduce(
+    (acc, c) => acc + (c.pendingApplications ?? 0),
+    0
+  );
+
   const formatReportType = (type) =>
     type
       .split("_")
@@ -155,10 +164,37 @@ export default async function MediaAgencyDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tabular-nums">{totalReports}</div>
-              <p className="text-xs text-muted-foreground">Total generated</p>
+              <p className="text-xs text-muted-foreground">Performance reports generated</p>
             </CardContent>
           </Card>
         </div>
+
+        <Card className={DASHBOARD_CARD_CLASS}>
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>Post a talent campaign</CardTitle>
+              <CardDescription>
+                {activeTalentCampaigns > 0
+                  ? `${activeTalentCampaigns} active campaign${activeTalentCampaigns === 1 ? "" : "s"} · ${pendingApplications} pending application${pendingApplications === 1 ? "" : "s"}`
+                  : "Reach creators directly — publish campaigns, review applications, and book talent like clients do."}
+              </CardDescription>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <Button variant="marketing" size="sm" className="rounded-full" asChild>
+                <Link href="/media-agency/campaigns?create=true">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New campaign
+                </Link>
+              </Button>
+              <Button variant="marketingOutline" size="sm" className="rounded-full" asChild>
+                <Link href="/media-agency/campaigns">
+                  <Megaphone className="mr-2 h-4 w-4" />
+                  Manage campaigns
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
 
         <Card className={DASHBOARD_CARD_CLASS}>
           <CardHeader>

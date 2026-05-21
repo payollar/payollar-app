@@ -46,10 +46,19 @@ import { updateCampaignStatus } from "@/actions/campaigns";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
+import { MediaAgencyPageShell } from "@/app/(main)/media-agency/_components/media-agency-page-shell";
+import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 
-export function ClientCampaigns({ campaigns = [] }) {
+export function ClientCampaigns({
+  campaigns = [],
+  variant = "client",
+  defaultBrand = "",
+  initialCreateOpen = false,
+}) {
+  const isMediaAgency = variant === "media-agency";
+  const cardClass = isMediaAgency ? DASHBOARD_CARD_CLASS : clientCardClass;
   const router = useRouter();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialCreateOpen);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,22 +135,11 @@ export function ClientCampaigns({ campaigns = [] }) {
 
   const fieldClass = "border-border/60 bg-background text-foreground";
 
-  return (
-    <ClientPageShell
-      eyebrow="Growth"
-      title="Campaigns"
-      description="Create and manage campaigns to find talented creators."
-      actions={
-        <Button variant="marketing" size="lg" className="gap-2" onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Create campaign
-        </Button>
-      }
-    >
+  const pageContent = (
     <div className="space-y-6">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -155,7 +153,7 @@ export function ClientCampaigns({ campaigns = [] }) {
           </CardContent>
         </Card>
 
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -169,7 +167,7 @@ export function ClientCampaigns({ campaigns = [] }) {
           </CardContent>
         </Card>
 
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -183,7 +181,7 @@ export function ClientCampaigns({ campaigns = [] }) {
           </CardContent>
         </Card>
 
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -197,7 +195,7 @@ export function ClientCampaigns({ campaigns = [] }) {
           </CardContent>
         </Card>
 
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -261,6 +259,7 @@ export function ClientCampaigns({ campaigns = [] }) {
             {activeCampaigns.map((campaign) => (
               <CampaignCard
                 key={campaign.id}
+                cardClass={cardClass}
                 campaign={campaign}
                 onViewApplications={() => handleViewApplications(campaign)}
                 onStatusUpdate={handleStatusUpdate}
@@ -281,6 +280,7 @@ export function ClientCampaigns({ campaigns = [] }) {
             {draftCampaigns.map((campaign) => (
               <CampaignCard
                 key={campaign.id}
+                cardClass={cardClass}
                 campaign={campaign}
                 onViewApplications={() => handleViewApplications(campaign)}
                 onStatusUpdate={handleStatusUpdate}
@@ -301,6 +301,7 @@ export function ClientCampaigns({ campaigns = [] }) {
             {closedCampaigns.map((campaign) => (
               <CampaignCard
                 key={campaign.id}
+                cardClass={cardClass}
                 campaign={campaign}
                 onViewApplications={() => handleViewApplications(campaign)}
                 onStatusUpdate={handleStatusUpdate}
@@ -312,7 +313,7 @@ export function ClientCampaigns({ campaigns = [] }) {
 
       {/* No Results State */}
       {filteredCampaigns.length === 0 && campaigns.length > 0 && (
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-12 text-center">
             <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
             <h3 className="mb-2 text-xl font-medium text-foreground">No campaigns found</h3>
@@ -323,7 +324,7 @@ export function ClientCampaigns({ campaigns = [] }) {
 
       {/* Empty State */}
       {campaigns.length === 0 && (
-        <Card className={clientCardClass}>
+        <Card className={cardClass}>
           <CardContent className="p-12 text-center">
             <Sparkles className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
             <h3 className="mb-2 text-xl font-medium text-foreground">No campaigns yet</h3>
@@ -342,6 +343,7 @@ export function ClientCampaigns({ campaigns = [] }) {
       <CreateCampaignModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
+        defaultBrand={defaultBrand}
       />
 
       {/* Applications Modal */}
@@ -353,11 +355,41 @@ export function ClientCampaigns({ campaigns = [] }) {
         />
       )}
     </div>
+  );
+
+  const createCampaignAction = (
+    <Button variant="marketing" size="lg" className="gap-2" onClick={() => setIsCreateModalOpen(true)}>
+      <Plus className="h-4 w-4" />
+      Create campaign
+    </Button>
+  );
+
+  if (isMediaAgency) {
+    return (
+      <MediaAgencyPageShell
+        eyebrow="Talent outreach"
+        title="Campaigns"
+        description="Post campaigns to find and book talented creators — the same workflow clients use."
+        actions={createCampaignAction}
+      >
+        {pageContent}
+      </MediaAgencyPageShell>
+    );
+  }
+
+  return (
+    <ClientPageShell
+      eyebrow="Growth"
+      title="Campaigns"
+      description="Create and manage campaigns to find talented creators."
+      actions={createCampaignAction}
+    >
+      {pageContent}
     </ClientPageShell>
   );
 }
 
-function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
+function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass = clientCardClass }) {
   const budgetDisplay = campaign.budgetMin && campaign.budgetMax
     ? `₵${campaign.budgetMin.toLocaleString()} - ₵${campaign.budgetMax.toLocaleString()}`
     : campaign.budgetMin
@@ -377,7 +409,7 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate }) {
 
   return (
     <Card
-      className={`${clientCardClass} group overflow-hidden transition-all hover:border-primary/25 hover:shadow-md`}
+      className={`${cardClass} group overflow-hidden transition-all hover:border-primary/25 hover:shadow-md`}
     >
       {campaign.imageUrl && (
         <div className="relative h-48 w-full">

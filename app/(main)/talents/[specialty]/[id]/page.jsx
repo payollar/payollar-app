@@ -1,4 +1,5 @@
 import { getDoctorById, getAvailableTimeSlots } from "@/actions/appointments";
+import { recordCreatorProfileView } from "@/actions/profile-views";
 import { DoctorProfile } from "./_components/doctor-profile";
 import { redirect } from "next/navigation";
 
@@ -19,6 +20,8 @@ export default async function CreatorProfilePage({ params }) {
     if (!doctor) {
       redirect("/talents");
     }
+
+    await recordCreatorProfileView(doctor.id);
 
     return (
       <DoctorProfile
