@@ -126,6 +126,12 @@ export function MediaListingsGrid({ listingsByType }) {
                             )}
                             {listing.reach && <span>{listing.reach}</span>}
                             {listing.priceRange && <span>{listing.priceRange}</span>}
+                            {listing.packages?.length > 0 && (
+                              <span className="font-medium text-primary">
+                                {listing.packages.length} package
+                                {listing.packages.length === 1 ? "" : "s"}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />

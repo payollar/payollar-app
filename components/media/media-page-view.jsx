@@ -11,7 +11,19 @@ import { SectionBadge } from "@/components/ui/section-badge";
 import { SectionShell } from "@/components/landing/section-shell";
 import { Footer } from "@/components/landing/footer";
 import { MediaListingsGrid } from "@/components/media/media-listings-grid";
-import { ArrowRight, Search, MapPin, DollarSign, Users, Calendar, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Search,
+  MapPin,
+  DollarSign,
+  Users,
+  Calendar,
+  Sparkles,
+  Package,
+  Clock,
+  Eye,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const sectionTitle =
   "text-3xl md:text-4xl font-medium bg-linear-to-r from-foreground to-foreground/70 text-transparent bg-clip-text text-balance text-center leading-tight";
@@ -43,9 +55,64 @@ const STATS = [
   { value: "24/7", label: "Support" },
 ];
 
-export function MediaPageView({ listingsByType }) {
+const LISTING_TYPE_LABELS = {
+  TV: "TV",
+  RADIO: "Radio",
+  BILLBOARD: "Billboard",
+  DIGITAL: "Digital",
+  INFLUENCER_MARKETING: "Influencer",
+  VIDEO_CLIPPING: "Video",
+};
+
+/** Demo TV packages shown until media partners publish live packages. */
+const DEMO_TV_PACKAGES = [
+  {
+    id: "demo-tv-prime",
+    name: "Prime Time Package",
+    price: 15000,
+    duration: "30 seconds",
+    spots: 5,
+    estimatedViewers: "2.5M+ viewers",
+    listingId: null,
+    listingName: "TV Media",
+    listingType: "TV",
+    location: "Nationwide",
+    agencyName: "Payollar Demo",
+  },
+  {
+    id: "demo-tv-daytime",
+    name: "Daytime Package",
+    price: 8000,
+    duration: "30 seconds",
+    spots: 10,
+    estimatedViewers: "1.8M+ viewers",
+    listingId: null,
+    listingName: "TV Media",
+    listingType: "TV",
+    location: "Nationwide",
+    agencyName: "Payollar Demo",
+  },
+  {
+    id: "demo-tv-weekend",
+    name: "Weekend Special",
+    price: 12000,
+    duration: "60 seconds",
+    spots: 3,
+    estimatedViewers: "2.2M+ viewers",
+    listingId: null,
+    listingName: "TV Media",
+    listingType: "TV",
+    location: "Nationwide",
+    agencyName: "Payollar Demo",
+  },
+];
+
+export function MediaPageView({ listingsByType, customPackages = [] }) {
   const lineOne = ["Connect", "with", "every"];
   const lineTwo = ["media", "channel"];
+  const sourcePackages = customPackages.length > 0 ? customPackages : DEMO_TV_PACKAGES;
+  const featuredPackages = sourcePackages.slice(0, 9);
+  const usingDemoPackages = customPackages.length === 0;
 
   return (
     <div className="relative z-10 w-full min-h-dvh pt-20 md:pt-24">
@@ -112,8 +179,8 @@ export function MediaPageView({ listingsByType }) {
               className="mt-8 flex flex-wrap items-center justify-center gap-4"
             >
               <Button asChild size="lg" variant="marketing" className="rounded-full shadow-lg shadow-primary/25">
-                <Link href="/products">
-                  Explore services
+                <Link href="#packages">
+                  Browse packages
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -181,6 +248,166 @@ export function MediaPageView({ listingsByType }) {
           </div>
           <div className="mt-12">
             <MediaListingsGrid listingsByType={listingsByType} />
+          </div>
+        </SectionShell>
+      </section>
+
+      {/* Custom packages from media agencies */}
+      <section id="packages" className="relative w-full overflow-hidden py-16 md:py-24">
+        <div className="pointer-events-none absolute -right-1/4 top-1/3 -z-10 hidden size-1/3 rounded-full bg-primary/10 blur-[8rem] lg:block" />
+        <SectionShell className="relative z-10 max-w-[90rem]">
+          <div className="flex flex-col items-center text-center">
+            <SectionBadge title="Packages" />
+            <motion.h2
+              className={cn(sectionTitle, "mt-6")}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              Custom packages
+            </motion.h2>
+            <motion.p
+              className={sectionDesc}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              Ready-made packages from verified media partners — or build one tailored to your campaign.
+            </motion.p>
+          </div>
+
+          {featuredPackages.length > 0 ? (
+            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredPackages.map((pkg, index) => {
+                const scheduleHref = pkg.listingId
+                  ? `/media/schedule?type=${encodeURIComponent(
+                      pkg.listingType || "TV"
+                    )}&listing=${encodeURIComponent(pkg.listingId)}`
+                  : `/products/tv-media`;
+                const typeLabel =
+                  LISTING_TYPE_LABELS[pkg.listingType] || pkg.listingType || "Media";
+
+                return (
+                  <motion.div
+                    key={pkg.id}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.45, delay: Math.min(index * 0.06, 0.3) }}
+                  >
+                    <Card className="group h-full overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg hover:shadow-primary/10">
+                      <CardHeader className="space-y-3 pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge
+                              variant="secondary"
+                              className="border border-primary/25 bg-primary/10 text-primary"
+                            >
+                              {typeLabel}
+                            </Badge>
+                            {usingDemoPackages ? (
+                              <Badge
+                                variant="outline"
+                                className="border-border/60 text-muted-foreground"
+                              >
+                                Demo
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                            <Package className="h-4 w-4 text-primary" />
+                          </div>
+                        </div>
+                        <CardTitle className="text-xl leading-snug tracking-tight">
+                          {pkg.name}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {pkg.listingName}
+                          {pkg.agencyName ? ` · ${pkg.agencyName}` : ""}
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="text-2xl font-bold tabular-nums tracking-tight">
+                          ₵{Number(pkg.price || 0).toLocaleString()}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                          {pkg.duration ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                              {pkg.duration}
+                            </span>
+                          ) : null}
+                          {pkg.spots != null ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                              {pkg.spots} spot{pkg.spots === 1 ? "" : "s"}
+                            </span>
+                          ) : null}
+                          {pkg.estimatedViewers ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Eye className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                              {pkg.estimatedViewers}
+                            </span>
+                          ) : null}
+                          {pkg.location ? (
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                              {pkg.location}
+                            </span>
+                          ) : null}
+                        </div>
+                        <Button asChild variant="marketing" className="w-full rounded-full">
+                          <Link href={scheduleHref}>
+                            Book package
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="mx-auto mt-12 max-w-2xl rounded-2xl border border-dashed border-border/70 bg-card/50">
+              <CardContent className="flex flex-col items-center px-6 py-12 text-center">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">No custom packages listed yet</h3>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  Media partners can publish packages from their dashboard. In the meantime, schedule a
+                  custom buy or browse curated package ideas.
+                </p>
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <Button asChild variant="marketing" className="rounded-full">
+                    <Link href="/media/schedule">Schedule custom media</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="rounded-full border-primary/40">
+                    <Link href="/media/packages">Browse packages</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {sourcePackages.length > 9 ? (
+              <Button asChild variant="outline" className="rounded-full border-primary/40">
+                <Link href="/media/packages">
+                  View all packages
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="marketingOutline" className="rounded-full">
+              <Link href={usingDemoPackages ? "/products/tv-media" : "/media/schedule"}>
+                <Package className="mr-2 h-4 w-4" />
+                {usingDemoPackages ? "Explore TV media" : "Build a custom package"}
+              </Link>
+            </Button>
           </div>
         </SectionShell>
       </section>
@@ -338,7 +565,7 @@ export function MediaPageView({ listingsByType }) {
                   className="mt-8"
                 >
                   <Button asChild size="lg" className="rounded-full text-base">
-                    <Link href="/products">Browse all media</Link>
+                    <Link href="#packages">Browse custom packages</Link>
                   </Button>
                 </motion.div>
               </div>
