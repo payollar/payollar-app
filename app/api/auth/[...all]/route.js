@@ -8,6 +8,7 @@ const handler = toNextJsHandler(auth);
 const allowedOrigins = [
   "https://payollar.com",
   "https://www.payollar.com",
+  "https://payollar.skyland-technology.com",
   "http://localhost:3000",
 ];
 
