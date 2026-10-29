@@ -1,4 +1,4 @@
-import { Inter, DM_Sans, Caveat } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 // import { ClerkProvider } from "@clerk/nextjs"; // Clerk - removed, using Better Auth
 import { Toaster } from "sonner";
@@ -7,16 +7,23 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { FloatingChat } from "@/components/FloatingChat";
 import { MainWrapper } from "@/components/main-wrapper";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-geist-sans" });
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-heading",
-  weight: ["400", "500", "600", "700"],
+const inter = localFont({
+  src: "./fonts/inter-latin.woff2",
+  weight: "100 900",
+  display: "swap",
+  variable: "--font-geist-sans",
 });
-const caveat = Caveat({
-  subsets: ["latin"],
+const dmSans = localFont({
+  src: "./fonts/dm-sans-latin.woff2",
+  weight: "400 700",
+  display: "swap",
+  variable: "--font-heading",
+});
+const caveat = localFont({
+  src: "./fonts/caveat-latin.woff2",
+  weight: "500 700",
+  display: "swap",
   variable: "--font-handwriting",
-  weight: ["500", "600", "700"],
 });
 
 export const metadata = {
