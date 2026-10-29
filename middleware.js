@@ -30,6 +30,8 @@ const isPublicRoute = (pathname) => {
     "/reset-password",
     "/api/webhooks",
     "/api/auth", // All Better Auth routes including /api/auth/check-session
+    "/api/mcp",
+    "/.well-known",
   ];
   
   return publicPaths.some(path => pathname.startsWith(path));
@@ -38,6 +40,18 @@ const isPublicRoute = (pathname) => {
 export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
   let response;
+
+  // Marketing page: visible signed in or out, without the auth-page redirect.
+  if (
+    pathname === "/clip" ||
+    pathname.startsWith("/clip/") ||
+    pathname === "/academy" ||
+    pathname.startsWith("/academy/")
+  ) {
+    response = NextResponse.next();
+    response.headers.set("x-pathname", pathname);
+    return response;
+  }
 
   // Allow public routes without authentication
   if (isPublicRoute(pathname)) {

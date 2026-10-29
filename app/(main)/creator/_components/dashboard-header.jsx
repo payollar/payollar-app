@@ -40,7 +40,14 @@ export default async function DashboardHeader() {
         
         {/* Logo - Always show, but adjust spacing */}
         <Link href="/" className="flex items-center gap-2 md:ml-0 ml-2">
-          <Image src="/logo-single.png" alt="Logo" width={160} height={50} className="hidden md:block" />
+          <Image
+            src="/icons/Payollar-logo.png"
+            alt="Payollar"
+            width={160}
+            height={40}
+            className="hidden h-9 w-auto object-contain md:block"
+            priority
+          />
         </Link>
 
         {/* Desktop Navigation - Show on desktop */}

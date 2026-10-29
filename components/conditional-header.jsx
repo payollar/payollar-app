@@ -22,7 +22,9 @@ export default function ConditionalHeader() {
     pathname?.startsWith("/sign-up") ||
     pathname?.startsWith("/verify-email") ||
     pathname?.startsWith("/forgot-password") ||
-    pathname?.startsWith("/reset-password")
+    pathname?.startsWith("/reset-password") ||
+    pathname?.startsWith("/clip") ||
+    pathname?.startsWith("/academy")
   )
     return null;
   return <Header />;

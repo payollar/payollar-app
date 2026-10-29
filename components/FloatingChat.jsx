@@ -23,7 +23,9 @@ export function FloatingChat() {
     pathname?.startsWith("/sign-in") ||
     pathname?.startsWith("/sign-up") ||
     pathname?.startsWith("/media-agency/sign") ||
-    pathname === "/chat";
+    pathname === "/chat" ||
+    pathname?.startsWith("/clip") ||
+    pathname?.startsWith("/academy");
 
   // On rate card page, align chat to the left to avoid overlapping with cart on the right
   const isRateCardPage = pathname?.includes("/rate-cards/");

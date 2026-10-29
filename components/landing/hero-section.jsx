@@ -14,12 +14,12 @@ import { useLandingSessionUser } from "@/hooks/use-landing-session";
 const creativeImages = [
   { src: "/images/about-hero.jpg", alt: "DJ performing", type: "artist" },
   { src: "/images/russ.jpg", alt: "Artist on stage", type: "producer" },
-  { src: "/images/ayra.jpg", alt: "Artist recording", type: "artist" },
-  { src: "/images/mellisa.jpg", alt: "Influencer creating content", type: "influencer" },
-  { src: "/images/kaesfr.jpg", alt: "Radio host", type: "artist" },
-  { src: "/images/kingp.jpg", alt: "Podcast recording", type: "artist" },
-  { src: "/images/fave.jpg", alt: "Live performance", type: "artist" },
-  { src: "/images/dude.jpg", alt: "Studio session", type: "artist" },
+  { src: "/images/nm1.jpeg", alt: "Artist recording", type: "artist" },
+  { src: "/images/nm6.jpeg", alt: "Influencer creating content", type: "influencer" },
+  { src: "/images/nm4.jpeg", alt: "Radio host", type: "artist" },
+  { src: "/images/nm2.jpeg", alt: "Podcast recording", type: "artist" },
+  { src: "/images/nm3.jpeg", alt: "Live performance", type: "artist" },
+  { src: "/images/nm5.jpeg", alt: "Studio session", type: "artist" },
 ];
 
 export function HeroSection() {

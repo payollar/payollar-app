@@ -76,7 +76,14 @@ export default function Header() {
       <nav className="h-16 flex items-center justify-between relative container mx-auto px-4">
         {/* Logo - no link to avoid overlapping with sidebar toggle on dashboard */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Image src="/logo-single.png" alt="Payollar" width={160} height={50} />
+          <Image
+            src="/icons/Payollar-logo.png"
+            alt="Payollar"
+            width={160}
+            height={40}
+            className="h-9 w-auto object-contain"
+            priority
+          />
         </div>
 
         {/* Desktop Nav - Aligned to the right */}

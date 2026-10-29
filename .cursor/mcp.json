@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "payollar": {
+      "command": "node",
+      "args": ["--env-file=.env", "scripts/mcp-stdio.mjs"]
+    }
+  }
+}

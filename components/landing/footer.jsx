@@ -53,11 +53,11 @@ export function Footer() {
           <div className="space-y-5 lg:col-span-5">
             <Link href="/" className="inline-block transition-opacity hover:opacity-90">
               <Image
-                src="/logo-single.png"
+                src="/icons/Payollar-logo.png"
                 alt="Payollar"
                 width={180}
-                height={48}
-                className="h-11 w-auto object-contain opacity-95"
+                height={44}
+                className="h-10 w-auto object-contain"
               />
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">

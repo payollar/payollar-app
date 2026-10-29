@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["@modelcontextprotocol/sdk"],
   experimental: {
     serverComponentsHmrCache: false, // defaults to true
   },

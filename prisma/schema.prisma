@@ -752,3 +752,52 @@ model RateCardBookingItem {
   @@index([agencyId, status])
   @@index([status, createdAt])
 }
+
+model McpOAuthClient {
+  id           String   @id
+  secretHash   String?
+  name         String?
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+}
+
+model McpAuthCode {
+  id            String    @id @default(uuid())
+  codeHash      String    @unique
+  clientId      String
+  userId        String
+  redirectUri   String
+  codeChallenge String
+  scope         String
+  expiresAt     DateTime
+  usedAt        DateTime?
+
+  @@index([expiresAt])
+}
+
+model McpAccessToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  clientId  String?
+  userId    String
+  scope     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model McpRefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  clientId  String
+  userId    String
+  scope     String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Menu, X } from "lucide-react";
@@ -82,11 +83,14 @@ export function LandingNavbar() {
               href="/"
               className="group shrink-0 transition-opacity hover:opacity-90"
             >
-              <span
-                className="text-[1.35rem] font-semibold tracking-tight text-foreground md:text-2xl [font-family:var(--font-heading)]"
-              >
-                Payollar
-              </span>
+              <Image
+                src="/icons/Payollar-logo.png"
+                alt="Payollar"
+                width={148}
+                height={36}
+                className="h-8 w-auto object-contain md:h-9"
+                priority
+              />
             </Link>
 
             <div className="lg:flex items-center hidden gap-0.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[55%]">
