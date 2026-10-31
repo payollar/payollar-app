@@ -26,6 +26,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ const menuItems = [
 
 export function ClientSidebar() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
 
   const handleSignOut = async () => {
     try {
@@ -110,7 +112,7 @@ export function ClientSidebar() {
                           : "rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"
                       }
                     >
-                      <Link href={item.href}>
+                      <Link href={item.href} onClick={() => setOpenMobile(false)}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </Link>
@@ -130,6 +132,7 @@ export function ClientSidebar() {
           </p>
           <Link
             href="/client/campaigns"
+            onClick={() => setOpenMobile(false)}
             className="mt-3 inline-flex rounded-full bg-[#0055ff] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#0046d4]"
           >
             View campaigns
@@ -142,7 +145,7 @@ export function ClientSidebar() {
               tooltip="Help"
               className="rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"
             >
-              <Link href="/help">
+              <Link href="/help" onClick={() => setOpenMobile(false)}>
                 <HelpCircle className="h-4 w-4" />
                 <span>Help</span>
               </Link>

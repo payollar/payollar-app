@@ -428,30 +428,31 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
     >
       <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid h-11 w-full grid-cols-3 rounded-xl border border-white bg-white p-1 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-          <TabsTrigger value="profile" className="rounded-lg data-[state=active]:bg-[#0055ff] data-[state=active]:text-white">
-            <User className="mr-2 h-4 w-4" />
+        <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-white bg-white p-1 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+          <TabsTrigger value="profile" className="rounded-lg px-1 text-xs data-[state=active]:bg-[#0055ff] data-[state=active]:text-white sm:px-3 sm:text-sm">
+            <User className="mr-1 hidden h-4 w-4 sm:inline" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="public" className="rounded-lg data-[state=active]:bg-[#0055ff] data-[state=active]:text-white">
-            <Globe className="mr-2 h-4 w-4" />
+          <TabsTrigger value="public" className="rounded-lg px-1 text-xs data-[state=active]:bg-[#0055ff] data-[state=active]:text-white sm:px-3 sm:text-sm">
+            <Globe className="mr-1 hidden h-4 w-4 sm:inline" />
             Public
           </TabsTrigger>
-          <TabsTrigger value="availability" className="rounded-lg data-[state=active]:bg-[#0055ff] data-[state=active]:text-white">
-            <Calendar className="mr-2 h-4 w-4" />
-            Availability
+          <TabsTrigger value="availability" className="rounded-lg px-1 text-xs data-[state=active]:bg-[#0055ff] data-[state=active]:text-white sm:px-3 sm:text-sm">
+            <Calendar className="mr-1 hidden h-4 w-4 sm:inline" />
+            <span className="sm:hidden">Hours</span>
+            <span className="hidden sm:inline">Availability</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Profile Info Tab */}
-        <TabsContent value="profile" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Profile Summary */}
-            <Card className={cn("lg:col-span-1", creatorCardClass)}>
+        <TabsContent value="profile" className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Profile summary */}
+            <Card className={cn("w-full", creatorCardClass)}>
               <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center space-y-6">
+                <div className="flex w-full flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
                   {/* Profile Picture */}
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#e8f0ff] border-4 border-[#0055ff]/20">
+                  <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full border-4 border-[#0055ff]/20 bg-[#e8f0ff]">
                     {profileImage ? (
                       <Image
                         src={profileImage}
@@ -479,11 +480,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   </div>
 
                   {/* Skills Preview */}
-                  <div className="w-full">
-                    <p className="text-slate-500 text-xs uppercase mb-3 tracking-wider">
+                  <div className="w-full min-w-0 flex-1">
+                    <p className="mb-3 text-xs uppercase tracking-wider text-slate-500">
                       Skills & Expertise
                     </p>
-                    <div className="flex flex-wrap gap-2 justify-center">
+                    <div className="flex w-full flex-wrap gap-2 sm:justify-start justify-center">
                       {isLoadingSkills ? (
                         <p className="text-slate-400 text-sm">Loading...</p>
                       ) : skills.length > 0 ? (
@@ -504,8 +505,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
               </CardContent>
             </Card>
 
-            {/* Right Column - Edit Form */}
-            <Card className={cn("lg:col-span-2", creatorCardClass)}>
+            {/* Edit form */}
+            <Card className={cn("w-full", creatorCardClass)}>
               <CardHeader>
                 <CardTitle className="text-slate-950 flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
@@ -565,9 +566,9 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 {/* Profile Picture Upload */}
                 <div className="space-y-2">
                   <Label className="text-slate-600">Profile Picture</Label>
-                  <div className="flex items-center gap-4">
+                  <div className="flex w-full items-center gap-4">
                     {profileImage && (
-                      <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary/30">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-primary/30">
                         <Image
                           src={profileImage}
                           alt="Profile"
@@ -581,9 +582,15 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         />
                       </div>
                     )}
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <UploadButton
                         endpoint="profileImage"
+                        className="w-full"
+                        appearance={{
+                          container: "w-full items-stretch",
+                          button: "w-full",
+                          allowedContent: "w-full text-left",
+                        }}
                         onClientUploadComplete={(res) => {
                           try {
                             let imageUrl = null;
@@ -616,10 +623,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 </div>
 
                 {/* Skills Management */}
-                <div className="space-y-2">
+                <div className="w-full space-y-2">
                   <Label className="text-slate-600">Skills & Expertise</Label>
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 min-h-[60px]">
+                  <div className="w-full space-y-3">
+                    <div className="flex min-h-[60px] w-full flex-wrap gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
                       {skills.length > 0 ? (
                         skills.map((skill) => (
                           <Badge
@@ -640,7 +647,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         <p className="text-slate-400 text-sm">No skills added yet</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full items-center gap-2">
                       <Input
                         placeholder="Add a skill (e.g., Video Editing, Voice Acting)..."
                         value={newSkill}
@@ -651,7 +658,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             addSkill();
                           }
                         }}
-                        className="border-slate-200 bg-white text-slate-950 focus:border-primary"
+                        className="min-w-0 flex-1 border-slate-200 bg-white text-slate-950 focus:border-primary"
                       />
                       <Button
                         onClick={addSkill}

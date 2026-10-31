@@ -61,17 +61,25 @@ export async function createCampaign(formData) {
     const brand = formData.get("brand");
     const description = formData.get("description");
     const category = formData.get("category");
+    const subcategory = formData.get("subcategory");
     const budgetMin = formData.get("budgetMin");
     const budgetMax = formData.get("budgetMax");
     const location = formData.get("location");
+    const country = formData.get("country");
     const deadline = formData.get("deadline");
     const imageUrl = formData.get("imageUrl");
     const requirements = formData.get("requirements"); // JSON string or comma-separated
     const status = formData.get("status") || "DRAFT";
 
     // Validate required fields
-    if (!title || !brand || !description || !category || !location || !deadline) {
-      throw new Error("Title, brand, description, category, location, and deadline are required");
+    if (!title || !brand || !description || !category || !subcategory || !country || !location || !deadline) {
+      throw new Error("Title, brand, description, category, subcategory, country, location, and deadline are required");
+    }
+
+    const minBudget = budgetMin ? parseFloat(budgetMin) : null;
+    const maxBudget = budgetMax ? parseFloat(budgetMax) : null;
+    if (minBudget != null && maxBudget != null && minBudget > maxBudget) {
+      throw new Error("Minimum budget cannot be higher than the maximum");
     }
 
     // Parse requirements
@@ -93,9 +101,11 @@ export async function createCampaign(formData) {
         brand: brand.trim(),
         description: description.trim(),
         category: category.trim(),
-        budgetMin: budgetMin ? parseFloat(budgetMin) : null,
-        budgetMax: budgetMax ? parseFloat(budgetMax) : null,
+        subcategory: subcategory.trim(),
+        budgetMin: minBudget,
+        budgetMax: maxBudget,
         location: location.trim(),
+        country: country.trim(),
         deadline: new Date(deadline),
         imageUrl: imageUrl || null,
         requirements: requirementsArray,

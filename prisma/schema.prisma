@@ -288,10 +288,12 @@ model Campaign {
   title        String
   brand        String // Brand/Company name
   description  String         @db.Text
-  category     String // e.g., "Digital Media", "TV Media", "Influencer Marketing"
+  category     String // e.g., "Video", "Influencer", "Social"
+  subcategory  String? // e.g., "Clipping", "Product review"
   budgetMin    Float? // Minimum budget
   budgetMax    Float? // Maximum budget
-  location     String // e.g., "Accra", "Kumasi", "Nationwide"
+  location     String // City or region, e.g. "Accra", "Nationwide", "Remote"
+  country      String? // e.g. "Ghana". Older campaigns may not have one.
   deadline     DateTime
   requirements String[] // Array of requirement strings
   imageUrl     String? // Campaign image URL

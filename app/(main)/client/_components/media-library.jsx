@@ -243,22 +243,22 @@ export function MediaLibrary({
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid h-auto w-full grid-cols-3">
             <TabsTrigger
               value="bookings"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              className="px-1 text-xs data-[state=active]:bg-white data-[state=active]:text-gray-900 sm:text-sm"
             >
               Bookings ({bookings.length})
             </TabsTrigger>
             <TabsTrigger
               value="reports"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              className="px-1 text-xs data-[state=active]:bg-white data-[state=active]:text-gray-900 sm:text-sm"
             >
               Reports ({reports.length})
             </TabsTrigger>
             <TabsTrigger
               value="certificates"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              className="px-1 text-xs data-[state=active]:bg-white data-[state=active]:text-gray-900 sm:text-sm"
             >
               Certificates ({certificates.length})
             </TabsTrigger>

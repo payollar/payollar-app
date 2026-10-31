@@ -218,27 +218,29 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
 
       {/* Tabs for Bookings */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 rounded-xl border border-border/60 bg-card/60 p-1">
+        <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-border/60 bg-card/60 p-1">
           <TabsTrigger
             value="upcoming"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-lg px-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:text-sm"
           >
-            <Clock className="mr-2 h-4 w-4" />
+            <Clock className="mr-1 hidden h-4 w-4 sm:inline" />
             Upcoming ({upcoming.length})
           </TabsTrigger>
           <TabsTrigger
             value="completed"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-lg px-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:text-sm"
           >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Completed ({completed.length})
+            <CheckCircle className="mr-1 hidden h-4 w-4 sm:inline" />
+            <span className="sm:hidden">Done ({completed.length})</span>
+            <span className="hidden sm:inline">Completed ({completed.length})</span>
           </TabsTrigger>
           <TabsTrigger
             value="cancelled"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-lg px-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:text-sm"
           >
-            <XCircle className="mr-2 h-4 w-4" />
-            Cancelled ({cancelled.length})
+            <XCircle className="mr-1 hidden h-4 w-4 sm:inline" />
+            <span className="sm:hidden">Cancel ({cancelled.length})</span>
+            <span className="hidden sm:inline">Cancelled ({cancelled.length})</span>
           </TabsTrigger>
         </TabsList>
 

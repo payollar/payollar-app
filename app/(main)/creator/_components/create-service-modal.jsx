@@ -13,19 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { UploadButton } from "@uploadthing/react";
-import { Loader2, Briefcase, ImageIcon, X } from "lucide-react";
+import { ImageIcon, Loader2, X } from "lucide-react";
 import { createService } from "@/actions/services";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { uploadThingResultToUrl } from "@/lib/utils";
+import { cn, uploadThingResultToUrl } from "@/lib/utils";
 
 const SERVICE_CATEGORIES = [
   "Consultation",
@@ -41,8 +34,8 @@ const SERVICE_CATEGORIES = [
   "Other",
 ];
 
-const inputClass =
-  "border-border/60 bg-background text-foreground placeholder:text-muted-foreground";
+const fieldClass =
+  "h-11 rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
 
 export function CreateServiceModal({ open, onOpenChange }) {
   const router = useRouter();
@@ -119,189 +112,220 @@ export function CreateServiceModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-theme="light" className="max-h-[90vh] max-w-2xl overflow-y-auto border-slate-200 bg-white text-slate-900">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-foreground">Create service</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Add a new service that clients can book. Set your rate and availability.
+      <DialogContent className="flex max-h-[min(92vh,820px)] w-full flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 text-slate-900 shadow-2xl sm:max-w-2xl">
+        <DialogHeader className="space-y-1 border-b border-slate-100 px-6 py-5 pr-12 text-left">
+          <DialogTitle className="text-xl font-semibold tracking-tight text-slate-950">Create service</DialogTitle>
+          <DialogDescription className="text-sm text-slate-500">
+            Name the offer, set the rate, and choose whether clients can book it now.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-muted-foreground">
-                Service title *
-              </Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                className={inputClass}
-                placeholder="e.g., Music production consultation"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category" className="text-muted-foreground">
-                Category
-              </Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => handleInputChange("category", value)}
-              >
-                <SelectTrigger className={inputClass}>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent data-theme="light">
-                  {SERVICE_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-muted-foreground">
-              Service description
-            </Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              rows={4}
-              className={`${inputClass} resize-none`}
-              placeholder="Describe what clients will receive, what you'll cover, and what makes your service special..."
-            />
-          </div>
-
-          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
-            <div className="flex items-start gap-2">
-              <ImageIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div>
-                <Label className="text-foreground">Service image (optional)</Label>
-                <p className="text-xs text-muted-foreground">
-                  A cover image for this listing. Your profile photo always appears on the card so
-                  clients know who they&apos;re booking.
-                </p>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            <section className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">Offer</p>
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-slate-700">
+                  Service title <span className="text-[#0055ff]">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  className={fieldClass}
+                  placeholder="Music production session"
+                  required
+                />
               </div>
-            </div>
-            {imageUrl ? (
-              <div className="relative aspect-[2/1] max-h-44 w-full overflow-hidden rounded-lg border border-border/60 bg-muted">
-                <Image src={imageUrl} alt="" fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-2 top-2 h-8 w-8 rounded-full shadow-md"
-                  onClick={() => setImageUrl(null)}
-                  aria-label="Remove image"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              <div className="space-y-2">
+                <Label className="text-slate-700">Category</Label>
+                <div className="flex flex-wrap gap-2">
+                  {SERVICE_CATEGORIES.map((cat) => {
+                    const selected = formData.category === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => handleInputChange("category", selected ? "" : cat)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                          selected
+                            ? "border-[#0055ff] bg-[#0055ff] text-white"
+                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ) : (
-              <UploadButton
-                endpoint="serviceImage"
-                onClientUploadComplete={(res) => {
-                  const url = uploadThingResultToUrl(res);
-                  if (url) {
-                    setImageUrl(url);
-                    toast.success("Image uploaded");
-                  } else {
-                    toast.error("Upload completed but URL was not found");
-                  }
-                }}
-                onUploadError={(err) => {
-                  console.error(err);
-                  toast.error(err?.message || "Upload failed");
-                }}
-              />
-            )}
-            <p className="text-xs text-muted-foreground">JPG, PNG, or WebP. Max 4MB.</p>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-slate-700">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  rows={4}
+                  className="min-h-28 resize-none rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                  placeholder="What the client gets, and how long it usually takes."
+                />
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">Cover</p>
+              <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 sm:flex-row sm:items-center">
+                <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl bg-white sm:w-40">
+                  {imageUrl ? (
+                    <Image src={imageUrl} alt="" fill className="object-cover" sizes="160px" />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-1 text-slate-400">
+                      <ImageIcon className="h-5 w-5" />
+                      <span className="text-xs">No cover yet</span>
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-sm text-slate-500">
+                    Optional. Your profile photo still shows on the card.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <UploadButton
+                      endpoint="serviceImage"
+                      appearance={{
+                        container: "w-auto items-start",
+                        button: "h-10 rounded-xl bg-[#0055ff] px-4 text-sm font-medium text-white",
+                        allowedContent: "text-xs text-slate-400",
+                      }}
+                      onClientUploadComplete={(res) => {
+                        const url = uploadThingResultToUrl(res);
+                        if (url) {
+                          setImageUrl(url);
+                          toast.success("Image uploaded");
+                        } else {
+                          toast.error("Upload completed but URL was not found");
+                        }
+                      }}
+                      onUploadError={(err) => {
+                        console.error(err);
+                        toast.error(err?.message || "Upload failed");
+                      }}
+                    />
+                    {imageUrl ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-10 rounded-xl border-slate-300"
+                        onClick={() => setImageUrl(null)}
+                      >
+                        <X className="mr-1 h-4 w-4" />
+                        Remove
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">Price</p>
+              <div className="space-y-2">
+                <Label htmlFor="rate" className="text-slate-700">
+                  Rate (₵) <span className="text-[#0055ff]">*</span>
+                </Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">₵</span>
+                  <Input
+                    id="rate"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.rate}
+                    onChange={(e) => handleInputChange("rate", e.target.value)}
+                    className={cn(fieldClass, "pl-8")}
+                    placeholder="1000"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-700">Charge</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    { value: "PER_HOUR", label: "Per hour" },
+                    { value: "PER_SESSION", label: "Per session" },
+                    { value: "FIXED", label: "Fixed price" },
+                  ].map((option) => {
+                    const selected = formData.rateType === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleInputChange("rateType", option.value)}
+                        className={cn(
+                          "h-11 rounded-xl border text-sm font-medium transition-colors",
+                          selected
+                            ? "border-[#0055ff] bg-[#0055ff]/[0.06] text-[#0055ff]"
+                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {formData.rateType === "PER_SESSION" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="duration" className="text-slate-700">Session length (minutes)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="1"
+                    value={formData.duration}
+                    onChange={(e) => handleInputChange("duration", e.target.value)}
+                    className={fieldClass}
+                    placeholder="60"
+                  />
+                </div>
+              ) : null}
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">Visibility</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { value: true, title: "Active", detail: "Clients can see and book this service." },
+                  { value: false, title: "Hidden", detail: "Keep it off your public profile for now." },
+                ].map((option) => {
+                  const selected = formData.isActive === option.value;
+                  return (
+                    <button
+                      key={option.title}
+                      type="button"
+                      onClick={() => handleInputChange("isActive", option.value)}
+                      className={cn(
+                        "rounded-2xl border px-4 py-3 text-left transition-colors",
+                        selected
+                          ? "border-[#0055ff] bg-[#0055ff]/[0.06]"
+                          : "border-slate-300 bg-white hover:border-slate-400"
+                      )}
+                    >
+                      <span className="block text-sm font-medium text-slate-950">{option.title}</span>
+                      <span className="mt-0.5 block text-xs text-slate-500">{option.detail}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="rate" className="text-muted-foreground">
-                Rate (GHS) *
-              </Label>
-              <Input
-                id="rate"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.rate}
-                onChange={(e) => handleInputChange("rate", e.target.value)}
-                className={inputClass}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rateType" className="text-muted-foreground">
-                Rate type *
-              </Label>
-              <Select
-                value={formData.rateType}
-                onValueChange={(value) => handleInputChange("rateType", value)}
-              >
-                <SelectTrigger className={inputClass}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent data-theme="light">
-                  <SelectItem value="PER_HOUR">Per hour</SelectItem>
-                  <SelectItem value="PER_SESSION">Per session</SelectItem>
-                  <SelectItem value="FIXED">Fixed price</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {formData.rateType === "PER_SESSION" && (
-            <div className="space-y-2">
-              <Label htmlFor="duration" className="text-muted-foreground">
-                Duration (minutes)
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                value={formData.duration}
-                onChange={(e) => handleInputChange("duration", e.target.value)}
-                className={inputClass}
-                placeholder="e.g., 60"
-              />
-              <p className="text-xs text-muted-foreground">How long does this service typically take?</p>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="isActive" className="text-muted-foreground">
-              Status
-            </Label>
-            <Select
-              value={formData.isActive.toString()}
-              onValueChange={(value) => handleInputChange("isActive", value === "true")}
-            >
-              <SelectTrigger className={inputClass}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent data-theme="light">
-                <SelectItem value="true">Active (visible to clients)</SelectItem>
-                <SelectItem value="false">Inactive (hidden from clients)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex gap-3 pt-4">
+          <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-white px-6 py-4">
             <Button
               type="button"
-              variant="glass"
-              className="flex-1"
+              variant="outline"
+              className="h-11 rounded-xl border-slate-300 text-slate-700"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
@@ -310,19 +334,16 @@ export function CreateServiceModal({ open, onOpenChange }) {
             <Button
               type="submit"
               variant="marketing"
-              className="flex-1"
+              className="h-11 rounded-xl px-5"
               disabled={isSubmitting || !formData.title || !formData.rate}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  Saving...
                 </>
               ) : (
-                <>
-                  <Briefcase className="mr-2 h-4 w-4" />
-                  Create service
-                </>
+                "Create service"
               )}
             </Button>
           </div>

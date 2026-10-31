@@ -48,6 +48,8 @@ import { useRouter } from "next/navigation";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 import { MediaAgencyPageShell } from "@/app/(main)/media-agency/_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
+import { campaignCategoryLabel } from "@/lib/campaign-categories";
+import { campaignPlaceLabel } from "@/lib/campaign-places";
 
 export function ClientCampaigns({
   campaigns = [],
@@ -132,101 +134,51 @@ export function ClientCampaigns({
   const activeCampaigns = filteredCampaigns.filter((c) => c.status === "ACTIVE");
   const draftCampaigns = filteredCampaigns.filter((c) => c.status === "DRAFT");
   const closedCampaigns = filteredCampaigns.filter((c) => c.status === "CLOSED");
+  const cancelledCampaigns = filteredCampaigns.filter((c) => c.status === "CANCELLED");
 
-  const fieldClass = "border-border/60 bg-background text-foreground";
+  const fieldClass =
+    "h-11 rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+
+  const metrics = [
+    { label: "Total", value: stats.total, icon: FileText, tone: "text-slate-950" },
+    { label: "Active", value: stats.active, icon: Sparkles, tone: "text-[#0055ff]" },
+    { label: "Draft", value: stats.draft, icon: Edit, tone: "text-amber-600" },
+    { label: "Closed", value: stats.closed, icon: Archive, tone: "text-slate-500" },
+    { label: "Applications", value: stats.totalApplications, icon: Users, tone: "text-slate-950" },
+  ];
 
   const pageContent = (
     <div className="space-y-6">
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className={cardClass}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Total campaigns</p>
-                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.total}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3">
-                <FileText className="relative z-10 h-8 w-8 text-primary" />
-              </div>
+      <div className={`${cardClass} grid grid-cols-2 overflow-hidden sm:grid-cols-3 lg:grid-cols-5`}>
+        {metrics.map((metric) => (
+          <div key={metric.label} className="flex items-center gap-3 border-slate-100 px-4 py-4 sm:border-r sm:last:border-r-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0055ff]/[0.08] text-[#0055ff]">
+              <metric.icon className="h-4 w-4" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cardClass}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Active</p>
-                <p className="mt-1 text-3xl font-bold tabular-nums text-primary">{stats.active}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3">
-                <Sparkles className="relative z-10 h-8 w-8 text-primary" />
-              </div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500">{metric.label}</p>
+              <p className={`text-2xl font-semibold tabular-nums leading-none ${metric.tone}`}>{metric.value}</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cardClass}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Draft</p>
-                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.draft}</p>
-              </div>
-              <div className="rounded-lg bg-amber-500/10 p-3">
-                <Edit className="relative z-10 h-8 w-8 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cardClass}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Closed</p>
-                <p className="mt-1 text-3xl font-bold tabular-nums text-muted-foreground">{stats.closed}</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3">
-                <Archive className="relative z-10 h-8 w-8 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cardClass}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Total applications</p>
-                <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{stats.totalApplications}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3">
-                <Users className="relative z-10 h-8 w-8 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className={`${cardClass} flex flex-col gap-3 p-3 sm:flex-row sm:items-center`}>
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder="Search campaigns..."
+            placeholder="Search by title, brand, or description"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={`pl-10 ${fieldClass}`}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className={`w-full sm:w-[180px] ${fieldClass}`}>
-            <SelectValue placeholder="All Status" />
+          <SelectTrigger className={`!h-11 w-full sm:w-[160px] ${fieldClass}`}>
+            <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="ACTIVE">Active</SelectItem>
             <SelectItem value="DRAFT">Draft</SelectItem>
             <SelectItem value="CLOSED">Closed</SelectItem>
@@ -234,11 +186,11 @@ export function ClientCampaigns({
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className={`w-full sm:w-[180px] ${fieldClass}`}>
-            <SelectValue placeholder="All Categories" />
+          <SelectTrigger className={`!h-11 w-full sm:w-[180px] ${fieldClass}`}>
+            <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="all">All categories</SelectItem>
             {categories.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
@@ -299,6 +251,26 @@ export function ClientCampaigns({
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {closedCampaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.id}
+                cardClass={cardClass}
+                campaign={campaign}
+                onViewApplications={() => handleViewApplications(campaign)}
+                onStatusUpdate={handleStatusUpdate}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {cancelledCampaigns.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <XCircle className="h-5 w-5 text-destructive" />
+            Cancelled campaigns ({cancelledCampaigns.length})
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {cancelledCampaigns.map((campaign) => (
               <CampaignCard
                 key={campaign.id}
                 cardClass={cardClass}
@@ -399,10 +371,17 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
     : "Budget not specified";
 
   const statusColors = {
-    ACTIVE: "border-primary/30 bg-primary/10 text-primary",
-    DRAFT: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    CLOSED: "border-border/60 bg-muted/50 text-muted-foreground",
-    CANCELLED: "border-destructive/30 bg-destructive/10 text-destructive",
+    ACTIVE: "border-[#0055ff]/20 bg-[#0055ff]/10 text-[#0055ff]",
+    DRAFT: "border-amber-500/30 bg-amber-500/10 text-amber-700",
+    CLOSED: "border-slate-200 bg-slate-100 text-slate-500",
+    CANCELLED: "border-red-200 bg-red-50 text-red-600",
+  };
+
+  const statusLabel = {
+    ACTIVE: "Active",
+    DRAFT: "Draft",
+    CLOSED: "Closed",
+    CANCELLED: "Cancelled",
   };
 
   const applicantsCount = campaign.applicants || campaign._count?.applications || 0;
@@ -426,11 +405,11 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <Badge className={statusColors[campaign.status] || ""}>
-                  {campaign.status}
+                  {statusLabel[campaign.status] || campaign.status}
                 </Badge>
                 {campaign.category && (
                   <Badge variant="outline" className="text-xs">
-                    {campaign.category}
+                    {campaignCategoryLabel(campaign)}
                   </Badge>
                 )}
               </div>
@@ -444,7 +423,7 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-8 w-8 shrink-0"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -494,7 +473,7 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
           </div>
           <div className="flex items-center text-muted-foreground">
             <MapPin className="h-4 w-4 mr-2" />
-            <span>{campaign.location}</span>
+            <span>{campaignPlaceLabel(campaign)}</span>
           </div>
           <div className="flex items-center text-muted-foreground">
             <Clock className="h-4 w-4 mr-2" />
@@ -532,8 +511,8 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
 
         <div className="flex flex-col gap-2 pt-2">
           <Button
-            variant="glass"
-            className="w-full"
+            variant="outline"
+            className="h-10 w-full rounded-xl border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
             onClick={() => onViewApplications(campaign)}
             disabled={applicantsCount === 0}
           >

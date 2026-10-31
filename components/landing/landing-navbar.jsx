@@ -126,7 +126,12 @@ export function LandingNavbar() {
                 </Link>
               )}
               {isSignedIn && dashboardNav && (
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden h-9 rounded-full border border-white/40 bg-white/5 px-3.5 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:border-white/70 hover:bg-white/10 sm:inline-flex"
+                  asChild
+                >
                   <Link
                     href={dashboardNav.href}
                     className="flex max-w-[11rem] items-center gap-1.5 truncate md:max-w-none"

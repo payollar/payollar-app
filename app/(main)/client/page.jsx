@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
 import { ClientOverview } from "./_components/overview";
 import { getClientCampaigns } from "@/actions/campaigns";
+import { listBookingChats } from "@/actions/booking-chat";
 
 // Force dynamic rendering to avoid static generation issues with headers()
 export const dynamic = 'force-dynamic';
@@ -14,22 +15,23 @@ export default async function ClientDashboardPage() {
     redirect("/onboarding");
   }
 
-  const [appointmentsData, statsData, campaignsData] = await Promise.all([
+  const [appointmentsData, statsData, campaignsData, chats] = await Promise.all([
     getPatientAppointments(),
     getClientStats().catch(() => ({ stats: {}, recentAppointments: [] })),
     getClientCampaigns().catch(() => ({ campaigns: [] })),
+    listBookingChats().catch(() => []),
   ]);
 
   return (
-    <ClientOverview 
+    <ClientOverview
       stats={{
         ...(statsData.stats || {}),
         companyName: user?.name || "",
-        bookedTalents: appointmentsData.appointments?.length || 0,
-        pendingApplications: campaignsData.campaigns?.reduce((acc, c) => acc + (c._count?.applications || 0), 0) || 0,
       }}
       recentAppointments={statsData.recentAppointments || []}
+      appointments={appointmentsData.appointments || []}
       campaigns={campaignsData.campaigns || []}
+      chats={chats || []}
     />
   );
 }

@@ -24,7 +24,7 @@ export function CreatorPageShell({
   className,
 }) {
   return (
-    <div className={cn("-m-4 min-h-full bg-[#f4f6fb] p-4 text-slate-900 md:-m-6 md:p-5", className)}>
+    <div className={cn("-m-3 min-h-full min-w-0 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:p-5", className)}>
       <div className="mx-auto max-w-7xl space-y-6">
         {(eyebrow || title || description || actions) && (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

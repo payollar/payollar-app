@@ -23,6 +23,8 @@ import {
 import { siFacebook, siInstagram, siTiktok, siX, siYoutube } from "simple-icons";
 import { toast } from "sonner";
 import { applyToCampaign } from "@/actions/campaigns";
+import { campaignCategoryLabel } from "@/lib/campaign-categories";
+import { campaignPlaceLabel } from "@/lib/campaign-places";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,6 +45,31 @@ const BUDGET_FILTERS = [
   { id: "5000-plus", label: "GH₵5,000+" },
 ];
 
+const CAMPAIGN_TYPES = [
+  { id: "influencer", label: "Influencer Campaigns" },
+  { id: "content", label: "Content Creation" },
+  { id: "event", label: "Event Coverage" },
+  { id: "ambassador", label: "Brand Ambassadors" },
+  { id: "takeover", label: "Social Media Takeovers" },
+  { id: "review", label: "Product Reviews" },
+];
+
+function matchesCampaignType(campaign, typeId) {
+  const blob = `${campaign.category || ""} ${campaign.subcategory || ""} ${campaignHaystack(campaign)}`;
+  if (typeId === "influencer") return campaign.category === "Influencer" || /influencer/i.test(blob);
+  if (typeId === "event") return /event/i.test(blob);
+  if (typeId === "ambassador") return /ambassador/i.test(blob);
+  if (typeId === "takeover") return /takeover/i.test(blob);
+  if (typeId === "review") return /product review|unboxing/i.test(blob);
+  if (typeId === "content") {
+    return (
+      ["Social", "Video", "Digital Media"].includes(campaign.category) ||
+      /content|clipping|short-form|faceless/i.test(blob)
+    );
+  }
+  return false;
+}
+
 const PLATFORMS = [
   { id: "tiktok", label: "TikTok", icon: siTiktok, pattern: /tik\s?tok/i },
   { id: "instagram", label: "Instagram", icon: siInstagram, pattern: /instagram|\binsta\b/i },
@@ -52,7 +79,7 @@ const PLATFORMS = [
 ];
 
 function campaignHaystack(campaign) {
-  return [campaign.title, campaign.description, campaign.category, ...(campaign.requirements || [])]
+  return [campaign.title, campaign.description, campaign.category, campaign.subcategory, ...(campaign.requirements || [])]
     .filter(Boolean)
     .join(" ");
 }
@@ -122,6 +149,33 @@ function talentHref(talent) {
   return `/talents/${encodeURIComponent(talent.specialty)}/${talent.id}`;
 }
 
+function FilterChoices({ legend, value, onChange, options, scrollable = false }) {
+  return (
+    <fieldset>
+      <legend className="text-sm font-semibold text-slate-900">{legend}</legend>
+      <div className={cn("mt-2 space-y-0.5", scrollable && "max-h-40 overflow-y-auto pr-1")}>
+        {options.map((option) => {
+          const selected = value === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onChange(option.id)}
+              className={cn(
+                "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50",
+                selected && "bg-[#f5f3ff] font-medium text-[#6d28d9]"
+              )}
+            >
+              <span className="min-w-0 truncate">{option.label}</span>
+              {selected ? <Check className="h-3.5 w-3.5 shrink-0" /> : <span className="w-3.5 shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 function MetaItem({ icon: Icon, children }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
@@ -158,7 +212,7 @@ function CampaignArt({ title }) {
 export function CampaignsClient({ initialCampaigns = [] }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [categories, setCategories] = useState([]);
+  const [campaignTypes, setCampaignTypes] = useState([]);
   const [locationFilter, setLocationFilter] = useState("all");
   const [budgetFilter, setBudgetFilter] = useState("any");
   const [postedFilter, setPostedFilter] = useState("any");
@@ -168,16 +222,6 @@ export function CampaignsClient({ initialCampaigns = [] }) {
   const [applyCampaign, setApplyCampaign] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  const categoryOptions = useMemo(() => {
-    const counts = new Map();
-    for (const campaign of initialCampaigns) {
-      const name = campaign.category?.trim();
-      if (!name) continue;
-      counts.set(name, (counts.get(name) || 0) + 1);
-    }
-    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [initialCampaigns]);
 
   const locationOptions = useMemo(() => {
     return [...new Set(initialCampaigns.map((campaign) => campaign.location).filter(Boolean))].sort();
@@ -191,7 +235,8 @@ export function CampaignsClient({ initialCampaigns = [] }) {
         campaign.title.toLowerCase().includes(query) ||
         campaign.brand.toLowerCase().includes(query) ||
         campaign.description.toLowerCase().includes(query);
-      const matchesCategory = categories.length === 0 || categories.includes(campaign.category);
+      const matchesCategory =
+        campaignTypes.length === 0 || campaignTypes.some((typeId) => matchesCampaignType(campaign, typeId));
       const matchesLocation = locationFilter === "all" || campaign.location === locationFilter;
       const matchesPlatform = platformFilter === "all" || campaignPlatformIds(campaign).includes(platformFilter);
       return (
@@ -209,21 +254,21 @@ export function CampaignsClient({ initialCampaigns = [] }) {
       if (sortBy === "budget") return (budgetCeiling(b) || 0) - (budgetCeiling(a) || 0);
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-  }, [initialCampaigns, searchQuery, categories, locationFilter, budgetFilter, postedFilter, platformFilter, sortBy]);
+  }, [initialCampaigns, searchQuery, campaignTypes, locationFilter, budgetFilter, postedFilter, platformFilter, sortBy]);
 
   const selected =
     filteredCampaigns.find((campaign) => campaign.id === selectedId) || filteredCampaigns[0] || null;
   const heroImage = initialCampaigns.find((campaign) => campaign.imageUrl)?.imageUrl || null;
 
-  const toggleCategory = (name) => {
-    setCategories((current) =>
-      current.includes(name) ? current.filter((item) => item !== name) : [...current, name]
+  const toggleCampaignType = (typeId) => {
+    setCampaignTypes((current) =>
+      current.includes(typeId) ? current.filter((item) => item !== typeId) : [...current, typeId]
     );
   };
 
   const clearFilters = () => {
     setSearchQuery("");
-    setCategories([]);
+    setCampaignTypes([]);
     setLocationFilter("all");
     setBudgetFilter("any");
     setPostedFilter("any");
@@ -258,7 +303,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-[90rem] px-4 pb-16 sm:px-6 lg:px-8">
       <section className="relative min-h-[17.5rem] overflow-hidden rounded-3xl bg-[#120f2d] text-white shadow-xl">
         {heroImage ? (
           <div className="absolute inset-y-0 right-0 hidden w-[48%] md:block">
@@ -303,7 +348,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
         </div>
       </section>
 
-      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)_20rem]">
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)_20rem]">
         <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-28">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Filter campaigns</h2>
@@ -330,26 +375,19 @@ export function CampaignsClient({ initialCampaigns = [] }) {
               />
             </label>
             <fieldset>
-              <legend className="text-sm font-medium text-slate-800">Campaign type</legend>
-              <div className="mt-2 space-y-2">
-                {categoryOptions.length === 0 ? (
-                  <p className="text-sm text-slate-400">No categories yet.</p>
-                ) : (
-                  categoryOptions.map(([name, count]) => (
-                    <label key={name} className="flex cursor-pointer items-center justify-between gap-2 text-sm">
-                      <span className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={categories.includes(name)}
-                          onChange={() => toggleCategory(name)}
-                          className="h-4 w-4 accent-[#6d28d9]"
-                        />
-                        {name}
-                      </span>
-                      <span className="text-xs text-slate-400">{count}</span>
-                    </label>
-                  ))
-                )}
+              <legend className="text-sm font-semibold text-slate-900">Campaign Type</legend>
+              <div className="mt-3 space-y-2.5">
+                {CAMPAIGN_TYPES.map((type) => (
+                  <label key={type.id} className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={campaignTypes.includes(type.id)}
+                      onChange={() => toggleCampaignType(type.id)}
+                      className="h-4 w-4 rounded border-slate-300 accent-[#6d28d9]"
+                    />
+                    {type.label}
+                  </label>
+                ))}
               </div>
             </fieldset>
 
@@ -393,51 +431,27 @@ export function CampaignsClient({ initialCampaigns = [] }) {
               </div>
             </fieldset>
 
-            <label className="block text-sm font-medium text-slate-800">
-              Budget range (GH₵)
-              <select
-                value={budgetFilter}
-                onChange={(event) => setBudgetFilter(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800"
-              >
-                {BUDGET_FILTERS.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FilterChoices
+              legend="Budget"
+              value={budgetFilter}
+              onChange={setBudgetFilter}
+              options={BUDGET_FILTERS}
+            />
 
-            <label className="block text-sm font-medium text-slate-800">
-              Location
-              <select
-                value={locationFilter}
-                onChange={(event) => setLocationFilter(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800"
-              >
-                <option value="all">Any location</option>
-                {locationOptions.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FilterChoices
+              legend="Location"
+              value={locationFilter}
+              onChange={setLocationFilter}
+              options={[{ id: "all", label: "Any location" }, ...locationOptions.map((location) => ({ id: location, label: location }))]}
+              scrollable
+            />
 
-            <label className="block text-sm font-medium text-slate-800">
-              Posted
-              <select
-                value={postedFilter}
-                onChange={(event) => setPostedFilter(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800"
-              >
-                {POSTED_FILTERS.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FilterChoices
+              legend="Posted"
+              value={postedFilter}
+              onChange={setPostedFilter}
+              options={POSTED_FILTERS}
+            />
           </div>
         </aside>
 
@@ -508,7 +522,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             {campaign.category ? (
                               <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                                {campaign.category}
+                                {campaignCategoryLabel(campaign)}
                               </span>
                             ) : null}
                             {PLATFORMS.filter((platform) => campaignPlatformIds(campaign).includes(platform.id)).map((platform) => (
@@ -525,7 +539,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                         <MetaItem icon={Users}>
                           {campaign.applicants || 0} {(campaign.applicants || 0) === 1 ? "applicant" : "applicants"}
                         </MetaItem>
-                        <MetaItem icon={MapPin}>{campaign.location}</MetaItem>
+                        <MetaItem icon={MapPin}>{campaignPlaceLabel(campaign)}</MetaItem>
                         <MetaItem icon={Calendar}>{format(new Date(campaign.deadline), "MMM d, yyyy")}</MetaItem>
                         <button
                           type="button"
@@ -553,7 +567,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {selected.category ? (
                     <span className="inline-flex rounded-full bg-[#f5f3ff] px-2.5 py-1 text-xs font-medium text-[#6d28d9]">
-                      {selected.category}
+                      {campaignCategoryLabel(selected)}
                     </span>
                   ) : null}
                   {PLATFORMS.filter((platform) => campaignPlatformIds(selected).includes(platform.id)).map((platform) => (
@@ -567,7 +581,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                 <div className="mt-5 space-y-3">
                   <DetailRow icon={Wallet} label="Budget" value={formatBudget(selected)} />
                   <DetailRow icon={Users} label="Applicants" value={String(selected.applicants || 0)} />
-                  <DetailRow icon={MapPin} label="Location" value={selected.location} />
+                  <DetailRow icon={MapPin} label="Location" value={campaignPlaceLabel(selected)} />
                   <DetailRow icon={Calendar} label="Deadline" value={format(new Date(selected.deadline), "MMM d, yyyy")} />
                 </div>
                 {selected.requirements?.length > 0 ? (

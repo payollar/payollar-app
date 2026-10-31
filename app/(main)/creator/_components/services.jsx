@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  DollarSign,
   Clock,
   CheckCircle2,
   XCircle,
@@ -159,113 +158,65 @@ export function CreatorServices({
       <div className="space-y-6">
         {/* Statistics Cards */}
         {services.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <Card className={creatorCardClass}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-1 text-sm text-muted-foreground">Total services</p>
-                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
-                      {stats.total}
-                    </p>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
-                    <Briefcase className="relative z-10 h-8 w-8 text-primary" />
-                  </div>
+          <div className={`${creatorCardClass} grid grid-cols-2 overflow-hidden sm:grid-cols-4`}>
+            {[
+              { label: "Total", value: stats.total, icon: Briefcase },
+              { label: "Active", value: stats.active, icon: CheckCircle2 },
+              { label: "Inactive", value: stats.inactive, icon: XCircle },
+              { label: "Avg. rate", value: `₵${Math.round(stats.avgRate).toLocaleString("en-GH")}`, icon: TrendingUp },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-3 border-slate-100 px-4 py-4 sm:border-r sm:last:border-r-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0055ff]/[0.08] text-[#0055ff]">
+                  <item.icon className="h-4 w-4" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card className={creatorCardClass}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-1 text-sm text-muted-foreground">Active</p>
-                    <p className="mt-1 text-3xl font-bold tabular-nums text-primary">
-                      {stats.active}
-                    </p>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
-                    <CheckCircle2 className="relative z-10 h-8 w-8 text-primary" />
-                  </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500">{item.label}</p>
+                  <p className="truncate text-xl font-semibold tabular-nums text-slate-950">{item.value}</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card className={creatorCardClass}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-1 text-sm text-muted-foreground">Inactive</p>
-                    <p className="mt-1 text-3xl font-bold tabular-nums text-muted-foreground">
-                      {stats.inactive}
-                    </p>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 ring-1 ring-border/60">
-                    <XCircle className="relative z-10 h-8 w-8 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className={creatorCardClass}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="mb-1 text-sm text-muted-foreground">Avg. rate</p>
-                    <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
-                      ₵{stats.avgRate.toFixed(0)}
-                    </p>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
-                    <TrendingUp className="relative z-10 h-8 w-8 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
         )}
 
       {/* Search and Filters */}
       {services.length > 0 && (
-        <Card className={creatorCardClass}>
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-4 md:flex-row">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search services..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-border/60 bg-background/80 pl-10 backdrop-blur-sm"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent data-theme="light">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              {categories.length > 0 && (
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent data-theme="light">
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className={`${creatorCardClass} flex flex-col gap-3 p-3 sm:flex-row sm:items-center`}>
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Search by title or category"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-11 rounded-xl border border-slate-300 bg-white pl-10 text-sm text-slate-950 shadow-none"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="!h-11 w-full rounded-xl border border-slate-300 bg-white text-slate-950 sm:w-[150px]">
+              <Filter className="mr-2 h-4 w-4 text-slate-400" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="border-slate-200 bg-white text-slate-900">
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          {categories.length > 0 && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="!h-11 w-full rounded-xl border border-slate-300 bg-white text-slate-950 sm:w-[170px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent className="border-slate-200 bg-white text-slate-900">
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       )}
 
       {/* Active Services */}
@@ -277,7 +228,7 @@ export function CreatorServices({
               Active services ({activeServices.length})
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
             {activeServices.map((service) => (
               <ServiceCard
                 key={service.id}
@@ -301,7 +252,7 @@ export function CreatorServices({
               Inactive services ({inactiveServices.length})
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
             {inactiveServices.map((service) => (
               <ServiceCard
                 key={service.id}
@@ -381,13 +332,13 @@ function ServiceCard({ service, creator, getRateDisplay, onEdit, onDelete }) {
   const creatorImage = creator?.imageUrl || null;
 
   return (
-    <Card
-      className={`group overflow-hidden ${creatorCardClass} transition-all hover:border-primary/25 hover:shadow-md ${
-        !service.isActive ? "opacity-60" : ""
+    <article
+      className={`flex h-full flex-col overflow-hidden ${creatorCardClass} ${
+        !service.isActive ? "opacity-70" : ""
       }`}
     >
       {service.imageUrl ? (
-        <div className="relative aspect-[2/1] w-full bg-muted">
+        <div className="relative h-36 w-full bg-slate-100">
           <Image
             src={service.imageUrl}
             alt=""
@@ -397,36 +348,24 @@ function ServiceCard({ service, creator, getRateDisplay, onEdit, onDelete }) {
           />
         </div>
       ) : null}
-      <CardHeader className={service.imageUrl ? "pt-4" : undefined}>
-        <div className="mb-3 flex items-start gap-3">
-          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-border/60 bg-primary/10 ring-2 ring-background">
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start gap-3">
+          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#e8f0ff]">
             {creatorImage ? (
-              <Image
-                src={creatorImage}
-                alt={creatorName}
-                fill
-                className="object-cover"
-                sizes="48px"
-              />
+              <Image src={creatorImage} alt="" fill className="object-cover" sizes="40px" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                <User className="h-6 w-6" />
+              <div className="flex h-full w-full items-center justify-center text-[#0055ff]">
+                <User className="h-4 w-4" />
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-muted-foreground">{creatorName}</p>
-            <CardTitle className="line-clamp-2 text-lg font-semibold leading-snug text-foreground">
-              {service.title}
-            </CardTitle>
+            <p className="truncate text-xs text-slate-400">{creatorName}</p>
+            <h3 className="truncate text-base font-semibold text-slate-950">{service.title}</h3>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -436,86 +375,62 @@ function ServiceCard({ service, creator, getRateDisplay, onEdit, onDelete }) {
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onDelete} className="text-red-400">
+              <DropdownMenuItem onClick={onDelete} className="text-red-600">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+
+        <div className="mt-3 flex h-6 items-center gap-2 overflow-hidden">
           <Badge
             className={
               service.isActive
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border/60 bg-muted/50 text-muted-foreground"
+                ? "border-[#0055ff]/20 bg-[#0055ff]/10 text-[#0055ff]"
+                : "border-slate-200 bg-slate-100 text-slate-500"
             }
           >
-            {service.isActive ? (
-              <>
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Active
-              </>
-            ) : (
-              <>
-                <XCircle className="h-3 w-3 mr-1" />
-                Inactive
-              </>
-            )}
+            {service.isActive ? "Active" : "Inactive"}
           </Badge>
-          {service.category && (
-            <Badge variant="outline" className="text-xs">
+          {service.category ? (
+            <Badge variant="outline" className="truncate text-xs">
               {service.category}
             </Badge>
-          )}
+          ) : null}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {service.description && (
-          <p className="text-sm text-muted-foreground line-clamp-3 min-h-[3.75rem]">
-            {service.description}
-          </p>
-        )}
 
-        <div className="space-y-3 border-t border-border/50 pt-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <p className="text-2xl font-bold tabular-nums text-foreground">{getRateDisplay(service)}</p>
-            </div>
-          </div>
-          {service.duration && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>{service.duration} minutes</span>
-            </div>
+        <p className="mt-2 h-10 overflow-hidden text-sm leading-5 text-slate-500">
+          <span className="line-clamp-2">{service.description || "No description yet."}</span>
+        </p>
+
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+          <p className="text-lg font-semibold tabular-nums text-slate-950">{getRateDisplay(service)}</p>
+          {service.duration ? (
+            <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+              <Clock className="h-3.5 w-3.5" />
+              {service.duration} min
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">{format(new Date(service.createdAt), "MMM d, yyyy")}</span>
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs text-muted-foreground">
-          <span>Created {format(new Date(service.createdAt), "MMM d, yyyy")}</span>
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <Button
-            variant="glass"
-            size="sm"
-            className="flex-1"
-            onClick={onEdit}
-          >
+        <div className="mt-auto flex gap-2 pt-3">
+          <Button variant="outline" size="sm" className="h-9 flex-1 rounded-xl border-slate-200" onClick={onEdit}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            className="h-9 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
             onClick={onDelete}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

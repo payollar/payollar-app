@@ -333,9 +333,12 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   color: #0f172a;
 }
 
-.creator-dashboard-panel,
-.client-dashboard-panel {
+.creator-dashboard-panel {
   background: #ffffff;
+}
+
+.client-dashboard-panel {
+  background: #f4f6fb;
 }
 
 /* Media agency dashboard: same shell as creator/client */

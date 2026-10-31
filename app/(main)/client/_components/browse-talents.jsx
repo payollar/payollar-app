@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ClipboardPenLine, Search, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,257 +12,207 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Search,
-  Briefcase,
-  User,
-} from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { ClientPageShell, clientCardClass } from "./client-page-shell";
+import { ClientPageShell } from "./client-page-shell";
 
-const fieldClass = "border-border/60 bg-background text-foreground";
+function money(rate, rateType) {
+  const amount = `GH₵ ${Number(rate || 0).toLocaleString("en-GH")}`;
+  if (rateType === "PER_HOUR") return `${amount}/hr`;
+  if (rateType === "PER_SESSION") return `${amount}/session`;
+  return amount;
+}
 
-export function BrowseTalents({ talents = [], categories = [], specialties = [] }) {
+export function BrowseTalents({ talents = [], categories = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Filter talents
+  const availableSpecialties = useMemo(() => {
+    return [...new Set(talents.map((talent) => talent.specialty).filter(Boolean))].sort();
+  }, [talents]);
+
   const filteredTalents = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return talents.filter((talent) => {
       const matchesSearch =
-        searchQuery === "" ||
-        talent.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        talent.specialty?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        talent.description?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesSpecialty =
-        specialtyFilter === "all" || talent.specialty === specialtyFilter;
-
-      const hasMatchingCategory =
-        categoryFilter === "all" ||
-        talent.services?.some((s) => s.category === categoryFilter);
-
-      return matchesSearch && matchesSpecialty && hasMatchingCategory;
+        query === "" ||
+        talent.name?.toLowerCase().includes(query) ||
+        talent.specialty?.toLowerCase().includes(query) ||
+        talent.description?.toLowerCase().includes(query);
+      const matchesSpecialty = specialtyFilter === "all" || talent.specialty === specialtyFilter;
+      const matchesCategory =
+        categoryFilter === "all" || talent.services?.some((service) => service.category === categoryFilter);
+      return matchesSearch && matchesSpecialty && matchesCategory;
     });
   }, [talents, searchQuery, specialtyFilter, categoryFilter]);
-
-  // Get unique specialties from talents
-  const availableSpecialties = useMemo(() => {
-    const specs = talents
-      .map((t) => t.specialty)
-      .filter((s) => s)
-      .filter((value, index, self) => self.indexOf(value) === index);
-    return specs.sort();
-  }, [talents]);
 
   return (
     <ClientPageShell
       eyebrow="Discover"
       title="Browse talents"
-      description="Discover talented creators and their available services."
+      description="Verified creators and the services they actually list."
       actions={
-        <Button variant="marketing" className="gap-2" asChild>
-          <Link href="/talents">
-            <Search className="h-4 w-4" />
-            Public directory
-          </Link>
-        </Button>
+        <Link
+          href="/talents"
+          className="inline-flex h-10 items-center gap-2 rounded-full bg-[#0055ff] px-4 text-sm font-semibold text-white hover:bg-[#003ecc]"
+        >
+          <Search className="h-4 w-4" />
+          Public directory
+        </Link>
       }
     >
-    <div className="space-y-6">
-      {/* Search and Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search talents by name, specialty, or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`pl-10 ${fieldClass}`}
-          />
+      <div className="rounded-[22px] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Search by name, specialty, or description"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="h-11 border-slate-200 bg-[#f7f8fc] pl-10 text-slate-900"
+            />
+          </div>
+          <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
+            <SelectTrigger className="h-11 w-full border-slate-200 bg-[#f7f8fc] text-slate-900 lg:w-[200px]">
+              <SelectValue placeholder="All specialties" />
+            </SelectTrigger>
+            <SelectContent data-theme="light">
+              <SelectItem value="all">All specialties</SelectItem>
+              {availableSpecialties.map((specialty) => (
+                <SelectItem key={specialty} value={specialty}>
+                  {specialty}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-11 w-full border-slate-200 bg-[#f7f8fc] text-slate-900 lg:w-[200px]">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent data-theme="light">
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
-          <SelectTrigger className={`w-full sm:w-[200px] ${fieldClass}`}>
-            <SelectValue placeholder="All Specialties" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Specialties</SelectItem>
-            {availableSpecialties.map((spec) => (
-              <SelectItem key={spec} value={spec}>
-                {spec}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className={`w-full sm:w-[200px] ${fieldClass}`}>
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* Talents Grid */}
+      <p className="text-sm text-slate-500">
+        {filteredTalents.length} {filteredTalents.length === 1 ? "talent" : "talents"}
+      </p>
+
       {filteredTalents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTalents.map((talent) => (
             <TalentCard key={talent.id} talent={talent} />
           ))}
         </div>
       ) : (
-        <Card className={clientCardClass}>
-          <CardContent className="p-12 text-center">
-            <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
-            <h3 className="mb-2 text-xl font-medium text-foreground">No talents found</h3>
-            <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-[22px] bg-white px-6 py-16 text-center shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+          <Search className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+          <p className="font-medium text-slate-900">No talents match this search</p>
+          <p className="mt-1 text-sm text-slate-500">Try another name, specialty, or category.</p>
+        </div>
       )}
-    </div>
     </ClientPageShell>
   );
 }
 
 function TalentCard({ talent }) {
-  const servicesCount = talent._count?.services || 0;
-  const displayedServices = talent.services?.slice(0, 3) || [];
+  const services = talent.services || [];
+  const servicesCount = talent._count?.services ?? services.length;
+  const shownServices = services.slice(0, 1);
+  const skills = (talent.skills || []).slice(0, 2);
+  const extraSkills = Math.max(0, (talent.skills || []).length - skills.length);
+  const profileHref = `/talents/${encodeURIComponent(talent.specialty || "all")}/${talent.id}`;
+
+  const service = shownServices[0];
+  const moreServices = Math.max(0, servicesCount - (service ? 1 : 0));
 
   return (
-    <Card
-      className={`${clientCardClass} group overflow-hidden transition-all hover:border-primary/25 hover:shadow-md`}
-    >
-      <CardHeader className="relative">
-        <div className="flex items-start gap-4">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-border/60">
-            {talent.imageUrl ? (
-              <Image
-                src={talent.imageUrl}
-                alt={talent.name || "Talent"}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted">
-                <User className="h-8 w-8 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="mb-1 truncate text-lg font-bold text-foreground">
-              {talent.name || "Unknown Talent"}
-            </CardTitle>
-            {talent.specialty && (
-              <Badge variant="outline" className="mb-2 text-xs">
+    <article className="flex h-full flex-col rounded-2xl bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="flex h-11 items-center gap-2.5">
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#e8f0ff]">
+          {talent.imageUrl ? (
+            <Image src={talent.imageUrl} alt="" fill className="object-cover" sizes="40px" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-[#0055ff]">
+              <User className="h-4 w-4" />
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-semibold leading-5 text-slate-950">{talent.name || "Creator"}</h2>
+          <div className="mt-0.5 flex h-4 min-w-0 items-center gap-1.5">
+            {talent.specialty ? (
+              <span className="truncate rounded-full bg-[#e8f0ff] px-1.5 py-0.5 text-[10px] font-medium leading-none text-[#0b3db8]">
                 {talent.specialty}
-              </Badge>
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-300">Specialty not set</span>
             )}
-            {talent.experience && (
-              <p className="text-xs text-muted-foreground">
-                {talent.experience} year{talent.experience !== 1 ? "s" : ""} experience
-              </p>
-            )}
+            {talent.experience ? (
+              <span className="shrink-0 text-[11px] text-slate-400">{talent.experience}y</span>
+            ) : null}
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {talent.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {talent.description}
-          </p>
-        )}
+      </div>
 
-        {/* Services Section */}
-        {servicesCount > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Briefcase className="h-4 w-4 text-primary" />
-                Available services ({servicesCount})
-              </h4>
-            </div>
-            <div className="space-y-2">
-              {displayedServices.map((service) => (
-                <div
-                  key={service.id}
-                  className="rounded-lg border border-border/50 bg-muted/30 p-2"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {service.title}
-                      </p>
-                      {service.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {service.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="ml-2 shrink-0">
-                      <p className="text-sm font-bold tabular-nums text-primary">
-                        ₵{service.rate.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {service.rateType === "PER_HOUR" ? "/hr" : service.rateType === "PER_PROJECT" ? "/project" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  {service.category && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs mt-1 border-gray-700"
-                    >
-                      {service.category}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-              {servicesCount > 3 && (
-                <p className="text-xs text-muted-foreground text-center pt-1">
-                  +{servicesCount - 3} more service{servicesCount - 3 !== 1 ? "s" : ""}
-                </p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-center">
-            <p className="text-sm text-muted-foreground">No services listed yet</p>
-          </div>
-        )}
+      <p className="mt-2 h-8 overflow-hidden text-xs leading-4 text-slate-500">
+        <span className="line-clamp-2">{talent.description || "No bio yet."}</span>
+      </p>
 
-        {/* Skills */}
-        {talent.skills && talent.skills.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {talent.skills.slice(0, 3).map((skill) => (
-              <Badge
+      <div className="mt-2">
+        <p className="mb-1 flex h-4 items-center gap-1 text-[11px] font-semibold text-slate-600">
+          <ClipboardPenLine className="h-3 w-3 text-[#0055ff]" />
+          Services ({servicesCount})
+        </p>
+        <div className="flex h-8 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] px-2">
+          {service ? (
+            <>
+              <p className="min-w-0 truncate text-xs font-medium text-slate-900">{service.title}</p>
+              <p className="shrink-0 text-[11px] font-semibold tabular-nums text-[#0055ff]">
+                {money(service.rate, service.rateType)}
+                {moreServices > 0 ? <span className="ml-1 font-medium text-slate-400">+{moreServices}</span> : null}
+              </p>
+            </>
+          ) : (
+            <p className="truncate text-xs text-slate-400">No service listed</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2 flex h-5 min-w-0 items-center gap-1 overflow-hidden">
+        {skills.length > 0 ? (
+          <>
+            {skills.map((skill) => (
+              <span
                 key={skill.id}
-                variant="outline"
-                className="text-xs border-gray-700"
+                className="min-w-0 truncate rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] leading-none text-slate-600"
               >
                 {skill.name}
-              </Badge>
+              </span>
             ))}
-            {talent.skills.length > 3 && (
-              <Badge variant="outline" className="text-xs border-gray-700">
-                +{talent.skills.length - 3}
-              </Badge>
-            )}
-          </div>
+            {extraSkills > 0 ? (
+              <span className="shrink-0 rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] leading-none text-slate-500">
+                +{extraSkills}
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <span className="text-[10px] text-slate-300">No skills yet</span>
         )}
+      </div>
 
-        {/* View Profile Button */}
-        <Button variant="marketing" className="w-full" asChild>
-          <Link href={`/talents/${talent.specialty || "all"}/${talent.id}`}>View profile</Link>
-        </Button>
-      </CardContent>
-    </Card>
+      <Link
+        href={profileHref}
+        className="mt-3 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#0055ff] text-xs font-semibold text-white hover:bg-[#003ecc]"
+      >
+        View profile
+      </Link>
+    </article>
   );
 }

@@ -37,7 +37,7 @@ export default function LandingMobileMenu({
                 <Link
                   href={dashboardNav.href}
                   onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-start text-base font-medium text-primary hover:bg-primary/10 active:scale-[0.99]"
+                  className="flex w-full items-center gap-2 rounded-full border border-white/35 bg-white/5 px-4 py-3 text-start text-base font-medium text-primary hover:border-white/60 hover:bg-white/10 active:scale-[0.99]"
                 >
                   <LayoutDashboard className="size-5 shrink-0" />
                   {dashboardNav.label}

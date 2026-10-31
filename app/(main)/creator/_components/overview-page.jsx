@@ -230,12 +230,12 @@ export function OverviewPage({ user, earnings = {}, analytics = null, chats = []
   const unread = chats.reduce((sum, chat) => sum + (chat.unread || 0), 0);
 
   return (
-    <div className="-m-4 min-h-full bg-[#f4f6fb] p-4 text-slate-900 md:-m-6 md:p-5">
+    <div className="-m-3 min-h-full min-w-0 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:p-5">
       <div className="mb-5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <PersonAvatar name={user?.name} imageUrl={user?.imageUrl} size="h-11 w-11" />
-          <div>
-            <h1 className="text-lg font-semibold text-slate-950 md:text-xl">
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold text-slate-950 md:text-xl">
               {greeting}, {firstName}
             </h1>
             <p className="text-sm text-slate-400">Sessions, product earnings, and messages.</p>
@@ -253,7 +253,7 @@ export function OverviewPage({ user, earnings = {}, analytics = null, chats = []
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Sessions" value={(stats.total ?? 0).toLocaleString()} hint={sessionsHint} icon={Calendar} />
             <StatCard
               label="Completed"
@@ -295,7 +295,37 @@ export function OverviewPage({ user, earnings = {}, analytics = null, chats = []
               </Link>
             </div>
             {recent.length > 0 ? (
-              <div className="overflow-x-auto">
+              <>
+              <ul className="divide-y divide-slate-100 md:hidden">
+                {recent.map((session) => {
+                  const status = STATUS[session.status] || {
+                    label: session.status || "Unknown",
+                    className: "bg-slate-100 text-slate-600",
+                  };
+                  return (
+                    <li key={session.id} className="space-y-2 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-slate-900">{session.clientName || "Client"}</p>
+                          <p className="text-xs text-slate-400">
+                            {session.startTime ? format(new Date(session.startTime), "d MMM yyyy") : "Date not set"}
+                          </p>
+                        </div>
+                        <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                      {session.brief ? <p className="line-clamp-2 text-xs text-slate-400">{session.brief}</p> : null}
+                      {chatIds.has(session.id) ? (
+                        <Link href={`/messages/${session.id}`} className="text-sm font-medium text-[#0055ff]">
+                          Open chat
+                        </Link>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[640px] text-left text-sm">
                   <thead>
                     <tr className="border-y border-slate-100 text-xs text-slate-400">
@@ -342,6 +372,7 @@ export function OverviewPage({ user, earnings = {}, analytics = null, chats = []
                   </tbody>
                 </table>
               </div>
+              </>
             ) : (
               <div className="px-5 py-10 text-center text-sm text-slate-400">
                 <Calendar className="mx-auto mb-2 h-7 w-7 text-slate-300" />
