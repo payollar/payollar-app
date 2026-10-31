@@ -58,6 +58,7 @@ export default function Header() {
 
   // Role-based nav - derived from user
   const roleNavItems = [
+    { href: "/messages", label: "Messages", show: user?.role === "CLIENT" || user?.role === "CREATOR" },
     { href: "/client", label: "Client Dashboard", show: user?.role === "CLIENT" },
     { href: "/creator", label: "Creator Dashboard", show: user?.role === "CREATOR" },
     { href: "/admin", label: "Admin Dashboard", show: user?.role === "ADMIN" },

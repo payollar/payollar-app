@@ -8,6 +8,7 @@ import {
   CheckSquare,
   ShoppingBag,
   Calendar,
+  MessageCircle,
   BarChart3,
   Settings,
   HelpCircle,
@@ -53,6 +54,11 @@ const menuItems = [
     title: "Bookings",
     icon: Calendar,
     href: "/creator/bookings",
+  },
+  {
+    title: "Messages",
+    icon: MessageCircle,
+    href: "/messages",
   },
   {
     title: "Analytics",

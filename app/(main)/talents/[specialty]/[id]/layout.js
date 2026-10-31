@@ -1,8 +1,5 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getDoctorById } from "@/actions/appointments";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -20,24 +17,5 @@ export default async function CreatorProfileLayout({ children, params }) {
 
   if (!doctor) redirect("/talents");
 
-  const backHref = `/talents/${encodeURIComponent(String(doctor.specialty ?? "").trim())}`;
-
-  return (
-    <div className="mx-auto w-full max-w-[90rem] px-4 md:px-6">
-      <div className="mb-8">
-        <Button
-          asChild
-          variant="glass"
-          size="sm"
-          className="rounded-full border-border/60"
-        >
-          <Link href={backHref}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to {doctor.specialty}
-          </Link>
-        </Button>
-      </div>
-      {children}
-    </div>
-  );
+  return <div className="w-full">{children}</div>;
 }

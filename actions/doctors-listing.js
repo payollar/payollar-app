@@ -25,10 +25,16 @@ export async function getDoctorsBySpecialty(specialty) {
           where: {
             status: "AVAILABLE",
             startTime: {
-              gte: new Date(), // Only future availability
+              gte: new Date(),
             },
           },
-          take: 1, // Just check if any available slots exist
+          take: 1,
+        },
+        services: {
+          where: { isActive: true },
+          select: { rate: true, rateType: true },
+          orderBy: { rate: "asc" },
+          take: 1,
         },
       },
       orderBy: {

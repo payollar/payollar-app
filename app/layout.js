@@ -34,9 +34,6 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/icons/Payollar-logo.png" sizes="any" />
-      </head>
       <body
         className={`${inter.className} ${inter.variable} ${dmSans.variable} ${caveat.variable} antialiased`}
       >

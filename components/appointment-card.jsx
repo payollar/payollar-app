@@ -10,6 +10,7 @@ import {
   Clock,
   User,
   Video,
+  MessageCircle,
   Stethoscope,
   X,
   Edit,
@@ -34,6 +35,7 @@ import { generateVideoToken } from "@/actions/appointments";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function AppointmentCard({
   appointment,
@@ -278,7 +280,7 @@ export function AppointmentCard({
                     : "bg-amber-900/20 border-amber-900/30 text-amber-400"
                 }
               >
-                {appointment.status}
+                {appointment.status === "REQUESTED" ? "Chat open" : appointment.status}
               </Badge>
               <div className="flex gap-2 mt-2 flex-wrap">
                 {canMarkCompleted() && (
@@ -298,6 +300,14 @@ export function AppointmentCard({
                     )}
                   </Button>
                 )}
+                {appointment.status !== "CANCELLED" ? (
+                  <Button size="sm" variant="outline" className="border-emerald-900/30" asChild>
+                    <Link href={`/messages/${appointment.id}`}>
+                      <MessageCircle className="h-4 w-4 mr-1" />
+                      Message
+                    </Link>
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="outline"
@@ -393,7 +403,7 @@ export function AppointmentCard({
                     : "bg-amber-900/20 border-amber-900/30 text-amber-400"
                 }
               >
-                {appointment.status}
+                {appointment.status === "REQUESTED" ? "Chat open" : appointment.status}
               </Badge>
             </div>
 

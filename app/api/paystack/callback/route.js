@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { Vonage } from "@vonage/server-sdk";
 import { Auth } from "@vonage/auth";
 import { sendAppointmentConfirmationEmail } from "@/lib/email";
+import { ensureBookingConversation } from "@/lib/booking-chat";
 import { format } from "date-fns";
 
 const credentials = new Auth({
@@ -97,17 +98,41 @@ export async function GET(request) {
 
     const sessionId = await createVideoSession();
 
-    await db.appointment.create({
-      data: {
+    const pending = await db.appointment.findFirst({
+      where: {
         clientId: client.id,
         creatorId: doctor.id,
         startTime: start,
-        endTime: end,
-        clientDescription: description || null,
-        status: "SCHEDULED",
-        videoSessionId: sessionId,
+        status: "REQUESTED",
       },
     });
+
+    const appointment = pending
+      ? await db.appointment.update({
+          where: { id: pending.id },
+          data: {
+            status: "SCHEDULED",
+            videoSessionId: sessionId,
+            clientDescription: description || pending.clientDescription,
+          },
+        })
+      : await db.appointment.create({
+          data: {
+            clientId: client.id,
+            creatorId: doctor.id,
+            startTime: start,
+            endTime: end,
+            clientDescription: description || null,
+            status: "SCHEDULED",
+            videoSessionId: sessionId,
+          },
+        });
+
+    try {
+      await ensureBookingConversation(appointment.id);
+    } catch (chatError) {
+      console.error("Failed to open booking chat:", chatError);
+    }
 
     if (client.email) {
       try {

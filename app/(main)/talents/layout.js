@@ -1,4 +1,3 @@
-import LandingBackground from "@/components/landing/landing-background";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 
 export const metadata = {
@@ -8,8 +7,7 @@ export const metadata = {
 
 export default function TalentsLayout({ children }) {
   return (
-    <div className="relative min-h-dvh w-full bg-background text-foreground">
-      <LandingBackground />
+    <div className="relative min-h-dvh w-full bg-[#f5f6fb] text-slate-900">
       <LandingNavbar />
       <div className="relative z-10 w-full pt-[5.25rem] md:pt-28">{children}</div>
     </div>

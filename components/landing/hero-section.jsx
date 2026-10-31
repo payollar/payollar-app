@@ -111,7 +111,7 @@ export function HeroSection() {
             >
               <Balancer>
                 Get instant access to vetted creative professionals, dedicated support, and a seamless platform to
-                execute media, content, and entertainment projects—on your terms.
+                execute media, content, and entertainment projects on your terms.
               </Balancer>
             </motion.p>
 

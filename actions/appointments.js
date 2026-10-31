@@ -7,6 +7,7 @@ import { Vonage } from "@vonage/server-sdk";
 import { addDays, addMinutes, format, isBefore, endOfDay } from "date-fns";
 import { Auth } from "@vonage/auth";
 import { sendAppointmentConfirmationEmail } from "@/lib/email";
+import { ensureBookingConversation } from "@/lib/booking-chat";
 
 // Initialize Vonage Video API client
 const credentials = new Auth({
@@ -119,6 +120,12 @@ export async function bookAppointment(formData) {
         videoSessionId: sessionId, // Store the Vonage session ID
       },
     });
+
+    try {
+      await ensureBookingConversation(appointment.id);
+    } catch (chatError) {
+      console.error("Failed to open booking chat:", chatError);
+    }
 
     // Send confirmation email to client
     if (patient.email) {

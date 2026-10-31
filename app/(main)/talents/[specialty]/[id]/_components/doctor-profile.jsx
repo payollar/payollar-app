@@ -1,60 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  User,
+  ArrowLeft,
+  ArrowUpRight,
+  BadgeCheck,
   Calendar,
+  Check,
   Clock,
-  Medal,
-  FileText,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  Award,
-  GalleryVertical,
-  ShoppingBag,
-  ExternalLink,
-  DollarSign,
+  Copy,
   Link2,
-  Download,
-  Briefcase,
-  ArrowRight,
+  Play,
   Star,
+  User,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Particles } from "@/components/ui/particles";
-import { cn } from "@/lib/utils";
+import { siFacebook, siInstagram, siTiktok, siWhatsapp, siX, siYoutube } from "simple-icons";
+import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
 import { getDisplaySkillLabels } from "@/lib/skill-labels";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SlotPicker } from "./slot-picker";
 import { AppointmentForm } from "./appointment-form";
 import { BookingAgreementModal } from "./booking-agreement-modal";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useSession } from "@/lib/auth-client";
-import { toast } from "sonner";
 
-const cardSurface =
-  "rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm";
-const cardSurfaceInteractive =
-  "rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm transition-all hover:border-primary/35 hover:shadow-md";
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "services", label: "Services" },
+  { id: "portfolio", label: "Portfolio" },
+  { id: "reviews", label: "Reviews" },
+  { id: "availability", label: "Availability" },
+];
+
+function formatCedis(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "GH₵ —";
+  const whole = Math.abs(number - Math.round(number)) < 0.001;
+  const formatted = whole
+    ? Math.round(number).toLocaleString("en-GH")
+    : number.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `GH₵ ${formatted}`;
+}
 
 function rateTypeLabel(rateType) {
   switch (rateType) {
     case "PER_HOUR":
-      return "/hour";
+      return "/ hour";
     case "PER_SESSION":
-      return "/session";
+      return "/ session";
     case "FIXED":
       return "fixed";
     default:
@@ -62,202 +59,321 @@ function rateTypeLabel(rateType) {
   }
 }
 
-function PublicServiceCard({ service, onBook }) {
-  const hasImage = Boolean(service.imageUrl?.trim());
+function hostOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
 
+function socialKind(url) {
+  const host = hostOf(url);
+  if (host.includes("tiktok")) return "tiktok";
+  if (host.includes("instagram")) return "instagram";
+  if (host.includes("youtube") || host.includes("youtu.be")) return "youtube";
+  if (host === "x.com" || host.includes("twitter")) return "x";
+  if (host.includes("linkedin")) return "linkedin";
+  if (host.includes("facebook") || host === "fb.watch") return "facebook";
+  return "link";
+}
+
+function coverLinkFromUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.replace(/^www\./, "");
+  const parts = parsed.pathname.split("/").filter(Boolean);
+  const reel = (label = "Watch reel") => ({ url, label, isReel: true });
+  const profile = (label) => ({ url, label, isReel: false });
+
+  if (host === "youtu.be" || host.includes("youtube")) {
+    const isVideo =
+      host === "youtu.be" ||
+      parsed.searchParams.has("v") ||
+      ["shorts", "embed", "watch", "live"].includes(parts[0]);
+    return isVideo ? reel() : profile("YouTube");
+  }
+  if (host.includes("tiktok")) {
+    return parts.includes("video") ? reel() : profile("TikTok");
+  }
+  if (host.includes("instagram")) {
+    const isVideo = parts.some((part) => ["reel", "reels", "p", "tv"].includes(part));
+    return isVideo ? reel() : profile("Instagram");
+  }
+  if (host === "fb.watch" || host.includes("facebook")) {
+    const isVideo = host === "fb.watch" || parts.some((part) => ["reel", "videos", "watch"].includes(part));
+    return isVideo ? reel() : profile("Facebook");
+  }
+  return null;
+}
+
+function featuredCoverLink(portfolios, links) {
+  const video = portfolios.find((item) => item.fileType?.startsWith("video/") && item.url);
+  if (video) return { url: video.url, label: "Watch reel", isReel: true };
+  const classified = links.map(coverLinkFromUrl).filter(Boolean);
+  return classified.find((item) => item.isReel) || classified[0] || null;
+}
+
+function usableImage(url) {
+  if (!url || /placeholder\.svg/i.test(url)) return null;
+  return url;
+}
+
+function coverLine(doctor) {
+  return doctor.specialty?.trim() || null;
+}
+
+function servicePoints(service) {
+  const points = [];
+  if (service.duration) points.push(`${service.duration} min session`);
+  if (service.rateType === "PER_HOUR") points.push("Hourly rate");
+  else if (service.rateType === "PER_SESSION") points.push("Per session");
+  else if (service.rateType === "FIXED") points.push("Fixed price");
+  const lines = String(service.description || "")
+    .split(/\n+/)
+    .map((line) => line.replace(/^[-•]\s*/, "").trim())
+    .filter((line) => line && line.length <= 80);
+  for (const line of lines) {
+    if (points.length >= 3) break;
+    points.push(line);
+  }
+  return points.slice(0, 3);
+}
+
+function Stars({ value, size = "h-4 w-4" }) {
   return (
-    <article
-      className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/90 shadow-sm backdrop-blur-sm",
-        "transition-all duration-300 hover:border-primary/45 hover:shadow-lg hover:shadow-primary/[0.07]"
-      )}
-    >
-      <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-gradient-to-br from-muted to-muted/40">
-        {hasImage ? (
-          <Image
-            src={service.imageUrl}
-            alt={service.title ? `${service.title} — service image` : "Service image"}
-            fill
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-            sizes="(max-width: 768px) 100vw, 50vw"
+    <span className="inline-flex items-center gap-0.5" aria-hidden>
+      {Array.from({ length: 5 }).map((_, index) => {
+        const filled = index + 1 <= Math.round(Number(value) || 0);
+        return (
+          <Star
+            key={index}
+            className={cn(size, filled ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200")}
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/[0.12] via-primary/[0.06] to-transparent">
-            <Briefcase
-              className="h-14 w-14 text-primary/30 transition-transform duration-300 group-hover:scale-105"
-              strokeWidth={1.25}
-              aria-hidden
-            />
-          </div>
-        )}
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-90"
-          aria-hidden
-        />
-        {service.category ? (
-          <div className="absolute left-3 top-3 z-[1] flex flex-wrap gap-1.5">
-            <Badge className="border-0 bg-background/75 text-xs font-medium text-foreground shadow-sm backdrop-blur-md">
-              {service.category}
-            </Badge>
-          </div>
-        ) : null}
+        );
+      })}
+    </span>
+  );
+}
+
+const BRAND_ICONS = {
+  instagram: siInstagram,
+  tiktok: siTiktok,
+  youtube: siYoutube,
+  x: siX,
+  facebook: siFacebook,
+  whatsapp: siWhatsapp,
+};
+
+const LINKEDIN_PATH =
+  "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z";
+
+function SocialIcon({ kind, className = "h-4 w-4" }) {
+  const path = kind === "linkedin" ? LINKEDIN_PATH : BRAND_ICONS[kind]?.path;
+  if (!path) return <Link2 className={className} aria-hidden />;
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path fill="currentColor" d={path} />
+    </svg>
+  );
+}
+
+const SERVICE_WASHES = [
+  "from-[#ede9fe] via-[#f5f3ff] to-[#e0e7ff]",
+  "from-[#f3e8ff] via-[#faf5ff] to-[#e0f2fe]",
+  "from-[#e0e7ff] via-[#eef2ff] to-[#fae8ff]",
+  "from-[#fae8ff] via-[#f5f3ff] to-[#ede9fe]",
+];
+
+function serviceWash(value) {
+  const text = String(value || "service");
+  let hash = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash + text.charCodeAt(index) * (index + 1)) % SERVICE_WASHES.length;
+  }
+  return SERVICE_WASHES[hash];
+}
+
+function ServiceArt({ service }) {
+  const title = service.title?.trim() || "Service";
+  const category = service.category?.trim() || "";
+  const showCategory = category && category.toLowerCase() !== title.toLowerCase();
+  return (
+    <div className={cn("absolute inset-0 overflow-hidden bg-gradient-to-br", serviceWash(title))}>
+      <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/80" />
+      <div className="absolute -bottom-12 left-4 h-28 w-28 rounded-full bg-[#6d28d9]/10" />
+      <div className="absolute bottom-5 right-6 h-8 w-8 rounded-full bg-[#6d28d9]/20" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-6xl font-semibold tracking-tight text-[#6d28d9]/30">{title.charAt(0).toUpperCase()}</span>
       </div>
+      {showCategory ? (
+        <span className="absolute bottom-3 left-3 rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+          {category}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
-      <div className="flex flex-1 flex-col p-5 pt-4">
-        <div className="min-w-0 flex-1 space-y-2">
-          {!hasImage && service.category ? (
-            <Badge variant="secondary" className="w-fit border-primary/20 bg-primary/10 text-xs font-medium text-primary">
-              {service.category}
-            </Badge>
+function ServiceCard({ service, onBook }) {
+  const points = servicePoints(service);
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative aspect-[16/10] bg-slate-100">
+        {usableImage(service.imageUrl) ? (
+          <Image src={service.imageUrl} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 280px" />
+        ) : (
+          <ServiceArt service={service} />
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="text-[15px] font-semibold leading-snug text-slate-900">{service.title}</h3>
+        <p className="mt-2 text-sm font-semibold text-slate-800">
+          {formatCedis(service.rate)}
+          {rateTypeLabel(service.rateType) ? (
+            <span className="ml-1 text-xs font-medium text-slate-500">{rateTypeLabel(service.rateType)}</span>
           ) : null}
-          <h4 className="text-lg font-semibold leading-snug tracking-tight text-foreground [font-family:var(--font-heading)]">
-            {service.title}
-          </h4>
-          {service.description?.trim() ? (
-            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{service.description}</p>
-          ) : (
-            <p className="text-sm italic text-muted-foreground/75">Details available when you book.</p>
-          )}
-        </div>
-
-        <div className="mt-5 space-y-3 rounded-xl border border-border/40 bg-muted/35 p-3.5">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rate</p>
-              <p className="mt-0.5 flex flex-wrap items-baseline gap-1.5">
-                <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
-                  ₵{service.rate.toFixed(2)}
-                </span>
-                {rateTypeLabel(service.rateType) ? (
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {rateTypeLabel(service.rateType)}
-                  </span>
-                ) : null}
-              </p>
-            </div>
-            {service.duration ? (
-              <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-background/80 px-2.5 py-1 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden />
-                <span className="tabular-nums">{service.duration} min</span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <Button
+        </p>
+        {points.length > 0 ? (
+          <ul className="mt-3 space-y-1.5 text-xs text-slate-500">
+            {points.map((point) => (
+              <li key={point} className="flex items-start gap-2">
+                <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <button
           type="button"
-          variant="marketing"
-          size="default"
-          className="mt-4 w-full rounded-full shadow-sm"
           onClick={() => onBook(service)}
-          aria-label={`Book ${service.title}`}
+          className="mt-4 w-full rounded-xl bg-[#6d28d9] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5b21b6]"
         >
-          Book this service
-          <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
-        </Button>
+          Book Now
+        </button>
       </div>
     </article>
   );
 }
 
-function ProfileParticles({ className }) {
+function PortfolioTile({ item }) {
+  const isImage = item.fileType?.startsWith("image/");
+  const isVideo = item.fileType?.startsWith("video/");
   return (
-    <div
-      className={cn(
-        "pointer-events-none absolute -right-4 -top-6 h-64 w-[min(100%,28rem)] opacity-[0.22] md:opacity-[0.32]",
-        className
-      )}
-      aria-hidden
-    >
-      <Particles
-        className="absolute inset-0"
-        quantity={42}
-        color="#0055ff"
-        staticity={55}
-        ease={45}
-      />
-    </div>
-  );
-}
-
-function SectionTitle({ icon: Icon, children }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-      <h3 className="text-base font-semibold tracking-tight text-foreground">{children}</h3>
-    </div>
+    <figure className="overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-200">
+        {isImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.url} alt={item.title || "Portfolio"} className="h-full w-full object-cover" />
+        ) : isVideo ? (
+          <video src={item.url} className="h-full w-full object-cover" controls preload="metadata" />
+        ) : (
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex h-full items-center justify-center px-3 text-center text-sm font-medium text-[#6d28d9]">
+            {item.title || "Open file"}
+          </a>
+        )}
+        {isVideo ? (
+          <span className="pointer-events-none absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white">
+            <Play className="h-3.5 w-3.5 fill-white" />
+          </span>
+        ) : null}
+      </div>
+      {item.title ? <figcaption className="mt-2 text-sm font-medium text-slate-800">{item.title}</figcaption> : null}
+      {item.description ? <p className="text-xs text-slate-500">{item.description}</p> : null}
+    </figure>
   );
 }
 
 export function DoctorProfile({ doctor, availableDays }) {
-  const [showBooking, setShowBooking] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [isAgreementOpen, setIsAgreementOpen] = useState(false);
-  /** Set when visitor clicks "Book this service" on a service card (prefills session notes) */
-  const [bookingServiceNote, setBookingServiceNote] = useState(null);
   const router = useRouter();
-
   const { data: session } = useSession();
   const sessionUser = session?.user;
   const canReview = sessionUser?.role === "CLIENT";
 
-  // Ratings/reviews (client-side for now; can be wired to DB later)
-  const reviewsStorageKey = doctor?.id ? `creator-reviews:${doctor.id}` : null;
+  const [tab, setTab] = useState("overview");
+  const [showBooking, setShowBooking] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isAgreementOpen, setIsAgreementOpen] = useState(false);
+  const [bookingServiceNote, setBookingServiceNote] = useState(null);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
   const [reviews, setReviews] = useState([]);
   const [selectedRating, setSelectedRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
+  const reviewsStorageKey = doctor?.id ? `creator-reviews:${doctor.id}` : null;
+  const services = doctor.services || [];
+  const portfolios = doctor.portfolios || [];
+  const products = doctor.digitalProducts || [];
+  const skillLabels = getDisplaySkillLabels(doctor.skills);
+  const links = (doctor.portfolioUrls || []).filter(Boolean);
+  const socials = links
+    .map((url) => ({ url, kind: socialKind(url) }))
+    .filter((item, index, all) => all.findIndex((other) => other.kind === item.kind && other.kind !== "link") === index || item.kind === "link")
+    .slice(0, 5);
+
+  const coverLink = useMemo(() => featuredCoverLink(portfolios, links), [portfolios, links]);
+
+  const coverImage =
+    usableImage(portfolios.find((item) => item.fileType?.startsWith("image/"))?.url) ||
+    usableImage(doctor.imageUrl);
+  const line = coverLine(doctor);
+  const backHref = `/talents/${encodeURIComponent(String(doctor.specialty ?? "").trim())}`;
+
+  const totalSlots = (availableDays || []).reduce((total, day) => total + (day.slots?.length || 0), 0);
+  const firstOpenDay = (availableDays || []).find((day) => day.slots?.length);
+  const hoursLabel = firstOpenDay
+    ? `${firstOpenDay.displayDate.split(",")[0]} · ${firstOpenDay.slots[0].formatted.split(" - ")[0]} – ${firstOpenDay.slots[firstOpenDay.slots.length - 1].formatted.split(" - ")[1]}`
+    : "No open times in the next few days";
+
+  const avgRating =
+    reviews.length > 0 ? reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviews.length : 0;
+
   useEffect(() => {
     if (!reviewsStorageKey) return;
     try {
       const raw = window.localStorage.getItem(reviewsStorageKey);
-      if (!raw) {
-        setReviews([]);
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) setReviews(parsed);
-      else setReviews([]);
+      const parsed = raw ? JSON.parse(raw) : [];
+      setReviews(Array.isArray(parsed) ? parsed : []);
     } catch {
       setReviews([]);
     }
   }, [reviewsStorageKey]);
 
   useEffect(() => {
-    if (!sessionUser?.id || !reviewsStorageKey) return;
-    const myReview = reviews.find((r) => r.clientId === sessionUser.id);
-    if (!myReview) return;
-    setSelectedRating(myReview.rating || 0);
-    setReviewComment(myReview.comment || "");
-  }, [sessionUser?.id, reviews, reviewsStorageKey]);
+    if (!sessionUser?.id) return;
+    const mine = reviews.find((review) => review.clientId === sessionUser.id);
+    if (!mine) return;
+    setSelectedRating(mine.rating || 0);
+    setReviewComment(mine.comment || "");
+  }, [sessionUser?.id, reviews]);
 
-  const getSatisfactoryLabel = (rating) => {
-    switch (rating) {
-      case 1:
-        return "Poor";
-      case 2:
-        return "Fair";
-      case 3:
-        return "Good";
-      case 4:
-        return "Very good";
-      case 5:
-        return "Excellent";
-      default:
-        return "Select a rating";
+  const openBooking = (service) => {
+    const title = service?.title?.trim();
+    setBookingServiceNote(title ? `Service: ${title}` : null);
+    if (service?.id) setSelectedServiceId(service.id);
+    if (showBooking) {
+      document.getElementById("booking-section")?.scrollIntoView({ behavior: "smooth" });
+      return;
     }
+    setIsAgreementOpen(true);
   };
 
-  const avgRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
-        reviews.length
-      : 0;
+  const handleAgreementAccept = () => {
+    setShowBooking(true);
+    setIsAgreementOpen(false);
+    setTab("availability");
+    setTimeout(() => {
+      document.getElementById("booking-section")?.scrollIntoView({ behavior: "smooth" });
+    }, 80);
+  };
 
-  const handleSubmitReview = async () => {
-    if (!reviewsStorageKey) return;
-    if (!sessionUser?.id) {
+  const handleSubmitReview = () => {
+    if (!reviewsStorageKey || !sessionUser?.id) {
       toast.error("Please sign in to leave a review.");
       return;
     }
@@ -265,37 +381,30 @@ export function DoctorProfile({ doctor, availableDays }) {
       toast.error("Only clients can leave reviews.");
       return;
     }
-    if (!selectedRating || selectedRating < 1 || selectedRating > 5) {
+    if (!selectedRating) {
       toast.error("Please select a rating.");
       return;
     }
-    if (!reviewComment.trim() || reviewComment.trim().length < 3) {
-      toast.error("Please add a short comment (at least 3 characters).");
+    if (reviewComment.trim().length < 3) {
+      toast.error("Please add a short comment.");
       return;
     }
-
     setIsSubmittingReview(true);
     try {
-      const now = new Date().toISOString();
-      const myName = sessionUser.name || "Client";
-      const myReview = {
+      const mine = {
         id: `${sessionUser.id}:${doctor.id}`,
         clientId: sessionUser.id,
-        clientName: myName,
+        clientName: sessionUser.name || "Client",
         rating: selectedRating,
         comment: reviewComment.trim(),
-        createdAt: now,
+        createdAt: new Date().toISOString(),
       };
-
-      const existingIndex = reviews.findIndex((r) => r.clientId === sessionUser.id);
-      const next =
-        existingIndex >= 0
-          ? reviews.map((r, idx) => (idx === existingIndex ? { ...r, ...myReview } : r))
-          : [myReview, ...reviews];
-
+      const next = reviews.some((review) => review.clientId === sessionUser.id)
+        ? reviews.map((review) => (review.clientId === sessionUser.id ? mine : review))
+        : [mine, ...reviews];
       setReviews(next);
       window.localStorage.setItem(reviewsStorageKey, JSON.stringify(next));
-      toast.success("Review submitted!");
+      toast.success("Review submitted.");
     } catch {
       toast.error("Failed to submit review.");
     } finally {
@@ -303,595 +412,505 @@ export function DoctorProfile({ doctor, availableDays }) {
     }
   };
 
-  const totalSlots = availableDays?.reduce(
-    (total, day) => total + day.slots.length,
-    0
-  );
-
-  const handleBookSessionClick = () => {
-    if (showBooking) {
-      setShowBooking(false);
-      setBookingServiceNote(null);
-    } else {
-      setBookingServiceNote(null);
-      setIsAgreementOpen(true);
+  const share = (network) => {
+    const url = window.location.href;
+    const text = doctor.name ? `${doctor.name} on Payollar` : "Payollar creator";
+    const targets = {
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
+      x: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+    };
+    if (network === "copy") {
+      navigator.clipboard.writeText(url).then(
+        () => toast.success("Profile link copied."),
+        () => toast.error("Could not copy the link.")
+      );
+      return;
     }
+    window.open(targets[network], "_blank", "noopener,noreferrer");
   };
 
-  const openBookingFromService = (service) => {
-    const title = service?.title?.trim();
-    setBookingServiceNote(title ? `Service: ${title}` : null);
-    if (showBooking) {
-      document.getElementById("booking-section")?.scrollIntoView({
-        behavior: "smooth",
-      });
-    } else {
-      setIsAgreementOpen(true);
-    }
-  };
-
-  const handleAgreementAccept = () => {
-    setShowBooking(true);
-    setIsAgreementOpen(false);
-    setTimeout(() => {
-      document.getElementById("booking-section")?.scrollIntoView({
-        behavior: "smooth",
-      });
-    }, 100);
-  };
-
-  const handleSlotSelect = (slot) => {
-    setSelectedSlot(slot);
-  };
-
-  const handleBookingComplete = () => {
-    router.push("/appointments");
-  };
-
-  const expYears =
-    doctor.experience != null && doctor.experience !== ""
-      ? `${doctor.experience} years experience`
-      : null;
-
-  const skillLabels = getDisplaySkillLabels(doctor.skills);
+  const visibleServices = tab === "services" ? services : services.slice(0, 4);
+  const visiblePortfolio = tab === "portfolio" ? portfolios : portfolios.slice(0, 4);
+  const visibleReviews = tab === "reviews" ? reviews : reviews.slice(0, 3);
+  const highlights = skillLabels.slice(0, 4);
 
   return (
-    <div className="relative">
-      <ProfileParticles />
-
-      <div className="relative z-[1] grid min-w-0 grid-cols-1 gap-8 md:grid-cols-3">
-        {/* Sidebar */}
-        <div className="md:col-span-1">
-          <div className="md:sticky md:top-28">
-            <Card className={cn(cardSurface, "overflow-hidden")}>
-              <CardContent className="pt-8 pb-8">
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className={cn(
-                      "relative mb-5 h-36 w-36 rounded-full p-1",
-                      "bg-gradient-to-br from-primary/50 via-primary/20 to-transparent"
-                    )}
-                  >
-                    <div className="relative h-full w-full overflow-hidden rounded-full bg-muted ring-2 ring-border/80">
-                      {doctor.imageUrl ? (
-                        <Image
-                          src={doctor.imageUrl}
-                          alt={doctor.name}
-                          fill
-                          sizes="144px"
-                          className="object-cover"
-                          priority
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-primary/10">
-                          <User className="h-16 w-16 text-primary/70" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-primary">
-                    {doctor.specialty || "Talent"}
-                  </p>
-                  <h2 className="mb-3 text-2xl font-semibold tracking-tight text-foreground">
-                    {doctor.name}
-                  </h2>
-
-                  {expYears ? (
-                    <div className="mb-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Medal className="h-4 w-4 shrink-0 text-primary" />
-                      <span>{expYears}</span>
-                    </div>
-                  ) : (
-                    <div className="mb-6 h-px w-12 bg-border/60" aria-hidden />
-                  )}
-
-                  <Button
-                    type="button"
-                    onClick={handleBookSessionClick}
-                    variant={showBooking ? "marketingOutline" : "marketing"}
-                    size="lg"
-                    className="w-full rounded-full"
-                  >
-                    {showBooking ? (
-                      <>
-                        Hide booking
-                        <ChevronUp className="ml-1 h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        Book a session
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-
-                  {totalSlots > 0 ? (
-                    <p className="mt-4 text-xs text-muted-foreground">
-                      {totalSlots} slot{totalSlots === 1 ? "" : "s"} open in the next few days
-                    </p>
-                  ) : (
-                    <p className="mt-4 text-xs text-muted-foreground">
-                      No open slots right now — check back soon
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+    <div className="-mt-[5.25rem] bg-[#f5f6fb] pb-20 text-slate-900 md:-mt-28">
+      <section className="relative h-72 overflow-hidden bg-slate-900 sm:h-80 md:h-[22rem]">
+        {coverImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverImage} alt="" className="h-full w-full object-cover object-[center_20%]" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-slate-800 via-slate-700 to-violet-900" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/25" />
+        <div className="absolute inset-x-0 top-24 flex items-start justify-between p-4 md:top-28 md:p-6">
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur-sm hover:bg-black/55"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {doctor.specialty || "Talents"}
+          </Link>
+          {coverLink ? (
+            <a
+              href={coverLink.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm hover:bg-black/70"
+            >
+              {coverLink.isReel ? (
+                <Play className="h-3.5 w-3.5 fill-white" />
+              ) : (
+                <SocialIcon kind={socialKind(coverLink.url)} className="h-3.5 w-3.5" />
+              )}
+              {coverLink.label}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
         </div>
+        {line ? (
+          <p
+            className="pointer-events-none absolute right-5 top-40 max-w-[16rem] text-right text-3xl leading-tight text-white drop-shadow-sm sm:right-10 sm:top-44 sm:max-w-sm sm:text-4xl md:text-[2.6rem]"
+            style={{ fontFamily: "var(--font-handwriting), cursive" }}
+          >
+            {line}
+          </p>
+        ) : null}
+      </section>
 
-        {/* Main */}
-        <div className="min-w-0 space-y-6 md:col-span-2">
-          <Card className={cn(cardSurface, "min-w-0 overflow-hidden")}>
-            <CardHeader className="space-y-1 pb-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-primary">About</p>
-              <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">
-                {doctor.name}
-              </CardTitle>
-              <CardDescription className="text-base">
-                Professional background, services, and portfolio
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-w-0 space-y-8">
-              <div className="space-y-3">
-                <SectionTitle icon={FileText}>Bio</SectionTitle>
-                <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
-                  {doctor.description?.trim()
-                    ? doctor.description
-                    : "This creator hasn’t added a bio yet. Explore their services and portfolio below, or book a session to connect."}
-                </p>
-              </div>
-
-              <Separator className="bg-border/60" />
-
-              <div className="min-w-0 space-y-3">
-                <SectionTitle icon={Award}>Skills</SectionTitle>
-                {skillLabels.length > 0 ? (
-                  <div className="min-w-0 rounded-lg border border-border/50 bg-muted/20 p-2.5">
-                    <div className="flex min-w-0 max-w-full flex-wrap gap-1.5">
-                      {skillLabels.map((label) => (
-                        <Badge
-                          key={label}
-                          variant="outline"
-                          className="max-w-full shrink whitespace-normal break-words border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] font-medium leading-snug text-white"
-                        >
-                          {label}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No skills listed yet.</p>
-                )}
-              </div>
-
-              <Separator className="bg-border/60" />
-
-              <div className="space-y-4">
-                <SectionTitle icon={Star}>Ratings & Reviews</SectionTitle>
-
-                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, idx) => {
-                          const starNum = idx + 1;
-                          const isFilled = starNum <= Math.round(avgRating);
-                          return (
-                            <Star
-                              key={starNum}
-                              className={cn(
-                                "h-4 w-4 transition-colors",
-                                isFilled ? "text-primary fill-primary" : "text-muted-foreground/35"
-                              )}
-                              fill={isFilled ? "currentColor" : "transparent"}
-                              aria-hidden
-                            />
-                          );
-                        })}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {reviews.length > 0 ? (
-                          <>
-                            <span className="font-semibold text-foreground">{avgRating.toFixed(1)}</span>{" "}
-                            average
-                          </>
-                        ) : (
-                          "No ratings yet"
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      {reviews.length > 0
-                        ? `${reviews.length} review${reviews.length === 1 ? "" : "s"}`
-                        : "Be the first to leave a review"}
-                    </div>
-                  </div>
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-5 px-4 md:px-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:gap-6">
+        <div className="contents lg:block lg:min-w-0 lg:space-y-8">
+        <section className="relative z-10 order-1 -mt-16 h-fit rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row">
+            <div className="relative -mt-14 h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-white bg-slate-100 shadow-md sm:h-28 sm:w-28">
+              {usableImage(doctor.imageUrl) ? (
+                <Image src={doctor.imageUrl} alt="" fill className="object-cover" sizes="112px" priority />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-violet-50 text-violet-700">
+                  <User className="h-10 w-10" />
                 </div>
-
-                {reviews.length > 0 ? (
-                  <div className="space-y-3">
-                    {reviews
-                      .slice()
-                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                      .map((r) => (
-                        <Card
-                          key={r.id}
-                          className="rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur-sm"
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <div className="text-sm font-semibold text-foreground">
-                                  {r.clientName || "Client"}
-                                </div>
-                                <div className="mt-1 flex items-center gap-1">
-                                  {Array.from({ length: 5 }).map((_, idx) => {
-                                    const starNum = idx + 1;
-                                    const isFilled = starNum <= (Number(r.rating) || 0);
-                                    return (
-                                      <Star
-                                        key={starNum}
-                                        className={cn(
-                                          "h-4 w-4",
-                                          isFilled ? "text-primary fill-primary" : "text-muted-foreground/35"
-                                        )}
-                                        fill={isFilled ? "currentColor" : "transparent"}
-                                        aria-hidden
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : null}
-                              </div>
-                            </div>
-                            {r.comment ? (
-                              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                                {r.comment}
-                              </p>
-                            ) : null}
-                          </CardContent>
-                        </Card>
-                      ))}
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{doctor.name}</h1>
+                    <BadgeCheck className="h-5 w-5 text-sky-500" aria-label="Verified creator" />
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {[doctor.specialty, doctor.experience != null ? `${doctor.experience} years` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                {socials.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    {socials.map((item) => (
+                      <a
+                        key={item.url}
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-8 items-center gap-0.5 rounded-full px-1.5 text-slate-700 hover:bg-slate-100"
+                        aria-label={hostOf(item.url) || "Profile link"}
+                      >
+                        <SocialIcon kind={item.kind} />
+                        <ArrowUpRight className="h-3 w-3" />
+                      </a>
+                    ))}
                   </div>
                 ) : null}
+              </div>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+                {doctor.description?.trim() ||
+                  "This creator hasn’t added a bio yet. Their services and portfolio are below."}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Verified creator
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <BriefStat label={services.length === 1 ? "Service" : "Services"} value={services.length} />
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Stars value={avgRating} />
+                  <span className="font-medium text-slate-800">
+                    {reviews.length ? avgRating.toFixed(1) : "New"}
+                  </span>
+                  <span className="text-slate-400">
+                    {reviews.length ? `(${reviews.length})` : ""}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
+
+        <div className="order-3 min-w-0 space-y-8">
+          <div className="flex gap-6 overflow-x-auto border-b border-slate-200">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={cn(
+                  "shrink-0 border-b-2 pb-3 text-sm font-medium",
+                  tab === item.id
+                    ? "border-[#6d28d9] text-slate-950"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {(tab === "overview" || tab === "services") && (
+            <section>
+              <SectionHead
+                title="Services & packages"
+                action={services.length > 4 && tab === "overview" ? "View all services" : null}
+                onAction={() => setTab("services")}
+              />
+              <p className="mt-1 text-sm text-slate-500">Choose a package, then pick a time.</p>
+              {visibleServices.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {visibleServices.map((service) => (
+                    <ServiceCard key={service.id} service={service} onBook={openBooking} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyNote>No active services yet.</EmptyNote>
+              )}
+            </section>
+          )}
+
+          {(tab === "overview" || tab === "portfolio") && (
+            <section>
+              <SectionHead
+                title="Portfolio"
+                action={portfolios.length > 4 && tab === "overview" ? "View all work" : null}
+                onAction={() => setTab("portfolio")}
+              />
+              {visiblePortfolio.length > 0 ? (
+                <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+                  {visiblePortfolio.map((item) => (
+                    <PortfolioTile key={item.id} item={item} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyNote>No portfolio uploads yet.</EmptyNote>
+              )}
+              {tab === "portfolio" && links.length > 0 ? (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {links.map((url) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:border-[#6d28d9]"
+                    >
+                      {hostOf(url) || url}
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+              {tab === "portfolio" && products.length > 0 ? (
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  {products.map((product) => (
+                    <a key={product.id} href="/products" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                      <div className="relative h-36 bg-slate-100">
+                        {usableImage(product.imageUrl) ? (
+                          <Image src={product.imageUrl} alt="" fill className="object-cover" sizes="320px" />
+                        ) : null}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold">{product.title}</h3>
+                        <p className="mt-1 line-clamp-2 text-sm text-slate-500">{product.description}</p>
+                        <p className="mt-2 text-sm font-semibold">{formatCedis(product.price)}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          )}
+
+          {(tab === "overview" || tab === "reviews") && (
+            <section>
+              <SectionHead
+                title="Reviews"
+                action={reviews.length > 3 && tab === "overview" ? "View all reviews" : null}
+                onAction={() => setTab("reviews")}
+              />
+              {visibleReviews.length > 0 ? (
+                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {visibleReviews
+                    .slice()
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .map((review) => (
+                      <article key={review.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
+                            {(review.clientName || "C").slice(0, 1)}
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold">{review.clientName || "Client"}</p>
+                            <Stars value={review.rating} size="h-3.5 w-3.5" />
+                          </div>
+                        </div>
+                        {review.comment ? (
+                          <p className="mt-3 text-sm leading-relaxed text-slate-600">{review.comment}</p>
+                        ) : null}
+                        {review.createdAt ? (
+                          <p className="mt-3 text-xs text-slate-400">
+                            {new Date(review.createdAt).toLocaleDateString("en-GH", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                        ) : null}
+                      </article>
+                    ))}
+                </div>
+              ) : (
+                <EmptyNote>No reviews yet.</EmptyNote>
+              )}
+
+              {tab === "reviews" ? (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                   {!sessionUser ? (
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-foreground">Sign in to leave a review</div>
-                      <p className="text-sm text-muted-foreground">
-                        Rating and comments help other clients choose the right talent.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="marketing"
-                        className="w-full rounded-full"
-                        onClick={() => router.push("/sign-in")}
-                      >
+                      <p className="text-sm font-medium">Sign in to leave a review</p>
+                      <Button type="button" className="rounded-xl bg-[#6d28d9] hover:bg-[#5b21b6]" onClick={() => router.push("/sign-in")}>
                         Sign in
                       </Button>
                     </div>
                   ) : !canReview ? (
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-foreground">Clients only</div>
-                      <p className="text-sm text-muted-foreground">
-                        You must be signed in as a client to rate creators.
-                      </p>
-                    </div>
+                    <p className="text-sm text-slate-500">Only client accounts can rate creators.</p>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-medium text-foreground">Your satisfaction level</div>
-                          <div className="text-xs text-muted-foreground">{getSatisfactoryLabel(selectedRating || 0)}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1" role="radiogroup" aria-label="Satisfaction rating">
-                        {Array.from({ length: 5 }).map((_, idx) => {
-                          const starNum = idx + 1;
-                          const isSelected = starNum <= selectedRating;
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, index) => {
+                          const star = index + 1;
+                          const on = star <= selectedRating;
                           return (
-                            <button
-                              key={starNum}
-                              type="button"
-                              className="rounded-full p-1 transition-colors hover:bg-primary/10"
-                              onClick={() => setSelectedRating(starNum)}
-                              aria-label={`${starNum} star${starNum === 1 ? "" : "s"}`}
-                            >
-                              <Star
-                                className={cn(
-                                  "h-6 w-6 transition-colors",
-                                  isSelected ? "text-primary fill-primary" : "text-muted-foreground/40"
-                                )}
-                                fill={isSelected ? "currentColor" : "transparent"}
-                                aria-hidden
-                              />
+                            <button key={star} type="button" onClick={() => setSelectedRating(star)} aria-label={`${star} stars`} className="p-1">
+                              <Star className={cn("h-6 w-6", on ? "fill-amber-400 text-amber-400" : "text-slate-300")} />
                             </button>
                           );
                         })}
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-foreground">Comments</div>
-                        <Textarea
-                          value={reviewComment}
-                          onChange={(e) => setReviewComment(e.target.value)}
-                          placeholder="What went well? What should others know?"
-                          className="min-h-24 resize-none"
-                        />
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{reviewComment.trim().length ? `${reviewComment.trim().length} chars` : "Optional, but recommended"}</span>
-                        </div>
-                      </div>
-
+                      <Textarea
+                        value={reviewComment}
+                        onChange={(event) => setReviewComment(event.target.value)}
+                        placeholder="What should other clients know?"
+                        className="min-h-24 resize-none"
+                      />
                       <Button
                         type="button"
-                        variant="marketing"
-                        className="w-full rounded-full"
                         onClick={handleSubmitReview}
                         disabled={isSubmittingReview}
+                        className="rounded-xl bg-[#6d28d9] hover:bg-[#5b21b6]"
                       >
                         {isSubmittingReview ? "Submitting..." : "Submit review"}
                       </Button>
                     </div>
                   )}
                 </div>
-              </div>
-
-              {doctor.services && doctor.services.length > 0 ? (
-                <>
-                  <Separator className="bg-border/60" />
-                  <div className="space-y-5">
-                    <div className="space-y-2">
-                      <SectionTitle icon={Briefcase}>Services</SectionTitle>
-                      <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                        Choose an offering, then pick a time. Your session notes can reference the service you
-                        selected.
-                      </p>
-                    </div>
-                    <ul className="grid list-none grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-6">
-                      {doctor.services.map((service) => (
-                        <li key={service.id} className="min-w-0">
-                          <PublicServiceCard service={service} onBook={openBookingFromService} />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
               ) : null}
+            </section>
+          )}
 
-              <Separator className="bg-border/60" />
-
-              <div className="space-y-4">
-                <SectionTitle icon={GalleryVertical}>Portfolio</SectionTitle>
-                {doctor.portfolios?.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {doctor.portfolios.map((item) => (
-                      <div
-                        key={item.id}
-                        className="group overflow-hidden rounded-xl border border-border/50 bg-card/50 ring-1 ring-border/30 transition-all hover:border-primary/30 hover:ring-primary/20"
-                      >
-                        {item.fileType?.startsWith("image/") ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- user-uploaded dynamic URLs
-                          <img
-                            src={item.url}
-                            alt={item.title || "Portfolio item"}
-                            className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                          />
-                        ) : item.fileType?.startsWith("video/") ? (
-                          <video
-                            src={item.url}
-                            controls
-                            preload="metadata"
-                            className="aspect-[4/3] w-full bg-black object-cover"
-                          />
-                        ) : (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex aspect-[4/3] items-center justify-center p-4 text-center text-sm font-medium text-primary underline-offset-4 hover:underline"
-                          >
-                            {item.title || "View file"}
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No portfolio uploads yet.</p>
-                )}
-              </div>
-
-              {doctor.portfolioUrls && doctor.portfolioUrls.length > 0 ? (
-                <>
-                  <Separator className="bg-border/60" />
-                  <div className="space-y-3">
-                    <SectionTitle icon={Link2}>Links</SectionTitle>
-                    <div className="flex flex-wrap gap-2">
-                      {doctor.portfolioUrls.map((url, index) => {
-                        try {
-                          const urlObj = new URL(url);
-                          const domain = urlObj.hostname.replace("www.", "");
-                          return (
-                            <a
-                              key={index}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/40 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                              {domain}
-                            </a>
-                          );
-                        } catch {
-                          return (
-                            <a
-                              key={index}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/40 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                              Link {index + 1}
-                            </a>
-                          );
-                        }
-                      })}
-                    </div>
-                  </div>
-                </>
+          {tab === "availability" && !showBooking ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h2 className="text-lg font-semibold">Open times</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                {totalSlots > 0
+                  ? `${totalSlots} slots are open over the next few days. Book a service to choose one.`
+                  : "This creator has no open slots in the next few days."}
+              </p>
+              {totalSlots > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => openBooking(services.find((service) => service.id === selectedServiceId))}
+                  className="mt-4 rounded-xl bg-[#6d28d9] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#5b21b6]"
+                >
+                  Book a time
+                </button>
               ) : null}
-
-              {doctor.digitalProducts && doctor.digitalProducts.length > 0 ? (
-                <>
-                  <Separator className="bg-border/60" />
-                  <div className="space-y-4">
-                    <SectionTitle icon={ShoppingBag}>Digital products</SectionTitle>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {doctor.digitalProducts.map((product) => (
-                        <Card key={product.id} className={cn(cardSurfaceInteractive, "overflow-hidden")}>
-                          <div className="relative h-40 w-full">
-                            {product.imageUrl ? (
-                              <Image
-                                src={product.imageUrl}
-                                alt={product.title}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width:768px) 100vw, 50vw"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/25 to-primary/5">
-                                <ShoppingBag className="h-12 w-12 text-primary/40" />
-                              </div>
-                            )}
-                            {product.category ? (
-                              <div className="absolute left-2 top-2">
-                                <Badge className="border-0 bg-black/55 text-xs text-white backdrop-blur-sm">
-                                  {product.category}
-                                </Badge>
-                              </div>
-                            ) : null}
-                          </div>
-                          <CardContent className="space-y-3 p-5">
-                            <h4 className="line-clamp-1 font-semibold text-foreground">{product.title}</h4>
-                            <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
-                            <div className="flex items-center justify-between border-t border-border/50 pt-3">
-                              <div className="flex items-center gap-1 font-semibold tabular-nums text-foreground">
-                                <DollarSign className="h-4 w-4 text-primary" />
-                                ₵{product.price.toFixed(2)}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {product._count?.sales || 0} sales
-                              </span>
-                            </div>
-                            <Button variant="marketing" className="w-full rounded-full" size="sm" asChild>
-                              <a href="/products">
-                                <Download className="mr-2 h-4 w-4" />
-                                View & purchase
-                              </a>
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              ) : null}
-
-              <Separator className="bg-border/60" />
-
-              <div className="space-y-3">
-                <SectionTitle icon={Clock}>Availability</SectionTitle>
-                {totalSlots > 0 ? (
-                  <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-                    <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      <span className="font-medium text-foreground">{totalSlots} time slots</span> available
-                      over the next few days. Open booking below to choose a time.
-                    </p>
-                  </div>
-                ) : (
-                  <Alert className="border-border/60 bg-card/60 backdrop-blur-sm">
-                    <AlertCircle className="h-4 w-4 text-primary" />
-                    <AlertDescription>
-                      No available slots for the next few days. Check back later or browse other talents.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            </section>
+          ) : null}
 
           {showBooking ? (
-            <div id="booking-section">
-              <Card className={cardSurface}>
-                <CardHeader>
-                  <p className="text-xs font-medium uppercase tracking-wider text-primary">Booking</p>
-                  <CardTitle className="text-xl font-semibold text-foreground">Book a session</CardTitle>
-                  <CardDescription>
-                    Pick a time, then write a short project brief for the talent (goals, context, deliverables). You’ll
-                    confirm payment on the last step.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {totalSlots > 0 ? (
-                    <>
-                      {!selectedSlot ? (
-                        <SlotPicker days={availableDays} onSelectSlot={handleSlotSelect} />
-                      ) : (
-                        <AppointmentForm
-                          doctorId={doctor.id}
-                          slot={selectedSlot}
-                          onBack={() => setSelectedSlot(null)}
-                          onComplete={handleBookingComplete}
-                          initialSessionNote={bookingServiceNote}
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <div className="py-8 text-center">
-                      <Calendar className="mx-auto mb-3 h-12 w-12 text-muted-foreground opacity-60" />
-                      <h3 className="mb-2 text-lg font-semibold text-foreground">No open slots</h3>
-                      <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                        This creator doesn&apos;t have any bookable slots in the coming days. Try again later
-                        or explore other profiles.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <section id="booking-section" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Book a session</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Pick a time and describe the project. You can message them before you pay.
+                  </p>
+                  {bookingServiceNote ? <p className="mt-2 text-sm font-medium text-[#6d28d9]">{bookingServiceNote}</p> : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBooking(false);
+                    setSelectedSlot(null);
+                    setBookingServiceNote(null);
+                  }}
+                  className="text-sm text-slate-500 hover:text-slate-800"
+                >
+                  Close
+                </button>
+              </div>
+              {totalSlots > 0 ? (
+                selectedSlot ? (
+                  <AppointmentForm
+                    doctorId={doctor.id}
+                    slot={selectedSlot}
+                    onBack={() => setSelectedSlot(null)}
+                    onComplete={() => router.push("/appointments")}
+                    initialSessionNote={bookingServiceNote}
+                  />
+                ) : (
+                  <SlotPicker days={availableDays} onSelectSlot={setSelectedSlot} />
+                )
+              ) : (
+                <p className="py-8 text-center text-sm text-slate-500">No bookable slots in the coming days.</p>
+              )}
+            </section>
           ) : null}
         </div>
+        </div>
+
+        <aside className="order-2 h-fit space-y-4 self-start lg:sticky lg:top-28 lg:-mt-20">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Book a service</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Select a service to get started. You can add project details when you book.
+            </p>
+            <label className="mt-4 block text-xs font-medium text-slate-500" htmlFor="service-select">
+              Service
+            </label>
+            <select
+              id="service-select"
+              value={selectedServiceId}
+              onChange={(event) => setSelectedServiceId(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#6d28d9]"
+            >
+              <option value="">Select a service</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => openBooking(services.find((service) => service.id === selectedServiceId))}
+              className="mt-3 w-full rounded-xl bg-[#6d28d9] py-3 text-sm font-semibold text-white hover:bg-[#5b21b6]"
+            >
+              Book Now
+            </button>
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+              <Calendar className="h-3.5 w-3.5" />
+              {totalSlots > 0
+                ? `${totalSlots} open slot${totalSlots === 1 ? "" : "s"} in the next few days`
+                : "No open slots right now"}
+            </p>
+          </div>
+
+          {highlights.length > 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-semibold">Why work with me?</h2>
+              <ul className="mt-3 space-y-2.5">
+                {highlights.map((label) => (
+                  <li key={label} className="flex items-start gap-2.5 text-sm text-slate-600">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold">Creator stats</h2>
+            <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <Stat value={doctor.experience != null ? String(doctor.experience) : "—"} label="Years" />
+              <Stat value={String(services.length)} label="Services" />
+              <Stat value={reviews.length ? avgRating.toFixed(1) : "—"} label="Rating" />
+            </dl>
+          </div>
+
+          <div className="rounded-3xl border border-violet-100 bg-violet-50/70 p-5">
+            <h2 className="text-base font-semibold">Need a custom request?</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Have a brief that doesn’t match a package? Book a session and describe it there.
+            </p>
+            <button
+              type="button"
+              onClick={() => openBooking(null)}
+              className="mt-4 w-full rounded-xl border border-[#6d28d9] bg-white py-2.5 text-sm font-semibold text-[#6d28d9] hover:bg-violet-50"
+            >
+              Request a session
+            </button>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold">Availability</h2>
+            <ul className="mt-3 space-y-3 text-sm text-slate-600">
+              <li className="flex items-start gap-2">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <span>{hoursLabel}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <span>
+                  {totalSlots > 0
+                    ? `${totalSlots} bookable slot${totalSlots === 1 ? "" : "s"}`
+                    : "Check back for new times"}
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold">Share this creator</h2>
+            <div className="mt-3 flex items-center gap-2">
+              <button type="button" onClick={() => share("copy")} aria-label="Copy link" className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
+                <Copy className="h-4 w-4" />
+              </button>
+              {[
+                ["whatsapp", "WhatsApp"],
+                ["x", "X"],
+                ["facebook", "Facebook"],
+                ["linkedin", "LinkedIn"],
+              ].map(([network, label]) => (
+                <button
+                  key={network}
+                  type="button"
+                  onClick={() => share(network)}
+                  aria-label={label}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50"
+                >
+                  <SocialIcon kind={network} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
       </div>
 
       <BookingAgreementModal
@@ -903,4 +922,39 @@ export function DoctorProfile({ doctor, availableDays }) {
       />
     </div>
   );
+}
+
+function BriefStat({ value, label }) {
+  return (
+    <span>
+      <span className="font-semibold text-slate-900">{value}</span> {label}
+    </span>
+  );
+}
+
+function Stat({ value, label }) {
+  return (
+    <div>
+      <dt className="text-lg font-semibold text-slate-950">{value}</dt>
+      <dd className="text-xs text-slate-500">{label}</dd>
+    </div>
+  );
+}
+
+function SectionHead({ title, action, onAction }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      {action ? (
+        <button type="button" onClick={onAction} className="inline-flex items-center gap-1 text-sm font-medium text-[#6d28d9] hover:underline">
+          {action}
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function EmptyNote({ children }) {
+  return <p className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">{children}</p>;
 }

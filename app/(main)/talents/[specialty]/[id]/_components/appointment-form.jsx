@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { MessageCircle } from "lucide-react";
+import { startBookingChat } from "@/actions/booking-chat";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Loader2, Clock, ArrowLeft, Calendar, CreditCard, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 export function AppointmentForm({
   doctorId,
@@ -17,12 +19,29 @@ export function AppointmentForm({
   /** Prefill when visitor started booking from a specific service card */
   initialSessionNote,
 }) {
+  const router = useRouter();
   const [projectBrief, setProjectBrief] = useState(initialSessionNote ?? "");
 
   useEffect(() => {
     setProjectBrief(initialSessionNote ?? "");
   }, [slot?.startTime, initialSessionNote]);
   const [loading, setLoading] = useState(false);
+
+  const startChat = async () => {
+    setLoading(true);
+    try {
+      const result = await startBookingChat({
+        doctorId,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        description: projectBrief.trim(),
+      });
+      router.push(`/messages/${result.appointmentId}`);
+    } catch (error) {
+      toast.error(error.message || "Could not open the chat.");
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,79 +83,108 @@ export function AppointmentForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
-        <div className="flex items-center">
-          <Calendar className="mr-2 h-5 w-5 text-primary" />
-          <span className="font-medium text-foreground">
-            {format(new Date(slot.startTime), "EEEE, MMMM d, yyyy")}
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        startChat();
+      }}
+      className="space-y-5 text-slate-900"
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#6d28d9]">
+            <Calendar className="h-4 w-4" />
+          </span>
+          <span>
+            <span className="block text-xs text-slate-500">Date</span>
+            <span className="block text-sm font-medium">{format(new Date(slot.startTime), "EEEE, MMM d, yyyy")}</span>
           </span>
         </div>
-        <div className="flex items-center">
-          <Clock className="mr-2 h-5 w-5 text-primary" />
-          <span className="text-foreground">{slot.formatted}</span>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#6d28d9]">
+            <Clock className="h-4 w-4" />
+          </span>
+          <span>
+            <span className="block text-xs text-slate-500">Time</span>
+            <span className="block text-sm font-medium">{slot.formatted}</span>
+          </span>
         </div>
       </div>
 
-      <section
-        className={cn(
-          "space-y-3 rounded-2xl border border-primary/20 bg-primary/[0.04] p-5",
-          "ring-1 ring-primary/10"
-        )}
-        aria-labelledby="project-brief-heading"
-      >
+      <section className="rounded-2xl border border-slate-200 bg-white p-4" aria-labelledby="project-brief-heading">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-            <FileText className="h-5 w-5" aria-hidden />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <h3 id="project-brief-heading" className="text-base font-semibold text-foreground">
-              Your project brief for the talent
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5f3ff] text-[#6d28d9]">
+            <FileText className="h-4 w-4" aria-hidden />
+          </span>
+          <div>
+            <h3 id="project-brief-heading" className="text-sm font-semibold text-slate-950">
+              Project brief
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Help them prepare: describe your brand or event, what you need from the session, timeline, references, or
-              deliverables. This is sent to the creator with your booking.
+            <p className="mt-0.5 text-sm leading-relaxed text-slate-500">
+              Tell them what you’re working on, what you need from the session, and any deadline. This goes with the booking.
             </p>
           </div>
         </div>
-        <div className="space-y-2 pt-1">
-          <Label htmlFor="project-brief" className="sr-only">
-            Project brief
-          </Label>
-          <Textarea
-            id="project-brief"
-            placeholder="Example: We’re launching a single in June and need vocal coaching plus a content plan for TikTok and IG Reels. Budget is flexible for the right fit…"
-            value={projectBrief}
-            onChange={(e) => setProjectBrief(e.target.value)}
-            maxLength={2000}
-            className="min-h-[140px] resize-y border-border/60 bg-background text-foreground"
-          />
-          <div className="flex justify-end text-xs text-muted-foreground tabular-nums">
-            {projectBrief.length} / 2000
-          </div>
-        </div>
+        <Label htmlFor="project-brief" className="sr-only">
+          Project brief
+        </Label>
+        <Textarea
+          id="project-brief"
+          placeholder="We’re launching a single in June and need vocal coaching plus a content plan for TikTok and IG Reels."
+          value={projectBrief}
+          onChange={(e) => setProjectBrief(e.target.value)}
+          maxLength={2000}
+          className="mt-3 min-h-[140px] resize-y rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
+        />
+        <p className="mt-2 text-right text-xs tabular-nums text-slate-400">{projectBrief.length} / 2000</p>
       </section>
 
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <CreditCard className="h-4 w-4 shrink-0" aria-hidden />
-        You will be redirected to Paystack to pay securely. Booking is confirmed after successful payment.
+      <p className="flex items-start gap-2 text-sm text-slate-500">
+        <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+        Message them about this time first. Pay with Paystack when you are ready to confirm the session.
       </p>
 
-      <div className="flex justify-between pt-2">
-        <Button type="button" variant="outline" onClick={onBack} disabled={loading}>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBack}
+          disabled={loading}
+          className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Change time slot
+          Change time
         </Button>
-        <Button type="submit" disabled={loading} variant="marketing" className="rounded-full">
-          {loading ? (
-            <>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          >
+            <CreditCard className="mr-2 h-4 w-4" />
+            Pay with Paystack
+          </Button>
+          <Button
+            type="button"
+            onClick={startChat}
+            disabled={loading}
+            className="rounded-xl bg-[#6d28d9] text-white hover:bg-[#5b21b6]"
+          >
+            {loading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Redirecting to payment...
-            </>
-          ) : (
-            "Pay with Paystack"
-          )}
-        </Button>
+            ) : null}
+            {loading ? (
+              "Please wait..."
+            ) : (
+              <>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Message creator
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

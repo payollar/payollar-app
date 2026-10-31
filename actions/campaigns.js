@@ -129,21 +129,31 @@ export async function getActiveCampaigns() {
           },
         },
         applications: {
+          orderBy: { createdAt: "desc" },
+          take: 6,
           select: {
             id: true,
-            status: true,
+            talent: {
+              select: {
+                id: true,
+                name: true,
+                imageUrl: true,
+                specialty: true,
+                verificationStatus: true,
+              },
+            },
           },
         },
+        _count: { select: { applications: true } },
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    // Add applicant count to each campaign
     const campaignsWithCounts = campaigns.map((campaign) => ({
       ...campaign,
-      applicants: campaign.applications.length,
+      applicants: campaign._count.applications,
     }));
 
     return { campaigns: campaignsWithCounts };
