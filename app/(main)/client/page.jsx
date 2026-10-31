@@ -24,7 +24,7 @@ export default async function ClientDashboardPage() {
     <ClientOverview 
       stats={{
         ...(statsData.stats || {}),
-        companyName: user?.name || "TechCorp",
+        companyName: user?.name || "",
         bookedTalents: appointmentsData.appointments?.length || 0,
         pendingApplications: campaignsData.campaigns?.reduce((acc, c) => acc + (c._count?.applications || 0), 0) || 0,
       }}

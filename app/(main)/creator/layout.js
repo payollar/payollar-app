@@ -1,5 +1,4 @@
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { CreatorSidebar } from "./_components/creator-sidebar";
 
 export const metadata = {
@@ -7,43 +6,26 @@ export const metadata = {
   description: "Manage your profile, bookings, and grow your creator business",
 };
 
-export default async function CreatorDashboardLayout({ children }) {
+export default function CreatorDashboardLayout({ children }) {
   return (
-    <div className="relative min-h-dvh w-full bg-background">
-      <LandingNavbar />
-      {/* Same top offset as campaigns/products; sidebar position fixed via globals.css */}
+    <div className="min-h-dvh w-full bg-[radial-gradient(1200px_600px_at_10%_0%,#efe8ff_0%,transparent_55%),radial-gradient(900px_500px_at_100%_100%,#ffe9d6_0%,transparent_50%),#f4f1fb] p-3 md:p-5">
+      <div className="h-[calc(100dvh-1.5rem)] rounded-[36px] border border-white bg-white/75 p-2 shadow-[0_30px_80px_rgba(70,50,130,0.12)] md:h-[calc(100dvh-2.5rem)] md:p-2.5">
       <div
         data-creator-dashboard-nav=""
-        className="relative z-10 w-full min-h-dvh pt-[5.25rem] md:pt-28"
+        className="relative z-10 h-full w-full overflow-hidden rounded-[28px] bg-[#010104]"
       >
-    <SidebarProvider defaultOpen={true}>
-      <CreatorSidebar />
-      <SidebarInset className="relative flex min-h-svh flex-col bg-background">
-        {/* Soft grid + glow — matches marketing / Avento shell */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
-          aria-hidden
-        >
-          <div
-            className="absolute inset-0 opacity-[0.045] dark:opacity-[0.07]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at center, hsl(var(--foreground)) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-          <div className="absolute -right-32 top-0 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-          <div className="absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-        </div>
-        <header
-          data-dashboard-header="true"
-          className="flex h-14 shrink-0 items-center border-b border-border/60 bg-background/75 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55 md:h-16 md:px-4"
-        >
-          <SidebarTrigger className="size-9 shrink-0" />
-        </header>
-        <div className="relative flex-1 overflow-auto p-5 md:p-8">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+        <SidebarProvider className="h-full overflow-hidden bg-[#010104]">
+          <CreatorSidebar />
+          <SidebarInset className="h-full min-h-0 flex-1 !bg-transparent p-2 md:p-3">
+            <div data-theme="light" className="creator-dashboard-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-white/70 bg-white text-slate-900">
+              <header className="flex h-12 shrink-0 items-center px-3 md:hidden">
+                <SidebarTrigger className="size-9 shrink-0 text-slate-700 hover:bg-slate-100 hover:text-slate-950" />
+              </header>
+                <div className="flex min-h-0 flex-1 flex-col overflow-auto px-4 py-4 md:px-6 md:py-5">{children}</div>
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
       </div>
     </div>
   );

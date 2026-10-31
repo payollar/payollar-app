@@ -26,9 +26,9 @@ export default async function VerificationPage() {
   const isRejected = user?.verificationStatus === "REJECTED";
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mx-auto max-w-2xl">
-        <Card className="rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm">
+    <div className="-m-4 min-h-full bg-[#f4f6fb] p-4 text-slate-900 md:-m-6 md:p-5">
+      <div className="mx-auto max-w-2xl py-8">
+        <Card className="rounded-2xl border border-white bg-white text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
           <CardHeader className="text-center">
             <div
               className={`mx-auto mb-4 w-fit rounded-full p-4 ${
@@ -54,8 +54,8 @@ export default async function VerificationPage() {
           </CardHeader>
           <CardContent className="text-center">
             {isRejected ? (
-              <div className="bg-red-900/10 border border-red-900/20 rounded-lg p-4 mb-6 flex items-start">
-                <AlertCircle className="h-5 w-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" />
+              <div className="mb-6 flex items-start rounded-lg border border-red-200 bg-red-50 p-4">
+                <AlertCircle className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
                 <div className="text-muted-foreground text-left">
                   <p className="mb-2">
                     Our administrative team has reviewed your application and
@@ -74,8 +74,8 @@ export default async function VerificationPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-amber-900/10 border border-amber-900/20 rounded-lg p-4 mb-6 flex items-start">
-                <AlertCircle className="h-5 w-5 text-amber-400 mr-3 mt-0.5 flex-shrink-0" />
+              <div className="mb-6 flex items-start rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <AlertCircle className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
                 <p className="text-muted-foreground text-left">
                   Your profile is currently under review by our administrative
                   team. This process typically takes 1-2 business days.

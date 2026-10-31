@@ -1,10 +1,9 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { getDoctorAppointments } from "@/actions/doctor";
-import CreatorAppointmentsList from "../_components/appointments-list";
+import { listMyOrders } from "@/actions/booking-orders";
+import { OrderList } from "@/components/orders/order-list";
 
-// Force dynamic rendering to avoid static generation issues with headers()
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function CreatorBookingsPage() {
   const user = await getCurrentUser();
@@ -17,12 +16,7 @@ export default async function CreatorBookingsPage() {
     redirect("/creator/verification");
   }
 
-  const appointmentsData = await getDoctorAppointments();
+  const orders = await listMyOrders();
 
-  return (
-    <CreatorAppointmentsList
-      appointments={appointmentsData.appointments || []}
-    />
-  );
+  return <OrderList orders={orders} basePath="/creator/bookings" />;
 }
-

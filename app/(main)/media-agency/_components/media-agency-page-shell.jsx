@@ -1,8 +1,8 @@
 "use client";
 
 export {
-  CreatorPageShell as MediaAgencyPageShell,
+  LegacyDashboardShell as MediaAgencyPageShell,
   CreatorParticles as MediaAgencyParticles,
-  creatorCardClass as mediaAgencyCardClass,
-  creatorCardMutedClass as mediaAgencyCardMutedClass,
+  legacyCardClass as mediaAgencyCardClass,
+  legacyCardMutedClass as mediaAgencyCardMutedClass,
 } from "../../creator/_components/creator-page-shell";

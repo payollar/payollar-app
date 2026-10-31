@@ -59,6 +59,48 @@ function rateTypeLabel(rateType) {
   }
 }
 
+function instagramPost(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (host !== "instagram.com") return null;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const kinds = new Set(["p", "reel", "reels", "tv"]);
+    for (let index = 0; index < parts.length - 1; index += 1) {
+      if (!kinds.has(parts[index])) continue;
+      const code = parts[index + 1].replace(/[^A-Za-z0-9_-]/g, "");
+      if (code.length >= 5) return code;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function mediaFromUrl(url) {
+  const videoId = youtubeId(url);
+  if (videoId) return { url, kind: "youtube", videoId };
+  if (instagramPost(url)) return { url, kind: "instagram" };
+  return null;
+}
+
+function youtubeId(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    let id = null;
+    if (host === "youtu.be") id = parsed.pathname.split("/").filter(Boolean)[0] ?? null;
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+      if (parsed.pathname === "/watch") id = parsed.searchParams.get("v");
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts[0] === "shorts" || parts[0] === "embed" || parts[0] === "live") id = parts[1] ?? null;
+    }
+    return id && /^[\w-]{6,}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 function hostOf(url) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -127,23 +169,6 @@ function coverLine(doctor) {
   return doctor.specialty?.trim() || null;
 }
 
-function servicePoints(service) {
-  const points = [];
-  if (service.duration) points.push(`${service.duration} min session`);
-  if (service.rateType === "PER_HOUR") points.push("Hourly rate");
-  else if (service.rateType === "PER_SESSION") points.push("Per session");
-  else if (service.rateType === "FIXED") points.push("Fixed price");
-  const lines = String(service.description || "")
-    .split(/\n+/)
-    .map((line) => line.replace(/^[-•]\s*/, "").trim())
-    .filter((line) => line && line.length <= 80);
-  for (const line of lines) {
-    if (points.length >= 3) break;
-    points.push(line);
-  }
-  return points.slice(0, 3);
-}
-
 function Stars({ value, size = "h-4 w-4" }) {
   return (
     <span className="inline-flex items-center gap-0.5" aria-hidden>
@@ -182,81 +207,94 @@ function SocialIcon({ kind, className = "h-4 w-4" }) {
   );
 }
 
-const SERVICE_WASHES = [
-  "from-[#ede9fe] via-[#f5f3ff] to-[#e0e7ff]",
-  "from-[#f3e8ff] via-[#faf5ff] to-[#e0f2fe]",
-  "from-[#e0e7ff] via-[#eef2ff] to-[#fae8ff]",
-  "from-[#fae8ff] via-[#f5f3ff] to-[#ede9fe]",
-];
-
-function serviceWash(value) {
-  const text = String(value || "service");
-  let hash = 0;
-  for (let index = 0; index < text.length; index += 1) {
-    hash = (hash + text.charCodeAt(index) * (index + 1)) % SERVICE_WASHES.length;
-  }
-  return SERVICE_WASHES[hash];
-}
-
-function ServiceArt({ service }) {
-  const title = service.title?.trim() || "Service";
-  const category = service.category?.trim() || "";
-  const showCategory = category && category.toLowerCase() !== title.toLowerCase();
-  return (
-    <div className={cn("absolute inset-0 overflow-hidden bg-gradient-to-br", serviceWash(title))}>
-      <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/80" />
-      <div className="absolute -bottom-12 left-4 h-28 w-28 rounded-full bg-[#6d28d9]/10" />
-      <div className="absolute bottom-5 right-6 h-8 w-8 rounded-full bg-[#6d28d9]/20" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-6xl font-semibold tracking-tight text-[#6d28d9]/30">{title.charAt(0).toUpperCase()}</span>
-      </div>
-      {showCategory ? (
-        <span className="absolute bottom-3 left-3 rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-          {category}
-        </span>
-      ) : null}
-    </div>
-  );
-}
+const SERVICE_FALLBACK_IMAGE = "/services/package-fallback.jpg";
 
 function ServiceCard({ service, onBook }) {
-  const points = servicePoints(service);
+  const description = String(service.description || "")
+    .split(/\n+/)
+    .map((line) => line.replace(/^[-•]\s*/, "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const duration = service.duration ? `${service.duration} min` : null;
+
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-[16/10] bg-slate-100">
-        {usableImage(service.imageUrl) ? (
-          <Image src={service.imageUrl} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 280px" />
-        ) : (
-          <ServiceArt service={service} />
-        )}
+    <article className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+      <div className="relative h-28 overflow-hidden rounded-xl bg-slate-950 sm:h-32">
+        <Image
+          src={usableImage(service.imageUrl) || SERVICE_FALLBACK_IMAGE}
+          alt=""
+          fill
+          className="object-cover object-[center_42%]"
+          sizes="(max-width: 640px) 100vw, 280px"
+        />
+        {duration ? (
+          <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+            {duration}
+          </span>
+        ) : null}
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-[15px] font-semibold leading-snug text-slate-900">{service.title}</h3>
-        <p className="mt-2 text-sm font-semibold text-slate-800">
+      <div className="flex flex-1 flex-col px-1.5 pb-1 pt-2.5">
+        <h3 className="line-clamp-2 text-sm font-semibold capitalize leading-snug text-slate-950">
+          {service.title}
+        </h3>
+        <p className="mt-1 text-sm font-semibold text-slate-900">
           {formatCedis(service.rate)}
           {rateTypeLabel(service.rateType) ? (
-            <span className="ml-1 text-xs font-medium text-slate-500">{rateTypeLabel(service.rateType)}</span>
+            <span className="ml-1 text-[11px] font-medium text-slate-400">{rateTypeLabel(service.rateType)}</span>
           ) : null}
         </p>
-        {points.length > 0 ? (
-          <ul className="mt-3 space-y-1.5 text-xs text-slate-500">
-            {points.map((point) => (
-              <li key={point} className="flex items-start gap-2">
-                <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-                <span>{point}</span>
-              </li>
-            ))}
-          </ul>
+        {description ? (
+          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">{description}</p>
         ) : null}
         <button
           type="button"
           onClick={() => onBook(service)}
-          className="mt-4 w-full rounded-xl bg-[#6d28d9] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5b21b6]"
+          className="mt-3 w-full rounded-full bg-[#6d28d9] px-3 py-2 text-[13px] font-semibold text-white transition hover:bg-[#5b21b6]"
         >
-          Book Now
+          Book now
         </button>
       </div>
     </article>
+  );
+}
+
+function MediaBanner({ item }) {
+  const [thumb, setThumb] = useState(
+    item.kind === "youtube" ? `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg` : null
+  );
+
+  useEffect(() => {
+    if (item.kind !== "instagram") return undefined;
+    let cancel = false;
+    fetch(`/api/link-preview?url=${encodeURIComponent(item.url)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancel && data?.thumbnail) setThumb(data.thumbnail);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [item.kind, item.url]);
+
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative block aspect-video overflow-hidden rounded-2xl bg-slate-900"
+    >
+      {thumb ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={thumb} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+      ) : (
+        <span className="absolute inset-0 bg-gradient-to-br from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" />
+      )}
+      <span className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-black/20 transition group-hover:from-black/55" />
+      <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#6d28d9] shadow-lg transition group-hover:scale-105">
+        <Play className="ml-0.5 h-5 w-5 fill-current" />
+      </span>
+    </a>
   );
 }
 
@@ -311,6 +349,9 @@ export function DoctorProfile({ doctor, availableDays }) {
   const products = doctor.digitalProducts || [];
   const skillLabels = getDisplaySkillLabels(doctor.skills);
   const links = (doctor.portfolioUrls || []).filter(Boolean);
+  const videoLinks = links.map(mediaFromUrl).filter(Boolean);
+  const otherLinks = links.filter((url) => !mediaFromUrl(url));
+  const visibleVideos = tab === "portfolio" ? videoLinks : videoLinks.slice(0, 2);
   const socials = links
     .map((url) => ({ url, kind: socialKind(url) }))
     .filter((item, index, all) => all.findIndex((other) => other.kind === item.kind && other.kind !== "link") === index || item.kind === "link")
@@ -580,7 +621,7 @@ export function DoctorProfile({ doctor, availableDays }) {
               />
               <p className="mt-1 text-sm text-slate-500">Choose a package, then pick a time.</p>
               {visibleServices.length > 0 ? (
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {visibleServices.map((service) => (
                     <ServiceCard key={service.id} service={service} onBook={openBooking} />
                   ))}
@@ -595,21 +636,28 @@ export function DoctorProfile({ doctor, availableDays }) {
             <section>
               <SectionHead
                 title="Portfolio"
-                action={portfolios.length > 4 && tab === "overview" ? "View all work" : null}
+                action={tab === "overview" && (portfolios.length > 4 || videoLinks.length > 2) ? "View all work" : null}
                 onAction={() => setTab("portfolio")}
               />
+              {visibleVideos.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {visibleVideos.map((item) => (
+                    <MediaBanner key={item.url} item={item} />
+                  ))}
+                </div>
+              ) : null}
               {visiblePortfolio.length > 0 ? (
                 <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
                   {visiblePortfolio.map((item) => (
                     <PortfolioTile key={item.id} item={item} />
                   ))}
                 </div>
-              ) : (
+              ) : visibleVideos.length === 0 ? (
                 <EmptyNote>No portfolio uploads yet.</EmptyNote>
-              )}
-              {tab === "portfolio" && links.length > 0 ? (
+              ) : null}
+              {tab === "portfolio" && otherLinks.length > 0 ? (
                 <div className="mt-6 flex flex-wrap gap-2">
-                  {links.map((url) => (
+                  {otherLinks.map((url) => (
                     <a
                       key={url}
                       href={url}

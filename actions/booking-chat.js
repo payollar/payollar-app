@@ -109,7 +109,9 @@ export async function getBookingThread(appointmentId) {
 }
 
 export async function startBookingChat({ doctorId, startTime, endTime, description }) {
-  const userId = await requireUserId();
+  const auth = await getAuthUserId();
+  if (!auth?.userId) return { code: "UNAUTHENTICATED" };
+  const userId = auth.userId;
   const client = await db.user.findUnique({
     where: { id: userId, role: "CLIENT" },
     select: { id: true },

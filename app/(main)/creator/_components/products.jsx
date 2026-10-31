@@ -242,7 +242,7 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent data-theme="light">
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
@@ -254,7 +254,7 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
                   <SelectTrigger className="w-full border-border/60 bg-background/80 backdrop-blur-sm md:w-[180px]">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-theme="light">
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((cat) => (
                       <SelectItem key={cat} value={cat}>

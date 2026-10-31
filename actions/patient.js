@@ -168,7 +168,7 @@ export async function getClientStats() {
         appointmentsThisMonth,
         totalSpent,
       },
-      recentAppointments: user.patientAppointments || [],
+      recentAppointments: user.clientAppointments || [],
     };
   } catch (error) {
     console.error("Failed to get client stats:", error);

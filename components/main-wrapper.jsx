@@ -19,6 +19,7 @@ export function MainWrapper({ children }) {
   const isClipLanding = pathname?.startsWith("/clip") || pathname?.startsWith("/academy");
   const isLightMarketing =
     pathname?.startsWith("/talents") || pathname?.startsWith("/campaigns");
+  const isMessages = pathname?.startsWith("/messages");
   const isAuthPage =
     pathname?.startsWith("/sign-in") ||
     pathname?.startsWith("/sign-up") ||
@@ -36,7 +37,8 @@ export function MainWrapper({ children }) {
         isDashboardPage ||
         isAuthPage ||
         isClipLanding ||
-        isLightMarketing
+        isLightMarketing ||
+        isMessages
           ? "flex-1 pt-0"
           : "flex-1 pt-16"
       }

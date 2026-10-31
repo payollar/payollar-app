@@ -595,11 +595,11 @@ export function CreatorAnalyticsClient({ analytics, user }) {
               </p>
             </div>
           </div>
-          <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs text-blue-800 sm:text-sm">
               <strong>Available for Payout:</strong> ₵{productSales.availableForPayout.toFixed(2)}
             </p>
-            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+            <p className="mt-1 text-xs text-blue-700">
               Visit the <Link href="/creator/payouts" className="underline font-medium">Payouts</Link> page to request a payout.
             </p>
           </div>

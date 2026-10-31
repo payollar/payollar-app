@@ -27,6 +27,13 @@ export function AppointmentForm({
   }, [slot?.startTime, initialSessionNote]);
   const [loading, setLoading] = useState(false);
 
+  const goToSignIn = (message) => {
+    const next = `${window.location.pathname}${window.location.search}`;
+    toast.error(message);
+    router.push(`/sign-in?redirect_url=${encodeURIComponent(next)}`);
+    setLoading(false);
+  };
+
   const startChat = async () => {
     setLoading(true);
     try {
@@ -36,8 +43,21 @@ export function AppointmentForm({
         endTime: slot.endTime,
         description: projectBrief.trim(),
       });
+      if (result?.code === "UNAUTHENTICATED") {
+        goToSignIn("Sign in to message this creator.");
+        return;
+      }
+      if (result?.error || !result?.appointmentId) {
+        toast.error(result?.error || "Could not open the chat.");
+        setLoading(false);
+        return;
+      }
       router.push(`/messages/${result.appointmentId}`);
     } catch (error) {
+      if (error?.message === "Unauthorized") {
+        goToSignIn("Sign in to message this creator.");
+        return;
+      }
       toast.error(error.message || "Could not open the chat.");
       setLoading(false);
     }
@@ -60,6 +80,11 @@ export function AppointmentForm({
       });
 
       const data = await res.json();
+
+      if (res.status === 401) {
+        goToSignIn("Sign in to pay for this session.");
+        return;
+      }
 
       if (!res.ok) {
         toast.error(data.error || "Failed to start payment");

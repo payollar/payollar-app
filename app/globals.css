@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *):not(:is([data-theme="light"] *)));
 
 @theme inline {
   --color-background: var(--background);
@@ -246,48 +246,96 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   display: flex !important;
 }
 
-/* Creator dashboard: align shell with LandingNavbar (same vertical rhythm as campaigns/products) */
-[data-creator-dashboard-nav] [data-slot="sidebar-wrapper"] {
-  min-height: calc(100dvh - 5.25rem) !important;
-}
-@media (min-width: 768px) {
-  [data-creator-dashboard-nav] [data-slot="sidebar-wrapper"] {
-    min-height: calc(100dvh - 7rem) !important;
-  }
+/* Creator and client dashboards: one rounded shell. The rail stays inside it. */
+[data-creator-dashboard-nav],
+[data-client-dashboard-nav] {
+  height: 100% !important;
 }
 
-/* Fixed sidebar rail starts below the floating navbar */
-[data-creator-dashboard-nav] [data-slot="sidebar-container"] {
-  top: 5.25rem !important;
-  bottom: 0 !important;
-  height: auto !important;
-  max-height: none !important;
-}
-@media (min-width: 768px) {
-  [data-creator-dashboard-nav] [data-slot="sidebar-container"] {
-    top: 7rem !important;
-  }
-}
-
-/* Client dashboard: same vertical rhythm as creator (LandingNavbar + sidebar) */
+[data-creator-dashboard-nav] [data-slot="sidebar-wrapper"],
 [data-client-dashboard-nav] [data-slot="sidebar-wrapper"] {
-  min-height: calc(100dvh - 5.25rem) !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  overflow: hidden !important;
 }
-@media (min-width: 768px) {
-  [data-client-dashboard-nav] [data-slot="sidebar-wrapper"] {
-    min-height: calc(100dvh - 7rem) !important;
-  }
+
+[data-creator-dashboard-nav] [data-slot="sidebar"],
+[data-client-dashboard-nav] [data-slot="sidebar"] {
+  position: relative !important;
+  height: 100% !important;
+  max-width: none !important;
 }
+
+[data-creator-dashboard-nav] [data-slot="sidebar-gap"],
+[data-client-dashboard-nav] [data-slot="sidebar-gap"] {
+  height: 100% !important;
+  max-width: none !important;
+}
+
+[data-creator-dashboard-nav] [data-slot="sidebar-container"],
 [data-client-dashboard-nav] [data-slot="sidebar-container"] {
-  top: 5.25rem !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  top: 0 !important;
+  right: auto !important;
   bottom: 0 !important;
-  height: auto !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
   max-height: none !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
 }
-@media (min-width: 768px) {
-  [data-client-dashboard-nav] [data-slot="sidebar-container"] {
-    top: 7rem !important;
+
+/* The global inset-header rule forces a bar open. Keep it only for the phone menu. */
+[data-creator-dashboard-nav] [data-slot="sidebar-inset"] header,
+[data-client-dashboard-nav] [data-slot="sidebar-inset"] header {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+}
+@media (max-width: 767px) {
+  [data-creator-dashboard-nav] [data-slot="sidebar-inset"] header,
+  [data-client-dashboard-nav] [data-slot="sidebar-inset"] header {
+    display: flex !important;
+    height: 3rem !important;
+    min-height: 3rem !important;
+    visibility: visible !important;
+    overflow: visible !important;
   }
+}
+
+[data-theme="light"],
+.creator-dashboard-panel,
+.client-dashboard-panel {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0055ff;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f7fb;
+  --secondary-foreground: #0f172a;
+  --muted: #f4f7fb;
+  --muted-foreground: #64748b;
+  --accent: #e8f0ff;
+  --accent-foreground: #0b3db8;
+  --border: #e6eaf1;
+  --input: #e6eaf1;
+  --ring: #0055ff;
+  color: #0f172a;
+}
+
+.creator-dashboard-panel,
+.client-dashboard-panel {
+  background: #ffffff;
 }
 
 /* Media agency dashboard: same shell as creator/client */

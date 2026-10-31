@@ -123,6 +123,9 @@ export async function getCreatorAnalytics() {
     const cancelledAppointments = allAppointments.filter(
       (apt) => apt.status === "CANCELLED"
     );
+    const requestedAppointments = allAppointments.filter(
+      (apt) => apt.status === "REQUESTED"
+    );
 
     // Calculate product sales statistics
     const salesThisMonth = allSales.filter(
@@ -244,6 +247,7 @@ export async function getCreatorAnalytics() {
         completed: completedAppointments.length,
         scheduled: scheduledAppointments.length,
         cancelled: cancelledAppointments.length,
+        requested: requestedAppointments.length,
         thisMonth: appointmentsThisMonth.length,
         lastMonth: appointmentsLastMonth.length,
         completedThisMonth,
@@ -261,6 +265,14 @@ export async function getCreatorAnalytics() {
       // Recent Activity
       recentSales: allSales.slice(0, 10),
       recentAppointments: allAppointments.slice(0, 10),
+      schedule: allAppointments.map((apt) => ({
+        id: apt.id,
+        startTime: apt.startTime,
+        endTime: apt.endTime,
+        status: apt.status,
+        clientName: apt.client?.name || "Client",
+        brief: apt.clientDescription?.trim() || null,
+      })),
     };
   } catch (error) {
     console.error("Failed to fetch creator analytics:", error);

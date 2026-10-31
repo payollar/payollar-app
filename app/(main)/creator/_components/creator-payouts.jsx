@@ -226,7 +226,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
               Request payout
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-sm">
+          <DialogContent data-theme="light" className="max-w-md border-slate-200 bg-white text-slate-900">
             <DialogHeader>
               <DialogTitle className="text-foreground">Request payout</DialogTitle>
               <DialogDescription className="text-muted-foreground">
@@ -656,7 +656,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Payment Method Dialog */}
       <Dialog open={showBankDialog} onOpenChange={setShowBankDialog}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border/60 bg-card/95 backdrop-blur-sm">
+        <DialogContent data-theme="light" className="max-h-[90vh] max-w-2xl overflow-y-auto border-slate-200 bg-white text-slate-900">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
               Payment method information
@@ -787,7 +787,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
                     <SelectTrigger className="border-border/60 bg-background text-foreground">
                       <SelectValue placeholder="Select provider" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent data-theme="light">
                       <SelectItem value="MTN">MTN Mobile Money</SelectItem>
                       <SelectItem value="VODAFONE">Vodafone Cash</SelectItem>
                       <SelectItem value="AIRTELTIGO">AirtelTigo Money</SelectItem>
@@ -863,7 +863,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Delete Bank Account Confirmation Dialog */}
       <Dialog open={showDeleteBankDialog} onOpenChange={setShowDeleteBankDialog}>
-        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-sm">
+        <DialogContent data-theme="light" className="max-w-md border-slate-200 bg-white text-slate-900">
           <DialogHeader>
             <DialogTitle className="text-foreground">Remove bank account?</DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -911,7 +911,7 @@ export function CreatorPayoutsPage({ user, payouts = [], earnings = {} }) {
 
       {/* Delete Mobile Money Confirmation Dialog */}
       <Dialog open={showDeleteMobileDialog} onOpenChange={setShowDeleteMobileDialog}>
-        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-sm">
+        <DialogContent data-theme="light" className="max-w-md border-slate-200 bg-white text-slate-900">
           <DialogHeader>
             <DialogTitle className="text-foreground">Remove mobile money?</DialogTitle>
             <DialogDescription className="text-muted-foreground">

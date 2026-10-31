@@ -12,6 +12,7 @@ export default function ConditionalHeader() {
     pathname?.startsWith("/talents") ||
     pathname?.startsWith("/services") ||
     pathname?.startsWith("/chat") ||
+    pathname?.startsWith("/messages") ||
     pathname?.startsWith("/campaigns") ||
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/creator") ||

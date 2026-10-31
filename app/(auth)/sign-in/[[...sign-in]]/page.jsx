@@ -19,7 +19,16 @@ import {
 
 function SignInForm() {
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect_url") || "/onboarding";
+  const requestedReturn = searchParams.get("redirect_url");
+  const returnPath =
+    requestedReturn &&
+    requestedReturn.startsWith("/") &&
+    !requestedReturn.startsWith("//") &&
+    !requestedReturn.startsWith("/sign-in") &&
+    !requestedReturn.startsWith("/sign-up")
+      ? requestedReturn
+      : null;
+  const redirectUrl = returnPath || "/onboarding";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,6 +71,10 @@ function SignInForm() {
 
               if (response.ok) {
                 const data = await response.json();
+                if (returnPath) {
+                  window.location.href = returnPath;
+                  return;
+                }
                 if (data.role) {
                   if (data.role === "CLIENT") {
                     window.location.href = "/";

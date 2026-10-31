@@ -75,7 +75,7 @@ export function CreatorProfile({ user }) {
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-6">
               {/* Profile Picture */}
-              <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800">
+              <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#e8f0ff]">
                 {profileImage ? (
                   <Image
                     src={profileImage}
@@ -88,8 +88,8 @@ export function CreatorProfile({ user }) {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                    <User className="h-12 w-12 text-gray-500" />
+                  <div className="w-full h-full flex items-center justify-center bg-[#e8f0ff]">
+                    <User className="h-12 w-12 text-slate-400" />
                   </div>
                 )}
               </div>
@@ -107,7 +107,7 @@ export function CreatorProfile({ user }) {
 
               {/* Account Type */}
               <div className="w-full">
-                <p className="text-gray-400 text-xs uppercase mb-2">Account Type</p>
+                <p className="text-slate-500 text-xs uppercase mb-2">Account Type</p>
                 <div className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
                   Creator account
                 </div>
@@ -120,14 +120,14 @@ export function CreatorProfile({ user }) {
         <Card className={creatorCardClass}>
           <CardHeader>
             <CardTitle className="text-foreground">Profile information</CardTitle>
-            <p className="text-gray-400 text-sm">
+            <p className="text-slate-500 text-sm">
               Update your account details and profile information.
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Full Name */}
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-gray-300">Full Name *</Label>
+              <Label htmlFor="fullName" className="text-slate-600">Full Name *</Label>
               <Input
                 id="fullName"
                 value={fullName}
@@ -139,7 +139,7 @@ export function CreatorProfile({ user }) {
 
             {/* Specialty */}
             <div className="space-y-2">
-              <Label htmlFor="specialty" className="text-gray-300">Specialty</Label>
+              <Label htmlFor="specialty" className="text-slate-600">Specialty</Label>
               <Input
                 id="specialty"
                 value={specialty}
@@ -151,7 +151,7 @@ export function CreatorProfile({ user }) {
 
             {/* Description/Bio */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-gray-300">Bio/Description *</Label>
+              <Label htmlFor="description" className="text-slate-600">Bio/Description *</Label>
               <Textarea
                 id="description"
                 value={description}
@@ -167,12 +167,12 @@ export function CreatorProfile({ user }) {
 
             {/* Email (Read-only) */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">Email Address</Label>
+              <Label htmlFor="email" className="text-slate-600">Email Address</Label>
               <Input
                 id="email"
                 value={user?.email || ""}
                 disabled
-                className="bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed"
+                className="cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500"
               />
               <p className="text-xs text-muted-foreground">
                 Email cannot be changed. Contact support if you need to update your email.
@@ -181,10 +181,10 @@ export function CreatorProfile({ user }) {
 
             {/* Profile Picture Upload */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Profile Picture</Label>
+              <Label className="text-slate-600">Profile Picture</Label>
               <div className="space-y-3">
                 {profileImage && (
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-700">
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-slate-200">
                     <Image
                       key={profileImage}
                       src={profileImage}

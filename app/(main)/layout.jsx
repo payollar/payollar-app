@@ -14,11 +14,14 @@ export default async function MainLayout({ children }) {
   const isTalentProfile = pathname.startsWith("/talents");
   const isCampaigns = pathname === "/campaigns" || pathname.startsWith("/campaigns/");
   const isOnboarding = pathname.startsWith("/onboarding");
+  const isMessages = pathname.startsWith("/messages");
+  const isCreator = pathname.startsWith("/creator");
+  const isClient = pathname.startsWith("/client");
 
   return (
     <div
       className={
-        isTalentProfile || isCampaigns
+        isTalentProfile || isCampaigns || isOnboarding || isMessages || isCreator || isClient
           ? "w-full"
           : isDashboard
             ? "container mx-auto mb-20 mt-0"

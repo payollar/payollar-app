@@ -1,10 +1,9 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { getPatientAppointments } from "@/actions/patient";
-import { ClientBookings } from "../_components/bookings";
+import { listMyOrders } from "@/actions/booking-orders";
+import { OrderList } from "@/components/orders/order-list";
 
-// Force dynamic rendering to avoid static generation issues with headers()
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function ClientBookingsPage({ searchParams }) {
   const user = await getCurrentUser();
@@ -14,16 +13,14 @@ export default async function ClientBookingsPage({ searchParams }) {
   }
 
   const params = searchParams ? await searchParams : {};
-  const appointmentsData = await getPatientAppointments();
-  const success = params?.success;
-  const paymentError = params?.error;
+  const orders = await listMyOrders();
 
   return (
-    <ClientBookings 
-      appointments={appointmentsData.appointments || []}
-      error={appointmentsData.error}
-      paymentSuccess={success}
-      paymentError={paymentError}
+    <OrderList
+      orders={orders}
+      basePath="/client/bookings"
+      paymentSuccess={params?.success}
+      paymentError={params?.error}
     />
   );
 }

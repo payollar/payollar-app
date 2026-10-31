@@ -112,9 +112,9 @@ export function EditProductModal({ open, onOpenChange, product }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-theme="light" className="max-h-[90vh] max-w-3xl overflow-y-auto border-slate-200 bg-white text-slate-900">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">
+          <DialogTitle className="text-2xl font-bold text-slate-950">
             Edit Digital Product
           </DialogTitle>
           <DialogDescription>
@@ -126,30 +126,30 @@ export function EditProductModal({ open, onOpenChange, product }) {
           {/* Product Title & Category */}
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-gray-300">
+              <Label htmlFor="title" className="text-slate-600">
                 Product Title *
               </Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="border-slate-200 bg-white text-slate-950"
                 placeholder="e.g., Premium Music Pack"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-gray-300">
+              <Label htmlFor="category" className="text-slate-600">
                 Category
               </Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) => handleInputChange("category", value)}
               >
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="border-slate-200 bg-white text-slate-950">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent data-theme="light">
                   {PRODUCT_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
@@ -162,7 +162,7 @@ export function EditProductModal({ open, onOpenChange, product }) {
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-gray-300">
+            <Label htmlFor="description" className="text-slate-600">
               Product Description *
             </Label>
             <Textarea
@@ -170,7 +170,7 @@ export function EditProductModal({ open, onOpenChange, product }) {
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
               rows={5}
-              className="bg-gray-800 border-gray-700 text-white resize-none"
+              className="border-slate-200 bg-white text-slate-950 resize-none"
               placeholder="Describe your product..."
               required
             />
@@ -178,7 +178,7 @@ export function EditProductModal({ open, onOpenChange, product }) {
 
           {/* Price */}
           <div className="space-y-2">
-            <Label htmlFor="price" className="text-gray-300">
+            <Label htmlFor="price" className="text-slate-600">
               Price (GHS) *
             </Label>
             <Input
@@ -188,7 +188,7 @@ export function EditProductModal({ open, onOpenChange, product }) {
               min="0"
               value={formData.price}
               onChange={(e) => handleInputChange("price", e.target.value)}
-              className="bg-gray-800 border-gray-700 text-white"
+              className="border-slate-200 bg-white text-slate-950"
               placeholder="0.00"
               required
             />
@@ -196,10 +196,10 @@ export function EditProductModal({ open, onOpenChange, product }) {
 
           {/* Product Image */}
           <div className="space-y-2">
-            <Label className="text-gray-300">Product Image</Label>
+            <Label className="text-slate-600">Product Image</Label>
             <div className="space-y-3">
               {formData.imageUrl && (
-                <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-700">
+                <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-slate-200">
                   <Image
                     src={formData.imageUrl}
                     alt="Product preview"
@@ -247,7 +247,7 @@ export function EditProductModal({ open, onOpenChange, product }) {
 
           {/* Digital File Upload */}
           <div className="space-y-2">
-            <Label className="text-gray-300">Digital File</Label>
+            <Label className="text-slate-600">Digital File</Label>
             <p className="text-xs text-muted-foreground mb-2">
               {formData.fileUrl ? "Current file is uploaded. Upload a new file to replace it." : "Upload the digital file"}
             </p>
@@ -293,17 +293,17 @@ export function EditProductModal({ open, onOpenChange, product }) {
 
           {/* Status */}
           <div className="space-y-2">
-            <Label htmlFor="status" className="text-gray-300">
+            <Label htmlFor="status" className="text-slate-600">
               Status
             </Label>
             <Select
               value={formData.status}
               onValueChange={(value) => handleInputChange("status", value)}
             >
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+              <SelectTrigger className="border-slate-200 bg-white text-slate-950">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-theme="light">
                 <SelectItem value="DRAFT">Draft</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="ARCHIVED">Archived</SelectItem>
@@ -316,7 +316,7 @@ export function EditProductModal({ open, onOpenChange, product }) {
             <Button
               type="button"
               variant="outline"
-              className="flex-1 border-gray-700"
+              className="flex-1 border-slate-200"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >

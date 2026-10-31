@@ -125,7 +125,7 @@ export function EditServiceModal({ open, onOpenChange, service }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-border/60 bg-card/95 backdrop-blur-sm">
+      <DialogContent data-theme="light" className="max-h-[90vh] max-w-2xl overflow-y-auto border-slate-200 bg-white text-slate-900">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">Edit service</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -159,7 +159,7 @@ export function EditServiceModal({ open, onOpenChange, service }) {
                 <SelectTrigger className={inputClass}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent data-theme="light">
                   {SERVICE_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
@@ -257,7 +257,7 @@ export function EditServiceModal({ open, onOpenChange, service }) {
                 <SelectTrigger className={inputClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent data-theme="light">
                   <SelectItem value="PER_HOUR">Per hour</SelectItem>
                   <SelectItem value="PER_SESSION">Per session</SelectItem>
                   <SelectItem value="FIXED">Fixed price</SelectItem>
@@ -295,7 +295,7 @@ export function EditServiceModal({ open, onOpenChange, service }) {
               <SelectTrigger className={inputClass}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-theme="light">
                 <SelectItem value="true">Active (visible to clients)</SelectItem>
                 <SelectItem value="false">Inactive (hidden from clients)</SelectItem>
               </SelectContent>

@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadButton } from "@uploadthing/react";
 import { 
   Check, 
-  Star, 
   Loader2, 
   Save, 
   X, 
@@ -63,10 +62,6 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
   const [selectedDays, setSelectedDays] = useState(new Set());
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-
-  // Mock rating and reviews
-  const rating = 4.9;
-  const reviewCount = 128;
 
   // Generate public profile URL
   useEffect(() => {
@@ -433,16 +428,16 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
     >
       <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 rounded-xl border border-border/60 bg-card/60 p-1 backdrop-blur-sm">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsList className="grid h-11 w-full grid-cols-3 rounded-xl border border-white bg-white p-1 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+          <TabsTrigger value="profile" className="rounded-lg data-[state=active]:bg-[#0055ff] data-[state=active]:text-white">
             <User className="mr-2 h-4 w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="public" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="public" className="rounded-lg data-[state=active]:bg-[#0055ff] data-[state=active]:text-white">
             <Globe className="mr-2 h-4 w-4" />
             Public
           </TabsTrigger>
-          <TabsTrigger value="availability" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="availability" className="rounded-lg data-[state=active]:bg-[#0055ff] data-[state=active]:text-white">
             <Calendar className="mr-2 h-4 w-4" />
             Availability
           </TabsTrigger>
@@ -456,7 +451,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
               <CardContent className="p-6">
                 <div className="flex flex-col items-center text-center space-y-6">
                   {/* Profile Picture */}
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800 border-4 border-primary/25">
+                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#e8f0ff] border-4 border-[#0055ff]/20">
                     {profileImage ? (
                       <Image
                         src={profileImage}
@@ -475,42 +470,22 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
 
                   {/* Name and Title */}
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-1">
+                    <h2 className="text-2xl font-bold text-slate-950 mb-1">
                       {fullName || "Your Name"}
                     </h2>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-slate-500 text-sm">
                       {professionalTitle || "Professional Title"}
                     </p>
                   </div>
 
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-4 py-2">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(rating)
-                              ? "text-yellow-400 fill-yellow-400"
-                              : i < rating
-                              ? "text-yellow-400 fill-yellow-400 opacity-50"
-                              : "text-gray-600"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-white font-medium">{rating}</span>
-                    <span className="text-gray-400 text-sm">({reviewCount})</span>
-                  </div>
-
                   {/* Skills Preview */}
                   <div className="w-full">
-                    <p className="text-gray-400 text-xs uppercase mb-3 tracking-wider">
+                    <p className="text-slate-500 text-xs uppercase mb-3 tracking-wider">
                       Skills & Expertise
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {isLoadingSkills ? (
-                        <p className="text-gray-500 text-sm">Loading...</p>
+                        <p className="text-slate-400 text-sm">Loading...</p>
                       ) : skills.length > 0 ? (
                         skills.slice(0, 6).map((skill) => (
                           <Badge
@@ -521,7 +496,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-gray-500 text-sm">No skills yet</p>
+                        <p className="text-slate-400 text-sm">No skills yet</p>
                       )}
                     </div>
                   </div>
@@ -532,46 +507,46 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
             {/* Right Column - Edit Form */}
             <Card className={cn("lg:col-span-2", creatorCardClass)}>
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-950 flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
                   Edit Profile Information
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-slate-500">
                   Update your profile details that will be visible to clients
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Full Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-gray-300">
+                  <Label htmlFor="fullName" className="text-slate-600">
                     Full Name *
                   </Label>
                   <Input
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white focus:border-primary"
+                    className="border-slate-200 bg-white text-slate-950 focus:border-primary"
                     placeholder="Alex Chen"
                   />
                 </div>
 
                 {/* Specialty */}
                 <div className="space-y-2">
-                  <Label htmlFor="professionalTitle" className="text-gray-300">
+                  <Label htmlFor="professionalTitle" className="text-slate-600">
                     Specialty / Professional Title
                   </Label>
                   <Input
                     id="professionalTitle"
                     value={professionalTitle}
                     onChange={(e) => setProfessionalTitle(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white focus:border-primary"
+                    className="border-slate-200 bg-white text-slate-950 focus:border-primary"
                     placeholder="e.g., Content Creator, Musician, Actor"
                   />
                 </div>
 
                 {/* Bio */}
                 <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-gray-300">
+                  <Label htmlFor="bio" className="text-slate-600">
                     Bio / Description *
                   </Label>
                   <Textarea
@@ -579,17 +554,17 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     rows={5}
-                    className="bg-gray-800 border-gray-700 text-white resize-none focus:border-primary"
+                    className="border-slate-200 bg-white text-slate-950 resize-none focus:border-primary"
                     placeholder="Tell clients about yourself, your experience, and what you offer..."
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-400">
                     {bio.length} characters
                   </p>
                 </div>
 
                 {/* Profile Picture Upload */}
                 <div className="space-y-2">
-                  <Label className="text-gray-300">Profile Picture</Label>
+                  <Label className="text-slate-600">Profile Picture</Label>
                   <div className="flex items-center gap-4">
                     {profileImage && (
                       <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-primary/30">
@@ -642,9 +617,9 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
 
                 {/* Skills Management */}
                 <div className="space-y-2">
-                  <Label className="text-gray-300">Skills & Expertise</Label>
+                  <Label className="text-slate-600">Skills & Expertise</Label>
                   <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700 min-h-[60px]">
+                    <div className="flex flex-wrap gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 min-h-[60px]">
                       {skills.length > 0 ? (
                         skills.map((skill) => (
                           <Badge
@@ -662,7 +637,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-gray-500 text-sm">No skills added yet</p>
+                        <p className="text-slate-400 text-sm">No skills added yet</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
@@ -676,7 +651,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             addSkill();
                           }
                         }}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
+                        className="border-slate-200 bg-white text-slate-950 focus:border-primary"
                       />
                       <Button
                         onClick={addSkill}
@@ -720,11 +695,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
             {/* Left Column - Preview */}
             <Card className={creatorCardClass}>
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-slate-950 flex items-center gap-2">
                   <Eye className="h-5 w-5 text-primary" />
                   Public Profile Preview
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-slate-500">
                   How your profile appears to clients
                 </CardDescription>
               </CardHeader>
@@ -732,7 +707,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 <div className="space-y-6">
                   {/* Profile Image */}
                   <div className="flex flex-col items-center">
-                    <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-800 border-4 border-primary/25 mb-4">
+                    <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#e8f0ff] border-4 border-[#0055ff]/20 mb-4">
                       {profileImage ? (
                         <Image
                           src={profileImage}
@@ -748,10 +723,10 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         </div>
                       )}
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-1">
+                    <h2 className="text-2xl font-bold text-slate-950 mb-1">
                       {fullName || "Your Name"}
                     </h2>
-                    <p className="text-gray-400 text-sm mb-4">
+                    <p className="text-slate-500 text-sm mb-4">
                       {professionalTitle || "Your Specialty"}
                     </p>
                     {publicProfileUrl && (
@@ -768,8 +743,8 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
 
                   {/* Bio */}
                   <div>
-                    <h3 className="text-white font-semibold mb-2">About</h3>
-                    <p className="text-gray-300 text-sm leading-relaxed">
+                    <h3 className="text-slate-950 font-semibold mb-2">About</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">
                       {bio || "No description added yet."}
                     </p>
                   </div>
@@ -777,7 +752,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   {/* Skills */}
                   {skills.length > 0 && (
                     <div>
-                      <h3 className="text-white font-semibold mb-2">Skills</h3>
+                      <h3 className="text-slate-950 font-semibold mb-2">Skills</h3>
                       <div className="flex flex-wrap gap-2">
                         {skills.map((skill) => (
                           <Badge
@@ -794,7 +769,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   {/* Portfolio Links */}
                   {portfolioUrls.length > 0 && (
                     <div>
-                      <h3 className="text-white font-semibold mb-2">Portfolio</h3>
+                      <h3 className="text-slate-950 font-semibold mb-2">Portfolio</h3>
                       <div className="space-y-2">
                         {portfolioUrls.map((url, index) => (
                           <a
@@ -820,11 +795,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
               {/* Portfolio URLs */}
               <Card className={creatorCardClass}>
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-slate-950 flex items-center gap-2">
                     <Briefcase className="h-5 w-5 text-primary" />
                     Portfolio Links
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-slate-500">
                     Add links to your portfolio, social media, or work samples
                   </CardDescription>
                 </CardHeader>
@@ -833,17 +808,17 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     {portfolioUrls.map((url, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
+                        className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50"
                       >
-                        <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-gray-300 text-sm flex-1 truncate">
+                        <ExternalLink className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                        <span className="text-slate-600 text-sm flex-1 truncate">
                           {url}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => removePortfolioUrl(index)}
-                          className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -860,7 +835,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             addPortfolioUrl();
                           }
                         }}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
+                        className="border-slate-200 bg-white text-slate-950 focus:border-primary"
                       />
                       <Button
                         onClick={addPortfolioUrl}
@@ -877,11 +852,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
               {/* Share Options */}
               <Card className={creatorCardClass}>
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-slate-950 flex items-center gap-2">
                     <Share2 className="h-5 w-5 text-primary" />
                     Share Your Profile
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-slate-500">
                     Share your profile on social media or via email
                   </CardDescription>
                 </CardHeader>
@@ -906,7 +881,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     <Button
                       onClick={() => shareOnSocial("twitter")}
                       variant="outline"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
                       <Twitter className="h-4 w-4 mr-2" />
                       Twitter
@@ -914,7 +889,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     <Button
                       onClick={() => shareOnSocial("facebook")}
                       variant="outline"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
                       <Facebook className="h-4 w-4 mr-2" />
                       Facebook
@@ -922,7 +897,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     <Button
                       onClick={() => shareOnSocial("linkedin")}
                       variant="outline"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
                       <Linkedin className="h-4 w-4 mr-2" />
                       LinkedIn
@@ -930,15 +905,15 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     <Button
                       onClick={() => shareOnSocial("email")}
                       variant="outline"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
                       <Mail className="h-4 w-4 mr-2" />
                       Email
                     </Button>
                   </div>
                   {publicProfileUrl && (
-                    <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                      <p className="text-gray-400 text-xs mb-1">Your Profile URL:</p>
+                    <div className="mt-4 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                      <p className="text-slate-500 text-xs mb-1">Your Profile URL:</p>
                       <p className="text-primary text-sm break-all">{publicProfileUrl}</p>
                     </div>
                   )}
@@ -954,11 +929,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-slate-950 flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     Availability Schedule
                   </CardTitle>
-                  <CardDescription className="text-gray-400 mt-1">
+                  <CardDescription className="text-slate-500 mt-1">
                     Click on days to set your availability. Set your working hours below.
                   </CardDescription>
                 </div>
@@ -977,14 +952,14 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
               {isLoadingAvailability ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <span className="ml-2 text-gray-400">Loading availability...</span>
+                  <span className="ml-2 text-slate-500">Loading availability...</span>
                 </div>
               ) : editingAvailability ? (
                 <div className="space-y-6">
                   {/* Time Selection */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="startTime" className="text-gray-300">
+                      <Label htmlFor="startTime" className="text-slate-600">
                         Start Time
                       </Label>
                       <Input
@@ -992,11 +967,11 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         type="time"
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
+                        className="border-slate-200 bg-white text-slate-950 focus:border-primary"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="endTime" className="text-gray-300">
+                      <Label htmlFor="endTime" className="text-slate-600">
                         End Time
                       </Label>
                       <Input
@@ -1004,14 +979,14 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         type="time"
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white focus:border-primary"
+                        className="border-slate-200 bg-white text-slate-950 focus:border-primary"
                       />
                     </div>
                   </div>
 
                   {/* Days Selection */}
                   <div>
-                    <Label className="text-gray-300 mb-3 block">Select Available Days</Label>
+                    <Label className="text-slate-600 mb-3 block">Select Available Days</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {Object.entries(dailyAvailability).map(([day, { available }]) => {
                         const isSelected = selectedDays.has(day);
@@ -1023,7 +998,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             className={`flex items-center gap-2 rounded-lg border-2 p-3 transition-all ${
                               isSelected
                                 ? "border-primary bg-primary/15 text-primary"
-                                : "border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
                             }`}
                           >
                             {isSelected ? (
@@ -1031,7 +1006,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                                 <Check className="h-3 w-3 text-primary" />
                               </div>
                             ) : (
-                              <div className="h-5 w-5 rounded-full border-2 border-gray-600" />
+                              <div className="h-5 w-5 rounded-full border-2 border-slate-300" />
                             )}
                             <span className="font-medium">{day}</span>
                           </button>
@@ -1041,7 +1016,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
+                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                     <Button
                       onClick={() => {
                         setEditingAvailability(false);
@@ -1064,7 +1039,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                         }
                       }}
                       variant="outline"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
                       disabled={isSavingAvailability}
                     >
                       Cancel
@@ -1093,7 +1068,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                   {Object.entries(dailyAvailability).map(([day, { available, time }]) => (
                     <div
                       key={day}
-                      className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700"
+                      className="flex items-center justify-between p-4 rounded-lg border border-slate-200 bg-slate-50"
                     >
                       <div className="flex items-center gap-3">
                         {available ? (
@@ -1101,14 +1076,14 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                             <Check className="h-3 w-3 text-primary" />
                           </div>
                         ) : (
-                          <div className="h-5 w-5 rounded-full border-2 border-gray-600" />
+                          <div className="h-5 w-5 rounded-full border-2 border-slate-300" />
                         )}
-                        <span className="text-white font-medium">{day}</span>
+                        <span className="text-slate-950 font-medium">{day}</span>
                       </div>
                       {available && time ? (
                         <span className="text-primary font-medium">{time}</span>
                       ) : (
-                        <span className="text-gray-500">Not available</span>
+                        <span className="text-slate-400">Not available</span>
                       )}
                     </div>
                   ))}

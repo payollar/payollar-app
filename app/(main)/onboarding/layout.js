@@ -1,6 +1,5 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
-import { Particles } from "@/components/ui/particles";
 
 export const metadata = {
   title: "Onboarding - Payollar",
@@ -33,20 +32,9 @@ export default async function OnboardingLayout({ children }) {
   }
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <Particles
-          className="absolute inset-0 opacity-[0.45]"
-          quantity={72}
-          color="#0055ff"
-          staticity={40}
-          ease={45}
-        />
-        <div className="absolute inset-0 grid-pattern opacity-[0.06]" />
-      </div>
-      <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-14">
-        {children}
-      </div>
+    <div className="relative min-h-dvh w-full bg-[#f4f5f8] text-slate-900">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(ellipse_at_top,_rgba(109,40,217,0.14),_transparent_68%)]" />
+      <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 md:px-6 md:py-12">{children}</div>
     </div>
   );
 }
