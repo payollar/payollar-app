@@ -42,6 +42,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BorderBeam } from "border-beam";
 import { CreateServiceModal } from "./create-service-modal";
 import { EditServiceModal } from "./edit-service-modal";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
@@ -230,14 +231,24 @@ export function CreatorServices({
           </div>
           <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
             {activeServices.map((service) => (
-              <ServiceCard
+              <BorderBeam
                 key={service.id}
-                service={service}
-                creator={creator}
-                getRateDisplay={getRateDisplay}
-                onEdit={() => setEditingService(service)}
-                onDelete={() => handleDelete(service.id)}
-              />
+                className="h-full"
+                size="md"
+                theme="light"
+                colorVariant="ocean"
+                strength={0.85}
+                borderRadius={16}
+                duration={6}
+              >
+                <ServiceCard
+                  service={service}
+                  creator={creator}
+                  getRateDisplay={getRateDisplay}
+                  onEdit={() => setEditingService(service)}
+                  onDelete={() => handleDelete(service.id)}
+                />
+              </BorderBeam>
             ))}
           </div>
         </div>

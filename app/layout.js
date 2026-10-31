@@ -29,6 +29,13 @@ const caveat = localFont({
 export const metadata = {
   title: "Payollar App",
   description: "Connect with talents anytime, anywhere",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon.ico", sizes: "48x48" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
 };
 
 export default function RootLayout({ children }) {

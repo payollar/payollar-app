@@ -38,6 +38,7 @@
     "@vonage/video": "^1.23.0",
     "ai": "^5.0.59",
     "better-auth": "^1.4.10",
+    "border-beam": "^1.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "country-state-city": "^3.2.1",

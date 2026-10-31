@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
+import { BorderBeam } from "border-beam";
 import { campaignCategoryLabel } from "@/lib/campaign-categories";
 import {
   ArrowUpRight,
@@ -101,7 +102,8 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
       </div>
 
       <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="rounded-[24px] bg-gradient-to-br from-[#003ecc] via-[#0055ff] to-[#6d5efc] p-6 text-white md:p-8">
+        <BorderBeam className="h-full" size="md" theme="light" colorVariant="colorful" strength={0.7} borderRadius={24} duration={8}>
+        <section className="h-full rounded-[24px] bg-gradient-to-br from-[#003ecc] via-[#0055ff] to-[#6d5efc] p-6 text-white md:p-8">
           <h2 className="max-w-md text-2xl font-semibold tracking-tight md:text-3xl">
             Find the right creators.
           </h2>
@@ -117,8 +119,10 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
             </Link>
           </div>
         </section>
+        </BorderBeam>
 
-        <section className="flex flex-col rounded-[24px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <BorderBeam className="h-full" size="md" theme="light" colorVariant="ocean" strength={0.8} borderRadius={24} duration={7}>
+        <section className="flex h-full flex-col rounded-[24px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
           <p className="text-sm text-slate-500">This month</p>
           <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{stats?.appointmentsThisMonth ?? 0}</p>
           <p className="text-sm text-slate-400">
@@ -141,6 +145,7 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
             View orders
           </Link>
         </section>
+        </BorderBeam>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
@@ -252,6 +257,7 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
           )}
         </section>
 
+        <BorderBeam size="md" theme="light" colorVariant="ocean" strength={0.85} borderRadius={24} duration={6}>
         <section className="rounded-[24px] bg-gradient-to-b from-[#0055ff] to-[#003ecc] p-4 text-white shadow-[0_12px_28px_rgba(0,85,255,0.22)]">
           <h2 className="text-base font-semibold">Quick actions</h2>
           <div className="mt-3 space-y-2">
@@ -261,6 +267,7 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
             <Quick href="/messages" icon={MessageCircle} label="Open messages" />
           </div>
         </section>
+        </BorderBeam>
       </div>
 
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { BorderBeam } from "border-beam";
 import { ClipboardPenLine, Search, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -107,7 +108,18 @@ export function BrowseTalents({ talents = [], categories = [] }) {
       {filteredTalents.length > 0 ? (
         <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTalents.map((talent) => (
-            <TalentCard key={talent.id} talent={talent} />
+            <BorderBeam
+              key={talent.id}
+              className="h-full"
+              size="md"
+              theme="light"
+              colorVariant="ocean"
+              strength={0.75}
+              borderRadius={16}
+              duration={7}
+            >
+              <TalentCard talent={talent} />
+            </BorderBeam>
           ))}
         </div>
       ) : (
