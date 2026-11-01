@@ -44,7 +44,7 @@ export function AppointmentForm({
         description: projectBrief.trim(),
       });
       if (result?.code === "UNAUTHENTICATED") {
-        goToSignIn("Sign in to message this creator.");
+        goToSignIn(result?.error || "Sign in to message this creator.");
         return;
       }
       if (result?.error || !result?.appointmentId) {
@@ -54,11 +54,17 @@ export function AppointmentForm({
       }
       router.push(`/messages/${result.appointmentId}`);
     } catch (error) {
-      if (error?.message === "Unauthorized") {
+      const message = String(error?.message || "");
+      if (error?.digest || message.includes("Server Components render")) {
+        toast.error("Could not open the chat. Sign in as a client and try again.");
+        setLoading(false);
+        return;
+      }
+      if (message === "Unauthorized") {
         goToSignIn("Sign in to message this creator.");
         return;
       }
-      toast.error(error.message || "Could not open the chat.");
+      toast.error(message || "Could not open the chat.");
       setLoading(false);
     }
   };

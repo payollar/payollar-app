@@ -123,12 +123,21 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
     if (!text || sending || !thread?.canSend || !appointmentId) return;
     setSending(true);
     try {
-      await sendBookingMessage(appointmentId, text);
+      const result = await sendBookingMessage(appointmentId, text);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
       setDraft("");
       const next = await getBookingThread(appointmentId);
       if (next && !next.error) setThread(next);
     } catch (error) {
-      toast.error(error.message || "Could not send that message.");
+      const message = String(error?.message || "");
+      toast.error(
+        error?.digest || message.includes("Server Components render")
+          ? "Could not send that message. Please try again."
+          : message || "Could not send that message."
+      );
     } finally {
       setSending(false);
     }

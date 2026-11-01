@@ -9,7 +9,16 @@ export default async function MessagesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in?redirect_url=/messages");
 
-  const chats = await listBookingChats();
+  let chats = [];
+  try {
+    chats = await listBookingChats();
+  } catch (error) {
+    console.error("MessagesPage failed:", error);
+    if (error?.code === "UNAUTHENTICATED" || error?.message === "Unauthorized") {
+      redirect("/sign-in?redirect_url=/messages");
+    }
+    throw error;
+  }
 
   return <MessagesWorkspace chats={chats} />;
 }

@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/actions/onboarding";
-import CreatorDashboardLayout from "../creator/layout";
-import ClientDashboardLayout from "../client/layout";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { ClientSidebar } from "../client/_components/client-sidebar";
+import { CreatorSidebar } from "../creator/_components/creator-sidebar";
 
 export const metadata = {
   title: "Messages - Payollar",
@@ -8,8 +10,15 @@ export const metadata = {
 };
 
 export default async function MessagesLayout({ children }) {
-  const user = await getCurrentUser().catch(() => null);
-  const Shell = user?.role === "CLIENT" ? ClientDashboardLayout : CreatorDashboardLayout;
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in?redirect_url=/messages");
 
-  return <Shell>{children}</Shell>;
+  const sidebar = user.role === "CLIENT" ? <ClientSidebar /> : <CreatorSidebar />;
+  const panelAttr = user.role === "CLIENT" ? "data-client-dashboard-nav" : "data-creator-dashboard-nav";
+
+  return (
+    <DashboardShell sidebar={sidebar} panelAttr={panelAttr}>
+      {children}
+    </DashboardShell>
+  );
 }
