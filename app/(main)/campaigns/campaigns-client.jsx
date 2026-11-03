@@ -17,6 +17,7 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  UserRound,
   Users,
   Wallet,
 } from "lucide-react";
@@ -149,6 +150,35 @@ function talentHref(talent) {
   return `/talents/${encodeURIComponent(talent.specialty)}/${talent.id}`;
 }
 
+const EMPTY_APPLICATION = {
+  name: "",
+  email: "",
+  phone: "",
+  location: "",
+  portfolio: "",
+  experience: "",
+  rate: "",
+  availability: "",
+  additionalInfo: "",
+};
+
+function applicationFromProfile(profile) {
+  if (!profile?.defaults) return { ...EMPTY_APPLICATION };
+  return {
+    ...EMPTY_APPLICATION,
+    ...profile.defaults,
+    name: profile.defaults.name || "",
+    email: profile.defaults.email || "",
+    phone: profile.defaults.phone || "",
+    location: profile.defaults.location || "",
+    portfolio: profile.defaults.portfolio || "",
+    experience: profile.defaults.experience || "",
+    rate: profile.defaults.rate || "",
+    availability: profile.defaults.availability || "",
+    additionalInfo: profile.defaults.additionalInfo || "",
+  };
+}
+
 function FilterChoices({ legend, value, onChange, options, scrollable = false }) {
   return (
     <fieldset>
@@ -209,7 +239,7 @@ function CampaignArt({ title }) {
   );
 }
 
-export function CampaignsClient({ initialCampaigns = [] }) {
+export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [campaignTypes, setCampaignTypes] = useState([]);
@@ -220,8 +250,12 @@ export function CampaignsClient({ initialCampaigns = [] }) {
   const [sortBy, setSortBy] = useState("newest");
   const [selectedId, setSelectedId] = useState(initialCampaigns[0]?.id || null);
   const [applyCampaign, setApplyCampaign] = useState(null);
+  const [applicationForm, setApplicationForm] = useState(EMPTY_APPLICATION);
+  const [usedProfile, setUsedProfile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const canUseProfile = Boolean(creatorProfile?.ready);
 
   const locationOptions = useMemo(() => {
     return [...new Set(initialCampaigns.map((campaign) => campaign.location).filter(Boolean))].sort();
@@ -280,19 +314,56 @@ export function CampaignsClient({ initialCampaigns = [] }) {
     document.getElementById("campaign-details")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
+  const openApplyDialog = (campaign) => {
+    setApplyCampaign(campaign);
+    if (canUseProfile) {
+      setApplicationForm(applicationFromProfile(creatorProfile));
+      setUsedProfile(true);
+    } else {
+      setApplicationForm({
+        ...EMPTY_APPLICATION,
+        name: creatorProfile?.defaults?.name || "",
+        email: creatorProfile?.defaults?.email || "",
+      });
+      setUsedProfile(false);
+    }
+  };
+
+  const closeApplyDialog = () => {
+    setApplyCampaign(null);
+    setApplicationForm(EMPTY_APPLICATION);
+    setUsedProfile(false);
+  };
+
+  const fillFromProfile = () => {
+    if (!canUseProfile) return;
+    setApplicationForm(applicationFromProfile(creatorProfile));
+    setUsedProfile(true);
+    toast.success("Filled from your creator profile");
+  };
+
+  const updateApplicationField = (field) => (event) => {
+    const value = event.target.value;
+    setApplicationForm((current) => ({ ...current, [field]: value }));
+    setUsedProfile(false);
+  };
+
   const handleSubmitApplication = async (event) => {
     event.preventDefault();
     if (!applyCampaign) return;
 
-    const formData = new FormData(event.target);
+    const formData = new FormData();
     formData.append("campaignId", applyCampaign.id);
+    Object.entries(applicationForm).forEach(([key, value]) => {
+      formData.append(key, value ?? "");
+    });
 
     setIsSubmitting(true);
     try {
       const result = await applyToCampaign(formData);
       if (result?.success) {
         toast.success("Application submitted successfully!");
-        setApplyCampaign(null);
+        closeApplyDialog();
         router.refresh();
       }
     } catch (error) {
@@ -596,12 +667,24 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => setApplyCampaign(selected)}
+                  onClick={() => openApplyDialog(selected)}
                   className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6d28d9] py-3 text-sm font-semibold text-white hover:bg-[#5b21b6]"
                 >
                   Apply now
                   <ArrowRight className="h-4 w-4" />
                 </button>
+                {canUseProfile ? (
+                  <p className="mt-2 text-center text-xs text-slate-500">
+                    Your creator profile can fill this application in one tap.
+                  </p>
+                ) : creatorProfile ? (
+                  <p className="mt-2 text-center text-xs text-slate-500">
+                    <Link href="/creator/profile" className="font-medium text-[#6d28d9] hover:underline">
+                      Complete your profile
+                    </Link>{" "}
+                    to apply faster next time.
+                  </p>
+                ) : null}
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
@@ -670,7 +753,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
         </aside>
       </div>
 
-      <Dialog open={Boolean(applyCampaign)} onOpenChange={(open) => !open && setApplyCampaign(null)}>
+      <Dialog open={Boolean(applyCampaign)} onOpenChange={(open) => !open && closeApplyDialog()}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl border-slate-200 bg-white text-slate-900">
           <DialogHeader>
             <DialogTitle className="text-xl text-slate-950">Apply to campaign</DialogTitle>
@@ -678,36 +761,121 @@ export function CampaignsClient({ initialCampaigns = [] }) {
               {applyCampaign?.title} · {applyCampaign?.brand}
             </DialogDescription>
           </DialogHeader>
+
+          {creatorProfile ? (
+            <div
+              className={cn(
+                "mt-4 flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-center sm:justify-between",
+                usedProfile
+                  ? "border-violet-200 bg-[#f5f3ff]"
+                  : "border-slate-200 bg-slate-50"
+              )}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900">
+                  {usedProfile
+                    ? "Using your creator profile"
+                    : canUseProfile
+                      ? "Apply with your creator profile"
+                      : "Finish your creator profile for one-tap apply"}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {canUseProfile
+                    ? "Name, email, portfolio, experience, skills, and rate fill in automatically. Edit anything before you send."
+                    : "Add a bio, specialty, or portfolio links on your profile, then come back here."}
+                </p>
+              </div>
+              {canUseProfile ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={fillFromProfile}
+                  disabled={isSubmitting}
+                  className="shrink-0 rounded-full border-violet-200 bg-white text-[#6d28d9] hover:bg-violet-50"
+                >
+                  <UserRound className="mr-1.5 h-4 w-4" />
+                  {usedProfile ? "Refill from profile" : "Use my profile"}
+                </Button>
+              ) : (
+                <Button asChild type="button" variant="outline" className="shrink-0 rounded-full">
+                  <Link href="/creator/profile">Complete profile</Link>
+                </Button>
+              )}
+            </div>
+          ) : null}
+
           <form onSubmit={handleSubmitApplication} className="mt-4 space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Full name *</Label>
-                <Input id="name" name="name" placeholder="Your full name" required className="rounded-xl" />
+                <Input
+                  id="name"
+                  name="name"
+                  value={applicationForm.name}
+                  onChange={updateApplicationField("name")}
+                  placeholder="Your full name"
+                  required
+                  className="rounded-xl"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
-                <Input id="email" name="email" type="email" placeholder="you@email.com" required className="rounded-xl" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={applicationForm.email}
+                  onChange={updateApplicationField("email")}
+                  placeholder="you@email.com"
+                  required
+                  className="rounded-xl"
+                />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" name="phone" type="tel" placeholder="+233 …" className="rounded-xl" />
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={applicationForm.phone}
+                  onChange={updateApplicationField("phone")}
+                  placeholder="+233 …"
+                  className="rounded-xl"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
-                <Input id="location" name="location" placeholder="City, region" className="rounded-xl" />
+                <Input
+                  id="location"
+                  name="location"
+                  value={applicationForm.location}
+                  onChange={updateApplicationField("location")}
+                  placeholder="City, region"
+                  className="rounded-xl"
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="portfolio">Portfolio / social links</Label>
-              <Input id="portfolio" name="portfolio" placeholder="Instagram, YouTube, site…" className="rounded-xl" />
+              <Textarea
+                id="portfolio"
+                name="portfolio"
+                value={applicationForm.portfolio}
+                onChange={updateApplicationField("portfolio")}
+                placeholder="Instagram, YouTube, site…"
+                rows={2}
+                className="rounded-xl"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="experience">Relevant experience *</Label>
               <Textarea
                 id="experience"
                 name="experience"
+                value={applicationForm.experience}
+                onChange={updateApplicationField("experience")}
                 placeholder="Why you’re a fit for this campaign…"
                 rows={4}
                 required
@@ -716,13 +884,24 @@ export function CampaignsClient({ initialCampaigns = [] }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="rate">Your rate (GH₵)</Label>
-              <Input id="rate" name="rate" type="number" placeholder="Expected compensation" min="0" className="rounded-xl" />
+              <Input
+                id="rate"
+                name="rate"
+                type="number"
+                value={applicationForm.rate}
+                onChange={updateApplicationField("rate")}
+                placeholder="Expected compensation"
+                min="0"
+                className="rounded-xl"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="availability">Availability</Label>
               <Textarea
                 id="availability"
                 name="availability"
+                value={applicationForm.availability}
+                onChange={updateApplicationField("availability")}
                 placeholder="Start dates, constraints…"
                 rows={2}
                 className="rounded-xl"
@@ -730,14 +909,22 @@ export function CampaignsClient({ initialCampaigns = [] }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="additionalInfo">Anything else?</Label>
-              <Textarea id="additionalInfo" name="additionalInfo" placeholder="Optional details" rows={3} className="rounded-xl" />
+              <Textarea
+                id="additionalInfo"
+                name="additionalInfo"
+                value={applicationForm.additionalInfo}
+                onChange={updateApplicationField("additionalInfo")}
+                placeholder="Optional details"
+                rows={3}
+                className="rounded-xl"
+              />
             </div>
             <div className="flex gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 className="flex-1 rounded-full"
-                onClick={() => setApplyCampaign(null)}
+                onClick={closeApplyDialog}
                 disabled={isSubmitting}
               >
                 Cancel

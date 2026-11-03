@@ -283,6 +283,112 @@ export async function updateCampaignStatus(formData) {
 }
 
 /**
+ * Prefill payload for campaign applications from the logged-in creator profile.
+ * Returns null when the visitor is not a creator.
+ */
+export async function getCreatorApplicationProfile() {
+  const authResult = await getAuthUserId();
+  if (!authResult?.userId) return null;
+
+  try {
+    const user = await db.user.findUnique({
+      where: {
+        id: authResult.userId,
+        role: "CREATOR",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        specialty: true,
+        description: true,
+        experience: true,
+        portfolioUrls: true,
+        mobileMoneyNumber: true,
+        verificationStatus: true,
+        skills: {
+          select: { name: true },
+          orderBy: { createdAt: "asc" },
+          take: 24,
+        },
+        services: {
+          where: { isActive: true },
+          select: { rate: true },
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+        },
+        portfolios: {
+          select: { url: true },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    const portfolioLinks = [
+      ...(user.portfolioUrls || []),
+      ...(user.portfolios || []).map((item) => item.url),
+    ].filter(Boolean);
+    const uniquePortfolio = [...new Set(portfolioLinks)];
+
+    const experienceParts = [];
+    if (user.specialty?.trim()) {
+      experienceParts.push(`Specialty: ${user.specialty.trim()}`);
+    }
+    if (user.experience != null && Number.isFinite(user.experience)) {
+      experienceParts.push(
+        `${user.experience} year${user.experience === 1 ? "" : "s"} of experience`
+      );
+    }
+    if (user.description?.trim()) {
+      experienceParts.push(user.description.trim());
+    }
+
+    const skillNames = (user.skills || [])
+      .map((skill) => skill.name?.trim())
+      .filter(Boolean);
+
+    const hasBuiltProfile = Boolean(
+      user.description?.trim() ||
+        user.specialty?.trim() ||
+        uniquePortfolio.length > 0 ||
+        user.experience != null ||
+        skillNames.length > 0
+    );
+
+    return {
+      ready: hasBuiltProfile,
+      verified: user.verificationStatus === "VERIFIED",
+      specialty: user.specialty || null,
+      profilePath: user.specialty
+        ? `/talents/${encodeURIComponent(user.specialty)}/${user.id}`
+        : `/creator/profile`,
+      defaults: {
+        name: user.name?.trim() || "",
+        email: user.email?.trim() || "",
+        phone: user.mobileMoneyNumber?.trim() || "",
+        location: "",
+        portfolio: uniquePortfolio.join("\n"),
+        experience: experienceParts.join("\n\n"),
+        rate:
+          user.services?.[0]?.rate != null
+            ? String(user.services[0].rate)
+            : "",
+        availability: "",
+        additionalInfo: skillNames.length
+          ? `Skills: ${skillNames.join(", ")}`
+          : "",
+      },
+    };
+  } catch (error) {
+    console.error("Failed to load creator application profile:", error);
+    return null;
+  }
+}
+
+/**
  * Apply to a campaign (for talents)
  */
 export async function applyToCampaign(formData) {
