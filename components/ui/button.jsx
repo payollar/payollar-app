@@ -26,7 +26,7 @@ const buttonVariants = cva(
         marketing:
           "rounded-full bg-linear-to-r from-primary via-blue-500 to-primary bg-size-[200%_100%] bg-left hover:bg-right text-primary-foreground shadow-lg hover:shadow-primary/30 border-0 active:scale-[0.98] transition-all duration-300",
         marketingOutline:
-          "rounded-full border border-foreground/20 bg-background/25 backdrop-blur-md hover:bg-foreground/10 hover:border-foreground/35 text-foreground transition-all duration-300 active:scale-[0.98]",
+          "rounded-full border border-foreground/20 bg-background/25 backdrop-blur-md hover:bg-foreground/10 hover:border-foreground/35 text-foreground transition-all duration-300 active:scale-[0.98] [[data-theme=light]_&]:border-slate-300 [[data-theme=light]_&]:bg-white [[data-theme=light]_&]:text-slate-900 [[data-theme=light]_&]:shadow-sm [[data-theme=light]_&]:hover:border-primary/40 [[data-theme=light]_&]:hover:bg-white [[data-theme=light]_&]:hover:text-[#0b3db8]",
         marketingWhite:
           "rounded-full bg-white text-black hover:bg-primary hover:text-white shadow-md transition-all duration-300",
         /* Avento: glass outline + full-round */

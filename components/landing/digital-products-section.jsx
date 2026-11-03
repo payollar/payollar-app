@@ -17,8 +17,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { SectionParticles } from "@/components/landing/section-particles";
+import { useLandingTheme } from "@/components/landing/landing-theme";
+import { cn } from "@/lib/utils";
 
 export function CreatorsSection() {
+  const { theme } = useLandingTheme();
+  const isLight = theme === "light";
+
   const benefits = [
     {
       icon: Calendar,
@@ -66,13 +71,28 @@ export function CreatorsSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-background py-24 md:py-28">
+    <section
+      className={cn(
+        "relative overflow-hidden py-24 md:py-28",
+        isLight ? "bg-transparent" : "bg-background"
+      )}
+    >
       <div className="absolute inset-0">
-        <div className="absolute right-1/4 top-1/4 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div
+          className={cn(
+            "absolute right-1/4 top-1/4 h-96 w-96 rounded-full blur-3xl",
+            isLight ? "bg-primary/[0.06]" : "bg-primary/10"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute bottom-1/4 left-1/4 h-96 w-96 rounded-full blur-3xl",
+            isLight ? "bg-sky-200/25" : "bg-primary/5"
+          )}
+        />
         <SectionParticles
           className="bottom-0 right-0 h-[min(28rem,65vh)] w-[min(100%,26rem)]"
-          opacityClass="opacity-[0.13]"
+          opacityClass={isLight ? "opacity-[0.07]" : "opacity-[0.13]"}
           quantity={32}
         />
       </div>
@@ -89,13 +109,13 @@ export function CreatorsSection() {
                 <Sparkles className="mr-2 h-4 w-4" />
                 For Creators
               </Badge>
-              <h2 className="text-4xl font-bold leading-tight text-gray-900 dark:text-white md:text-5xl">
-                <span className="text-gray-900 dark:text-white">Join as a </span>
-                <span className="mt-1 inline-block rounded-xl bg-primary px-3 py-1.5 text-white shadow-lg shadow-primary/30 md:mt-0 md:px-4 md:py-2">
+              <h2 className="text-4xl font-bold leading-tight text-foreground md:text-5xl">
+                <span>Join as a </span>
+                <span className="mt-1 inline-block rounded-xl bg-primary px-3 py-1.5 text-primary-foreground shadow-lg shadow-primary/30 md:mt-0 md:px-4 md:py-2">
                   Payollar Creator
                 </span>
               </h2>
-              <p className="text-xl leading-relaxed text-gray-600 dark:text-white/75">
+              <p className="text-xl leading-relaxed text-muted-foreground">
                 Unlock multiple income streams on one platform. Get booked by clients, sell digital products, apply to
                 campaigns, and grow your creative career - all while keeping more of what you earn.
               </p>
@@ -106,14 +126,27 @@ export function CreatorsSection() {
               {benefits.map((benefit, index) => (
                 <Card
                   key={index}
-                  className="border border-gray-200 bg-white shadow-md transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10 dark:border-gray-200"
+                  className={cn(
+                    "border shadow-sm transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10",
+                    isLight
+                      ? "border-slate-200/90 bg-white"
+                      : "border-border/70 bg-card"
+                  )}
                 >
                   <CardContent className="p-4">
-                    <div className={`mb-3 inline-flex rounded-lg bg-gray-50 p-3 ${benefit.color}`}>
+                    <div
+                      className={cn(
+                        "mb-3 inline-flex rounded-lg border p-3",
+                        benefit.color,
+                        isLight
+                          ? "border-slate-200 bg-slate-50"
+                          : "border-border/50 bg-muted/60"
+                      )}
+                    >
                       <img src={benefit.image} alt={benefit.title} className="h-12 w-12 object-contain" />
                     </div>
-                    <h4 className="mb-1 font-semibold text-gray-900">{benefit.title}</h4>
-                    <p className="text-sm text-gray-600">{benefit.description}</p>
+                    <h4 className="mb-1 font-semibold text-foreground">{benefit.title}</h4>
+                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -139,31 +172,36 @@ export function CreatorsSection() {
           <div className="relative">
             <div className="space-y-6">
               {/* Dashboard Preview */}
-              <Card className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
+              <Card
+                className={cn(
+                  "overflow-hidden rounded-xl border shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10",
+                  isLight ? "border-slate-200/90 bg-white" : "border-border/70 bg-card"
+                )}
+              >
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h4 className="text-lg font-bold text-gray-900">Creator Dashboard</h4>
+                    <h4 className="text-lg font-bold text-foreground">Creator Dashboard</h4>
                     <Badge className="border-0 bg-primary/15 text-primary">Live</Badge>
                   </div>
                   <div className="mb-4 grid grid-cols-3 gap-4">
                     <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-center shadow-sm">
                       <DollarSign className="mx-auto mb-1 h-6 w-6 text-primary" />
-                      <p className="text-xs text-gray-700">Earnings</p>
-                      <p className="text-sm font-bold text-gray-900">₵5,240</p>
+                      <p className="text-xs text-muted-foreground">Earnings</p>
+                      <p className="text-sm font-bold text-foreground">₵5,240</p>
                     </div>
                     <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 text-center shadow-sm">
                       <Calendar className="mx-auto mb-1 h-6 w-6 text-primary" />
-                      <p className="text-xs text-gray-700">Bookings</p>
-                      <p className="text-sm font-bold text-gray-900">12</p>
+                      <p className="text-xs text-muted-foreground">Bookings</p>
+                      <p className="text-sm font-bold text-foreground">12</p>
                     </div>
                     <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 text-center shadow-sm">
                       <ShoppingBag className="mx-auto mb-1 h-6 w-6 text-primary" />
-                      <p className="text-xs text-gray-700">Products</p>
-                      <p className="text-sm font-bold text-gray-900">8</p>
+                      <p className="text-xs text-muted-foreground">Products</p>
+                      <p className="text-sm font-bold text-foreground">8</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">This Month</span>
+                    <span className="text-muted-foreground">This Month</span>
                     <span className="font-semibold text-primary">+42% Growth</span>
                   </div>
                 </CardContent>
@@ -171,37 +209,68 @@ export function CreatorsSection() {
 
               {/* Feature Highlights */}
               <div className="grid grid-cols-2 gap-4">
-                <Card className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
+                <Card
+                  className={cn(
+                    "overflow-hidden rounded-xl border shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10",
+                    isLight ? "border-slate-200/90 bg-white" : "border-border/70 bg-card"
+                  )}
+                >
                   <CardContent className="p-4">
-                    <div className="mb-3 rounded-lg bg-gray-50 p-3">
+                    <div
+                      className={cn(
+                        "mb-3 rounded-lg border p-3",
+                        isLight
+                          ? "border-slate-200 bg-slate-50"
+                          : "border-border/40 bg-muted/50"
+                      )}
+                    >
                       <img
                         src="/icons/video.PNG"
                         alt="Video Sessions"
                         className="mx-auto h-12 w-12 object-contain"
                       />
                     </div>
-                    <h4 className="mb-1 text-sm font-semibold text-gray-900">Video Sessions</h4>
-                    <p className="text-xs text-gray-600">Connect with clients</p>
+                    <h4 className="mb-1 text-sm font-semibold text-foreground">Video Sessions</h4>
+                    <p className="text-xs text-muted-foreground">Connect with clients</p>
                   </CardContent>
                 </Card>
 
-                <Card className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
+                <Card
+                  className={cn(
+                    "overflow-hidden rounded-xl border shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10",
+                    isLight ? "border-slate-200/90 bg-white" : "border-border/70 bg-card"
+                  )}
+                >
                   <CardContent className="p-4">
-                    <div className="mb-3 rounded-lg bg-gray-50 p-3">
+                    <div
+                      className={cn(
+                        "mb-3 rounded-lg border p-3",
+                        isLight
+                          ? "border-slate-200 bg-slate-50"
+                          : "border-border/40 bg-muted/50"
+                      )}
+                    >
                       <img src="/icons/c7.PNG" alt="Portfolio" className="mx-auto h-12 w-12 object-contain" />
                     </div>
-                    <h4 className="mb-1 text-sm font-semibold text-gray-900">Portfolio</h4>
-                    <p className="text-xs text-gray-600">Showcase your work</p>
+                    <h4 className="mb-1 text-sm font-semibold text-foreground">Portfolio</h4>
+                    <p className="text-xs text-muted-foreground">Showcase your work</p>
                   </CardContent>
                 </Card>
               </div>
             </div>
 
             {/* Floating badge */}
-            <div className="absolute -bottom-4 -right-4 rounded-full border border-gray-200 bg-white px-6 py-3 shadow-lg dark:border-gray-200">
+            <div
+              className={cn(
+                "absolute -bottom-4 -right-4 rounded-full border px-6 py-3 shadow-lg",
+                isLight
+                  ? "border-slate-200 bg-white shadow-[0_12px_30px_-16px_rgba(15,23,42,0.35)]"
+                  : "border-border/80 bg-card"
+              )}
+            >
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-gray-900">Multiple Income Streams</span>
+                <span className="font-semibold text-foreground">Multiple Income Streams</span>
               </div>
             </div>
           </div>

@@ -12,6 +12,7 @@ export default function LandingMobileMenu({
   showMediaMenu,
   dashboardNav = null,
   isSignedIn = false,
+  useDarkPill = true,
 }) {
   const linkStaggerBase =
     (dashboardNav ? 1 : 0) + (showMediaMenu ? 1 : 0);
@@ -37,7 +38,11 @@ export default function LandingMobileMenu({
                 <Link
                   href={dashboardNav.href}
                   onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-full border border-white/35 bg-white/5 px-4 py-3 text-start text-base font-medium text-primary hover:border-white/60 hover:bg-white/10 active:scale-[0.99]"
+                  className={
+                    useDarkPill
+                      ? "flex w-full items-center gap-2 rounded-full border border-white/35 bg-white/5 px-4 py-3 text-start text-base font-medium text-primary hover:border-white/60 hover:bg-white/10 active:scale-[0.99]"
+                      : "flex w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-start text-base font-medium text-slate-900 hover:bg-slate-100 active:scale-[0.99]"
+                  }
                 >
                   <LayoutDashboard className="size-5 shrink-0" />
                   {dashboardNav.label}
@@ -54,7 +59,11 @@ export default function LandingMobileMenu({
                 <Link
                   href="/media"
                   onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center rounded-lg px-4 py-3 text-start text-base font-medium text-foreground/90 hover:bg-foreground/5 hover:text-primary active:scale-[0.99]"
+                  className={
+                    useDarkPill
+                      ? "flex w-full items-center rounded-lg px-4 py-3 text-start text-base font-medium text-foreground/90 hover:bg-foreground/5 hover:text-primary active:scale-[0.99]"
+                      : "flex w-full items-center rounded-lg px-4 py-3 text-start text-base font-medium text-slate-700 hover:bg-slate-900/5 hover:text-slate-950 active:scale-[0.99]"
+                  }
                 >
                   Media
                 </Link>
@@ -74,7 +83,11 @@ export default function LandingMobileMenu({
                 <Link
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center rounded-lg px-4 py-3 text-start text-base font-medium text-foreground/90 hover:bg-foreground/5 hover:text-primary active:scale-[0.99]"
+                  className={
+                    useDarkPill
+                      ? "flex w-full items-center rounded-lg px-4 py-3 text-start text-base font-medium text-foreground/90 hover:bg-foreground/5 hover:text-primary active:scale-[0.99]"
+                      : "flex w-full items-center rounded-lg px-4 py-3 text-start text-base font-medium text-slate-700 hover:bg-slate-900/5 hover:text-slate-950 active:scale-[0.99]"
+                  }
                 >
                   {item.label}
                 </Link>
@@ -86,7 +99,11 @@ export default function LandingMobileMenu({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.25 }}
-              className="flex flex-col gap-3 border-t border-border/50 pt-4"
+              className={
+                useDarkPill
+                  ? "flex flex-col gap-3 border-t border-border/50 pt-4"
+                  : "flex flex-col gap-3 border-t border-slate-200 pt-4"
+              }
             >
               <Link href="/onboarding" onClick={() => setIsOpen(false)}>
                 <Button variant="marketing" size="lg" className="w-full rounded-full">

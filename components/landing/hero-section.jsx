@@ -9,6 +9,7 @@ import Balancer from "react-wrap-balancer";
 import { cn } from "@/lib/utils";
 import { SectionShell } from "@/components/landing/section-shell";
 import { SectionParticles } from "@/components/landing/section-particles";
+import { useLandingTheme } from "@/components/landing/landing-theme";
 import { useLandingSessionUser } from "@/hooks/use-landing-session";
 
 const creativeImages = [
@@ -24,6 +25,8 @@ const creativeImages = [
 
 export function HeroSection() {
   const { isSignedIn } = useLandingSessionUser();
+  const { theme } = useLandingTheme();
+  const isLight = theme === "light";
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export function HeroSection() {
     <section className="relative min-h-screen flex items-center overflow-hidden pt-28 pb-16 md:pt-32 md:pb-24">
       <SectionParticles
         className="inset-0"
-        opacityClass="opacity-[0.35]"
+        opacityClass={isLight ? "opacity-[0.18]" : "opacity-[0.35]"}
         quantity={80}
         staticity={50}
         ease={50}
@@ -60,21 +63,31 @@ export function HeroSection() {
             >
               <span
                 className={cn(
-                  "px-2 py-0.5 text-xs font-semibold rounded-full",
-                  "bg-foreground text-background"
+                  "rounded-full px-2 py-0.5 text-xs font-semibold",
+                  isLight
+                    ? "bg-[#0055ff] text-white"
+                    : "bg-foreground text-background"
                 )}
               >
                 New
               </span>
               <span
-                className="text-sm text-foreground/85 font-medium"
+                className={cn(
+                  "text-sm font-medium",
+                  isLight ? "text-slate-700" : "text-foreground/85"
+                )}
                 style={{ fontFamily: "var(--font-handwriting), cursive" }}
               >
                 Connect with top talents
               </span>
             </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-foreground leading-[1.08]">
+            <h1
+              className={cn(
+                "text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl",
+                isLight ? "text-slate-950" : "text-foreground"
+              )}
+            >
               <Balancer>
                 {titleWords.map((word, index) => (
                   <motion.span
@@ -107,7 +120,10 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.2 }}
-              className="text-lg text-foreground/70 max-w-xl leading-relaxed"
+              className={cn(
+                "max-w-xl text-lg leading-relaxed",
+                isLight ? "text-slate-600" : "text-foreground/70"
+              )}
             >
               <Balancer>
                 Get instant access to vetted creative professionals, dedicated support, and a seamless platform to
@@ -122,12 +138,26 @@ export function HeroSection() {
               className="flex flex-wrap gap-6 text-sm text-muted-foreground"
             >
               <div className="flex items-center gap-3">
-                <img src="/icons/secure.PNG" alt="" className="w-8 h-8 object-contain opacity-90" />
-                <span className="font-medium text-foreground/85">Quality guaranteed</span>
+                <img src="/icons/secure.PNG" alt="" className="h-8 w-8 object-contain opacity-90" />
+                <span
+                  className={cn(
+                    "font-medium",
+                    isLight ? "text-slate-800" : "text-foreground/85"
+                  )}
+                >
+                  Quality guaranteed
+                </span>
               </div>
               <div className="flex items-center gap-3">
-                <img src="/icons/verified2.PNG" alt="" className="w-8 h-8 object-contain opacity-90" />
-                <span className="font-medium text-foreground/85">Top-rated professionals</span>
+                <img src="/icons/verified2.PNG" alt="" className="h-8 w-8 object-contain opacity-90" />
+                <span
+                  className={cn(
+                    "font-medium",
+                    isLight ? "text-slate-800" : "text-foreground/85"
+                  )}
+                >
+                  Top-rated professionals
+                </span>
               </div>
             </motion.div>
 
@@ -144,10 +174,26 @@ export function HeroSection() {
                   </Link>
                 </Button>
               )}
-              <Button asChild size="lg" variant="marketingOutline">
+              <Button
+                asChild
+                size="lg"
+                variant="marketingOutline"
+                className={cn(
+                  isLight &&
+                    "border-slate-300 bg-white text-slate-900 shadow-sm hover:border-[#0055ff]/40 hover:bg-white hover:text-[#0b3db8]"
+                )}
+              >
                 <Link href="/talents">Find Talents</Link>
               </Button>
-              <Button asChild size="lg" variant="marketingOutline">
+              <Button
+                asChild
+                size="lg"
+                variant="marketingOutline"
+                className={cn(
+                  isLight &&
+                    "border-slate-300 bg-white text-slate-900 shadow-sm hover:border-[#0055ff]/40 hover:bg-white hover:text-[#0b3db8]"
+                )}
+              >
                 <Link href="/campaigns">
                   <Target className="h-4 w-4" />
                   View Campaigns
@@ -163,9 +209,28 @@ export function HeroSection() {
             className="relative order-1 flex w-full min-w-0 justify-center lg:order-2 lg:col-span-6 lg:justify-start"
           >
             {/* Narrower max-width + taller fixed height keeps bento proportional */}
-            <div className="relative w-full max-w-[24rem] rounded-2xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-md p-1 shadow-2xl shadow-black/40 sm:max-w-[26rem] md:max-w-[28rem] md:rounded-[24px] md:p-1.5 lg:max-w-[30rem] xl:max-w-[34rem]">
-              <div className="pointer-events-none absolute top-1/4 left-1/2 -z-10 h-1/3 w-4/5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/25 opacity-60 blur-[6rem]" />
-              <div className="overflow-hidden rounded-[1rem] md:rounded-[1.35rem] border border-foreground/10 bg-background/80">
+            <div
+              className={cn(
+                "relative w-full max-w-[24rem] rounded-2xl p-1 backdrop-blur-md sm:max-w-[26rem] md:max-w-[28rem] md:rounded-[24px] md:p-1.5 lg:max-w-[30rem] xl:max-w-[34rem]",
+                isLight
+                  ? "border border-slate-200/90 bg-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)]"
+                  : "border border-foreground/10 bg-foreground/[0.04] shadow-2xl shadow-black/40"
+              )}
+            >
+              <div
+                className={cn(
+                  "pointer-events-none absolute top-1/4 left-1/2 -z-10 h-1/3 w-4/5 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[6rem]",
+                  isLight ? "bg-primary/20 opacity-80" : "bg-primary/25 opacity-60"
+                )}
+              />
+              <div
+                className={cn(
+                  "overflow-hidden rounded-[1rem] border md:rounded-[1.35rem]",
+                  isLight
+                    ? "border-slate-100 bg-slate-50/90"
+                    : "border-foreground/10 bg-background/80"
+                )}
+              >
                 {/* Mobile: single column preview */}
                 <div className="flex flex-col gap-2 p-2 md:hidden">
                   <div className="relative aspect-[4/3] max-h-[220px] w-full overflow-hidden rounded-2xl border border-emerald-500/35 sm:max-h-[260px]">

@@ -9,27 +9,34 @@ import { Footer } from "@/components/landing/footer"
 import { PartnersMarquee } from "@/components/landing/partners-marquee"
 import LandingBackground from "@/components/landing/landing-background"
 import { LandingNavbar } from "@/components/landing/landing-navbar"
+import { LandingThemeProvider } from "@/components/landing/landing-theme"
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-dvh bg-background text-foreground" data-landing-page>
+    <LandingThemeProvider>
       <LandingBackground />
       <LandingNavbar />
       <div className="relative z-10">
         <HeroSection />
         <PartnersMarquee />
-        <CreatorsSection />
+        <div data-landing-band>
+          <CreatorsSection />
+        </div>
         <CampaignsSection />
         <MediaFeaturesSection />
-        <div id="features">
+        <div id="features" data-landing-band>
           <FeaturesSection />
         </div>
-        <div id="how-it-works" className="border-y border-border/40 bg-muted/20 py-8 lg:py-12">
+        <div
+          id="how-it-works"
+          className="border-y border-border/40 py-8 lg:py-12"
+          data-landing-howto
+        >
           <HowItWorksSection />
         </div>
         <CTASection />
         <Footer />
       </div>
-    </div>
+    </LandingThemeProvider>
   )
 }

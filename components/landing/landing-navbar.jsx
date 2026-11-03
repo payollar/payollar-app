@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import HeaderAuthButtons from "@/components/HeaderAuthButtons";
 import LandingMobileMenu from "@/components/landing/landing-mobile-menu";
+import {
+  LandingThemeToggle,
+  useLandingTheme,
+} from "@/components/landing/landing-theme";
 import { LANDING_PUBLIC_NAV, getDashboardNavForRole } from "@/lib/landing-nav";
 import { useSessionRefresh } from "@/hooks/use-session-refresh";
 
@@ -68,10 +72,18 @@ export function LandingNavbar() {
   const dashboardNav = user?.role ? getDashboardNavForRole(user.role) : null;
 
   const links = LANDING_PUBLIC_NAV.filter((l) => l.href !== "/");
+  const { theme: landingTheme } = useLandingTheme();
+  const isHome = pathname === "/";
+  const homeIsLight = isHome && landingTheme === "light";
   const isLightSurface =
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
     pathname?.startsWith("/media");
+  /** Dark floating pill (readable white logo) vs light home shell */
+  const useDarkPill = isLightSurface || !homeIsLight;
+  const linkClass = useDarkPill
+    ? "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+    : "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-slate-950";
 
   return (
     <div className="relative w-full">
@@ -84,10 +96,11 @@ export function LandingNavbar() {
         <div
           className={cn(
             "relative flex h-full flex-col overflow-hidden rounded-xl border backdrop-blur-xl lg:rounded-full",
-            // Dark floating pill on light product pages keeps the white logo readable
-            isLightSurface
-              ? "border-slate-900/10 bg-[#0b1220]/92 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)]"
-              : "border-white/10 bg-background/40 shadow-lg shadow-black/20"
+            useDarkPill
+              ? isLightSurface
+                ? "border-slate-900/10 bg-[#0b1220]/92 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)]"
+                : "border-white/10 bg-background/40 shadow-lg shadow-black/20"
+              : "border-slate-200/90 bg-white/95 shadow-[0_16px_48px_-24px_rgba(15,23,42,0.28)]"
           )}
         >
           <div className="flex min-h-14 w-full shrink-0 items-center justify-between px-3 md:min-h-16 md:px-4">
@@ -100,38 +113,39 @@ export function LandingNavbar() {
                 alt="Payollar"
                 width={148}
                 height={36}
-                className="h-8 w-auto object-contain md:h-9"
+                className={cn(
+                  "h-8 w-auto object-contain md:h-9",
+                  !useDarkPill && "brightness-0"
+                )}
                 priority
               />
             </Link>
 
             <div className="absolute top-1/2 left-1/2 hidden max-w-[55%] -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 lg:flex">
               {showMediaMenu && (
-                <Link
-                  href="/media"
-                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                >
+                <Link href="/media" className={linkClass}>
                   Media
                 </Link>
               )}
               {links.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                >
+                <Link key={item.href} href={item.href} className={linkClass}>
                   {item.label}
                 </Link>
               ))}
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 md:gap-3">
+            <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+              {isHome ? <LandingThemeToggle /> : null}
               {!isSignedIn && (
                 <Link href="/onboarding" className="hidden sm:block">
                   <Button
-                    variant="marketingWhite"
+                    variant={homeIsLight ? "default" : "marketingWhite"}
                     size="sm"
-                    className="hidden rounded-full md:inline-flex"
+                    className={cn(
+                      "hidden rounded-full md:inline-flex",
+                      homeIsLight &&
+                        "bg-[#0055ff] text-white hover:bg-[#003ecc]"
+                    )}
                   >
                     Get started
                   </Button>
@@ -141,7 +155,12 @@ export function LandingNavbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="hidden h-9 rounded-full border border-white/40 bg-white/5 px-3.5 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:border-white/70 hover:bg-white/10 sm:inline-flex"
+                  className={cn(
+                    "hidden h-9 rounded-full px-3.5 sm:inline-flex",
+                    useDarkPill
+                      ? "border border-white/40 bg-white/5 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:border-white/70 hover:bg-white/10"
+                      : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                  )}
                   asChild
                 >
                   <Link
@@ -155,13 +174,25 @@ export function LandingNavbar() {
                   </Link>
                 </Button>
               )}
-              <div className="flex items-center [&_button]:rounded-full [&_a]:rounded-full [&_button]:text-white [&_a]:text-white">
+              <div
+                className={cn(
+                  "flex items-center [&_button]:rounded-full [&_a]:rounded-full",
+                  useDarkPill
+                    ? "[&_button]:text-white [&_a]:text-white"
+                    : "[&_button]:text-slate-800 [&_a]:text-slate-800"
+                )}
+              >
                 <HeaderAuthButtons />
               </div>
               <Button
                 size="icon"
                 variant="ghost"
-                className="rounded-full text-white hover:bg-white/10 lg:hidden"
+                className={cn(
+                  "rounded-full lg:hidden",
+                  useDarkPill
+                    ? "text-white hover:bg-white/10"
+                    : "text-slate-800 hover:bg-slate-900/5"
+                )}
                 onClick={() => setIsOpen((o) => !o)}
                 aria-label={isOpen ? "Close menu" : "Open menu"}
               >
@@ -181,6 +212,7 @@ export function LandingNavbar() {
             showMediaMenu={showMediaMenu}
             dashboardNav={dashboardNav}
             isSignedIn={isSignedIn}
+            useDarkPill={useDarkPill}
           />
         </div>
       </header>

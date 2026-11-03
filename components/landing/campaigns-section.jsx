@@ -6,8 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Target, Users, TrendingUp, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { SectionParticles } from "@/components/landing/section-particles";
+import { useLandingTheme } from "@/components/landing/landing-theme";
+import { cn } from "@/lib/utils";
 
 export function CampaignsSection() {
+  const { theme } = useLandingTheme();
+  const isLight = theme === "light";
+
   const features = [
     {
       icon: Target,
@@ -40,13 +45,28 @@ export function CampaignsSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-background py-24 md:py-28">
+    <section
+      className={cn(
+        "relative overflow-hidden py-24 md:py-28",
+        isLight ? "bg-[#f4f6fb]" : "bg-background"
+      )}
+    >
       <div className="absolute inset-0">
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div
+          className={cn(
+            "absolute left-1/4 top-1/4 h-96 w-96 rounded-full blur-3xl",
+            isLight ? "bg-primary/[0.06]" : "bg-primary/10"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full blur-3xl",
+            isLight ? "bg-indigo-200/25" : "bg-primary/5"
+          )}
+        />
         <SectionParticles
           className="-right-16 top-12 h-[min(32rem,70vh)] w-[min(100%,28rem)] md:right-0"
-          opacityClass="opacity-[0.14]"
+          opacityClass={isLight ? "opacity-[0.07]" : "opacity-[0.14]"}
           quantity={36}
         />
       </div>
@@ -59,10 +79,23 @@ export function CampaignsSection() {
               {features.map((feature, index) => (
                 <Card
                   key={index}
-                  className="border border-border/60 bg-card/90 shadow-sm backdrop-blur-sm transition-all hover:border-primary/35 hover:shadow-lg hover:shadow-primary/[0.08]"
+                  className={cn(
+                    "border shadow-sm backdrop-blur-sm transition-all hover:border-primary/35 hover:shadow-lg hover:shadow-primary/[0.08]",
+                    isLight
+                      ? "border-slate-200/90 bg-white"
+                      : "border-border/60 bg-card/90"
+                  )}
                 >
                   <CardContent className="p-4">
-                    <div className={`mb-3 inline-flex rounded-lg border border-border/40 bg-muted/50 p-3 ${feature.color}`}>
+                    <div
+                      className={cn(
+                        "mb-3 inline-flex rounded-lg border p-3",
+                        feature.color,
+                        isLight
+                          ? "border-slate-200 bg-slate-50"
+                          : "border-border/40 bg-muted/50"
+                      )}
+                    >
                       <img src={feature.image} alt={feature.title} className="h-16 w-16 object-contain" />
                     </div>
                     <h4 className="mb-1 font-semibold text-foreground">{feature.title}</h4>

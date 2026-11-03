@@ -15,6 +15,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { SectionParticles } from "@/components/landing/section-particles";
+import { useLandingTheme } from "@/components/landing/landing-theme";
+import { cn } from "@/lib/utils";
 
 function FeatureIcon({ feature }) {
   const [imageError, setImageError] = useState(false);
@@ -38,6 +40,9 @@ function FeatureIcon({ feature }) {
 }
 
 export function FeaturesSection() {
+  const { theme } = useLandingTheme();
+  const isLight = theme === "light";
+
   const features = [
     {
       icon: Zap,
@@ -98,11 +103,30 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-background py-24 md:py-28">
+    <section
+      className={cn(
+        "relative overflow-hidden py-24 md:py-28",
+        isLight ? "bg-transparent" : "bg-background"
+      )}
+    >
       <div className="absolute inset-0">
-        <div className="absolute left-1/4 top-0 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-        <SectionParticles className="inset-0" opacityClass="opacity-[0.16]" quantity={48} />
+        <div
+          className={cn(
+            "absolute left-1/4 top-0 h-96 w-96 rounded-full blur-3xl",
+            isLight ? "bg-primary/[0.07]" : "bg-primary/10"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute bottom-0 right-1/4 h-96 w-96 rounded-full blur-3xl",
+            isLight ? "bg-sky-200/30" : "bg-primary/5"
+          )}
+        />
+        <SectionParticles
+          className="inset-0"
+          opacityClass={isLight ? "opacity-[0.08]" : "opacity-[0.16]"}
+          quantity={48}
+        />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -131,10 +155,22 @@ export function FeaturesSection() {
           {features.map((feature, index) => (
             <Card
               key={index}
-              className="group border border-border/60 bg-card/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/35 hover:shadow-lg hover:shadow-primary/[0.08]"
+              className={cn(
+                "group border shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/35 hover:shadow-lg hover:shadow-primary/[0.08]",
+                isLight
+                  ? "border-slate-200/90 bg-white"
+                  : "border-border/60 bg-card/90"
+              )}
             >
               <CardContent className="p-6">
-                <div className="mb-3 inline-flex items-center justify-center overflow-hidden rounded-xl border border-border/40 bg-muted/40 p-3 transition-transform duration-300 group-hover:scale-[1.02]">
+                <div
+                  className={cn(
+                    "mb-3 inline-flex items-center justify-center overflow-hidden rounded-xl border p-3 transition-transform duration-300 group-hover:scale-[1.02]",
+                    isLight
+                      ? "border-slate-200 bg-slate-50"
+                      : "border-border/40 bg-muted/40"
+                  )}
+                >
                   <FeatureIcon feature={feature} />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-foreground">{feature.title}</h3>

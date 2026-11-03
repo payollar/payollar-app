@@ -362,6 +362,90 @@ body:has([data-theme="light"]) {
   background-color: #ffffff !important;
 }
 
+/* Home landing — refined white theme */
+[data-landing-page][data-theme="light"] {
+  --background: #f4f6fb;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --cardbox: #eef2f7;
+  --muted: #eef2f7;
+  --muted-foreground: #64748b;
+  --secondary: #eef2f7;
+  --secondary-foreground: #0f172a;
+  --accent: #e8f0ff;
+  --accent-foreground: #0b3db8;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --primary: #0055ff;
+  --primary-foreground: #ffffff;
+  --ring: #0055ff;
+  background-color: #f4f6fb;
+  color: #0f172a;
+}
+
+html:has([data-landing-page][data-theme="light"]),
+body:has([data-landing-page][data-theme="light"]) {
+  background-color: #f4f6fb !important;
+}
+
+[data-landing-page][data-theme="light"] .badge-glow {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(0, 85, 255, 0.04);
+}
+
+[data-landing-page][data-theme="light"] [data-slot="button"].marketing-outline,
+[data-landing-page][data-theme="light"] button.border-foreground\/20 {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+[data-landing-page][data-theme="light"] [data-slot="button"].marketing-outline:hover,
+[data-landing-page][data-theme="light"] button.border-foreground\/20:hover {
+  border-color: rgba(0, 85, 255, 0.35);
+  background: #ffffff;
+  color: #0b3db8;
+}
+
+[data-landing-page][data-theme="light"] [data-landing-band] {
+  background-color: rgba(255, 255, 255, 0.72);
+}
+
+[data-landing-page][data-theme="light"] [data-landing-howto] {
+  border-color: rgba(226, 232, 240, 0.95);
+  background-color: transparent;
+}
+
+[data-landing-page][data-theme="light"] .bg-card\/90,
+[data-landing-page][data-theme="light"] .bg-card {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(226, 232, 240, 0.95);
+  box-shadow: 0 14px 36px -22px rgba(15, 23, 42, 0.22);
+}
+
+[data-landing-page][data-theme="light"] .bg-muted\/40,
+[data-landing-page][data-theme="light"] .bg-muted\/50,
+[data-landing-page][data-theme="light"] .bg-muted\/60 {
+  background-color: rgba(241, 245, 249, 0.9);
+}
+
+[data-landing-page][data-theme="light"] .border-border\/40,
+[data-landing-page][data-theme="light"] .border-border\/50,
+[data-landing-page][data-theme="light"] .border-border\/60,
+[data-landing-page][data-theme="light"] .border-border\/70,
+[data-landing-page][data-theme="light"] .border-border\/80 {
+  border-color: rgba(226, 232, 240, 0.95);
+}
+
+[data-landing-page][data-theme="light"] .text-muted-foreground {
+  color: #64748b;
+}
+
 .creator-dashboard-panel {
   background: #ffffff;
 }

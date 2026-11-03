@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Twitter, Instagram, Facebook, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionParticles } from "@/components/landing/section-particles";
+import { useLandingTheme } from "@/components/landing/landing-theme";
 
 const quickLinks = [
   ["/#how-it-works", "How it works"],
@@ -23,10 +24,18 @@ const forUsers = [
 ];
 
 export function Footer() {
+  const { theme } = useLandingTheme();
+  const isLight = theme === "light";
+
   return (
     <footer
       data-theme="dark"
-      className="relative mt-16 overflow-hidden rounded-t-[2rem] border-t border-white/10 bg-[#010104] text-white sm:rounded-t-[2.5rem] lg:mt-24 lg:rounded-t-[3rem]"
+      className={cn(
+        "relative mt-16 overflow-hidden rounded-t-[2rem] border-t bg-[#010104] text-white sm:rounded-t-[2.5rem] lg:mt-24 lg:rounded-t-[3rem]",
+        isLight
+          ? "border-slate-200/40 shadow-[0_-24px_60px_-40px_rgba(15,23,42,0.25)]"
+          : "border-white/10"
+      )}
     >
       {/* Background: particles + soft light */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
