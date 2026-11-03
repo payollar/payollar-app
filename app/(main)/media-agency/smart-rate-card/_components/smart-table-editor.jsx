@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  PROGRAMS_COLUMN_PAYLOAD,
+  IMPRESSIONS_COLUMN_PAYLOAD,
+  getColumnEmptyHint,
+  nextImpressionsDisplayOrder,
+  tableNeedsProgramsColumn,
+  tableNeedsImpressionsColumn,
+} from "@/lib/rate-card-programs";
 
 const COLUMN_DATA_TYPES = [
   { value: "TEXT", label: "Text", icon: Type },
@@ -77,6 +86,9 @@ const getDropdownColor = (index) => {
   return DROPDOWN_COLORS[index % DROPDOWN_COLORS.length];
 };
 
+/** In-flight locks so React Strict Mode doesn't double-create columns */
+const ensureColumnInFlight = new Set();
+
 export function SmartTableEditor({ table, onUpdate }) {
   const [columns, setColumns] = useState([]);
   const [rows, setRows] = useState([]);
@@ -90,6 +102,76 @@ export function SmartTableEditor({ table, onUpdate }) {
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [pendingUpdates, setPendingUpdates] = useState(new Map()); // Track pending cell updates
   const inputRef = useRef(null);
+
+  // Existing time-class tables: add Programs / Impressions columns if missing
+  const needsProgramsColumn = table
+    ? tableNeedsProgramsColumn(table.columns || [])
+    : false;
+  const needsImpressionsColumn = table
+    ? tableNeedsImpressionsColumn(table.columns || [])
+    : false;
+
+  useEffect(() => {
+    if (!table?.id) return;
+    if (!needsProgramsColumn && !needsImpressionsColumn) return;
+
+    const cols = table.columns || [];
+    const tableId = table.id;
+    const programsLock = `${tableId}:programs`;
+    const impressionsLock = `${tableId}:impressions`;
+
+    (async () => {
+      let needRefresh = false;
+      try {
+        if (needsProgramsColumn && !ensureColumnInFlight.has(programsLock)) {
+          ensureColumnInFlight.add(programsLock);
+          try {
+            const response = await fetch(
+              `/api/media-agency/rate-cards/tables/${tableId}/columns`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(PROGRAMS_COLUMN_PAYLOAD),
+              }
+            );
+            const data = await response.json();
+            if (data.success) needRefresh = true;
+          } finally {
+            ensureColumnInFlight.delete(programsLock);
+          }
+        }
+
+        if (needsImpressionsColumn && !ensureColumnInFlight.has(impressionsLock)) {
+          ensureColumnInFlight.add(impressionsLock);
+          try {
+            const displayOrder = nextImpressionsDisplayOrder(cols);
+            const response = await fetch(
+              `/api/media-agency/rate-cards/tables/${tableId}/columns`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...IMPRESSIONS_COLUMN_PAYLOAD,
+                  ...(displayOrder != null ? { displayOrder } : {}),
+                }),
+              }
+            );
+            const data = await response.json();
+            if (data.success) needRefresh = true;
+          } finally {
+            ensureColumnInFlight.delete(impressionsLock);
+          }
+        }
+
+        if (needRefresh) onUpdate?.();
+      } catch (error) {
+        console.error("Error ensuring slot guidance columns:", error);
+        ensureColumnInFlight.delete(programsLock);
+        ensureColumnInFlight.delete(impressionsLock);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh when missing columns change
+  }, [table?.id, needsProgramsColumn, needsImpressionsColumn]);
 
   useEffect(() => {
     if (table) {
@@ -565,6 +647,41 @@ export function SmartTableEditor({ table, onUpdate }) {
           </Select>
         );
 
+      case "NOTES": {
+        const notesValue = isEditing
+          ? editingCellValue !== null && editingCellValue !== undefined
+            ? editingCellValue
+            : value || ""
+          : value || "";
+        const notesPlaceholder =
+          column.config?.placeholder ||
+          (column.config?.role === "programs"
+            ? "One program per line, or comma-separated"
+            : "Notes…");
+        return (
+          <Textarea
+            ref={inputRef}
+            value={notesValue}
+            onChange={(e) => setEditingCellValue(e.target.value)}
+            onBlur={async (e) => {
+              await handleSave(e.target.value || "");
+            }}
+            onKeyDown={async (e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                handleCancel();
+              } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                await handleSave(e.currentTarget.value || "");
+              }
+            }}
+            rows={3}
+            placeholder={notesPlaceholder}
+            className="min-h-[4.5rem] resize-y border-0 shadow-none focus-visible:ring-0 px-3 py-2 text-sm"
+          />
+        );
+      }
+
         default:
           // Always use editingCellValue if we're editing, otherwise use the current value
           const inputValue = isEditing 
@@ -607,7 +724,7 @@ export function SmartTableEditor({ table, onUpdate }) {
               }}
               className="h-auto border-0 shadow-none focus-visible:ring-0 px-3 py-2 min-h-[36px] text-sm"
               type={column.dataType === "NUMBER" || column.dataType === "CURRENCY" ? "number" : "text"}
-              placeholder=""
+              placeholder={getColumnEmptyHint(column) || ""}
             />
           );
       }
@@ -617,12 +734,13 @@ export function SmartTableEditor({ table, onUpdate }) {
     // Check if value is truly empty (not just whitespace or empty string)
     const isEmpty = !value || (typeof value === 'string' && value.trim() === '');
     if (isEmpty) {
+      const emptyHint = getColumnEmptyHint(column) || "—";
       return (
         <div
           className="px-3 py-2 min-h-[36px] flex items-center text-muted-foreground/50 text-sm cursor-text hover:bg-muted/30 rounded"
           onClick={startEditing}
         >
-          <span className="opacity-30">—</span>
+          <span className="opacity-30">{emptyHint}</span>
         </div>
       );
     }
@@ -675,6 +793,16 @@ export function SmartTableEditor({ table, onUpdate }) {
             onClick={startEditing}
           >
             {!isNaN(num) ? num.toLocaleString() : value}
+          </div>
+        );
+
+      case "NOTES":
+        return (
+          <div
+            className="px-3 py-2 min-h-[36px] cursor-text whitespace-pre-wrap break-words rounded text-sm hover:bg-muted/30"
+            onClick={startEditing}
+          >
+            {value}
           </div>
         );
 

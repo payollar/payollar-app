@@ -18,7 +18,10 @@ export function MainWrapper({ children }) {
   const isOnboarding = pathname?.startsWith("/onboarding");
   const isClipLanding = pathname?.startsWith("/clip") || pathname?.startsWith("/academy");
   const isLightMarketing =
-    pathname?.startsWith("/talents") || pathname?.startsWith("/campaigns");
+    pathname?.startsWith("/talents") ||
+    pathname?.startsWith("/campaigns") ||
+    pathname?.startsWith("/products") ||
+    pathname?.startsWith("/rate-cards");
   const isMessages = pathname?.startsWith("/messages");
   const isAuthPage =
     pathname?.startsWith("/sign-in") ||

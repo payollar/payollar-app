@@ -1,37 +1,76 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Tv,
   ArrowLeft,
   ArrowRight,
   MapPin,
-  ChevronRight,
-  ChevronLeft,
-  Check,
   CalendarRange,
+  ChevronRight,
+  Check,
   Clock,
-  User,
   Receipt,
   Loader2,
+  ShoppingCart,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
-import { getHeaderImage } from "@/lib/getHeaderImage";
+import { toast } from "sonner";
+import { BorderBeam } from "border-beam";
 import { getPublishedRateCards } from "@/actions/media-agency";
 import { getRateCardSchedulerSlots } from "@/actions/tv-media-airtime";
 import { TV_AD_TYPES } from "@/lib/ad-types";
 import { cn } from "@/lib/utils";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
+import { MediaPlannerIntro } from "@/components/products/media-planner-intro";
+import {
+  CampaignDatesPicker,
+  createCampaignDayClickHandler,
+  createQuickSelectHandler,
+} from "@/components/products/campaign-dates-picker";
+import { MediaSchedulerStepper } from "@/components/products/media-scheduler-stepper";
+import { MediaFrequencyStep } from "@/components/products/media-frequency-step";
+import {
+  MediaConfirmPanel,
+  MediaConfirmTotal,
+} from "@/components/products/media-confirm-panels";
+import { MediaCampaignSummary } from "@/components/products/media-campaign-summary";
+import { MediaSlotPrograms } from "@/components/products/media-slot-programs";
+import { MediaCampaignDetailsStep } from "@/components/products/media-campaign-details-step";
+import {
+  MEDIA_AUDIENCE_TYPES,
+  MEDIA_CAMPAIGN_OBJECTIVES,
+  MEDIA_INDUSTRY_OPTIONS,
+  mediaBriefLabels,
+} from "@/lib/media-campaign-brief";
+import {
+  FREQUENCY_LABELS,
+  buildMediaPlannerLineItems,
+  formatCompactCount,
+  sumMediaPlannerImpressions,
+  sumMediaPlannerLineItems,
+} from "@/lib/media-planner-pricing";
+import {
+  addMediaPlannerCartItem,
+  loadMediaPlannerCart,
+  mediaPlannerCartCount,
+} from "@/lib/media-planner-cart";
+import {
+  getMediaPlannerDraft,
+  removeMediaPlannerDraft,
+  upsertMediaPlannerDraft,
+} from "@/lib/media-planner-drafts";
+import { takeMediaPlannerCampaignSeed } from "@/lib/media-planner-campaign-seed";
 
 const STEPS = [
-  { id: 1, label: "Station & Format" },
-  { id: 2, label: "Dates" },
-  { id: 3, label: "Airtimes & Spots" },
-  { id: 4, label: "Frequency" },
-  { id: 5, label: "Confirm" },
+  { id: 1, label: "Campaign" },
+  { id: 2, label: "Station & Format" },
+  { id: 3, label: "Dates" },
+  { id: 4, label: "Airtimes & Spots" },
+  { id: 5, label: "Frequency" },
+  { id: 6, label: "Confirm" },
 ];
 
 const BROADCAST_FREQUENCY_OPTIONS = [
@@ -44,14 +83,6 @@ const BROADCAST_FREQUENCY_OPTIONS = [
 
 /** Sun–Sat; default Mon–Fri on */
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/** Same teal / warm radial wash as TV hero — reused on Campaign Scheduler card */
-const TV_MEDIA_ACCENT_RADIAL_CLASS =
-  "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.6_0.12_184.704/0.12),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.2_41.116/0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,oklch(0.55_0.18_264.376/0.18),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_100%,oklch(0.65_0.17_162.48/0.12),transparent_50%)]";
-
-/** Soft vertical blend — scheduler uses lighter stops so card stays readable */
-const TV_MEDIA_SCHEDULER_VERTICAL_FADE_CLASS =
-  "pointer-events-none absolute inset-0 bg-gradient-to-b from-background/20 via-transparent to-chart-2/[0.04] dark:from-background/15 dark:via-chart-2/[0.06] dark:to-chart-1/[0.05]";
 
 /** Match rate card: VAT 15%, NHIL + GETFund 5% on subtotal */
 const VAT_RATE = 0.15;
@@ -88,9 +119,6 @@ function getTvAdFormatsForGrid() {
   return TV_AD_FORMAT_IDS.map((id) => byId[id]).filter(Boolean);
 }
 
-const MONTHS = "January,February,March,April,May,June,July,August,September,October,November,December".split(",");
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 function getDaysBetweenInclusive(start, end) {
   if (!start || !end) return 0;
   const s = new Date(start);
@@ -108,23 +136,6 @@ function getCampaignDayCount(start, end) {
   return getDaysBetweenInclusive(start, end);
 }
 
-function getCalendarDays(year, month) {
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  const startPad = first.getDay();
-  const days = [];
-  for (let i = 0; i < startPad; i++) days.push(null);
-  for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
-  return days;
-}
-
-function addDays(date, n) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + n);
-  return d;
-}
-
 function formatCampaignDate(d) {
   if (!d) return null;
   return new Date(d).toLocaleDateString("en-US", {
@@ -132,32 +143,6 @@ function formatCampaignDate(d) {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function isDateInCampaignRange(day, start, end) {
-  if (!day || !start) return false;
-  const t = new Date(day);
-  t.setHours(0, 0, 0, 0);
-  const s = new Date(start);
-  s.setHours(0, 0, 0, 0);
-  if (!end) return t.getTime() === s.getTime();
-  const e = new Date(end);
-  e.setHours(0, 0, 0, 0);
-  const lo = Math.min(s.getTime(), e.getTime());
-  const hi = Math.max(s.getTime(), e.getTime());
-  return t.getTime() >= lo && t.getTime() <= hi;
-}
-
-function isRangeEndpoint(day, start, end) {
-  if (!day || !start) return false;
-  const t = new Date(day);
-  t.setHours(0, 0, 0, 0);
-  const s = new Date(start);
-  s.setHours(0, 0, 0, 0);
-  if (!end) return t.getTime() === s.getTime();
-  const e = new Date(end);
-  e.setHours(0, 0, 0, 0);
-  return t.getTime() === s.getTime() || t.getTime() === e.getTime();
 }
 
 /** Campaign line total: agency rate × campaign days (rate is used as entered on the rate card) */
@@ -185,6 +170,40 @@ const SPOT_LENGTH_OPTIONS = [
   { sec: 120, short: "2 min", subtitle: "Feature" },
 ];
 
+/** Traveling rainbow border from libraries.dev/beam — soft on light cards */
+function PlannerBorderBeam({ children, className, borderRadius = 14 }) {
+  return (
+    <BorderBeam
+      className={cn("h-full w-full", className)}
+      size="md"
+      theme="light"
+      colorVariant="colorful"
+      strength={0.55}
+      brightness={1.15}
+      saturation={0.85}
+      glowSize={0.85}
+      borderRadius={borderRadius}
+      duration={5.5}
+      css={`
+[data-beam="{id}"][data-active]::after,
+[data-beam="{id}"][data-fading]::after {
+  --beam-stroke-opacity: 2.1;
+}
+[data-beam="{id}"][data-active]::before,
+[data-beam="{id}"][data-fading]::before {
+  --beam-inner-opacity: 1.15;
+}
+[data-beam="{id}"][data-active] [data-beam-bloom],
+[data-beam="{id}"][data-fading] [data-beam-bloom] {
+  --beam-bloom-opacity: 0.9;
+}
+`}
+    >
+      {children}
+    </BorderBeam>
+  );
+}
+
 export default function TVMediaPage() {
   const [rateCards, setRateCards] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
@@ -198,7 +217,8 @@ export default function TVMediaPage() {
   });
   const [selectedAirtimeSlotIds, setSelectedAirtimeSlotIds] = useState([]);
   const [selectedSpotLengthsSec, setSelectedSpotLengthsSec] = useState([]);
-  const [broadcastFrequencyId, setBroadcastFrequencyId] = useState(null);
+  /** Per selected airtime slot: frequency option id */
+  const [slotFrequencyById, setSlotFrequencyById] = useState({});
   /** index 0 = Sun … 6 = Sat */
   const [activeBroadcastDays, setActiveBroadcastDays] = useState(() => [
     false,
@@ -214,6 +234,10 @@ export default function TVMediaPage() {
   const selectedSingleSpotSec =
     selectedSpotLengthsSec.length === 1 ? selectedSpotLengthsSec[0] : null;
   const [mediaCampaignName, setMediaCampaignName] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [audienceTypeIds, setAudienceTypeIds] = useState([]);
+  const [objectiveIds, setObjectiveIds] = useState([]);
+  const [industryIds, setIndustryIds] = useState([]);
   const [contactFullName, setContactFullName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -221,7 +245,116 @@ export default function TVMediaPage() {
   const [airtimeSlots, setAirtimeSlots] = useState([]);
   const [airtimeSlotsLoading, setAirtimeSlotsLoading] = useState(false);
   const [airtimeSlotsError, setAirtimeSlotsError] = useState(null);
-  const headerImage = getHeaderImage("/products/tv-media");
+  const [cartCount, setCartCount] = useState(0);
+  const [draftId, setDraftId] = useState(null);
+  const draftHydratedRef = useRef(false);
+  const pendingDraftSlotsRef = useRef(null);
+
+  useEffect(() => {
+    const refreshCartCount = () => setCartCount(mediaPlannerCartCount(loadMediaPlannerCart()));
+    refreshCartCount();
+    window.addEventListener("media-planner-cart-change", refreshCartCount);
+    window.addEventListener("storage", refreshCartCount);
+    return () => {
+      window.removeEventListener("media-planner-cart-change", refreshCartCount);
+      window.removeEventListener("storage", refreshCartCount);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (draftHydratedRef.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("extend") === "1") {
+      const seed = takeMediaPlannerCampaignSeed();
+      if (!seed?.mediaCampaignName) return;
+      draftHydratedRef.current = true;
+      setMediaCampaignName(seed.mediaCampaignName || "");
+      setBrandName(seed.brandName || "");
+      setAudienceTypeIds(Array.isArray(seed.audienceTypeIds) ? seed.audienceTypeIds : []);
+      setObjectiveIds(Array.isArray(seed.objectiveIds) ? seed.objectiveIds : []);
+      setIndustryIds(Array.isArray(seed.industryIds) ? seed.industryIds : []);
+      setContactFullName(seed.contact?.name || "");
+      setContactEmail(seed.contact?.email || "");
+      setContactPhone(seed.contact?.phone || "");
+      setCampaignStart(seed.campaignStart ? new Date(seed.campaignStart) : null);
+      setCampaignEnd(seed.campaignEnd ? new Date(seed.campaignEnd) : null);
+      if (seed.campaignStart) {
+        const d = new Date(seed.campaignStart);
+        setCalendarMonth({ year: d.getFullYear(), month: d.getMonth() });
+      }
+      if (seed.rateCardId) setSelectedStationId(seed.rateCardId);
+      setCurrentStep(2);
+      toast.message(
+        seed.rateCardId
+          ? `Adding another TV flight to “${seed.mediaCampaignName}” — pick format & airtime`
+          : `Adding another TV flight to “${seed.mediaCampaignName}” — pick station & format`
+      );
+      return;
+    }
+
+    const id = params.get("draft");
+    if (!id) return;
+    const draft = getMediaPlannerDraft(id);
+    if (!draft || String(draft.channel || "TV").toUpperCase() !== "TV") return;
+
+    draftHydratedRef.current = true;
+    setDraftId(draft.id);
+    setMediaCampaignName(draft.mediaCampaignName || "");
+    setBrandName(draft.brandName || "");
+    setAudienceTypeIds(Array.isArray(draft.audienceTypeIds) ? draft.audienceTypeIds : []);
+    setObjectiveIds(Array.isArray(draft.objectiveIds) ? draft.objectiveIds : []);
+    setIndustryIds(Array.isArray(draft.industryIds) ? draft.industryIds : []);
+    setContactFullName(draft.contact?.name || "");
+    setContactEmail(draft.contact?.email || "");
+    setContactPhone(draft.contact?.phone || "");
+    setSelectedAdFormatId(draft.adFormatId || null);
+    setSelectedStationId(draft.rateCardId || null);
+    setCampaignStart(draft.campaignStart ? new Date(draft.campaignStart) : null);
+    setCampaignEnd(draft.campaignEnd ? new Date(draft.campaignEnd) : null);
+    if (draft.campaignStart) {
+      const d = new Date(draft.campaignStart);
+      setCalendarMonth({ year: d.getFullYear(), month: d.getMonth() });
+    }
+    pendingDraftSlotsRef.current = {
+      slotIds: Array.isArray(draft.slotIds) ? draft.slotIds : [],
+      spotLengthsSec: Array.isArray(draft.spotLengthsSec) ? draft.spotLengthsSec : [],
+      slotFrequencies:
+        draft.slotFrequencies && typeof draft.slotFrequencies === "object"
+          ? draft.slotFrequencies
+          : {},
+      activeBroadcastDays: Array.isArray(draft.activeBroadcastDays)
+        ? draft.activeBroadcastDays
+        : null,
+    };
+    setCurrentStep(6);
+    toast.message("Draft loaded — review and continue editing");
+  }, []);
+
+  useEffect(() => {
+    const pending = pendingDraftSlotsRef.current;
+    if (!pending || !selectedStationId || airtimeSlotsLoading) return;
+
+    setSelectedAirtimeSlotIds(pending.slotIds || []);
+    setSelectedSpotLengthsSec(pending.spotLengthsSec || []);
+    if (pending.slotFrequencies && Object.keys(pending.slotFrequencies).length > 0) {
+      setSlotFrequencyById(pending.slotFrequencies);
+    }
+    if (pending.activeBroadcastDays?.length === 7) {
+      setActiveBroadcastDays(pending.activeBroadcastDays);
+    }
+    pendingDraftSlotsRef.current = null;
+  }, [selectedStationId, selectedAdFormatId, airtimeSlotsLoading, airtimeSlots]);
+
+  useEffect(() => {
+    setSlotFrequencyById((prev) => {
+      const next = {};
+      for (const id of selectedAirtimeSlotIds) {
+        next[id] = prev[id] || "once";
+      }
+      return next;
+    });
+  }, [selectedAirtimeSlotIds]);
 
   const tvAdFormats = useMemo(() => getTvAdFormatsForGrid(), []);
 
@@ -275,12 +408,8 @@ export default function TVMediaPage() {
     [rateCards, selectedStationId]
   );
 
-  const canProceedStep1 = selectedStationId && selectedAdFormatId;
-
-  const calendarDays = useMemo(
-    () => getCalendarDays(calendarMonth.year, calendarMonth.month),
-    [calendarMonth.year, calendarMonth.month]
-  );
+  const canProceedCampaign = Boolean(mediaCampaignName?.trim() && audienceTypeIds.length > 0);
+  const canProceedStation = Boolean(selectedStationId && selectedAdFormatId);
 
   const campaignDayCount = useMemo(
     () => getCampaignDayCount(campaignStart, campaignEnd),
@@ -293,33 +422,19 @@ export default function TVMediaPage() {
     return Math.max(1, campaignDayCount);
   }, [campaignStart, campaignDayCount]);
 
-  const handleCampaignDayClick = (d) => {
-    if (!d) return;
-    if (!campaignStart || (campaignStart && campaignEnd)) {
-      setCampaignStart(d);
-      setCampaignEnd(null);
-      return;
-    }
-    const s = campaignStart.getTime();
-    const t = d.getTime();
-    if (t < s) {
-      setCampaignStart(d);
-      setCampaignEnd(campaignStart);
-    } else {
-      setCampaignEnd(d);
-    }
-  };
+  const handleCampaignDayClick = createCampaignDayClickHandler(
+    campaignStart,
+    campaignEnd,
+    setCampaignStart,
+    setCampaignEnd
+  );
 
-  const quickSelectAnchor = campaignStart || new Date();
-
-  const applyQuickSelect = (inclusiveDays) => {
-    const start = new Date(quickSelectAnchor);
-    start.setHours(0, 0, 0, 0);
-    const end = addDays(start, inclusiveDays - 1);
-    setCampaignStart(start);
-    setCampaignEnd(end);
-    setCalendarMonth({ year: start.getFullYear(), month: start.getMonth() });
-  };
+  const applyQuickSelect = createQuickSelectHandler(
+    campaignStart,
+    setCampaignStart,
+    setCampaignEnd,
+    setCalendarMonth
+  );
 
   const toggleAirtimeSlot = (id) => {
     const slot = airtimeSlots.find((s) => s.id === id);
@@ -341,17 +456,44 @@ export default function TVMediaPage() {
     });
   };
 
-  const activeDaysLabel = useMemo(() => {
-    return WEEKDAY_SHORT.filter((_, i) => activeBroadcastDays[i]).join(", ");
-  }, [activeBroadcastDays]);
+  const setSlotFrequency = (slotId, frequencyId) => {
+    setSlotFrequencyById((prev) => ({ ...prev, [slotId]: frequencyId }));
+  };
 
-  /** Sum of agency-entered rates for selected airtime rows (baseline 30s column) */
-  const airtimeRateSubtotal = useMemo(() => {
-    return selectedAirtimeSlotIds.reduce((sum, id) => {
-      const slot = airtimeSlots.find((s) => s.id === id);
-      return sum + (slot?.rateGhs ?? slot?.weeklyGhs ?? 0);
-    }, 0);
-  }, [selectedAirtimeSlotIds, airtimeSlots]);
+  const applyFrequencyToAllSlots = (frequencyId) => {
+    setSlotFrequencyById((prev) => {
+      const next = { ...prev };
+      for (const id of selectedAirtimeSlotIds) {
+        next[id] = frequencyId;
+      }
+      return next;
+    });
+  };
+
+  const selectedFrequencySlots = useMemo(
+    () =>
+      selectedAirtimeSlotIds
+        .map((id) => {
+          const slot = airtimeSlots.find((s) => s.id === id);
+          if (!slot) return null;
+          return {
+            id: slot.id,
+            label: slot.label,
+            range: slot.range || "",
+            impressionsPerAiring: slot.impressionsPerAiring ?? null,
+            impressionsSource: slot.impressionsSource || "demo",
+          };
+        })
+        .filter(Boolean),
+    [selectedAirtimeSlotIds, airtimeSlots]
+  );
+
+  const allSlotsHaveFrequency = useMemo(
+    () =>
+      selectedAirtimeSlotIds.length > 0 &&
+      selectedAirtimeSlotIds.every((id) => Boolean(slotFrequencyById[id])),
+    [selectedAirtimeSlotIds, slotFrequencyById]
+  );
 
   /** Sum of rate-card amounts per spot length across selected rows (15s/30s/… columns when set) */
   const rateSubtotalBySec = useMemo(() => {
@@ -365,143 +507,233 @@ export default function TVMediaPage() {
     return m;
   }, [selectedAirtimeSlotIds, airtimeSlots]);
 
-  /** No spot lengths selected → baseline total; otherwise sum each selected duration’s rate */
-  const spotMixRateSubtotal = useMemo(() => {
-    if (selectedSpotLengthsSec.length === 0) return airtimeRateSubtotal;
-    return selectedSpotLengthsSec.reduce((sum, sec) => sum + (rateSubtotalBySec[sec] ?? 0), 0);
-  }, [selectedSpotLengthsSec, rateSubtotalBySec, airtimeRateSubtotal]);
+  /** Per-slot lines: rate × days × frequency */
+  const pricingLineItems = useMemo(
+    () =>
+      buildMediaPlannerLineItems({
+        slotIds: selectedAirtimeSlotIds,
+        slots: airtimeSlots,
+        spotSec: selectedSingleSpotSec,
+        frequencyBySlotId: slotFrequencyById,
+        dayCount: pricingDayCount,
+        getSlotRateForSec,
+      }),
+    [
+      selectedAirtimeSlotIds,
+      airtimeSlots,
+      selectedSingleSpotSec,
+      slotFrequencyById,
+      pricingDayCount,
+    ]
+  );
 
-  /** Subtotal = sum of rate-card amounts for selected mix × campaign days */
-  const pricingSubtotal = useMemo(() => {
-    return spotMixRateSubtotal * pricingDayCount;
-  }, [spotMixRateSubtotal, pricingDayCount]);
+  const pricingSubtotal = useMemo(
+    () => sumMediaPlannerLineItems(pricingLineItems),
+    [pricingLineItems]
+  );
+
+  const pricingImpressions = useMemo(
+    () => sumMediaPlannerImpressions(pricingLineItems),
+    [pricingLineItems]
+  );
 
   const pricingVat = pricingSubtotal * VAT_RATE;
   const pricingNhilGetfund = pricingSubtotal * NHIL_GETFUND_RATE;
   const pricingTotal = pricingSubtotal + pricingVat + pricingNhilGetfund;
 
-  const rateCardHref =
-    selectedRateCard && selectedAdFormatId
-      ? `/rate-cards/${selectedRateCard.id}?adType=${selectedAdFormatId}`
-      : null;
+  const canAddToCart = Boolean(
+    mediaCampaignName?.trim() &&
+      audienceTypeIds.length > 0 &&
+      selectedRateCard &&
+      selectedAdFormatId &&
+      campaignStart &&
+      selectedAirtimeSlotIds.length > 0 &&
+      pricingTotal > 0
+  );
 
-  const canProceedToRateCard = Boolean(mediaCampaignName?.trim() && rateCardHref);
+  const canSaveDraft = Boolean(mediaCampaignName?.trim());
+
+  const buildPlannerItem = () => {
+    const adFormat = tvAdFormats.find((t) => t.id === selectedAdFormatId);
+    const selectedSlots = selectedAirtimeSlotIds
+      .map((id) => {
+        const slot = airtimeSlots.find((s) => s.id === id);
+        if (!slot) return null;
+        const line = pricingLineItems.find((l) => l.id === id);
+        return {
+          id: slot.id,
+          label: slot.label,
+          range: slot.range || "",
+          rateGhs: slot.rateGhs ?? slot.weeklyGhs ?? 0,
+          ratesBySec: slot.ratesBySec || {},
+          impressionsPerAiring: slot.impressionsPerAiring ?? null,
+          impressionsSource: slot.impressionsSource || "demo",
+          lineImpressions: line?.lineImpressions ?? null,
+          frequencyId: slotFrequencyById[id] || "once",
+          frequencyMultiplier: line?.frequencyMultiplier || 1,
+          lineTotal: line?.lineTotal || 0,
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      channel: "TV",
+      rateCardId: selectedRateCard?.id || selectedStationId || null,
+      rateCardTitle: selectedRateCard?.title || "",
+      agencyName: selectedRateCard?.agency?.agencyName || "",
+      adFormatId: selectedAdFormatId,
+      adFormatLabel: adFormat?.label || adFormat?.fullName || selectedAdFormatId,
+      campaignStart: campaignStart ? new Date(campaignStart).toISOString() : null,
+      campaignEnd: campaignEnd
+        ? new Date(campaignEnd).toISOString()
+        : campaignStart
+          ? new Date(campaignStart).toISOString()
+          : null,
+      dayCount: pricingDayCount,
+      slotIds: selectedAirtimeSlotIds,
+      slots: selectedSlots,
+      spotLengthsSec: selectedSpotLengthsSec,
+      slotFrequencies: slotFrequencyById,
+      broadcastFrequencyId: selectedSlots[0]?.frequencyId || null,
+      activeBroadcastDays,
+      mediaCampaignName: mediaCampaignName.trim(),
+      brandName: brandName.trim() || null,
+      audienceTypeIds,
+      audienceLabels: mediaBriefLabels(MEDIA_AUDIENCE_TYPES, audienceTypeIds),
+      objectiveIds,
+      objectiveLabels: mediaBriefLabels(MEDIA_CAMPAIGN_OBJECTIVES, objectiveIds),
+      industryIds,
+      industryLabels: mediaBriefLabels(MEDIA_INDUSTRY_OPTIONS, industryIds),
+      contact: {
+        name: contactFullName.trim(),
+        email: contactEmail.trim(),
+        phone: contactPhone.trim(),
+      },
+      estimatedImpressions: pricingImpressions || null,
+      subtotal: Math.round(pricingSubtotal),
+      vat: Math.round(pricingVat),
+      nhilGetfund: Math.round(pricingNhilGetfund),
+      total: Math.round(pricingTotal),
+      currentStep,
+    };
+  };
+
+  const handleSaveDraft = () => {
+    if (!canSaveDraft) {
+      toast.error("Enter a campaign name to save a draft");
+      setCurrentStep(1);
+      return;
+    }
+
+    const saved = upsertMediaPlannerDraft({
+      ...buildPlannerItem(),
+      id: draftId || undefined,
+    });
+    setDraftId(saved.id);
+    toast.success(draftId ? "Draft updated" : "Saved as draft", {
+      action: {
+        label: "View drafts",
+        onClick: () => {
+          window.location.href = "/products/media-cart#drafts";
+        },
+      },
+    });
+  };
+
+  const handleAddToCart = () => {
+    if (!canAddToCart) {
+      if (!mediaCampaignName?.trim()) {
+        toast.error("Enter a media campaign name");
+        return;
+      }
+      if (selectedAirtimeSlotIds.length === 0) {
+        toast.error("Select airtime slots before adding to cart");
+        return;
+      }
+      if (!campaignStart) {
+        toast.error("Pick campaign dates before adding to cart");
+        return;
+      }
+      toast.error("Complete the planner before adding to cart");
+      return;
+    }
+
+    addMediaPlannerCartItem(buildPlannerItem());
+    if (draftId) {
+      removeMediaPlannerDraft(draftId);
+      setDraftId(null);
+    }
+
+    setCartCount(mediaPlannerCartCount(loadMediaPlannerCart()));
+    toast.success("Added to media cart", {
+      action: {
+        label: "View cart",
+        onClick: () => {
+          window.location.href = "/products/media-cart";
+        },
+      },
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-chart-2/25">
-      <ProductsChannelTopBar title="TV Media" icon={Tv} />
+    <div className="min-h-[calc(100dvh-5.25rem)] bg-white text-slate-900 antialiased selection:bg-primary/20 md:min-h-[calc(100dvh-7rem)]">
+      <ProductsChannelTopBar title="TV Media" icon={Tv} variant="light" showChannelLabel={false} />
 
-      {/* Hero — inset rounded panel so background image & overlays have rounded corners */}
-      <section className="relative mx-3 mt-2 min-h-[min(52vh,380px)] w-auto max-w-none overflow-hidden rounded-2xl border border-border sm:mx-6 sm:mt-3 sm:min-h-[300px] sm:rounded-3xl lg:mx-8 lg:min-h-[340px]">
-        <img
-          src={headerImage}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-40"
+      <div className="relative mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+        <MediaPlannerIntro
+          className="pt-2 sm:pt-3"
+          title="Television advertising"
+          description="Build a TV flight in one place—campaign brief, stations, dates, airtime, and estimate."
+          cartCount={cartCount}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-background" />
-        <div className={TV_MEDIA_ACCENT_RADIAL_CLASS} />
-        <div className="relative mx-auto flex min-h-[min(52vh,380px)] max-w-6xl flex-col justify-center px-5 py-10 sm:min-h-[300px] sm:px-10 sm:py-12 lg:min-h-[340px]">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-chart-2 sm:text-sm">
-            Campaign planner
-          </p>
-          <div className="mt-3 flex flex-col gap-6 sm:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8 lg:gap-12">
-            <h1 className="min-w-0 max-w-xl flex-1 text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-[1.12] lg:text-[2.5rem] lg:leading-[1.1]">
-              Television advertising
-            </h1>
-            <div className="relative shrink-0 sm:flex sm:max-w-[min(40%,320px)] sm:flex-1 sm:justify-end lg:max-w-[min(38%,360px)]">
-              <img
-                src="/tvv.PNG"
-                alt=""
-                className="mx-auto h-[min(28vw,120px)] w-auto max-h-[140px] object-contain object-bottom drop-shadow-md dark:drop-shadow-[0_12px_40px_rgba(0,0,0,0.45)] sm:mx-0 sm:h-[min(22vw,150px)] sm:max-h-[170px] lg:h-[min(20vw,180px)] lg:max-h-[200px]"
-              />
-            </div>
-          </div>
-          <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:mt-6 sm:max-w-[min(100%,36rem)] sm:text-lg">
-            Plan campaigns across Ghana TV networks—multi-slot booking, clear estimates, one flow.
-          </p>
-        </div>
-      </section>
 
-      {/* Campaign Scheduler */}
-      <section className="px-4 pb-20 pt-12 sm:px-8 sm:pb-28 sm:pt-16 lg:px-12">
-        <div className="mx-auto max-w-5xl">
-          <div className="relative overflow-hidden rounded-[1.75rem] border border-border bg-card/90 shadow-sm shadow-chart-2/5 ring-1 ring-chart-1/5 backdrop-blur-sm dark:shadow-chart-2/10 dark:ring-chart-2/10">
-            <div className={TV_MEDIA_SCHEDULER_VERTICAL_FADE_CLASS} aria-hidden />
-            <div className={TV_MEDIA_ACCENT_RADIAL_CLASS} aria-hidden />
-            <div className="relative z-[1] p-8 sm:p-10 md:p-12">
-            {/* Header */}
-            <div className="mb-11 sm:mb-14">
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                Media Scheduler
-              </h2>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Select station, dates, airtime, frequency—then review. Same tax logic as rate card checkout.
-              </p>
-            </div>
+        {/* Campaign Scheduler */}
+        <section className="relative pb-20 pt-6 sm:pb-28 sm:pt-8">
+            <MediaSchedulerStepper
+              steps={STEPS}
+              currentStep={currentStep}
+              onStepChange={setCurrentStep}
+            />
 
-            {/* Stepper */}
-            <div className="mb-12 sm:mb-14 -mx-1 overflow-x-auto pb-1">
-              <div className="flex min-w-[min(100%,620px)] items-center justify-between gap-1 px-1 sm:gap-2">
-                {STEPS.map((step, idx) => (
-                  <div key={step.id} className="flex min-w-0 flex-1 items-center">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(step.id)}
-                      aria-current={currentStep === step.id ? "step" : undefined}
-                      aria-label={`Go to step ${step.id}: ${step.label}`}
-                      className={cn(
-                        "group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1 pt-0.5 outline-none transition-colors",
-                        "hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-chart-2/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-all duration-300 sm:h-11 sm:w-11 sm:text-sm",
-                          "group-hover:ring-1 group-hover:ring-chart-2/25",
-                          currentStep === step.id
-                            ? "bg-chart-2/20 text-chart-2 shadow-sm ring-1 ring-chart-2/35 dark:bg-chart-2/25 dark:text-chart-2"
-                            : currentStep > step.id
-                              ? "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25"
-                              : "border border-border bg-muted/30 text-muted-foreground"
-                        )}
-                      >
-                        {currentStep > step.id ? (
-                          <Check className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.5} />
-                        ) : (
-                          step.id
-                        )}
-                      </div>
-                      <span
-                        className={cn(
-                          "mt-3 max-w-[92px] text-center text-[11px] font-medium leading-snug tracking-tight sm:max-w-none sm:text-xs sm:leading-tight",
-                          currentStep === step.id ? "text-chart-2" : "text-muted-foreground group-hover:text-foreground"
-                        )}
-                      >
-                        {step.label}
-                      </span>
-                    </button>
-                    {idx < STEPS.length - 1 && (
-                      <div
-                        className={cn(
-                          "-mt-6 mx-0.5 hidden h-px min-w-[8px] flex-1 sm:mx-1.5 sm:block",
-                          currentStep > step.id ? "bg-emerald-500/35" : "bg-border"
-                        )}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Step 1: Station & Format */}
+            {/* Step 1: Campaign details */}
             {currentStep === 1 && (
+              <MediaCampaignDetailsStep
+                campaignName={mediaCampaignName}
+                onCampaignNameChange={setMediaCampaignName}
+                brandName={brandName}
+                onBrandNameChange={setBrandName}
+                objectiveIds={objectiveIds}
+                onObjectiveIdsChange={setObjectiveIds}
+                audienceTypeIds={audienceTypeIds}
+                onAudienceTypeIdsChange={setAudienceTypeIds}
+                industryIds={industryIds}
+                onIndustryIdsChange={setIndustryIds}
+                contactName={contactFullName}
+                onContactNameChange={setContactFullName}
+                contactPhone={contactPhone}
+                onContactPhoneChange={setContactPhone}
+                contactEmail={contactEmail}
+                onContactEmailChange={setContactEmail}
+                campaignNameId="tv-media-campaign-name"
+                brandNameId="tv-media-brand-name"
+                contactNameId="tv-media-contact-name"
+                contactPhoneId="tv-media-contact-phone"
+                contactEmailId="tv-media-contact-email"
+                continueDisabled={!canProceedCampaign}
+                continueLabel="Continue to station"
+                onContinue={() => setCurrentStep(2)}
+              />
+            )}
+
+            {/* Step 2: Station & Format */}
+            {currentStep === 2 && (
               <div className="space-y-12">
                 <div>
                   <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-sm">
                     Choose station
                   </h3>
                   {rateCards.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-border py-10 text-center text-base text-muted-foreground">
+                    <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-base text-slate-500">
                       No TV rate cards available yet. Check back soon or contact a media agency.
                     </p>
                   ) : (
@@ -512,10 +744,10 @@ export default function TVMediaPage() {
                           type="button"
                           onClick={() => setSelectedStationId(card.id)}
                           className={cn(
-                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/35",
+                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/40 hover:shadow-sm",
                             selectedStationId === card.id
-                              ? "border-primary/45 bg-muted/60 ring-1 ring-border"
-                              : "border-border bg-muted/50 hover:bg-muted/60"
+                              ? "border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm"
+                              : "border-slate-200 bg-white hover:bg-slate-50"
                           )}
                         >
                           <div className="flex items-center gap-2 mb-2">
@@ -550,18 +782,18 @@ export default function TVMediaPage() {
                           type="button"
                           onClick={() => setSelectedAdFormatId(format.id)}
                           className={cn(
-                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/35",
+                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/40 hover:shadow-sm",
                             selectedAdFormatId === format.id
-                              ? "border-primary/45 bg-muted/60 ring-1 ring-border"
-                              : "border-border bg-muted/50 hover:bg-muted/60"
+                              ? "border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm"
+                              : "border-slate-200 bg-white hover:bg-slate-50"
                           )}
                         >
                           <div
                             className={cn(
                               "mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl transition-colors sm:h-16 sm:w-16",
                               selectedAdFormatId === format.id
-                                ? "bg-chart-2/15 ring-1 ring-chart-2/25"
-                                : "bg-muted/50"
+                                ? "bg-primary/10 ring-1 ring-primary/20"
+                                : "bg-slate-50"
                             )}
                           >
                             {iconSrc ? (
@@ -582,161 +814,11 @@ export default function TVMediaPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
-                  <Button
-                    type="button"
-                    disabled={!canProceedStep1}
-                    onClick={() => setCurrentStep(2)}
-                    className="h-12 min-w-[10rem] rounded-full bg-[#0071e3] px-8 text-base font-medium text-white hover:bg-[#0077ed] disabled:opacity-40"
-                  >
-                    Next: Choose Dates
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Campaign window — calendar + summary stay in sync */}
-            {currentStep === 2 && (
-              <div className="space-y-10">
-                <div>
-                  <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Campaign dates</h3>
-                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                    Tap a start date, then an end date to set your flight window. One tap counts as a single-day
-                    campaign—your summary updates immediately.
-                  </p>
-                </div>
-
-                <div className="grid lg:grid-cols-[1fr_min(320px,100%)] gap-6 lg:gap-8 items-start">
-                  {/* Calendar */}
-                  <div className="rounded-2xl border border-border border-l-4 border-l-chart-2/45 bg-muted/40 p-5 sm:p-6 dark:border-l-chart-2/55">
-                    <div className="flex items-center justify-between mb-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCalendarMonth((m) =>
-                            m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 }
-                          )
-                        }
-                        className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                        aria-label="Previous month"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <span className="text-base font-semibold text-foreground sm:text-lg">
-                        {MONTHS[calendarMonth.month]} {calendarMonth.year}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCalendarMonth((m) =>
-                            m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 }
-                          )
-                        }
-                        className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                        aria-label="Next month"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                    </div>
-                    <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
-                      {WEEKDAY_LABELS.map((day) => (
-                        <div key={day}>{day}</div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {calendarDays.map((d, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => handleCampaignDayClick(d)}
-                          disabled={!d}
-                          className={cn(
-                            "aspect-square min-h-[2.5rem] rounded-lg text-sm font-medium transition-colors sm:min-h-[2.75rem] sm:text-base",
-                            !d && "invisible pointer-events-none",
-                            d &&
-                              isDateInCampaignRange(d, campaignStart, campaignEnd) &&
-                              "bg-chart-2/15 text-foreground dark:bg-chart-2/20",
-                            d &&
-                              !isDateInCampaignRange(d, campaignStart, campaignEnd) &&
-                              "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                            d &&
-                              isRangeEndpoint(d, campaignStart, campaignEnd) &&
-                              "ring-2 ring-chart-2/50 ring-offset-2 ring-offset-background z-10 dark:ring-chart-2/45"
-                          )}
-                        >
-                          {d ? d.getDate() : ""}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Campaign window summary */}
-                  <div className="space-y-5 rounded-2xl border border-border border-l-4 border-l-chart-3/45 bg-muted/40 p-5 sm:p-6 dark:border-l-chart-3/55">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <CalendarRange className="h-4 w-4 shrink-0 text-chart-3" />
-                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:text-sm">
-                        Campaign window
-                      </span>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground sm:text-xs">Start</p>
-                        <p className="text-base font-semibold text-foreground tabular-nums sm:text-lg">
-                          {campaignStart ? formatCampaignDate(campaignStart) : "— Not selected"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground sm:text-xs">End</p>
-                        <p className="text-base font-semibold text-foreground tabular-nums sm:text-lg">
-                          {campaignStart
-                            ? campaignEnd
-                              ? formatCampaignDate(campaignEnd)
-                              : formatCampaignDate(campaignStart)
-                            : "— Not selected"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 pt-1 border-t border-border">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground sm:text-xs">Total days (inclusive)</p>
-                      <p className="text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
-                        {campaignDayCount}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground sm:text-xs">Quick select</p>
-                      <p className="mb-3 text-xs text-muted-foreground sm:text-sm">
-                        From {campaignStart ? "your start date" : "today"}—tap a preset to fill the range.
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { label: "1 week", days: 7 },
-                          { label: "2 weeks", days: 14 },
-                          { label: "1 month", days: 30 },
-                          { label: "3 months", days: 90 },
-                        ].map(({ label, days }) => (
-                          <button
-                            key={label}
-                            type="button"
-                            onClick={() => applyQuickSelect(days)}
-                            className="rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-chart-1/35 hover:bg-chart-1/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chart-2/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:text-base dark:hover:bg-chart-1/10"
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex justify-between pt-2">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-full border-border bg-transparent px-5 text-base text-foreground hover:bg-muted/60"
+                    className="h-11 rounded-full border-slate-200 bg-white px-5 text-base text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
                     onClick={() => setCurrentStep(1)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -744,8 +826,50 @@ export default function TVMediaPage() {
                   </Button>
                   <Button
                     type="button"
-                    className="h-12 rounded-full bg-[#0071e3] px-8 text-base font-medium text-white hover:bg-[#0077ed]"
+                    disabled={!canProceedStation}
                     onClick={() => setCurrentStep(3)}
+                    className="h-12 min-w-[10rem] rounded-full bg-slate-900 px-8 text-base font-medium text-white hover:bg-slate-800 disabled:opacity-40"
+                  >
+                    Next: Dates
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Campaign window — calendar + summary stay in sync */}
+            {currentStep === 3 && (
+              <div className="space-y-8 sm:space-y-10">
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">Campaign dates</h3>
+                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                    Tap a start date, then an end date. One tap is a single-day campaign.
+                  </p>
+                </div>
+
+                <CampaignDatesPicker
+                  calendarMonth={calendarMonth}
+                  onCalendarMonthChange={setCalendarMonth}
+                  campaignStart={campaignStart}
+                  campaignEnd={campaignEnd}
+                  onDayClick={handleCampaignDayClick}
+                  onQuickSelect={applyQuickSelect}
+                />
+
+                <div className="flex justify-between pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-full border-slate-200 bg-white px-5 text-base text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+                    onClick={() => setCurrentStep(2)}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-12 rounded-full bg-slate-900 px-8 text-base font-medium text-white hover:bg-slate-800"
+                    onClick={() => setCurrentStep(4)}
                   >
                     Next: Airtimes &amp; spots
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -755,73 +879,154 @@ export default function TVMediaPage() {
             )}
 
             {/* Step 3: Airtimes & spots */}
-            {currentStep === 3 && (
-              <div className="space-y-12">
-                <div>
-                  <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                    Airtimes &amp; spots
-                  </h3>
-                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                    Choose where your ads run and which spot lengths apply. Rates shown are illustrative; your station
-                    rate card has final pricing.
-                  </p>
-                  {campaignStart && campaignDayCount > 0 && (
-                    <p className="mt-2 text-sm text-chart-3/95 dark:text-chart-3">
-                      Campaign length: {campaignDayCount} day{campaignDayCount === 1 ? "" : "s"}. Each card shows total
-                      for those days (daily × days).
+            {currentStep === 4 && (
+              <div className="space-y-8 sm:space-y-10">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                      Airtimes &amp; spots
+                    </h3>
+                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
+                      Pick a spot length, then stack the dayparts you want. Estimates follow this station&apos;s rate card.
                     </p>
-                  )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedAdFormatId ? (
+                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                        {tvAdFormats.find((f) => f.id === selectedAdFormatId)?.label ?? selectedAdFormatId}
+                      </span>
+                    ) : null}
+                    {campaignStart && campaignDayCount > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                        <CalendarRange className="h-3.5 w-3.5" />
+                        {campaignDayCount} day{campaignDayCount === 1 ? "" : "s"}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200/80">
+                        Dates not set — showing daily rates
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Spot length first so airtime cards can show price */}
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
+                          1
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-900 sm:text-base">
+                          Spot length
+                        </h4>
+                      </div>
+                      <p className="mt-1.5 text-sm text-slate-500">
+                        Choose one duration. Airtime prices update to match.
+                      </p>
+                    </div>
+                    {selectedSingleSpotSec != null ? (
+                      <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200/70">
+                        {SPOT_LENGTH_OPTIONS.find((o) => o.sec === selectedSingleSpotSec)?.short} selected
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div
+                    role="radiogroup"
+                    aria-label="Spot length"
+                    className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+                  >
+                    {SPOT_LENGTH_OPTIONS.map(({ sec, short, subtitle }) => {
+                      const selected = selectedSpotLengthsSec.includes(sec);
+                      const rateSum = rateSubtotalBySec[sec] ?? 0;
+                      const campaignEst = Math.round(rateSum * pricingDayCount);
+                      const showEstimate = selected && selectedAirtimeSlotIds.length > 0;
+                      const card = (
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => toggleSpotLength(sec)}
+                          className={cn(
+                            "group relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-0.5 rounded-2xl bg-white px-3 py-4 text-center shadow-[0_8px_24px_rgba(15,23,42,0.04)] transition-all",
+                            !selected &&
+                              "ring-1 ring-slate-200/90 hover:-translate-y-0.5 hover:shadow-md",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 focus-visible:ring-offset-2"
+                          )}
+                        >
+                          {selected ? (
+                            <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white">
+                              <Check className="h-3 w-3" strokeWidth={3} />
+                            </span>
+                          ) : null}
+                          <span className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                            {short}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500">{subtitle}</span>
+                          {showEstimate ? (
+                            <span className="mt-1 text-[11px] font-semibold tabular-nums text-slate-700">
+                              GH₵{campaignEst.toLocaleString()}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                      return selected ? (
+                        <PlannerBorderBeam key={sec} borderRadius={16}>
+                          {card}
+                        </PlannerBorderBeam>
+                      ) : (
+                        <div key={sec}>{card}</div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Airtime slots */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 shrink-0 text-chart-3" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
-                      Select airtime slots
-                    </h4>
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
+                          2
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-900 sm:text-base">
+                          Airtime slots
+                        </h4>
+                      </div>
+                      <p className="mt-1.5 max-w-lg text-sm text-slate-500">
+                        Select every daypart you want. Unavailable slots stay greyed out.
+                        {selectedSingleSpotSec == null
+                          ? " Pick a spot length above to unlock pricing."
+                          : null}
+                      </p>
+                    </div>
+                    {selectedAirtimeSlotIds.length > 0 ? (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                        <Clock className="h-3.5 w-3.5" />
+                        {selectedAirtimeSlotIds.length} slot
+                        {selectedAirtimeSlotIds.length === 1 ? "" : "s"} selected
+                      </span>
+                    ) : null}
                   </div>
-                  {selectedAdFormatId && (
-                    <p className="text-sm font-medium text-foreground">
-                      Showing airtime for{" "}
-                      <span className="text-chart-3">
-                        {tvAdFormats.find((f) => f.id === selectedAdFormatId)?.label ?? selectedAdFormatId}
-                      </span>
-                      — only rate-card rows for this ad format are listed (see ad-type column in the agency editor).
-                    </p>
-                  )}
-                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Slots and prices come from this station&apos;s published rate card. Greyed slots are marked not
-                    bookable by the media agency. Your selections stack — each chosen slot runs your campaign.
-                    {!campaignStart && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        Set campaign dates in the previous step to multiply daily rates by the number of days.
-                      </span>
-                    )}
-                  </p>
+
                   {airtimeSlotsError && (
-                    <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    <p className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                       {airtimeSlotsError}
                     </p>
                   )}
+
                   {airtimeSlotsLoading ? (
-                    <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-16 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Loading airtime from rate card…</span>
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 py-14 text-slate-500">
+                      <Loader2 className="h-5 w-5 animate-spin text-slate-700" />
+                      <span className="text-sm">Loading airtime from rate card…</span>
                     </div>
                   ) : airtimeSlots.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground sm:text-base">
-                      No airtime rows for this ad format. Ensure the rate card table includes an{" "}
-                      <strong className="text-foreground">ad type</strong> column (or &quot;Ad format&quot; dropdown)
-                      with values matching{" "}
-                      {selectedAdFormatId
-                        ? tvAdFormats.find((f) => f.id === selectedAdFormatId)?.label ?? selectedAdFormatId
-                        : "the selected format"}
-                      , or try another format.
+                    <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 py-10 text-center text-sm text-slate-500">
+                      No airtime rows for this ad format. Check the rate card&apos;s ad type column, or try another format.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {airtimeSlots.map((slot) => {
                         const selected = selectedAirtimeSlotIds.includes(slot.id);
                         const disabled = slot.booked;
@@ -829,133 +1034,205 @@ export default function TVMediaPage() {
                           selectedSingleSpotSec != null
                             ? getSlotRateForSec(slot, selectedSingleSpotSec)
                             : null;
-                        return (
+                        const campaignTotal =
+                          displayedDailyRate != null
+                            ? slotCampaignTotalGhs(displayedDailyRate, pricingDayCount)
+                            : null;
+                        const impressionsLabel = formatCompactCount(slot.impressionsPerAiring);
+                        const isDemoImpressions = slot.impressionsSource !== "agency";
+                        const card = (
                           <button
-                            key={slot.id}
                             type="button"
                             disabled={disabled}
                             onClick={() => toggleAirtimeSlot(slot.id)}
                             aria-pressed={selected}
                             aria-disabled={disabled}
                             className={cn(
-                              "flex min-h-[5.5rem] flex-col justify-between rounded-xl border p-4 text-left transition-all sm:min-h-[6rem] sm:p-4",
-                              disabled &&
-                                "opacity-45 cursor-not-allowed border-border bg-muted/30 text-muted-foreground",
-                              !disabled &&
-                                selected &&
-                                "border-chart-3/40 bg-chart-3/8 ring-1 ring-chart-3/25 shadow-sm dark:bg-chart-3/12",
+                              "group relative flex min-h-[7.5rem] w-full flex-col justify-between rounded-2xl bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.04)] transition-all sm:p-5",
+                              disabled && "cursor-not-allowed opacity-50",
                               !disabled &&
                                 !selected &&
-                                "border-border bg-muted/40 hover:border-chart-3/30 hover:bg-muted/60",
+                                "ring-1 ring-slate-200/90 hover:-translate-y-0.5 hover:shadow-md",
                               !disabled &&
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 focus-visible:ring-offset-2"
                             )}
                           >
-                            <div>
-                              <p className="text-sm font-semibold text-foreground sm:text-base">{slot.label}</p>
-                              {slot.range ? (
-                                <p className="mt-0.5 text-xs text-muted-foreground tabular-nums sm:text-sm">{slot.range}</p>
-                              ) : null}
-                            </div>
-                            {disabled ? (
-                              <p className="mt-2 text-xs font-semibold text-muted-foreground sm:text-sm">Not available</p>
-                            ) : (
-                              <div className="mt-2 space-y-0.5">
-                                {selectedSingleSpotSec == null ? (
-                                  <p className="text-xs font-semibold text-muted-foreground sm:text-sm">
-                                    Select a spot length to see pricing
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p
+                                  className={cn(
+                                    "truncate text-base font-semibold tracking-tight",
+                                    disabled ? "text-slate-400" : "text-slate-900"
+                                  )}
+                                >
+                                  {slot.label}
+                                </p>
+                                {slot.range ? (
+                                  <p
+                                    className={cn(
+                                      "mt-1 inline-flex items-center gap-1.5 text-sm tabular-nums",
+                                      disabled ? "text-slate-400" : "text-slate-500"
+                                    )}
+                                  >
+                                    <Clock className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                    {slot.range}
                                   </p>
-                                ) : (
-                                  <>
-                                    <p className="text-sm font-semibold tabular-nums text-chart-3 sm:text-base">
-                                      GH₵
-                                      {slotCampaignTotalGhs(
-                                        displayedDailyRate,
-                                        pricingDayCount
-                                      ).toLocaleString()}
-                                    </p>
-                                    <p className="text-[10px] leading-tight text-muted-foreground tabular-nums sm:text-[11px]">
-                                      {Math.round(displayedDailyRate ?? 0).toLocaleString()} ×{" "}
-                                      {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"} •{" "}
-                                      {selectedSingleSpotSec}s
-                                    </p>
-                                  </>
-                                )}
+                                ) : null}
+                                {!disabled ? (
+                                  <MediaSlotPrograms
+                                    programs={slot.programs}
+                                    programsSource={slot.programsSource}
+                                    className="text-slate-500"
+                                  />
+                                ) : null}
+                                {impressionsLabel && !disabled ? (
+                                  <p className="mt-1.5 text-xs font-medium tabular-nums text-slate-500">
+                                    ~{impressionsLabel}
+                                    <span className="font-normal text-slate-400">
+                                      {" "}
+                                      / airing
+                                      {isDemoImpressions ? " · demo" : ""}
+                                    </span>
+                                  </p>
+                                ) : null}
                               </div>
-                            )}
+                              <span
+                                className={cn(
+                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+                                  disabled && "border-slate-200 bg-slate-100",
+                                  !disabled &&
+                                    selected &&
+                                    "border-slate-900 bg-slate-900 text-white",
+                                  !disabled &&
+                                    !selected &&
+                                    "border-slate-300 bg-white group-hover:border-slate-400"
+                                )}
+                                aria-hidden
+                              >
+                                {selected && !disabled ? (
+                                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                                ) : null}
+                              </span>
+                            </div>
+
+                            <div className="mt-4 border-t border-slate-100 pt-3">
+                              {disabled ? (
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                  Not available
+                                </p>
+                              ) : selectedSingleSpotSec == null ? (
+                                <p className="text-xs font-medium text-slate-400">
+                                  Select a spot length for pricing
+                                </p>
+                              ) : (
+                                <div className="flex items-end justify-between gap-2">
+                                  <div>
+                                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                                      {pricingDayCount > 1 ? "Campaign total" : "Daily rate"}
+                                    </p>
+                                    <p className="mt-0.5 text-lg font-bold tabular-nums tracking-tight text-slate-900">
+                                      GH₵{campaignTotal?.toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <p className="pb-0.5 text-right text-[11px] leading-snug text-slate-400 tabular-nums">
+                                    {Math.round(displayedDailyRate ?? 0).toLocaleString()}
+                                    /day
+                                    {pricingDayCount > 1
+                                      ? ` × ${pricingDayCount}d`
+                                      : null}
+                                    <br />
+                                    {selectedSingleSpotSec}s spot
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </button>
+                        );
+
+                        return selected && !disabled ? (
+                          <PlannerBorderBeam key={slot.id} borderRadius={16}>
+                            {card}
+                          </PlannerBorderBeam>
+                        ) : (
+                          <div key={slot.id}>{card}</div>
                         );
                       })}
                     </div>
                   )}
                 </div>
 
-                {/* Spot lengths */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
-                    Select spot length
-                  </h4>
-                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Pick one spot duration. Airtime pricing updates to match your selection.
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {SPOT_LENGTH_OPTIONS.map(({ sec, short, subtitle }) => {
-                      const selected = selectedSpotLengthsSec.includes(sec);
-                      const rateSum = rateSubtotalBySec[sec] ?? 0;
-                      const campaignEst = Math.round(rateSum * pricingDayCount);
-                      const showEstimate = selected && selectedAirtimeSlotIds.length > 0;
-                      return (
-                        <button
-                          key={sec}
-                          type="button"
-                          onClick={() => toggleSpotLength(sec)}
-                          aria-pressed={selected}
-                          className={cn(
-                            "flex min-h-[5.75rem] flex-col items-center justify-center gap-1 rounded-xl border p-4 text-center transition-all sm:min-h-[6.25rem] sm:p-5",
-                            selected
-                              ? "border-chart-4/40 bg-chart-4/8 ring-1 ring-chart-4/25 dark:bg-chart-4/12"
-                              : "border-border bg-muted/40 hover:border-chart-4/30 hover:bg-muted/60",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          )}
-                        >
-                          <span className="text-lg font-bold text-foreground sm:text-xl">{short}</span>
-                          <span className="text-xs text-muted-foreground sm:text-sm">{subtitle}</span>
-                          {selected && selectedAirtimeSlotIds.length === 0 && (
-                            <span className="text-[10px] text-amber-700/90 dark:text-amber-400/90">
-                              Select airtime slots
-                            </span>
-                          )}
-                          {showEstimate && (
+                {/* Selection summary */}
+                {(selectedAirtimeSlotIds.length > 0 || selectedSingleSpotSec != null) && (
+                  <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <p className="text-sm text-slate-600">
+                      {selectedAirtimeSlotIds.length > 0 ? (
+                        <>
+                          <span className="font-semibold text-slate-900">
+                            {selectedAirtimeSlotIds.length} daypart
+                            {selectedAirtimeSlotIds.length === 1 ? "" : "s"}
+                          </span>
+                          {selectedSingleSpotSec != null ? (
                             <>
-                              <span className="mt-0.5 text-xs font-semibold tabular-nums text-chart-1 sm:text-sm">
-                                GH₵{campaignEst.toLocaleString()}
-                              </span>
-                              <span className="text-[10px] leading-tight text-muted-foreground tabular-nums">
-                                {Math.round(rateSum).toLocaleString()} × {pricingDayCount} day
-                                {pricingDayCount === 1 ? "" : "s"}
-                              </span>
+                              {" "}
+                              ·{" "}
+                              <span className="font-semibold text-slate-900">
+                                {SPOT_LENGTH_OPTIONS.find((o) => o.sec === selectedSingleSpotSec)?.short}
+                              </span>{" "}
+                              spots
                             </>
+                          ) : (
+                            <span className="text-amber-700"> · choose a spot length</span>
                           )}
-                        </button>
-                      );
-                    })}
+                        </>
+                      ) : (
+                        <span className="text-amber-700">
+                          Spot length set — select at least one airtime slot
+                        </span>
+                      )}
+                    </p>
+                    {selectedAirtimeSlotIds.length > 0 && selectedSingleSpotSec != null ? (
+                      <div className="text-right">
+                        <p className="text-sm font-semibold tabular-nums text-slate-900">
+                          Est. GH₵
+                          {Math.round(
+                            (rateSubtotalBySec[selectedSingleSpotSec] ?? 0) * pricingDayCount
+                          ).toLocaleString()}
+                        </p>
+                        {(() => {
+                          const baseImpressions = selectedAirtimeSlotIds.reduce((sum, id) => {
+                            const slot = airtimeSlots.find((s) => s.id === id);
+                            const n = Number(slot?.impressionsPerAiring);
+                            return sum + (Number.isFinite(n) && n > 0 ? n : 0);
+                          }, 0);
+                          const label = formatCompactCount(baseImpressions * pricingDayCount);
+                          return label ? (
+                            <p className="mt-0.5 text-xs font-medium tabular-nums text-slate-500">
+                              Est. {label} impressions
+                            </p>
+                          ) : null;
+                        })()}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
+                )}
 
-                <div className="flex justify-between pt-2">
+                <div className="flex justify-between border-t border-slate-200/80 pt-6">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-full border-border bg-transparent px-5 text-base text-foreground hover:bg-muted/60"
-                    onClick={() => setCurrentStep(2)}
+                    className="h-11 rounded-full border-slate-200 bg-white px-5 text-base text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+                    onClick={() => setCurrentStep(3)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   <Button
                     type="button"
-                    className="h-12 rounded-full bg-[#0071e3] px-8 text-base font-medium text-white hover:bg-[#0077ed]"
-                    onClick={() => setCurrentStep(4)}
+                    className="h-12 rounded-full bg-slate-900 px-8 text-base font-medium text-white hover:bg-slate-800 disabled:opacity-40"
+                    disabled={
+                      selectedAirtimeSlotIds.length === 0 || selectedSingleSpotSec == null
+                    }
+                    onClick={() => setCurrentStep(5)}
                   >
                     Next: Frequency
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -965,89 +1242,43 @@ export default function TVMediaPage() {
             )}
 
             {/* Step 4: Frequency */}
-            {currentStep === 4 && (
-              <div className="space-y-12">
+            {currentStep === 5 && (
+              <div className="space-y-8 sm:space-y-10">
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Frequency</h3>
-                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                    Set how often spots run and which days of the week apply. This pairs with the airtime slots you chose
-                    in the previous step.
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">Frequency</h3>
+                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                    Choose a frequency for each airtime slot, then pick which days of the week apply.
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
-                    Broadcast frequency
-                  </h4>
-                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    How often should each spot air within each selected time block?
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {BROADCAST_FREQUENCY_OPTIONS.map(({ id, label }) => {
-                      const selected = broadcastFrequencyId === id;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => setBroadcastFrequencyId(id)}
-                          aria-pressed={selected}
-                          className={cn(
-                            "rounded-full px-4 py-2 text-sm font-medium transition-colors sm:px-5 sm:py-2.5 sm:text-base",
-                            selected
-                              ? "bg-[#0071e3] text-white ring-2 ring-chart-2/40 ring-offset-2 ring-offset-background"
-                              : "border border-border bg-muted/50 text-muted-foreground hover:border-chart-2/35 hover:bg-chart-2/5",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <MediaFrequencyStep
+                  slots={selectedFrequencySlots}
+                  frequencyOptions={BROADCAST_FREQUENCY_OPTIONS}
+                  frequencyBySlotId={slotFrequencyById}
+                  onFrequencyChange={setSlotFrequency}
+                  onApplyFrequencyToAll={applyFrequencyToAllSlots}
+                  weekdays={WEEKDAY_SHORT}
+                  activeDays={activeBroadcastDays}
+                  onToggleDay={toggleBroadcastDay}
+                  onSetDays={setActiveBroadcastDays}
+                  dayCount={pricingDayCount}
+                />
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground sm:text-base">
-                    Active broadcast days
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {WEEKDAY_SHORT.map((label, i) => {
-                      const on = activeBroadcastDays[i];
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => toggleBroadcastDay(i)}
-                          aria-pressed={on}
-                          className={cn(
-                            "h-11 w-11 shrink-0 rounded-full text-xs font-semibold transition-colors sm:h-12 sm:w-12 sm:text-sm",
-                            on
-                              ? "bg-chart-2 text-white shadow-sm ring-1 ring-chart-2/25 dark:ring-white/15"
-                              : "border border-border bg-muted/40 text-muted-foreground hover:border-chart-2/35 hover:bg-chart-2/5 hover:text-foreground",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex justify-between pt-2">
+                <div className="flex justify-between pt-1">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-full border-border bg-transparent px-5 text-base text-foreground hover:bg-muted/60"
-                    onClick={() => setCurrentStep(3)}
+                    className="h-11 rounded-full border-slate-200 bg-white px-5 text-base text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+                    onClick={() => setCurrentStep(4)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   <Button
                     type="button"
-                    className="h-12 rounded-full bg-[#0071e3] px-8 text-base font-medium text-white hover:bg-[#0077ed]"
-                    onClick={() => setCurrentStep(5)}
+                    className="h-12 rounded-full bg-slate-900 px-8 text-base font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!allSlotsHaveFrequency || !activeBroadcastDays.some(Boolean)}
+                    onClick={() => setCurrentStep(6)}
                   >
                     Next: Review &amp; confirm
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -1057,356 +1288,225 @@ export default function TVMediaPage() {
             )}
 
             {/* Step 5: Confirm — checkout-style review */}
-            {currentStep === 5 && (
-              <div className="space-y-10">
+            {currentStep === 6 && (
+              <div className="space-y-8 sm:space-y-10">
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
                     Review &amp; confirm
                   </h3>
-                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                    Review your campaign summary and pricing estimate, then add your campaign name and billing contact.
-                    Final line items and payment are completed on the station rate card (same tax treatment as rate card
-                    checkout).
+                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                    Review the plan and estimate, then add it to your media cart.
                   </p>
                 </div>
 
-                {/* Campaign summary */}
-                <div className="space-y-4 rounded-2xl border border-border border-l-4 border-l-chart-2/45 bg-muted/30 p-5 sm:p-7 dark:border-l-chart-2/55">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-chart-2 sm:text-base">
-                    Campaign summary
-                  </h4>
-                  <dl className="space-y-3 text-sm sm:text-base">
-                    {selectedRateCard && (
-                      <>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                          <dt className="text-muted-foreground shrink-0">Station</dt>
-                          <dd className="text-foreground font-medium text-right">{selectedRateCard.title}</dd>
-                        </div>
-                        {selectedRateCard.location && (
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                            <dt className="text-muted-foreground shrink-0">Market / reach</dt>
-                            <dd className="text-muted-foreground text-right flex items-center sm:justify-end gap-1">
-                              <MapPin className="h-3.5 w-3.5 shrink-0" />
-                              {selectedRateCard.location}
-                            </dd>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {selectedAdFormatId && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                        <dt className="text-muted-foreground shrink-0">Ad format</dt>
-                        <dd className="text-foreground font-medium text-right">
-                          {tvAdFormats.find((t) => t.id === selectedAdFormatId)?.label}
-                        </dd>
-                      </div>
-                    )}
-                    {campaignStart && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                        <dt className="text-muted-foreground shrink-0">Campaign window</dt>
-                        <dd className="text-foreground font-medium text-right">
-                          {formatCampaignDate(campaignStart)}
-                          {" — "}
-                          {campaignEnd ? formatCampaignDate(campaignEnd) : formatCampaignDate(campaignStart)}
-                          <span className="text-muted-foreground font-normal">
-                            {" "}
-                            ({campaignDayCount} day{campaignDayCount === 1 ? "" : "s"})
-                          </span>
-                        </dd>
-                      </div>
-                    )}
-                    {selectedAirtimeSlotIds.length > 0 && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                        <dt className="text-muted-foreground shrink-0">Airtime slots</dt>
-                        <dd className="text-foreground text-right max-w-md">
-                          {selectedAirtimeSlotIds
-                            .map((id) => {
-                              const s = airtimeSlots.find((x) => x.id === id);
-                              if (!s) return null;
-                              return s.range ? `${s.label} (${s.range})` : s.label;
-                            })
-                            .filter(Boolean)
-                            .join(", ")}
-                        </dd>
-                      </div>
-                    )}
-                    {selectedSpotLengthsSec.length > 0 && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                        <dt className="text-muted-foreground shrink-0">Spot lengths</dt>
-                        <dd className="text-foreground text-right">
-                          {selectedSpotLengthsSec
-                            .map(
-                              (sec) => SPOT_LENGTH_OPTIONS.find((o) => o.sec === sec)?.short ?? `${sec}s`
-                            )
-                            .join(", ")}
-                        </dd>
-                      </div>
-                    )}
-                    {broadcastFrequencyId && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 border-b border-border pb-3">
-                        <dt className="text-muted-foreground shrink-0">Broadcast frequency</dt>
-                        <dd className="text-foreground font-medium text-right">
-                          {BROADCAST_FREQUENCY_OPTIONS.find((f) => f.id === broadcastFrequencyId)?.label}
-                        </dd>
-                      </div>
-                    )}
-                    {activeDaysLabel && (
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 pb-1">
-                        <dt className="text-muted-foreground shrink-0">Active broadcast days</dt>
-                        <dd className="text-foreground text-right">{activeDaysLabel}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
+                <div className="grid items-start gap-5 xl:grid-cols-2 xl:gap-6">
+                  <MediaCampaignSummary
+                    campaignName={mediaCampaignName.trim() || null}
+                    brandName={brandName.trim() || null}
+                    audienceLabels={mediaBriefLabels(MEDIA_AUDIENCE_TYPES, audienceTypeIds)}
+                    objectiveLabels={mediaBriefLabels(MEDIA_CAMPAIGN_OBJECTIVES, objectiveIds)}
+                    industryLabels={mediaBriefLabels(MEDIA_INDUSTRY_OPTIONS, industryIds)}
+                    contactName={contactFullName.trim() || null}
+                    contactEmail={contactEmail.trim() || null}
+                    contactPhone={contactPhone.trim() || null}
+                    stationTitle={selectedRateCard?.title}
+                    agencyName={selectedRateCard?.agency?.agencyName}
+                    location={selectedRateCard?.location}
+                    adFormatLabel={tvAdFormats.find((t) => t.id === selectedAdFormatId)?.label}
+                    spotLengthLabel={
+                      selectedSingleSpotSec != null
+                        ? SPOT_LENGTH_OPTIONS.find((o) => o.sec === selectedSingleSpotSec)?.short ||
+                          `${selectedSingleSpotSec}s`
+                        : null
+                    }
+                    windowStartLabel={formatCampaignDate(campaignStart)}
+                    windowEndLabel={formatCampaignDate(campaignEnd || campaignStart)}
+                    dayCount={campaignDayCount}
+                    slots={selectedFrequencySlots.map((slot) => {
+                      const line = pricingLineItems.find((l) => l.id === slot.id);
+                      return {
+                        ...slot,
+                        lineImpressions: line?.lineImpressions ?? null,
+                        frequencyLabel:
+                          FREQUENCY_LABELS[slotFrequencyById[slot.id] || "once"] ||
+                          BROADCAST_FREQUENCY_OPTIONS.find(
+                            (f) => f.id === (slotFrequencyById[slot.id] || "once")
+                          )?.label,
+                      };
+                    })}
+                    activeDays={activeBroadcastDays}
+                    weekdays={WEEKDAY_SHORT}
+                  />
 
-                {/* Pricing estimate + tax */}
-                <div className="space-y-4 rounded-2xl border border-border border-l-4 border-l-chart-1/45 bg-muted/30 p-5 sm:p-7 dark:border-l-chart-1/55">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Receipt className="h-4 w-4 shrink-0 text-chart-1" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide sm:text-base">Pricing estimate</h4>
-                  </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                    Amounts use <strong className="font-medium text-foreground">the same figures the media agency entered</strong>{" "}
-                    on the rate card, then × your campaign days. Per-duration columns (15s/30s/45s/60s) when present;
-                    otherwise 30s baseline with proportional scaling. VAT (15%) and NHIL &amp; GETFund (5%) apply as on the
-                    rate card. <span className="text-muted-foreground">Authoritative pricing is on the rate card.</span>
-                  </p>
-
-                  {selectedAirtimeSlotIds.length > 0 ? (
-                    <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-3 text-sm sm:text-base">
-                      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
-                        Airtime (× {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"})
-                      </p>
-                      {selectedAirtimeSlotIds.map((id) => {
-                        const slot = airtimeSlots.find((s) => s.id === id);
-                        if (!slot) return null;
-                        const unitRate = Math.round(slot.rateGhs ?? slot.weeklyGhs ?? 0);
-                        const lineTotal = slotCampaignTotalGhs(slot.rateGhs ?? slot.weeklyGhs, pricingDayCount);
-                        return (
-                          <div
-                            key={id}
-                            className="flex justify-between gap-3 text-muted-foreground border-b border-border last:border-0 last:pb-0 pb-2"
-                          >
-                            <span className="min-w-0">
-                              <span className="text-foreground">{slot.label}</span>
-                              {slot.range ? (
-                                <span className="text-muted-foreground">
-                                  {" "}
-                                  · {slot.range}
-                                </span>
-                              ) : null}
-                              <span className="mt-0.5 block text-[10px] text-muted-foreground/90 tabular-nums sm:text-xs">
-                                {unitRate.toLocaleString()} × {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"}
+                  <MediaConfirmPanel
+                    title="Pricing estimate"
+                    icon={Receipt}
+                    footer={
+                      selectedAirtimeSlotIds.length > 0 ? (
+                        <div className="space-y-3">
+                          <div className="space-y-2 text-sm text-slate-500">
+                            <div className="flex items-center justify-between gap-3">
+                              <span>Subtotal</span>
+                              <span className="tabular-nums text-slate-800">
+                                ₵{Math.round(pricingSubtotal).toLocaleString()}
                               </span>
-                            </span>
-                            <span className="shrink-0 font-medium tabular-nums text-foreground/90">
-                              ₵{lineTotal.toLocaleString()}
-                            </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span>VAT (15%)</span>
+                              <span className="tabular-nums text-slate-800">
+                                ₵{Math.round(pricingVat).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span>NHIL &amp; GETFund (5%)</span>
+                              <span className="tabular-nums text-slate-800">
+                                ₵{Math.round(pricingNhilGetfund).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
-                        );
-                      })}
-                      <div className="flex justify-between pt-2 text-xs text-muted-foreground sm:text-sm">
-                        <span>Airtime subtotal (slots)</span>
-                        <span className="tabular-nums">
-                          ₵{Math.round(airtimeRateSubtotal * pricingDayCount).toLocaleString()}
-                        </span>
-                      </div>
-                      {selectedSpotLengthsSec.length > 0 && (
-                        <div className="space-y-1 border-t border-border pt-2 text-xs text-muted-foreground sm:text-sm">
-                          <p className="font-medium uppercase tracking-wide text-[10px] sm:text-xs">
-                            Spot length (× {pricingDayCount} day{pricingDayCount === 1 ? "" : "s"})
-                          </p>
-                          {selectedSpotLengthsSec.map((sec) => {
-                            const rateSum = rateSubtotalBySec[sec] ?? 0;
-                            const lineTotal = Math.round(rateSum * pricingDayCount);
-                            const label = SPOT_LENGTH_OPTIONS.find((o) => o.sec === sec)?.short ?? `${sec}s`;
-                            return (
-                              <div key={sec} className="flex flex-col gap-0.5 border-b border-border/60 pb-1.5 last:border-0 last:pb-0">
-                                <div className="flex justify-between tabular-nums">
-                                  <span>{label}</span>
-                                  <span className="font-medium text-foreground">₵{lineTotal.toLocaleString()}</span>
-                                </div>
-                                <span className="text-[10px] text-muted-foreground tabular-nums">
-                                  {Math.round(rateSum).toLocaleString()} × {pricingDayCount} day
-                                  {pricingDayCount === 1 ? "" : "s"}
-                                </span>
-                              </div>
-                            );
-                          })}
+                          <MediaConfirmTotal
+                            amount={pricingTotal}
+                            impressions={pricingImpressions}
+                            impressionsDemo={selectedFrequencySlots.some(
+                              (slot) => slot.impressionsSource !== "agency"
+                            )}
+                          />
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground sm:text-base">
-                      No airtime slots selected in the scheduler—add slots in the previous step to see an estimate, or
-                      build your campaign on the rate card.
+                      ) : (
+                        <p className="text-sm text-slate-500">
+                          Tax and total appear once you add airtime slots in the previous step.
+                        </p>
+                      )
+                    }
+                  >
+                    <p className="mb-4 text-sm leading-relaxed text-slate-500">
+                      Each slot uses its rate-card amount × campaign days × how many times it airs per day.
+                      Impressions use the same multipliers when the rate card includes avg audience per airing.
+                      VAT (15%) and NHIL &amp; GETFund (5%) are included.
                     </p>
-                  )}
 
-                  <div className="space-y-2 border-t border-border pt-3 text-sm sm:text-base">
-                    {selectedAirtimeSlotIds.length > 0 ? (
-                      <>
-                        <div className="flex items-center justify-between text-muted-foreground">
-                          <span>Subtotal</span>
-                          <span className="tabular-nums text-foreground">
-                            ₵{Math.round(pricingSubtotal).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-muted-foreground">
-                          <span>VAT (15%)</span>
-                          <span className="tabular-nums text-foreground">₵{Math.round(pricingVat).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-muted-foreground">
-                          <span>NHIL &amp; GETFund (5%)</span>
-                          <span className="tabular-nums text-foreground">
-                            ₵{Math.round(pricingNhilGetfund).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between border-t border-border pt-3 text-lg font-bold">
-                          <span className="text-foreground">Total (est.)</span>
-                          <span className="text-2xl font-semibold tabular-nums tracking-tight text-chart-2 sm:text-3xl">
-                            ₵{Math.round(pricingTotal).toLocaleString()}
-                          </span>
-                        </div>
-                      </>
+                    {pricingLineItems.length > 0 ? (
+                      <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                          Slots
+                          {selectedSingleSpotSec != null
+                            ? ` · ${SPOT_LENGTH_OPTIONS.find((o) => o.sec === selectedSingleSpotSec)?.short || `${selectedSingleSpotSec}s`}`
+                            : ""}
+                        </p>
+                        {pricingLineItems.map((line) => {
+                          const impressionsLabel = formatCompactCount(line.lineImpressions);
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex justify-between gap-3 border-b border-slate-200/70 pb-2.5 last:border-0 last:pb-0"
+                            >
+                              <span className="min-w-0">
+                                <span className="text-sm font-semibold text-slate-900">
+                                  {line.label}
+                                </span>
+                                {line.range ? (
+                                  <span className="text-sm text-slate-400"> · {line.range}</span>
+                                ) : null}
+                                <span className="mt-0.5 block text-xs tabular-nums text-slate-400">
+                                  {Math.round(line.unitRate).toLocaleString()} × {line.days} day
+                                  {line.days === 1 ? "" : "s"} × {line.frequencyLabel}
+                                </span>
+                                {impressionsLabel ? (
+                                  <span className="mt-0.5 block text-xs font-medium tabular-nums text-slate-500">
+                                    Est. {impressionsLabel} impressions
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+                                ₵{line.lineTotal.toLocaleString()}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
-                      <p className="py-2 text-sm text-muted-foreground sm:text-base">
-                        Tax and total will reflect your line items once you add airtime slots—or when you build the
-                        campaign on the rate card.
+                      <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
+                        No airtime slots selected—go back a step to build the estimate.
                       </p>
                     )}
-                  </div>
+                  </MediaConfirmPanel>
                 </div>
 
-                {/* Campaign name + contact — last before actions */}
-                <div className="space-y-5 rounded-2xl border border-border border-l-4 border-l-chart-3/45 bg-muted/40 p-5 sm:p-7 dark:border-l-chart-3/55">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <User className="h-4 w-4 shrink-0 text-chart-3" />
-                    <h4 className="text-sm font-semibold uppercase tracking-wide sm:text-base">Campaign &amp; contact</h4>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tv-media-campaign-name" className="text-sm text-muted-foreground">
-                        Media campaign name <span className="text-red-400">*</span>
-                      </Label>
-                      <Input
-                        id="tv-media-campaign-name"
-                        value={mediaCampaignName}
-                        onChange={(e) => setMediaCampaignName(e.target.value)}
-                        placeholder="e.g. Q1 Product Launch, Summer Promo"
-                        className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                        autoComplete="off"
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="tv-media-contact-name" className="text-xs text-muted-foreground sm:text-sm">
-                          Contact name
-                        </Label>
-                        <Input
-                          id="tv-media-contact-name"
-                          value={contactFullName}
-                          onChange={(e) => setContactFullName(e.target.value)}
-                          placeholder="Full name"
-                          className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                          autoComplete="name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="tv-media-contact-phone" className="text-xs text-muted-foreground sm:text-sm">
-                          Phone
-                        </Label>
-                        <Input
-                          id="tv-media-contact-phone"
-                          type="tel"
-                          value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
-                          placeholder="+233 …"
-                          className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                          autoComplete="tel"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tv-media-contact-email" className="text-xs text-muted-foreground sm:text-sm">
-                        Email
-                      </Label>
-                      <Input
-                        id="tv-media-contact-email"
-                        type="email"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        placeholder="billing@company.com"
-                        className="h-11 border-border bg-background text-base text-foreground placeholder:text-muted-foreground"
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3 justify-between pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 rounded-full border-border bg-transparent px-5 text-base text-foreground hover:bg-muted/60"
-                    onClick={() => setCurrentStep(4)}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  {rateCardHref ? (
-                    canProceedToRateCard ? (
-                      <Button asChild className="h-12 rounded-full bg-[#0071e3] px-8 text-base font-medium text-white hover:bg-[#0077ed]">
-                        <Link
-                          href={`${rateCardHref}&campaignName=${encodeURIComponent(mediaCampaignName.trim())}`}
-                        >
-                          Continue to rate card
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        disabled
-                        className="rounded-full opacity-40 cursor-not-allowed"
-                      >
-                        Continue to rate card
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    )
-                  ) : (
-                    <Button disabled className="rounded-full opacity-50">
-                      Select station &amp; format first
+                <div className="flex flex-col gap-4 rounded-[28px] border border-slate-100 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.04)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-full border-slate-200 bg-white px-5 text-base text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+                      onClick={() => setCurrentStep(5)}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back
                     </Button>
-                  )}
+                    {selectedAirtimeSlotIds.length > 0 ? (
+                      <p className="px-1 text-sm text-slate-500 sm:px-2">
+                        Estimate{" "}
+                        <span className="font-semibold tabular-nums text-slate-900">
+                          ₵{Math.round(pricingTotal).toLocaleString()}
+                        </span>
+                        {formatCompactCount(pricingImpressions) ? (
+                          <>
+                            <span className="text-slate-300"> · </span>
+                            <span className="font-semibold tabular-nums text-slate-700">
+                              ~{formatCompactCount(pricingImpressions)} impressions
+                            </span>
+                          </>
+                        ) : null}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Button asChild variant="outline" className="h-11 rounded-full border-slate-200 px-5">
+                      <Link href="/products/media-cart">
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        View cart{cartCount > 0 ? ` (${cartCount})` : ""}
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveDraft}
+                      disabled={!canSaveDraft}
+                      className="h-11 rounded-full border-slate-200 bg-white px-5 text-base text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      {draftId ? "Update draft" : "Save draft"}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleAddToCart}
+                      disabled={!canAddToCart}
+                      className="h-12 rounded-full bg-slate-900 px-8 text-base font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Add to cart
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                {!canProceedToRateCard && rateCardHref && (
-                  <p className="text-center text-xs text-muted-foreground sm:text-right sm:text-sm">
-                    Enter a media campaign name to continue.
+                {!canAddToCart ? (
+                  <p className="-mt-4 text-center text-xs text-slate-400 sm:text-right sm:text-sm">
+                    {!mediaCampaignName?.trim() || audienceTypeIds.length === 0
+                      ? "Go back to Campaign and add a campaign name plus audience type."
+                      : selectedAirtimeSlotIds.length === 0
+                        ? "Select airtime slots in the previous steps to add this to your cart."
+                        : !campaignStart
+                          ? "Pick campaign dates before adding to cart."
+                          : "Complete station, format, and pricing before adding to cart."}
+                    {canSaveDraft ? " You can still save a draft with what you have." : ""}
                   </p>
-                )}
+                ) : null}
               </div>
             )}
-            </div>
-          </div>
+        </section>
+      </div>
 
-          {/* Secondary: quick links to rate cards when step 1 not active or as reference */}
-          {rateCards.length > 0 && currentStep === 1 && selectedStationId && selectedAdFormatId && (
-            <p className="mt-6 text-center text-xs text-muted-foreground sm:text-sm">
-              Or skip ahead:{" "}
-              <Link
-                href={rateCardHref}
-                className="text-[#2997ff] transition-colors hover:text-[#5ac8fa]"
-              >
-                go directly to {selectedRateCard?.title}&apos;s rate card
-              </Link>
-            </p>
-          )}
-        </div>
-      </section>
-
-      <footer className="border-t border-border py-10 text-center">
-        <p className="text-sm font-medium text-muted-foreground">
+      <footer className="border-t border-slate-200/80 bg-white py-10 text-center">
+        <p className="text-sm font-medium text-slate-500">
           © {new Date().getFullYear()} Payollar. All rights reserved.
         </p>
       </footer>

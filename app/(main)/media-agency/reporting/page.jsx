@@ -1,14 +1,12 @@
+import { Suspense } from "react";
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BarChart3, FileText, Plus, Download } from "lucide-react";
-import { ReportingForm } from "./_components/reporting-form";
+import { ReportingWorkspace } from "./_components/reporting-workspace";
 import { getAgencyBookingsForLinking } from "@/actions/media-agency-bookings";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
-import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
+
+export const dynamic = "force-dynamic";
 
 export default async function MediaAgencyReportingPage() {
   const user = await checkUser();
@@ -22,7 +20,7 @@ export default async function MediaAgencyReportingPage() {
     include: {
       reports: {
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take: 20,
       },
     },
   });
@@ -31,7 +29,6 @@ export default async function MediaAgencyReportingPage() {
     redirect("/media-agency/settings");
   }
 
-  // Get bookings for linking
   const bookingsResult = await getAgencyBookingsForLinking();
   const availableBookings = bookingsResult.success ? bookingsResult.bookings : [];
 
@@ -39,72 +36,19 @@ export default async function MediaAgencyReportingPage() {
     <MediaAgencyPageShell
       eyebrow="Analytics"
       title="Reporting"
-      description="Create and manage performance reports for your media campaigns."
+      description="Share campaign results with clients — link reports to bookings when you can."
     >
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Create Report Form */}
-        <Card className={DASHBOARD_CARD_CLASS}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Create New Report
-            </CardTitle>
-            <CardDescription>
-              Generate a new performance report
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ReportingForm 
-              mediaAgencyId={mediaAgency.id} 
-              availableBookings={availableBookings}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Recent Reports */}
-        <Card className={DASHBOARD_CARD_CLASS}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Recent Reports
-            </CardTitle>
-            <CardDescription>
-              Your latest performance reports
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {mediaAgency.reports.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No reports yet</p>
-                <p className="text-sm">Create your first report to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {mediaAgency.reports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="flex items-center justify-between rounded-xl border border-border/50 bg-background/40 p-4"
-                  >
-                    <div>
-                      <h4 className="font-medium">{report.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {report.reportType} • {new Date(report.startDate).toLocaleDateString()} - {new Date(report.endDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/media-agency/reporting/${report.id}`}>
-                        <Download className="h-4 w-4 mr-2" />
-                        View
-                      </Link>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Suspense
+        fallback={
+          <div className="h-72 animate-pulse rounded-2xl bg-white/80" />
+        }
+      >
+        <ReportingWorkspace
+          mediaAgencyId={mediaAgency.id}
+          availableBookings={availableBookings}
+          reports={mediaAgency.reports}
+        />
+      </Suspense>
     </MediaAgencyPageShell>
   );
 }

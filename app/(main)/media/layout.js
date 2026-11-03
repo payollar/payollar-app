@@ -1,6 +1,5 @@
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
-import LandingBackground from "@/components/landing/landing-background";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 
 export const metadata = {
@@ -19,12 +18,12 @@ export default async function MediaLayout({ children }) {
 
   return (
     <div
-      className="relative min-h-dvh w-full bg-background text-foreground"
+      data-theme="light"
       data-media-landing
+      className="relative isolate min-h-dvh w-full bg-background text-foreground"
     >
-      <LandingBackground />
       <LandingNavbar />
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 w-full bg-background">{children}</div>
     </div>
   );
 }

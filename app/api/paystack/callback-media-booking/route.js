@@ -2,6 +2,114 @@ import { NextResponse } from "next/server";
 import { verifyTransaction } from "@/lib/paystack";
 import { db } from "@/lib/prisma";
 
+async function createBookingItemsFromPlannerCart({ cartItems, clientName, clientEmail, clientPhone }) {
+  const creates = [];
+
+  for (const item of cartItems) {
+    const rateCard = await db.rateCard.findUnique({
+      where: { id: item.rateCardId },
+      select: { id: true, agencyId: true },
+    });
+    if (!rateCard) continue;
+
+    const slotIds = Array.isArray(item.slotIds) ? item.slotIds : [];
+    const slotCount = Math.max(1, slotIds.length);
+    const itemTotal = Number(item.total) || 0;
+    const perSlotTotal = itemTotal / slotCount;
+    const startDate = item.campaignStart ? new Date(item.campaignStart) : null;
+    const endDate = item.campaignEnd ? new Date(item.campaignEnd) : startDate;
+    for (const rowId of slotIds) {
+      const row = await db.smartTableRow.findUnique({
+        where: { id: rowId },
+        include: {
+          cells: { include: { column: true } },
+        },
+      });
+      if (!row) continue;
+
+      const snapshotData = {};
+      row.cells.forEach((cell) => {
+        snapshotData[cell.column.name] = cell.value;
+      });
+
+      const priceColumn = row.cells.find((c) =>
+        ["CURRENCY", "NUMBER"].includes(c.column.dataType)
+      );
+      const descriptionColumn = row.cells.find((c) =>
+        ["TEXT", "NOTES"].includes(c.column.dataType)
+      );
+      const slotMeta = Array.isArray(item.slots)
+        ? item.slots.find((slot) => slot.id === rowId)
+        : null;
+      const frequencyId =
+        slotMeta?.frequencyId ||
+        item.slotFrequencies?.[rowId] ||
+        item.broadcastFrequencyId ||
+        null;
+
+      const notes = JSON.stringify({
+        source: "media_planner_cart",
+        channel: item.channel || "TV",
+        brandName: item.brandName || null,
+        audienceTypeIds: item.audienceTypeIds || [],
+        audienceLabels: item.audienceLabels || [],
+        objectiveIds: item.objectiveIds || [],
+        objectiveLabels: item.objectiveLabels || [],
+        industryIds: item.industryIds || [],
+        industryLabels: item.industryLabels || [],
+        adFormatId: item.adFormatId || null,
+        adFormatLabel: item.adFormatLabel || null,
+        spotLengthsSec: item.spotLengthsSec || [],
+        frequencyId,
+        slotFrequencies: item.slotFrequencies || {},
+        broadcastFrequencyId: item.broadcastFrequencyId || null,
+        activeBroadcastDays: item.activeBroadcastDays || [],
+        dayCount: item.dayCount || 1,
+        impressionsPerAiring: slotMeta?.impressionsPerAiring ?? null,
+        lineImpressions: slotMeta?.lineImpressions ?? null,
+        estimatedImpressions: item.estimatedImpressions ?? null,
+        subtotal: item.subtotal || 0,
+        vat: item.vat || 0,
+        nhilGetfund: item.nhilGetfund || 0,
+        total: itemTotal,
+      });
+
+      creates.push(
+        db.rateCardBookingItem.create({
+          data: {
+            rowId: row.id,
+            rateCardId: rateCard.id,
+            agencyId: rateCard.agencyId,
+            snapshotData,
+            snapshotPrice: priceColumn?.value ? parseFloat(priceColumn.value) : null,
+            snapshotUnit: "campaign estimate",
+            snapshotDescription:
+              slotMeta?.label ||
+              descriptionColumn?.value ||
+              item.adFormatLabel ||
+              null,
+            mediaCampaignName: item.mediaCampaignName || null,
+            clientName: item.contactName || clientName || "",
+            clientEmail: item.contactEmail || clientEmail || "",
+            clientPhone: item.contactPhone || clientPhone || "",
+            quantity: item.dayCount || 1,
+            startDate: startDate && !Number.isNaN(startDate.getTime()) ? startDate : null,
+            endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+            notes,
+            totalAmount: Math.round(perSlotTotal * 100) / 100,
+            status: "PENDING",
+          },
+        })
+      );
+    }
+  }
+
+  if (creates.length === 0) {
+    throw new Error("No bookable slots found for planner cart");
+  }
+  await Promise.all(creates);
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const reference = searchParams.get("reference");
@@ -24,19 +132,56 @@ export async function GET(request) {
       );
     }
 
-    const { 
-      rateCardId, 
-      clientId, 
+    const {
+      rateCardId,
+      clientId,
       mediaCampaignName,
-      clientName, 
-      clientEmail, 
+      clientName,
+      clientEmail,
       clientPhone,
       notes,
       bookingType,
-      selectedCells 
+      selectedCells,
+      cartItems: cartItemsRaw,
     } = result.metadata;
 
-    if (!rateCardId || !clientId || !selectedCells) {
+    if (!clientId) {
+      return NextResponse.redirect(
+        `${bookingsUrl}?success=0&error=invalid_metadata`
+      );
+    }
+
+    // Planner cart checkout (TV/radio confirm → cart → Paystack)
+    if (bookingType === "MEDIA_PLANNER_CART") {
+      let cartItems;
+      try {
+        cartItems =
+          typeof cartItemsRaw === "string" ? JSON.parse(cartItemsRaw) : cartItemsRaw;
+      } catch (e) {
+        console.error("Error parsing planner cartItems:", e);
+        return NextResponse.redirect(
+          `${bookingsUrl}?success=0&error=invalid_cart_data`
+        );
+      }
+      if (!Array.isArray(cartItems) || cartItems.length === 0) {
+        return NextResponse.redirect(
+          `${bookingsUrl}?success=0&error=invalid_cart_data`
+        );
+      }
+
+      await createBookingItemsFromPlannerCart({
+        cartItems,
+        clientName,
+        clientEmail,
+        clientPhone,
+      });
+
+      return NextResponse.redirect(
+        `${bookingsUrl}?success=1&payment=completed&source=planner_cart`
+      );
+    }
+
+    if (!rateCardId || !selectedCells) {
       return NextResponse.redirect(
         `${bookingsUrl}?success=0&error=invalid_metadata`
       );
@@ -45,9 +190,8 @@ export async function GET(request) {
     // Parse selected cells from metadata
     let cellData;
     try {
-      cellData = typeof selectedCells === "string" 
-        ? JSON.parse(selectedCells) 
-        : selectedCells;
+      cellData =
+        typeof selectedCells === "string" ? JSON.parse(selectedCells) : selectedCells;
     } catch (e) {
       console.error("Error parsing selectedCells:", e);
       return NextResponse.redirect(
@@ -71,17 +215,17 @@ export async function GET(request) {
 
     // Group selected cells by row (each row becomes one booking item)
     const rowsToBook = new Map();
-    
+
     for (const cell of cellData) {
       const { rowId, columnId, value } = cell;
-      
+
       if (!rowsToBook.has(rowId)) {
         rowsToBook.set(rowId, {
           rowId,
           selectedColumns: [],
         });
       }
-      
+
       const rowData = rowsToBook.get(rowId);
       rowData.selectedColumns.push({
         columnId,
@@ -91,7 +235,6 @@ export async function GET(request) {
 
     // Create booking items for each row
     const bookingPromises = Array.from(rowsToBook.values()).map(async (rowData) => {
-      // Fetch the row with all necessary data
       const row = await db.smartTableRow.findUnique({
         where: { id: rowData.rowId },
         include: {
@@ -112,13 +255,11 @@ export async function GET(request) {
         throw new Error(`Row ${rowData.rowId} not found`);
       }
 
-      // Build snapshot data from all cells
       const snapshotData = {};
       row.cells.forEach((cell) => {
         snapshotData[cell.column.name] = cell.value;
       });
 
-      // Extract price and description
       const priceColumn = row.cells.find((c) =>
         ["CURRENCY", "NUMBER"].includes(c.column.dataType)
       );
@@ -126,7 +267,6 @@ export async function GET(request) {
         ["TEXT", "NOTES"].includes(c.column.dataType)
       );
 
-      // Calculate total amount
       let totalAmount = null;
       if (priceColumn?.value) {
         const price = parseFloat(priceColumn.value);

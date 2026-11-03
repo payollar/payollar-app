@@ -1,18 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { UploadButton } from "@uploadthing/react";
+import { toast } from "sonner";
+import { FileText, Link2, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Loader2, Upload, X, FileText } from "lucide-react";
-import { UploadButton } from "@uploadthing/react";
-import Image from "next/image";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
-export function TransmissionCertificateForm({ mediaAgencyId, availableBookings = [] }) {
+const inputClass =
+  "h-10 rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:bg-white focus-visible:ring-[#0055ff]/15";
+
+function Field({ id, label, children, hint, className, required }) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <Label htmlFor={id} className="text-xs font-medium text-slate-600">
+        {label}
+        {required ? <span className="text-rose-500"> *</span> : null}
+      </Label>
+      {children}
+      {hint ? <p className="text-[11px] leading-snug text-slate-400">{hint}</p> : null}
+    </div>
+  );
+}
+
+export function TransmissionCertificateForm({
+  mediaAgencyId,
+  availableBookings = [],
+  onCancel,
+  onCreated,
+}) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedBookingId, setSelectedBookingId] = useState("");
   const [selectedBookingType, setSelectedBookingType] = useState("");
@@ -24,12 +53,13 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
   const [uploadedFileData, setUploadedFileData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Auto-select booking from URL params
   useEffect(() => {
     const bookingId = searchParams?.get("bookingId");
     const bookingType = searchParams?.get("bookingType");
     if (bookingId && bookingType) {
-      const booking = availableBookings.find((b) => b.id === bookingId && b.type === bookingType);
+      const booking = availableBookings.find(
+        (b) => b.id === bookingId && b.type === bookingType
+      );
       if (booking) {
         setSelectedBookingId(bookingId);
         setSelectedBookingType(bookingType);
@@ -38,7 +68,17 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
     }
   }, [searchParams, availableBookings]);
 
-  // Auto-fill campaignRefId when booking is selected
+  const resetForm = () => {
+    setSelectedBookingId("");
+    setSelectedBookingType("");
+    setCampaignRefId("");
+    setAirDate("");
+    setAirTime("");
+    setStationName("");
+    setNotes("");
+    setUploadedFileData(null);
+  };
+
   const handleBookingChange = (value) => {
     if (value === "none") {
       setSelectedBookingId("");
@@ -46,55 +86,41 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
       setCampaignRefId("");
       return;
     }
-
     const [type, id] = value.split("|");
     setSelectedBookingId(id);
     setSelectedBookingType(type);
-    
-    // Auto-generate campaign ref ID from booking
-    const booking = availableBookings.find((b) => b.id === id && b.type === type);
-    if (booking) {
-      // Use booking ID as campaign ref, or generate one
-      setCampaignRefId(`${type}-${id.substring(0, 8).toUpperCase()}`);
-    }
+    setCampaignRefId(`${type}-${id.substring(0, 8).toUpperCase()}`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!uploadedFileData) {
-      toast.error("Please upload a file first");
+    if (!uploadedFileData?.url && !uploadedFileData?.key) {
+      toast.error("Please upload a certificate file");
       return;
     }
-
-    if (!uploadedFileData.url) {
-      toast.error("File upload incomplete. Please upload the file again.");
-      return;
-    }
-
     if (!airDate) {
-      toast.error("Please fill in Air Date");
+      toast.error("Air date is required");
       return;
     }
 
-    // CampaignRefId is required, but can be auto-generated from booking
-    const finalCampaignRefId = campaignRefId || (selectedBookingId ? `${selectedBookingType}-${selectedBookingId.substring(0, 8).toUpperCase()}` : "");
+    const finalCampaignRefId =
+      campaignRefId ||
+      (selectedBookingId
+        ? `${selectedBookingType}-${selectedBookingId.substring(0, 8).toUpperCase()}`
+        : "");
     if (!finalCampaignRefId) {
-      toast.error("Please select a booking or enter a Campaign Reference ID");
+      toast.error("Select a booking or enter a campaign reference");
       return;
     }
 
     setIsLoading(true);
-
     try {
-      // Ensure we have a valid file URL
-      const fileUrl = uploadedFileData.url || (uploadedFileData.key ? `https://utfs.io/f/${uploadedFileData.key}` : null);
-      
-      if (!fileUrl) {
-        throw new Error("File URL is missing. Please upload the file again.");
-      }
+      const fileUrl =
+        uploadedFileData.url ||
+        (uploadedFileData.key ? `https://utfs.io/f/${uploadedFileData.key}` : null);
+      if (!fileUrl) throw new Error("File URL missing — upload again");
 
-      // Save certificate data
       const response = await fetch("/api/media-agency/transmission-certificates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -103,7 +129,7 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
           campaignRefId: finalCampaignRefId,
           bookingId: selectedBookingId || null,
           bookingType: selectedBookingType || null,
-          fileUrl: fileUrl,
+          fileUrl,
           fileName: uploadedFileData.name || "certificate",
           fileType: uploadedFileData.type || "application/pdf",
           fileSize: uploadedFileData.size || null,
@@ -120,205 +146,197 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
       }
 
       const result = await response.json();
-      
-      if (result.success) {
-        toast.success("Transmission certificate uploaded successfully!");
-        
-        // Reset form
-        setSelectedBookingId("");
-        setSelectedBookingType("");
-        setCampaignRefId("");
-        setAirDate("");
-        setAirTime("");
-        setStationName("");
-        setNotes("");
-        setUploadedFileData(null);
-
-        // Reload after a short delay to show success message
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
+      if (!result.success) {
         throw new Error(result.error || "Failed to save certificate");
       }
+
+      toast.success("Certificate uploaded");
+      resetForm();
+      onCreated?.();
+      router.refresh();
     } catch (error) {
       console.error("Error uploading certificate:", error);
-      toast.error(error.message || "Failed to upload transmission certificate. Please try again.");
+      toast.error(error.message || "Failed to upload certificate");
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="bookingSelect">
-          Link to Booking (Optional)
-        </Label>
-        <Select 
-          value={selectedBookingId && selectedBookingType ? `${selectedBookingType}|${selectedBookingId}` : "none"}
-          onValueChange={handleBookingChange}
-          disabled={isLoading}
-        >
-          <SelectTrigger id="bookingSelect">
-            <SelectValue placeholder="Select a booking to link this certificate" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No booking (manual entry)</SelectItem>
-            {availableBookings.length === 0 ? (
-              <SelectItem value="no-bookings" disabled>
-                No confirmed/completed bookings available
-              </SelectItem>
-            ) : (
-              availableBookings.map((booking) => (
-                <SelectItem key={`${booking.type}-${booking.id}`} value={`${booking.type}|${booking.id}`}>
-                  {booking.displayName} ({booking.status}) - {booking.listingName}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Select a confirmed or completed booking to automatically link this certificate. The client will see it in their media library.
-        </p>
-      </div>
+  const bookingValue =
+    selectedBookingId && selectedBookingType
+      ? `${selectedBookingType}|${selectedBookingId}`
+      : "none";
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="campaignRefId">
-            Campaign Reference ID <span className="text-red-500">*</span>
-          </Label>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          id="bookingSelect"
+          label="Booking"
+          hint="Optional — linked certs show in the client library"
+          className="sm:col-span-2"
+        >
+          <Select
+            value={bookingValue}
+            onValueChange={handleBookingChange}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="bookingSelect" className={cn(inputClass, "w-full")}>
+              <div className="flex min-w-0 items-center gap-2">
+                <Link2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <SelectValue placeholder="No booking" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No booking (manual)</SelectItem>
+              {availableBookings.map((booking) => (
+                <SelectItem
+                  key={`${booking.type}-${booking.id}`}
+                  value={`${booking.type}|${booking.id}`}
+                >
+                  {booking.displayName} — {booking.listingName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field
+          id="campaignRefId"
+          label="Campaign reference"
+          required
+          hint="Auto-filled from booking when linked"
+        >
           <Input
             id="campaignRefId"
             value={campaignRefId}
             onChange={(e) => setCampaignRefId(e.target.value)}
-            placeholder="e.g., CAM-2024-001"
+            placeholder="e.g. CAM-2024-001"
+            className={inputClass}
             required
             disabled={isLoading}
           />
-          <p className="text-xs text-muted-foreground">
-            Auto-filled when booking is selected, or enter manually
-          </p>
-        </div>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="airDate">
-            Air Date <span className="text-red-500">*</span>
-          </Label>
+        <Field id="airDate" label="Air date" required>
           <Input
             id="airDate"
             type="date"
             value={airDate}
             onChange={(e) => setAirDate(e.target.value)}
+            className={inputClass}
             required
             disabled={isLoading}
           />
-        </div>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="airTime">Air Time</Label>
+        <Field id="airTime" label="Air time">
           <Input
             id="airTime"
             type="time"
             value={airTime}
             onChange={(e) => setAirTime(e.target.value)}
+            className={inputClass}
             disabled={isLoading}
           />
-        </div>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="stationName">Station Name</Label>
+        <Field id="stationName" label="Station">
           <Input
             id="stationName"
             value={stationName}
             onChange={(e) => setStationName(e.target.value)}
-            placeholder="e.g., Joy FM, TV3"
+            placeholder="e.g. Joy FM, TV3"
+            className={inputClass}
             disabled={isLoading}
           />
-        </div>
-      </div>
+        </Field>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes (Optional)</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Additional notes about this transmission..."
-          rows={3}
+        <Field id="notes" label="Notes" className="sm:col-span-2">
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Anything the client should know…"
+            rows={2}
+            className="min-h-[4.5rem] resize-y rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:bg-white focus-visible:ring-[#0055ff]/15"
             disabled={isLoading}
-        />
-      </div>
+          />
+        </Field>
 
-      <div className="space-y-2">
-        <Label>
-          Certificate File (PDF or Image) <span className="text-red-500">*</span>
-        </Label>
-        <div className="border-2 border-dashed rounded-lg p-6">
-          {!uploadedFileData ? (
-            <div className="text-center">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Upload PDF or image file
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">
-                PDF, JPEG, PNG, WebP (Max 10MB)
-              </p>
-              <UploadButton
-                endpoint="transmissionCertificate"
-                onClientUploadComplete={(res) => {
-                  try {
-                    let fileData = null;
-                    
-                    // Handle array response
-                    if (Array.isArray(res) && res.length > 0) {
-                      const uploaded = res[0];
-                      fileData = {
-                        url: uploaded?.url || (uploaded?.key ? `https://utfs.io/f/${uploaded.key}` : null),
-                        key: uploaded?.key,
-                        name: uploaded?.name || "certificate",
-                        type: uploaded?.type || "application/pdf",
-                        size: uploaded?.size || null,
-                      };
-                    } 
-                    // Handle single object response
-                    else if (res && typeof res === 'object' && !Array.isArray(res)) {
-                      fileData = {
-                        url: res.url || (res.key ? `https://utfs.io/f/${res.key}` : null),
-                        key: res.key,
-                        name: res.name || "certificate",
-                        type: res.type || "application/pdf",
-                        size: res.size || null,
-                      };
+        <Field
+          id="certificateFile"
+          label="Certificate file"
+          required
+          className="sm:col-span-2"
+        >
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-[#f7f8fc] p-4">
+            {!uploadedFileData ? (
+              <div className="flex flex-col items-center py-3 text-center">
+                <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0055ff] shadow-sm ring-1 ring-slate-100">
+                  <Upload className="h-4 w-4" />
+                </span>
+                <p className="text-sm font-medium text-slate-800">
+                  PDF or image
+                </p>
+                <p className="mb-3 text-[11px] text-slate-400">
+                  JPEG, PNG, WebP, PDF · max 10MB
+                </p>
+                <UploadButton
+                  endpoint="transmissionCertificate"
+                  onClientUploadComplete={(res) => {
+                    try {
+                      let fileData = null;
+                      if (Array.isArray(res) && res.length > 0) {
+                        const uploaded = res[0];
+                        fileData = {
+                          url:
+                            uploaded?.url ||
+                            (uploaded?.key
+                              ? `https://utfs.io/f/${uploaded.key}`
+                              : null),
+                          key: uploaded?.key,
+                          name: uploaded?.name || "certificate",
+                          type: uploaded?.type || "application/pdf",
+                          size: uploaded?.size || null,
+                        };
+                      } else if (res && typeof res === "object") {
+                        fileData = {
+                          url:
+                            res.url ||
+                            (res.key ? `https://utfs.io/f/${res.key}` : null),
+                          key: res.key,
+                          name: res.name || "certificate",
+                          type: res.type || "application/pdf",
+                          size: res.size || null,
+                        };
+                      }
+                      if (fileData?.url) {
+                        setUploadedFileData(fileData);
+                        toast.success("File ready");
+                      } else {
+                        toast.error("Upload finished but URL missing — try again");
+                      }
+                    } catch (error) {
+                      console.error("Error processing upload:", error);
+                      toast.error("Could not process upload");
                     }
-                    
-                    if (fileData?.url) {
-                      setUploadedFileData(fileData);
-                      toast.success("File uploaded successfully! You can now submit the form.");
-                    } else {
-                      console.error("Upload response:", res);
-                      toast.error("Upload completed but file URL not found. Please try uploading again.");
-                    }
-                  } catch (error) {
-                    console.error("Error processing upload:", error);
-                    toast.error("Error processing upload. Please try again.");
-                  }
-                }}
-                onUploadError={(err) => {
-                  console.error("Upload error:", err);
-                  toast.error(`Upload failed: ${err.message || "Please check your connection and try again."}`);
-                }}
-                onUploadBegin={(name) => {
-                  toast.info(`Uploading ${name}...`);
-                }}
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                  }}
+                  onUploadError={(err) => {
+                    toast.error(err.message || "Upload failed");
+                  }}
+                  appearance={{
+                    button:
+                      "ut-ready:bg-[#0055ff] ut-uploading:cursor-not-allowed h-9 rounded-full bg-[#0055ff] px-4 text-xs font-semibold text-white after:bg-[#003ecc]",
+                    allowedContent: "hidden",
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   {uploadedFileData.type?.startsWith("image/") ? (
-                    <div className="relative w-16 h-16 rounded border overflow-hidden">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200">
                       <Image
                         src={uploadedFileData.url}
                         alt="Preview"
@@ -327,14 +345,18 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
                       />
                     </div>
                   ) : (
-                    <div className="w-16 h-16 rounded border flex items-center justify-center bg-muted">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
+                      <FileText className="h-5 w-5 text-slate-400" />
                     </div>
                   )}
-                  <div>
-                    <p className="font-medium text-sm">{uploadedFileData.name || "Uploaded file"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {uploadedFileData.size ? `${(uploadedFileData.size / 1024).toFixed(1)} KB` : "File uploaded"}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-900">
+                      {uploadedFileData.name || "Uploaded file"}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {uploadedFileData.size
+                        ? `${(uploadedFileData.size / 1024).toFixed(1)} KB`
+                        : "Ready to save"}
                     </p>
                   </div>
                 </div>
@@ -342,32 +364,52 @@ export function TransmissionCertificateForm({ mediaAgencyId, availableBookings =
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setUploadedFileData(null);
-                  }}
+                  className="h-9 rounded-full text-slate-500 hover:bg-white"
+                  onClick={() => setUploadedFileData(null)}
                   disabled={isLoading}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </Field>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Certificate
-          </>
-        )}
-      </Button>
+      <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+        {onCancel ? (
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isLoading}
+            onClick={() => {
+              resetForm();
+              onCancel();
+            }}
+            className="h-10 rounded-full px-5 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <X className="mr-1.5 h-4 w-4" />
+            Cancel
+          </Button>
+        ) : null}
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="h-10 rounded-full bg-[#0055ff] px-6 text-sm font-semibold text-white hover:bg-[#003ecc]"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              Save certificate
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }

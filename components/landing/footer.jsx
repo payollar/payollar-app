@@ -11,7 +11,6 @@ const quickLinks = [
   ["/#features", "Features"],
   ["/pricing", "Pricing"],
   ["/talents", "Find talents"],
-  ["/services", "Book services"],
   ["/campaigns", "Campaigns"],
   ["/products", "Products"],
 ];
@@ -23,23 +22,15 @@ const forUsers = [
   ["/contact-support", "Contact support"],
 ];
 
-function FooterLink({ href, children }) {
-  return (
-    <Link
-      href={href}
-      className="text-muted-foreground transition-colors duration-200 hover:text-primary"
-    >
-      {children}
-    </Link>
-  );
-}
-
 export function Footer() {
   return (
-    <footer className="relative mt-16 overflow-hidden border-t border-border/50 bg-muted/25 text-foreground lg:mt-24">
+    <footer
+      data-theme="dark"
+      className="relative mt-16 overflow-hidden rounded-t-[2rem] border-t border-white/10 bg-[#010104] text-white sm:rounded-t-[2.5rem] lg:mt-24 lg:rounded-t-[3rem]"
+    >
       {/* Background: particles + soft light */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-muted/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#010104] via-[#050508] to-[#0a0a10]" />
         <SectionParticles className="inset-0" opacityClass="opacity-[0.14]" quantity={36} />
         <div className="absolute -left-20 bottom-0 h-72 w-72 rounded-full bg-primary/10 blur-[4rem]" />
         <div className="absolute -right-16 top-0 h-64 w-64 rounded-full bg-primary/8 blur-[3.5rem]" />
@@ -60,7 +51,7 @@ export function Footer() {
                 className="h-10 w-auto object-contain"
               />
             </Link>
-            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            <p className="max-w-sm text-sm leading-relaxed text-white/60">
               Connecting talented creators with media opportunities. Build your career, grow your network, and get paid
               for your passion.
             </p>
@@ -78,7 +69,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   aria-label={label}
                   className={cn(
-                    "rounded-xl border border-border/60 bg-card/50 p-2.5 text-foreground/80 backdrop-blur-sm",
+                    "rounded-xl border border-white/10 bg-white/5 p-2.5 text-white/80 backdrop-blur-sm",
                     "transition-all duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
                   )}
                 >
@@ -89,36 +80,46 @@ export function Footer() {
           </div>
 
           <div className="lg:col-span-2">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
               Quick links
             </h3>
             <ul className="space-y-3 text-sm">
               {quickLinks.map(([href, label]) => (
                 <li key={href}>
-                  <FooterLink href={href}>{label}</FooterLink>
+                  <Link
+                    href={href}
+                    className="text-white/60 transition-colors duration-200 hover:text-primary"
+                  >
+                    {label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
           <div className="lg:col-span-2">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
               For users
             </h3>
             <ul className="space-y-3 text-sm">
               {forUsers.map(([href, label]) => (
                 <li key={href}>
-                  <FooterLink href={href}>{label}</FooterLink>
+                  <Link
+                    href={href}
+                    className="text-white/60 transition-colors duration-200 hover:text-primary"
+                  >
+                    {label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
           <div className="lg:col-span-3">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
               Contact
             </h3>
-            <ul className="space-y-4 text-sm text-muted-foreground">
+            <ul className="space-y-4 text-sm text-white/60">
               <li className="flex gap-3">
                 <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
                 <a href="mailto:hey@payollar.com" className="transition-colors hover:text-primary">
@@ -143,7 +144,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-border/50 pt-8 text-sm text-muted-foreground md:flex-row">
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-white/50 md:flex-row">
           <span>© {new Date().getFullYear()} Payollar. All rights reserved.</span>
           <div className="flex flex-wrap items-center justify-center gap-6">
             <Link href="/privacy" className="transition-colors hover:text-primary">

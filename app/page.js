@@ -1,5 +1,4 @@
 import { HeroSection } from "@/components/landing/hero-section"
-import { TalentsSection } from "@/components/landing/talents-section"
 import { FeaturesSection } from "@/components/landing/features-section"
 import { CreatorsSection } from "@/components/landing/digital-products-section"
 import { CampaignsSection } from "@/components/landing/campaigns-section"
@@ -19,9 +18,6 @@ export default function LandingPage() {
       <div className="relative z-10">
         <HeroSection />
         <PartnersMarquee />
-        <div id="talents">
-          <TalentsSection />
-        </div>
         <CreatorsSection />
         <CampaignsSection />
         <MediaFeaturesSection />

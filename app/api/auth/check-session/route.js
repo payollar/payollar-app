@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth as betterAuth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { db } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs'; // Ensure we're using Node.js runtime, not Edge
@@ -41,8 +42,28 @@ export async function GET(request) {
     
     // Always return JSON, never HTML
     if (session?.user) {
+      // Prefer live DB role so dashboard links stay correct after role changes
+      let user = session.user;
+      try {
+        const dbUser = await db.user.findUnique({
+          where: { id: session.user.id },
+          select: { role: true, name: true, email: true, imageUrl: true },
+        });
+        if (dbUser) {
+          user = {
+            ...session.user,
+            role: dbUser.role,
+            name: dbUser.name || session.user.name,
+            email: dbUser.email || session.user.email,
+            image: dbUser.imageUrl || session.user.image,
+          };
+        }
+      } catch {
+        /* fall back to session user */
+      }
+
       const response = NextResponse.json({
-        user: session.user,
+        user,
         session: session.session,
       });
       response.headers.set('Content-Type', 'application/json');

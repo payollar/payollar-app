@@ -38,9 +38,25 @@ const isPublicRoute = (pathname) => {
   return publicPaths.some(path => pathname.startsWith(path));
 };
 
+function withPathname(req, response) {
+  const pathname = req.nextUrl.pathname;
+  response.headers.set("x-pathname", pathname);
+  return response;
+}
+
+function nextWithPathname(req) {
+  const pathname = req.nextUrl.pathname;
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  response.headers.set("x-pathname", pathname);
+  return response;
+}
+
 export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
-  let response;
 
   // Marketing page: visible signed in or out, without the auth-page redirect.
   if (
@@ -49,33 +65,25 @@ export async function middleware(req) {
     pathname === "/academy" ||
     pathname.startsWith("/academy/")
   ) {
-    response = NextResponse.next();
-    response.headers.set("x-pathname", pathname);
-    return response;
+    return nextWithPathname(req);
   }
 
   // Allow public routes without authentication
   if (isPublicRoute(pathname)) {
     // For API routes, always allow them through without redirects
-    if (pathname.startsWith('/api/')) {
-      response = NextResponse.next();
-      response.headers.set("x-pathname", pathname);
-      return response;
+    if (pathname.startsWith("/api/")) {
+      return nextWithPathname(req);
     }
-    
+
     // For non-API public routes, check if user is already authenticated
     const sessionCookie = getSessionCookie(req);
     if (sessionCookie) {
       // If user is already signed in, redirect based on their role
       // We'll let the client-side handle the role check for better UX
       // For now, redirect to home - the app will handle role-based routing
-      response = NextResponse.redirect(new URL("/", req.url));
-      response.headers.set("x-pathname", pathname);
-      return response;
+      return withPathname(req, NextResponse.redirect(new URL("/", req.url)));
     }
-    response = NextResponse.next();
-    response.headers.set("x-pathname", pathname);
-    return response;
+    return nextWithPathname(req);
   }
 
   // Check Better Auth session cookie (Edge Runtime compatible)
@@ -88,15 +96,10 @@ export async function middleware(req) {
   if (!isAuthenticated && isProtectedRoute(pathname)) {
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect_url", pathname);
-    response = NextResponse.redirect(signInUrl);
-    response.headers.set("x-pathname", pathname);
-    return response;
+    return withPathname(req, NextResponse.redirect(signInUrl));
   }
 
-  // Add pathname to headers for layout to check - ALWAYS set it for all responses
-  response = NextResponse.next();
-  response.headers.set("x-pathname", pathname);
-  return response;
+  return nextWithPathname(req);
 }
 
 export const config = {

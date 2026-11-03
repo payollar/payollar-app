@@ -6,22 +6,22 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { SectionBadge } from "@/components/ui/section-badge";
 import { SectionShell } from "@/components/landing/section-shell";
 import { Footer } from "@/components/landing/footer";
 import { MediaListingsGrid } from "@/components/media/media-listings-grid";
 import {
   ArrowRight,
-  Search,
   MapPin,
-  DollarSign,
-  Users,
   Calendar,
   Sparkles,
   Package,
   Clock,
   Eye,
+  Building2,
+  CircleCheck,
+  Wallet,
+  Headset,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -49,10 +49,10 @@ const WORKFLOW_STEPS = [
 ];
 
 const STATS = [
-  { value: "100+", label: "Media partners" },
-  { value: "98%", label: "Booking success" },
-  { value: "₵100k+", label: "Ad spend managed" },
-  { value: "24/7", label: "Support" },
+  { value: "100+", label: "Media partners", icon: Building2 },
+  { value: "98%", label: "Booking success", icon: CircleCheck },
+  { value: "₵100k+", label: "Ad spend managed", icon: Wallet },
+  { value: "24/7", label: "Support", icon: Headset },
 ];
 
 const LISTING_TYPE_LABELS = {
@@ -115,7 +115,7 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
   const usingDemoPackages = customPackages.length === 0;
 
   return (
-    <div className="relative z-10 w-full min-h-dvh pt-20 md:pt-24">
+    <div className="relative z-10 w-full min-h-dvh bg-background pt-20 text-foreground md:pt-24">
       {/* Hero — Avento-style centered + framed preview */}
       <section className="relative flex w-full flex-col items-center justify-center overflow-hidden pb-8 pt-20 lg:pb-12 lg:pt-28">
         <SectionShell className="relative z-10 max-w-[90rem]">
@@ -193,29 +193,35 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, filter: "blur(20px)", y: 30 }}
-              animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-              transition={{ duration: 0.9, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="relative mt-12 w-full max-w-4xl lg:mt-16"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="relative mt-12 w-full max-w-4xl lg:mt-14"
             >
-              <div className="relative rounded-2xl border border-foreground/10 bg-foreground/5 p-2 backdrop-blur-lg md:rounded-[32px]">
-                <div className="absolute left-1/2 top-1/4 -z-10 h-1/3 w-4/5 -translate-x-1/2 -translate-y-1/2 bg-primary/20 opacity-50 blur-[10rem]" />
-                <div className="overflow-hidden rounded-lg border border-foreground/10 bg-background md:rounded-[24px]">
-                  <div className="grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-6 md:grid-cols-4">
-                    {STATS.map((s) => (
+              <div className="absolute left-1/2 top-0 -z-10 h-24 w-3/5 -translate-x-1/2 rounded-full bg-primary/25 blur-[4rem]" />
+              <div className="overflow-hidden rounded-[1.75rem] border border-border/60 bg-card p-2 shadow-[0_16px_50px_-28px_rgba(15,23,42,0.35)] sm:p-2.5">
+                <div className="grid grid-cols-2 divide-x divide-y divide-border/60 overflow-hidden rounded-[1.35rem] border border-border/50 bg-secondary/40 md:grid-cols-4 md:divide-y-0">
+                  {STATS.map((s) => {
+                    const Icon = s.icon;
+                    return (
                       <div
                         key={s.label}
-                        className="rounded-xl border border-border/60 bg-card/80 px-4 py-4 text-center shadow-sm"
+                        className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center sm:px-5 sm:py-7"
                       >
-                        <div className="text-2xl font-bold tracking-tight text-foreground">{s.value}</div>
-                        <div className="mt-1 text-xs text-muted-foreground sm:text-sm">{s.label}</div>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/10">
+                          <Icon className="h-4 w-4" strokeWidth={2} />
+                        </span>
+                        <div className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                          {s.value}
+                        </div>
+                        <div className="text-xs font-medium text-muted-foreground sm:text-sm">
+                          {s.label}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-3/4 bg-linear-to-t from-background to-transparent from-10%" />
-              <div className="absolute inset-x-0 top-0 -z-10 mx-auto h-1/10 w-3/5 rounded-full bg-primary opacity-40 blur-[4rem]" />
             </motion.div>
           </div>
         </SectionShell>
@@ -253,10 +259,13 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
       </section>
 
       {/* Custom packages from media agencies */}
-      <section id="packages" className="relative w-full overflow-hidden py-16 md:py-24">
+      <section
+        id="packages"
+        className="relative w-full overflow-hidden bg-[#f3f4f6] py-16 text-foreground md:py-24"
+      >
         <div className="pointer-events-none absolute -right-1/4 top-1/3 -z-10 hidden size-1/3 rounded-full bg-primary/10 blur-[8rem] lg:block" />
-        <SectionShell className="relative z-10 max-w-[90rem]">
-          <div className="flex flex-col items-center text-center">
+        <SectionShell className="relative z-10 max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
             <SectionBadge title="Packages" />
             <motion.h2
               className={cn(sectionTitle, "mt-6")}
@@ -274,20 +283,38 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Ready-made packages from verified media partners — or build one tailored to your campaign.
+              Ready-made buys from media partners — or open media buying to plan your own flight.
             </motion.p>
           </div>
 
           {featuredPackages.length > 0 ? (
-            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-5">
               {featuredPackages.map((pkg, index) => {
-                const scheduleHref = pkg.listingId
-                  ? `/media/schedule?type=${encodeURIComponent(
-                      pkg.listingType || "TV"
-                    )}&listing=${encodeURIComponent(pkg.listingId)}`
-                  : `/products/tv-media`;
+                const typeKey = String(pkg.listingType || "TV").toUpperCase();
+                const bookHref = pkg.listingId
+                  ? `/media/schedule?type=${encodeURIComponent(typeKey)}&listing=${encodeURIComponent(pkg.listingId)}`
+                  : `/products?type=${encodeURIComponent(typeKey)}`;
                 const typeLabel =
                   LISTING_TYPE_LABELS[pkg.listingType] || pkg.listingType || "Media";
+                const featured = index === 1;
+
+                const metaChips = [
+                  pkg.duration
+                    ? { icon: Clock, label: pkg.duration }
+                    : null,
+                  pkg.spots != null
+                    ? {
+                        icon: Calendar,
+                        label: `${pkg.spots} spot${pkg.spots === 1 ? "" : "s"}`,
+                      }
+                    : null,
+                  pkg.estimatedViewers
+                    ? { icon: Eye, label: pkg.estimatedViewers }
+                    : null,
+                  pkg.location
+                    ? { icon: MapPin, label: pkg.location }
+                    : null,
+                ].filter(Boolean);
 
                 return (
                   <motion.div
@@ -296,116 +323,133 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.45, delay: Math.min(index * 0.06, 0.3) }}
+                    className={cn(featured && "lg:-mt-2 lg:mb-2")}
                   >
-                    <Card className="group h-full overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg hover:shadow-primary/10">
-                      <CardHeader className="space-y-3 pb-3">
+                    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10">
+                      <div className="flex flex-1 flex-col p-5 sm:p-6">
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex flex-wrap gap-2">
-                            <Badge
-                              variant="secondary"
-                              className="border border-primary/25 bg-primary/10 text-primary"
-                            >
+                          <div className="flex min-w-0 flex-wrap items-center gap-1.5 pt-0.5">
+                            {featured ? (
+                              <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
+                                Popular
+                              </span>
+                            ) : null}
+                            <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
                               {typeLabel}
-                            </Badge>
+                            </span>
                             {usingDemoPackages ? (
-                              <Badge
-                                variant="outline"
-                                className="border-border/60 text-muted-foreground"
-                              >
+                              <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                                 Demo
-                              </Badge>
+                              </span>
                             ) : null}
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
-                            <Package className="h-4 w-4 text-primary" />
-                          </div>
+                          <span
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                              featured
+                                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                                : "bg-primary/10 text-primary"
+                            )}
+                          >
+                            <Package className="h-4 w-4" strokeWidth={1.75} />
+                          </span>
                         </div>
-                        <CardTitle className="text-xl leading-snug tracking-tight">
+
+                        <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">
                           {pkg.name}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {pkg.listingName}
-                          {pkg.agencyName ? ` · ${pkg.agencyName}` : ""}
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {[pkg.listingName, pkg.agencyName].filter(Boolean).join(" · ")}
                         </p>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="text-2xl font-bold tabular-nums tracking-tight">
-                          ₵{Number(pkg.price || 0).toLocaleString()}
+
+                        <div className="mt-5 rounded-xl border border-primary/10 bg-primary/[0.04] px-4 py-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/70">
+                            Package price
+                          </p>
+                          <p className="mt-0.5 text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[1.65rem]">
+                            ₵{Number(pkg.price || 0).toLocaleString("en-GH")}
+                          </p>
                         </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-                          {pkg.duration ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                              {pkg.duration}
-                            </span>
-                          ) : null}
-                          {pkg.spots != null ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                              {pkg.spots} spot{pkg.spots === 1 ? "" : "s"}
-                            </span>
-                          ) : null}
-                          {pkg.estimatedViewers ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Eye className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                              {pkg.estimatedViewers}
-                            </span>
-                          ) : null}
-                          {pkg.location ? (
-                            <span className="inline-flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-                              {pkg.location}
-                            </span>
-                          ) : null}
+
+                        {metaChips.length > 0 ? (
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            {metaChips.map((chip) => {
+                              const Icon = chip.icon;
+                              return (
+                                <div
+                                  key={chip.label}
+                                  className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-2.5 py-2"
+                                >
+                                  <Icon className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                                  <span className="truncate text-[11px] font-medium text-muted-foreground">
+                                    {chip.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-auto pt-5">
+                          <Button
+                            asChild
+                            variant="marketing"
+                            className="h-11 w-full rounded-full text-sm font-semibold shadow-md shadow-primary/20"
+                          >
+                            <Link href={bookHref}>
+                              Book package
+                              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                            </Link>
+                          </Button>
                         </div>
-                        <Button asChild variant="marketing" className="w-full rounded-full">
-                          <Link href={scheduleHref}>
-                            Book package
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </article>
                   </motion.div>
                 );
               })}
             </div>
           ) : (
-            <Card className="mx-auto mt-12 max-w-2xl rounded-2xl border border-dashed border-border/70 bg-card/50">
-              <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
-                  <Package className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold">No custom packages listed yet</h3>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  Media partners can publish packages from their dashboard. In the meantime, schedule a
-                  custom buy or browse curated package ideas.
-                </p>
-                <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  <Button asChild variant="marketing" className="rounded-full">
-                    <Link href="/media/schedule">Schedule custom media</Link>
-                  </Button>
-                  <Button asChild variant="outline" className="rounded-full border-primary/40">
-                    <Link href="/media/packages">Browse packages</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-dashed border-border/70 bg-card px-6 py-12 text-center shadow-sm">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                <Package className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">No packages yet</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Partners can publish packages from their dashboard. Browse listings to start planning
+                meanwhile.
+              </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
+                <Button asChild variant="marketing" className="h-10 rounded-full px-4 text-sm">
+                  <Link href="/products">Browse media buying</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-10 rounded-full border-primary/40 px-4 text-sm"
+                >
+                  <Link href="/media/schedule">Schedule custom media</Link>
+                </Button>
+              </div>
+            </div>
           )}
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-10 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
             {sourcePackages.length > 9 ? (
-              <Button asChild variant="outline" className="rounded-full border-primary/40">
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 rounded-full border-primary/40 px-4 text-sm font-semibold"
+              >
                 <Link href="/media/packages">
                   View all packages
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             ) : null}
-            <Button asChild variant="marketingOutline" className="rounded-full">
-              <Link href={usingDemoPackages ? "/products/tv-media" : "/media/schedule"}>
+            <Button asChild variant="marketing" className="h-10 rounded-full px-5 text-sm font-semibold">
+              <Link href="/products">
                 <Package className="mr-2 h-4 w-4" />
-                {usingDemoPackages ? "Explore TV media" : "Build a custom package"}
+                {usingDemoPackages ? "Open media buying" : "Build a custom package"}
               </Link>
             </Button>
           </div>
@@ -470,49 +514,6 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
         </SectionShell>
       </section>
 
-      {/* Search — black band */}
-      <section className="w-full bg-black text-foreground">
-        <SectionShell className="max-w-[90rem] py-12 md:py-16">
-          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950 to-black p-8 shadow-lg shadow-black/40 md:p-10">
-            <div className="mb-8 flex flex-col items-center text-center">
-              <Badge variant="secondary" className="mb-4 border border-primary/25 bg-primary/10 text-primary">
-                <Search className="mr-1.5 h-3.5 w-3.5" />
-                Search
-              </Badge>
-              <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">Find the right placement</h2>
-              <p className="mt-3 max-w-2xl text-white/70">
-                Filter by location, audience, or format to narrow your next media buy.
-              </p>
-            </div>
-            <div className="mx-auto max-w-2xl space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                <Input
-                  placeholder="Search by location, audience, or media type…"
-                  className="h-12 border-white/15 bg-white/[0.06] pl-10 text-white placeholder:text-white/40 shadow-none focus-visible:border-primary/40 focus-visible:ring-primary/25"
-                />
-              </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {[
-                  { icon: MapPin, label: "All locations" },
-                  { icon: Users, label: "All demographics" },
-                  { icon: DollarSign, label: "Any budget" },
-                ].map(({ icon: Icon, label }) => (
-                  <Badge
-                    key={label}
-                    variant="secondary"
-                    className="cursor-default border border-primary/25 bg-primary/10 px-3 py-1.5 text-primary"
-                  >
-                    <Icon className="mr-1 h-3 w-3" />
-                    {label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        </SectionShell>
-      </section>
-
       {/* CTA — Avento `cta.tsx` grid + radial mask + glow */}
       <section className="relative w-full overflow-hidden py-16 lg:pb-24 lg:pt-16">
         <SectionShell className="max-w-[90rem]">
@@ -528,8 +529,8 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
                 className="absolute inset-0 -z-20"
                 style={{
                   backgroundImage: `
-                    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px)
+                    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px)
                   `,
                   backgroundSize: "48px 48px",
                 }}

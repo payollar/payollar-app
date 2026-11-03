@@ -122,6 +122,56 @@ export async function submitMediaAgencyForm(data) {
 }
 
 /**
+ * Update the signed-in media agency's profile settings.
+ */
+export async function updateMediaAgencySettings(data) {
+  try {
+    const user = await checkUser();
+    if (!user || user.role !== "MEDIA_AGENCY") {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const agency = await db.mediaAgency.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!agency) {
+      return { success: false, error: "Media agency profile not found" };
+    }
+
+    const agencyName = String(data?.agencyName || "").trim();
+    const contactName = String(data?.contactName || "").trim();
+    if (!agencyName || !contactName) {
+      return { success: false, error: "Agency name and contact person are required" };
+    }
+
+    const updated = await db.mediaAgency.update({
+      where: { id: agency.id },
+      data: {
+        agencyName,
+        contactName,
+        phone: String(data?.phone || "").trim() || null,
+        website: String(data?.website || "").trim() || null,
+        address: String(data?.address || "").trim() || null,
+        city: String(data?.city || "").trim() || null,
+        region: String(data?.region || "").trim() || null,
+        country: String(data?.country || "").trim() || "Ghana",
+        description: String(data?.description || "").trim() || null,
+        logoUrl: data?.logoUrl ? String(data.logoUrl).trim() : agency.logoUrl,
+      },
+    });
+
+    return { success: true, agency: updated };
+  } catch (error) {
+    console.error("Error updating media agency settings:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to update settings",
+    };
+  }
+}
+
+/**
  * Get media agency by ID
  */
 export async function getMediaAgency(id) {

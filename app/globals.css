@@ -246,14 +246,16 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   display: flex !important;
 }
 
-/* Creator and client dashboards: one rounded shell. The rail stays inside it. */
+/* Creator, client, and media-agency dashboards: one rounded shell. The rail stays inside it. */
 [data-creator-dashboard-nav],
-[data-client-dashboard-nav] {
+[data-client-dashboard-nav],
+[data-media-agency-dashboard-nav] {
   height: 100% !important;
 }
 
 [data-creator-dashboard-nav] [data-slot="sidebar-wrapper"],
-[data-client-dashboard-nav] [data-slot="sidebar-wrapper"] {
+[data-client-dashboard-nav] [data-slot="sidebar-wrapper"],
+[data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"] {
   height: 100% !important;
   min-height: 100% !important;
   max-width: none !important;
@@ -261,20 +263,23 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 }
 
 [data-creator-dashboard-nav] [data-slot="sidebar"],
-[data-client-dashboard-nav] [data-slot="sidebar"] {
+[data-client-dashboard-nav] [data-slot="sidebar"],
+[data-media-agency-dashboard-nav] [data-slot="sidebar"] {
   position: relative !important;
   height: 100% !important;
   max-width: none !important;
 }
 
 [data-creator-dashboard-nav] [data-slot="sidebar-gap"],
-[data-client-dashboard-nav] [data-slot="sidebar-gap"] {
+[data-client-dashboard-nav] [data-slot="sidebar-gap"],
+[data-media-agency-dashboard-nav] [data-slot="sidebar-gap"] {
   height: 100% !important;
   max-width: none !important;
 }
 
 [data-creator-dashboard-nav] [data-slot="sidebar-container"],
-[data-client-dashboard-nav] [data-slot="sidebar-container"] {
+[data-client-dashboard-nav] [data-slot="sidebar-container"],
+[data-media-agency-dashboard-nav] [data-slot="sidebar-container"] {
   position: absolute !important;
   inset: 0 auto 0 0 !important;
   top: 0 !important;
@@ -291,7 +296,8 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 
 /* The global inset-header rule forces a bar open. Keep it only for the phone menu. */
 [data-creator-dashboard-nav] [data-slot="sidebar-inset"] header,
-[data-client-dashboard-nav] [data-slot="sidebar-inset"] header {
+[data-client-dashboard-nav] [data-slot="sidebar-inset"] header,
+[data-media-agency-dashboard-nav] [data-slot="sidebar-inset"] header {
   display: none !important;
   height: 0 !important;
   min-height: 0 !important;
@@ -300,7 +306,8 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 }
 @media (max-width: 767px) {
   [data-creator-dashboard-nav] [data-slot="sidebar-inset"] header,
-  [data-client-dashboard-nav] [data-slot="sidebar-inset"] header {
+  [data-client-dashboard-nav] [data-slot="sidebar-inset"] header,
+  [data-media-agency-dashboard-nav] [data-slot="sidebar-inset"] header {
     display: flex !important;
     height: 3rem !important;
     min-height: 3rem !important;
@@ -317,6 +324,7 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
+  --cardbox: #f4f6f9;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
   --primary: #0055ff;
@@ -333,33 +341,33 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   color: #0f172a;
 }
 
+/* Marketing utilities remapped for light shells */
+[data-theme="light"] .badge-glow {
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 0 20px rgba(0, 85, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .badge-minimal {
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Kill dark letterboxing around light marketing shells (products, talents, …) */
+html:has([data-theme="light"]),
+body:has([data-theme="light"]) {
+  background-color: #ffffff !important;
+}
+
 .creator-dashboard-panel {
   background: #ffffff;
 }
 
 .client-dashboard-panel {
   background: #f4f6fb;
-}
-
-/* Media agency dashboard: same shell as creator/client */
-[data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"] {
-  min-height: calc(100dvh - 5.25rem) !important;
-}
-@media (min-width: 768px) {
-  [data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"] {
-    min-height: calc(100dvh - 7rem) !important;
-  }
-}
-[data-media-agency-dashboard-nav] [data-slot="sidebar-container"] {
-  top: 5.25rem !important;
-  bottom: 0 !important;
-  height: auto !important;
-  max-height: none !important;
-}
-@media (min-width: 768px) {
-  [data-media-agency-dashboard-nav] [data-slot="sidebar-container"] {
-    top: 7rem !important;
-  }
 }
 
 @utility gradient {

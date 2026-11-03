@@ -68,6 +68,10 @@ export function LandingNavbar() {
   const dashboardNav = user?.role ? getDashboardNavForRole(user.role) : null;
 
   const links = LANDING_PUBLIC_NAV.filter((l) => l.href !== "/");
+  const isLightSurface =
+    pathname?.startsWith("/products") ||
+    pathname?.startsWith("/rate-cards") ||
+    pathname?.startsWith("/media");
 
   return (
     <div className="relative w-full">
@@ -77,8 +81,16 @@ export function LandingNavbar() {
           isOpen ? "min-h-[calc(100dvh-2rem)]" : "h-14 md:h-16"
         )}
       >
-        <div className="backdrop-blur-xl rounded-xl lg:rounded-full border border-white/10 h-full flex flex-col overflow-hidden relative bg-background/40 shadow-lg shadow-black/20">
-          <div className="flex items-center justify-between w-full px-3 md:px-4 min-h-14 md:min-h-16 shrink-0">
+        <div
+          className={cn(
+            "relative flex h-full flex-col overflow-hidden rounded-xl border backdrop-blur-xl lg:rounded-full",
+            // Dark floating pill on light product pages keeps the white logo readable
+            isLightSurface
+              ? "border-slate-900/10 bg-[#0b1220]/92 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)]"
+              : "border-white/10 bg-background/40 shadow-lg shadow-black/20"
+          )}
+        >
+          <div className="flex min-h-14 w-full shrink-0 items-center justify-between px-3 md:min-h-16 md:px-4">
             <Link
               href="/"
               className="group shrink-0 transition-opacity hover:opacity-90"
@@ -93,11 +105,11 @@ export function LandingNavbar() {
               />
             </Link>
 
-            <div className="lg:flex items-center hidden gap-0.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[55%]">
+            <div className="absolute top-1/2 left-1/2 hidden max-w-[55%] -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 lg:flex">
               {showMediaMenu && (
                 <Link
                   href="/media"
-                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
+                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                 >
                   Media
                 </Link>
@@ -106,20 +118,20 @@ export function LandingNavbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-sm font-medium px-3 py-1.5 rounded-full text-foreground/70 hover:text-foreground transition-colors whitespace-nowrap"
+                  className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                 >
                   {item.label}
                 </Link>
               ))}
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <div className="flex shrink-0 items-center gap-2 md:gap-3">
               {!isSignedIn && (
                 <Link href="/onboarding" className="hidden sm:block">
                   <Button
                     variant="marketingWhite"
                     size="sm"
-                    className="hidden md:inline-flex rounded-full"
+                    className="hidden rounded-full md:inline-flex"
                   >
                     Get started
                   </Button>
@@ -129,7 +141,7 @@ export function LandingNavbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="hidden h-9 rounded-full border border-white/40 bg-white/5 px-3.5 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:border-white/70 hover:bg-white/10 sm:inline-flex"
+                  className="hidden h-9 rounded-full border border-white/40 bg-white/5 px-3.5 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:border-white/70 hover:bg-white/10 sm:inline-flex"
                   asChild
                 >
                   <Link
@@ -143,13 +155,13 @@ export function LandingNavbar() {
                   </Link>
                 </Button>
               )}
-              <div className="flex items-center [&_button]:rounded-full [&_a]:rounded-full">
+              <div className="flex items-center [&_button]:rounded-full [&_a]:rounded-full [&_button]:text-white [&_a]:text-white">
                 <HeaderAuthButtons />
               </div>
               <Button
                 size="icon"
                 variant="ghost"
-                className="lg:hidden rounded-full"
+                className="rounded-full text-white hover:bg-white/10 lg:hidden"
                 onClick={() => setIsOpen((o) => !o)}
                 aria-label={isOpen ? "Close menu" : "Open menu"}
               >
