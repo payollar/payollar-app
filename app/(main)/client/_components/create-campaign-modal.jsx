@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadButton } from "@uploadthing/react";
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, ImagePlus, Loader2, MapPin, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, ImagePlus, Loader2, MapPin, Plus, X } from "lucide-react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -34,30 +34,52 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { CAMPAIGN_CATEGORIES } from "@/lib/campaign-categories";
 import { loadPlaces } from "@/lib/campaign-places";
+import {
+  FOLLOWER_RANGE_PRESETS,
+  matchFollowerPreset,
+} from "@/lib/campaign-followers";
 
 const fieldClass =
   "h-11 rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+
+const EMPTY_FORM = {
+  title: "",
+  brand: "",
+  description: "",
+  category: "",
+  subcategory: "",
+  budgetMin: "",
+  budgetMax: "",
+  followerMin: "",
+  followerMax: "",
+  targetAudience: "",
+  paymentNote: "",
+  country: "",
+  location: "",
+  deadline: "",
+  imageUrl: "",
+  status: "DRAFT",
+};
 
 export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requirements, setRequirements] = useState([]);
-  const [newRequirement, setNewRequirement] = useState("");
+  const [deliverables, setDeliverables] = useState([]);
+  const [objectives, setObjectives] = useState([]);
+  const [benefits, setBenefits] = useState([]);
+  const [faqs, setFaqs] = useState([]);
+  const [faqDraft, setFaqDraft] = useState({ question: "", answer: "" });
 
   const [formData, setFormData] = useState({
-    title: "",
+    ...EMPTY_FORM,
     brand: defaultBrand,
-    description: "",
-    category: "",
-    subcategory: "",
-    budgetMin: "",
-    budgetMax: "",
-    country: "",
-    location: "",
-    deadline: "",
-    imageUrl: "",
-    status: "DRAFT",
   });
+
+  const selectedFollowerPreset = matchFollowerPreset(
+    formData.followerMin,
+    formData.followerMax
+  );
 
   useEffect(() => {
     if (open && defaultBrand) {
@@ -69,15 +91,33 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const addRequirement = () => {
-    if (newRequirement.trim()) {
-      setRequirements((prev) => [...prev, newRequirement.trim()]);
-      setNewRequirement("");
-    }
+  const resetForm = () => {
+    setFormData({ ...EMPTY_FORM, brand: defaultBrand || "" });
+    setRequirements([]);
+    setDeliverables([]);
+    setObjectives([]);
+    setBenefits([]);
+    setFaqs([]);
+    setFaqDraft({ question: "", answer: "" });
   };
 
-  const removeRequirement = (index) => {
-    setRequirements((prev) => prev.filter((_, i) => i !== index));
+  const applyFollowerPreset = (preset) => {
+    setFormData((prev) => ({
+      ...prev,
+      followerMin: preset.min == null ? "" : String(preset.min),
+      followerMax: preset.max == null ? "" : String(preset.max),
+    }));
+  };
+
+  const addFaq = () => {
+    const question = faqDraft.question.trim();
+    const answer = faqDraft.answer.trim();
+    if (!question || !answer) {
+      toast.error("Add both a question and an answer");
+      return;
+    }
+    setFaqs((prev) => [...prev, { question, answer }]);
+    setFaqDraft({ question: "", answer: "" });
   };
 
   const handleSubmit = async (e) => {
@@ -95,6 +135,13 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
       return;
     }
 
+    const minFollowers = formData.followerMin ? Number(formData.followerMin) : null;
+    const maxFollowers = formData.followerMax ? Number(formData.followerMax) : null;
+    if (minFollowers != null && maxFollowers != null && minFollowers > maxFollowers) {
+      toast.error("Minimum followers cannot be higher than the maximum");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const submitFormData = new FormData();
@@ -105,11 +152,19 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
       submitFormData.append("subcategory", formData.subcategory);
       submitFormData.append("budgetMin", formData.budgetMin || "");
       submitFormData.append("budgetMax", formData.budgetMax || "");
+      submitFormData.append("followerMin", formData.followerMin || "");
+      submitFormData.append("followerMax", formData.followerMax || "");
+      submitFormData.append("targetAudience", formData.targetAudience || "");
+      submitFormData.append("paymentNote", formData.paymentNote || "");
       submitFormData.append("country", formData.country);
       submitFormData.append("location", formData.location);
       submitFormData.append("deadline", formData.deadline.includes("T") ? formData.deadline : `${formData.deadline}T23:59`);
       submitFormData.append("imageUrl", formData.imageUrl || "");
       submitFormData.append("requirements", JSON.stringify(requirements));
+      submitFormData.append("deliverables", JSON.stringify(deliverables));
+      submitFormData.append("objectives", JSON.stringify(objectives));
+      submitFormData.append("benefits", JSON.stringify(benefits));
+      submitFormData.append("faqs", JSON.stringify(faqs));
       submitFormData.append("status", formData.status);
 
       const result = await createCampaign(submitFormData);
@@ -117,21 +172,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
       if (result?.success) {
         toast.success("Campaign created successfully!");
         onOpenChange(false);
-        setFormData({
-          title: "",
-          brand: "",
-          description: "",
-          category: "",
-          subcategory: "",
-          budgetMin: "",
-          budgetMax: "",
-          country: "",
-          location: "",
-          deadline: "",
-          imageUrl: "",
-          status: "DRAFT",
-        });
-        setRequirements([]);
+        resetForm();
         router.refresh();
       }
     } catch (error) {
@@ -143,13 +184,13 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(92vh,860px)] w-full flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 text-slate-900 shadow-2xl sm:max-w-2xl">
+      <DialogContent className="flex max-h-[min(92vh,920px)] w-full flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 text-slate-900 shadow-2xl sm:max-w-3xl">
         <DialogHeader className="space-y-1 border-b border-slate-100 px-6 py-5 pr-12 text-left">
           <DialogTitle className="text-xl font-semibold tracking-tight text-slate-950">
             Create new campaign
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Tell creators what you need, the budget, and when applications close.
+            Add the brief, follower range, deliverables, and rewards creators will see on the campaign page.
           </DialogDescription>
         </DialogHeader>
 
@@ -295,8 +336,104 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                     />
                   </div>
                 </div>
-                <p className="text-xs text-slate-400">Optional. Creators see this as the pay range.</p>
+                <Input
+                  value={formData.paymentNote}
+                  onChange={(e) => handleInputChange("paymentNote", e.target.value)}
+                  className={fieldClass}
+                  placeholder="Payment note (optional) — e.g. Per creator, product + fee"
+                />
               </div>
+            </section>
+
+            <section className="space-y-4">
+              <SectionLabel>Audience</SectionLabel>
+              <div className="space-y-2">
+                <Label className="text-slate-700">Follower range</Label>
+                <div className="flex flex-wrap gap-2">
+                  {FOLLOWER_RANGE_PRESETS.map((preset) => {
+                    const selected = selectedFollowerPreset === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => applyFollowerPreset(preset)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                          selected
+                            ? "border-[#0055ff] bg-[#0055ff] text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    type="number"
+                    value={formData.followerMin}
+                    onChange={(e) => handleInputChange("followerMin", e.target.value)}
+                    className={fieldClass}
+                    placeholder="Min followers"
+                    min="0"
+                    aria-label="Minimum followers"
+                  />
+                  <Input
+                    type="number"
+                    value={formData.followerMax}
+                    onChange={(e) => handleInputChange("followerMax", e.target.value)}
+                    className={fieldClass}
+                    placeholder="Max followers"
+                    min="0"
+                    aria-label="Maximum followers"
+                  />
+                </div>
+                <p className="text-xs text-slate-400">
+                  Optional. Shown on the campaign page so creators know the audience size you want.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetAudience" className="text-slate-700">
+                  Target audience
+                </Label>
+                <Textarea
+                  id="targetAudience"
+                  value={formData.targetAudience}
+                  onChange={(e) => handleInputChange("targetAudience", e.target.value)}
+                  rows={2}
+                  className="min-h-20 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                  placeholder="e.g. Gen Z in Accra interested in beauty and wellness"
+                />
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <SectionLabel>Campaign details</SectionLabel>
+              <TagListField
+                label="Deliverables"
+                placeholder="e.g. 2 TikTok videos"
+                items={deliverables}
+                onChange={setDeliverables}
+              />
+              <TagListField
+                label="Objectives"
+                placeholder="e.g. Drive kit awareness before launch"
+                items={objectives}
+                onChange={setObjectives}
+              />
+              <TagListField
+                label="Requirements"
+                placeholder="e.g. Based in Accra, beauty niche"
+                items={requirements}
+                onChange={setRequirements}
+              />
+              <TagListField
+                label="Rewards & benefits"
+                placeholder="e.g. Free product kit + usage rights fee"
+                items={benefits}
+                onChange={setBenefits}
+              />
             </section>
 
             <section className="space-y-4">
@@ -376,52 +513,68 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                   </div>
                 </div>
               </div>
+            </section>
 
-              <div className="space-y-2">
-                <Label className="text-slate-700">Requirements</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newRequirement}
-                    onChange={(e) => setNewRequirement(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addRequirement();
-                      }
-                    }}
-                    className={cn(fieldClass, "min-w-0 flex-1")}
-                    placeholder="10K followers on Instagram"
-                  />
-                  <Button
-                    type="button"
-                    onClick={addRequirement}
-                    disabled={!newRequirement.trim()}
-                    className="h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-white hover:bg-slate-800"
-                  >
-                    Add
-                  </Button>
-                </div>
-                {requirements.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {requirements.map((req, index) => (
-                      <span
-                        key={`${req}-${index}`}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#0055ff]/20 bg-[#0055ff]/[0.08] px-3 py-1 text-sm text-[#0055ff]"
-                      >
-                        {req}
+            <section className="space-y-4">
+              <SectionLabel>FAQs</SectionLabel>
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <Input
+                  value={faqDraft.question}
+                  onChange={(e) =>
+                    setFaqDraft((prev) => ({ ...prev, question: e.target.value }))
+                  }
+                  className={cn(fieldClass, "bg-white")}
+                  placeholder="Question"
+                />
+                <Textarea
+                  value={faqDraft.answer}
+                  onChange={(e) =>
+                    setFaqDraft((prev) => ({ ...prev, answer: e.target.value }))
+                  }
+                  rows={2}
+                  className="min-h-20 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                  placeholder="Answer"
+                />
+                <Button
+                  type="button"
+                  onClick={addFaq}
+                  className="h-10 rounded-xl bg-slate-950 text-white hover:bg-slate-800"
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Add FAQ
+                </Button>
+              </div>
+              {faqs.length > 0 ? (
+                <ul className="space-y-2">
+                  {faqs.map((faq, index) => (
+                    <li
+                      key={`${faq.question}-${index}`}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900">{faq.question}</p>
+                          <p className="mt-1 text-sm text-slate-500">{faq.answer}</p>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => removeRequirement(index)}
-                          className="rounded-full text-[#0055ff]/70 hover:text-[#0055ff]"
-                          aria-label={`Remove ${req}`}
+                          onClick={() =>
+                            setFaqs((prev) => prev.filter((_, i) => i !== index))
+                          }
+                          className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                          aria-label="Remove FAQ"
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <X className="h-4 w-4" />
                         </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  Optional. Add common questions creators ask before applying.
+                </p>
+              )}
             </section>
 
             <section className="space-y-3">
@@ -781,6 +934,65 @@ function parseLocalDate(value) {
 function toInputDate(date) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function TagListField({ label, placeholder, items, onChange }) {
+  const [draft, setDraft] = useState("");
+
+  const addItem = () => {
+    const value = draft.trim();
+    if (!value) return;
+    onChange([...(items || []), value]);
+    setDraft("");
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-slate-700">{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addItem();
+            }
+          }}
+          className={cn(fieldClass, "min-w-0 flex-1")}
+          placeholder={placeholder}
+        />
+        <Button
+          type="button"
+          onClick={addItem}
+          disabled={!draft.trim()}
+          className="h-11 shrink-0 rounded-xl bg-slate-950 px-4 text-white hover:bg-slate-800"
+        >
+          Add
+        </Button>
+      </div>
+      {items?.length > 0 ? (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {items.map((item, index) => (
+            <span
+              key={`${item}-${index}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#0055ff]/20 bg-[#0055ff]/[0.08] px-3 py-1 text-sm text-[#0055ff]"
+            >
+              {item}
+              <button
+                type="button"
+                onClick={() => onChange(items.filter((_, i) => i !== index))}
+                className="rounded-full text-[#0055ff]/70 hover:text-[#0055ff]"
+                aria-label={`Remove ${item}`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function SectionLabel({ children }) {

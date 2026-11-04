@@ -3,9 +3,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { format, isToday } from "date-fns";
-import { ArrowLeft, Calendar, Loader2, MessageCircle, Search, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  FileText,
+  Loader2,
+  MessageCircle,
+  Plus,
+  Receipt,
+  Search,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { getBookingThread, sendBookingMessage } from "@/actions/booking-chat";
+import { getBookingThread, sendBookingInvoice, sendBookingMessage } from "@/actions/booking-chat";
+
+function moneyGhs(value) {
+  return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 function statusLabel(status) {
   if (status === "REQUESTED") return "Chat open";
@@ -51,12 +70,15 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   const [thread, setThread] = useState(initialThread);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState(false);
   const [query, setQuery] = useState("");
   const endRef = useRef(null);
 
   useEffect(() => {
     setThread(initialThread);
     setDraft("");
+    setInvoiceOpen(false);
   }, [initialThread, appointmentId]);
 
   useEffect(() => {
@@ -89,7 +111,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
 
   const unreadTotal = chats.reduce((sum, chat) => sum + (chat.unread || 0), 0);
 
-  const payForSession = async () => {
+  const payForSession = async (invoiceId) => {
     if (!thread?.pay) return;
     try {
       const res = await fetch("/api/paystack/initialize", {
@@ -100,6 +122,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
           startTime: thread.pay.startTime,
           endTime: thread.pay.endTime,
           description: thread.pay.description || undefined,
+          invoiceId: invoiceId || thread.pay.invoiceId || undefined,
         }),
       });
       const data = await res.json();
@@ -114,6 +137,26 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
       toast.error("Payment link not received.");
     } catch {
       toast.error("Something went wrong. Please try again.");
+    }
+  };
+
+  const onSendInvoice = async (payload) => {
+    if (!appointmentId || sendingInvoice) return;
+    setSendingInvoice(true);
+    try {
+      const result = await sendBookingInvoice(appointmentId, payload);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Invoice sent");
+      setInvoiceOpen(false);
+      const next = await getBookingThread(appointmentId);
+      if (next && !next.error) setThread(next);
+    } catch (error) {
+      toast.error(error?.message || "Could not send invoice.");
+    } finally {
+      setSendingInvoice(false);
     }
   };
 
@@ -189,7 +232,13 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
                     </span>
                     <span className="mt-1 flex items-center justify-between gap-2">
                       <span className={`truncate text-xs ${active ? "text-white/75" : "text-white/45"}`}>
-                        {chat.lastMessage ? `${chat.lastMessage.mine ? "You: " : ""}${chat.lastMessage.body}` : "No messages yet"}
+                        {chat.lastMessage
+                          ? `${chat.lastMessage.mine ? "You: " : ""}${
+                              chat.lastMessage.kind === "INVOICE"
+                                ? chat.lastMessage.body || "Invoice"
+                                : chat.lastMessage.body
+                            }`
+                          : "No messages yet"}
                       </span>
                       {chat.unread > 0 ? (
                         <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#6d28d9]">{chat.unread}</span>
@@ -217,6 +266,10 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
             sending={sending}
             endRef={endRef}
             onPay={payForSession}
+            invoiceOpen={invoiceOpen}
+            setInvoiceOpen={setInvoiceOpen}
+            sendingInvoice={sendingInvoice}
+            onSendInvoice={onSendInvoice}
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -236,7 +289,19 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   );
 }
 
-function ThreadPane({ thread, onSubmit, draft, setDraft, sending, endRef, onPay }) {
+function ThreadPane({
+  thread,
+  onSubmit,
+  draft,
+  setDraft,
+  sending,
+  endRef,
+  onPay,
+  invoiceOpen,
+  setInvoiceOpen,
+  sendingInvoice,
+  onSendInvoice,
+}) {
   const href = profileHref(thread.other);
   let lastDay = "";
 
@@ -252,6 +317,9 @@ function ThreadPane({ thread, onSubmit, draft, setDraft, sending, endRef, onPay 
           <p className="truncate text-xs text-slate-500">
             {thread.other?.specialty ? `${thread.other.specialty} · ` : ""}
             {format(new Date(thread.appointment.startTime), "MMM d, yyyy · h:mm a")}
+            {thread.appointment.agreedAmount != null
+              ? ` · ${moneyGhs(thread.appointment.agreedAmount)}`
+              : ""}
           </p>
         </div>
         <span className="hidden rounded-full bg-[#f3eefe] px-2.5 py-1 text-xs font-semibold text-[#5b21b6] sm:inline">
@@ -279,21 +347,34 @@ function ThreadPane({ thread, onSubmit, draft, setDraft, sending, endRef, onPay 
                     {isToday(new Date(message.createdAt)) ? "Today" : format(new Date(message.createdAt), "MMM d, yyyy")}
                   </p>
                 ) : null}
-                <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
-                  {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
-                  <div
-                    className={
-                      message.mine
-                        ? "max-w-[78%] rounded-2xl rounded-br-md bg-[#16181f] px-3 py-2 text-sm text-white"
-                        : "max-w-[78%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
-                    }
-                  >
-                    <p className="whitespace-pre-wrap">{message.body}</p>
-                    <p className={message.mine ? "mt-1 text-[10px] text-white/50" : "mt-1 text-[10px] text-slate-400"}>
-                      {format(new Date(message.createdAt), "h:mm a")}
-                    </p>
+                {message.kind === "INVOICE" && message.invoice ? (
+                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                    <InvoiceMessageCard
+                      invoice={message.invoice}
+                      mine={message.mine}
+                      canPay={thread.canPay && message.invoice.status === "SENT"}
+                      onPay={() => onPay(message.invoice.id)}
+                      createdAt={message.createdAt}
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                    <div
+                      className={
+                        message.mine
+                          ? "max-w-[78%] rounded-2xl rounded-br-md bg-[#16181f] px-3 py-2 text-sm text-white"
+                          : "max-w-[78%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
+                      }
+                    >
+                      <p className="whitespace-pre-wrap">{message.body}</p>
+                      <p className={message.mine ? "mt-1 text-[10px] text-white/50" : "mt-1 text-[10px] text-slate-400"}>
+                        {format(new Date(message.createdAt), "h:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })
@@ -303,15 +384,43 @@ function ThreadPane({ thread, onSubmit, draft, setDraft, sending, endRef, onPay 
 
       {thread.canPay ? (
         <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-white px-4 py-2.5 xl:hidden">
-          <p className="text-xs text-slate-500">This session is not paid yet.</p>
-          <button type="button" onClick={onPay} className="shrink-0 rounded-full bg-[#6d28d9] px-3 py-1.5 text-xs font-semibold text-white">
+          <p className="text-xs text-slate-500">
+            {thread.pay?.amount != null
+              ? `Pay ${moneyGhs(thread.pay.amount)} to confirm`
+              : "This session is not paid yet."}
+          </p>
+          <button type="button" onClick={() => onPay()} className="shrink-0 rounded-full bg-[#6d28d9] px-3 py-1.5 text-xs font-semibold text-white">
             Pay
           </button>
         </div>
       ) : null}
 
+      {invoiceOpen && thread.canInvoice ? (
+        <InvoiceComposer
+          defaultAmount={thread.appointment.agreedAmount || thread.pay?.amount || ""}
+          sending={sendingInvoice}
+          onCancel={() => setInvoiceOpen(false)}
+          onSend={onSendInvoice}
+        />
+      ) : null}
+
       {thread.canSend ? (
         <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-slate-100 bg-white p-3">
+          {thread.canInvoice ? (
+            <button
+              type="button"
+              onClick={() => setInvoiceOpen((open) => !open)}
+              aria-label="Create invoice"
+              title="Send invoice"
+              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
+                invoiceOpen
+                  ? "border-[#6d28d9] bg-[#f3eefe] text-[#5b21b6]"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-[#6d28d9] hover:text-[#6d28d9]"
+              }`}
+            >
+              <Receipt className="h-4 w-4" />
+            </button>
+          ) : null}
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -332,6 +441,231 @@ function ThreadPane({ thread, onSubmit, draft, setDraft, sending, endRef, onPay 
         <p className="border-t border-slate-100 px-4 py-3 text-sm text-slate-500">This booking was cancelled, so new messages are closed.</p>
       )}
     </>
+  );
+}
+
+function InvoiceMessageCard({ invoice, mine, canPay, onPay, createdAt }) {
+  const superseded = invoice.status === "SUPERSEDED";
+  const paid = invoice.status === "PAID";
+  return (
+    <div
+      className={`w-full max-w-[320px] overflow-hidden rounded-2xl border shadow-sm ${
+        mine ? "border-[#d6d3f5] bg-white" : "border-slate-200 bg-white"
+      } ${superseded ? "opacity-70" : ""}`}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-[#f8f7ff] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#6d28d9]/10 text-[#6d28d9]">
+            <FileText className="h-3.5 w-3.5" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold text-slate-900">{invoice.title}</p>
+            <p className="text-[10px] text-slate-400">{format(new Date(createdAt), "h:mm a")}</p>
+          </div>
+        </div>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            paid
+              ? "bg-emerald-50 text-emerald-700"
+              : superseded
+                ? "bg-slate-100 text-slate-500"
+                : "bg-amber-50 text-amber-700"
+          }`}
+        >
+          {paid ? "Paid" : superseded ? "Updated" : "Open"}
+        </span>
+      </div>
+      <div className="space-y-2 px-3 py-3">
+        {invoice.lineItems?.length ? (
+          <ul className="space-y-1.5">
+            {invoice.lineItems.map((item, index) => (
+              <li key={`${item.description}-${index}`} className="flex items-start justify-between gap-3 text-xs">
+                <span className="text-slate-600">{item.description}</span>
+                <span className="shrink-0 font-medium tabular-nums text-slate-900">{moneyGhs(item.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {invoice.notes ? <p className="text-xs leading-relaxed text-slate-500">{invoice.notes}</p> : null}
+        <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-2">
+          <p className="text-[10px] uppercase tracking-wide text-slate-400">Total</p>
+          <p className="text-lg font-semibold tabular-nums text-slate-950">{moneyGhs(invoice.amount)}</p>
+        </div>
+        {canPay ? (
+          <button
+            type="button"
+            onClick={onPay}
+            className="inline-flex h-9 w-full items-center justify-center rounded-full bg-[#6d28d9] text-xs font-semibold text-white hover:bg-[#5b21b6]"
+          >
+            Pay {moneyGhs(invoice.amount)}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function InvoiceComposer({ defaultAmount, sending, onCancel, onSend }) {
+  const [title, setTitle] = useState("Session invoice");
+  const [amount, setAmount] = useState(
+    defaultAmount != null && defaultAmount !== "" ? String(defaultAmount) : ""
+  );
+  const [notes, setNotes] = useState("");
+  const [useLines, setUseLines] = useState(false);
+  const [lines, setLines] = useState([{ description: "", amount: "" }]);
+
+  const lineTotal = lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  const total = useLines ? lineTotal : Number(amount) || 0;
+
+  const submit = (event) => {
+    event.preventDefault();
+    onSend({
+      title,
+      notes,
+      amount: useLines ? lineTotal : Number(amount),
+      lineItems: useLines
+        ? lines
+            .map((line) => ({
+              description: line.description.trim(),
+              amount: Number(line.amount),
+            }))
+            .filter((line) => line.description && line.amount > 0)
+        : [],
+    });
+  };
+
+  return (
+    <form onSubmit={submit} className="border-t border-slate-100 bg-[#fbfaff] px-3 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-900">Customize invoice</p>
+        <button type="button" onClick={onCancel} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close invoice">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="block text-xs text-slate-500">
+          Title
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            maxLength={80}
+            className="mt-1 h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+          />
+        </label>
+        {!useLines ? (
+          <label className="block text-xs text-slate-500">
+            Amount (GHS)
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="e.g. 350"
+              className="mt-1 h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+              required={!useLines}
+            />
+          </label>
+        ) : (
+          <div className="flex items-end">
+            <p className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold tabular-nums text-slate-900">
+              Total {moneyGhs(lineTotal)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <label className="mt-2 block text-xs text-slate-500">
+        Notes for client
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={2}
+          maxLength={1000}
+          placeholder="What this covers after negotiation…"
+          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+        />
+      </label>
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setUseLines((value) => !value)}
+          className="text-xs font-semibold text-[#6d28d9] hover:text-[#5b21b6]"
+        >
+          {useLines ? "Use single amount" : "Add line items"}
+        </button>
+        <p className="text-xs text-slate-400">Client pays {moneyGhs(total)}</p>
+      </div>
+
+      {useLines ? (
+        <div className="mt-2 space-y-2">
+          {lines.map((line, index) => (
+            <div key={index} className="flex gap-2">
+              <input
+                value={line.description}
+                onChange={(event) => {
+                  const next = [...lines];
+                  next[index] = { ...next[index], description: event.target.value };
+                  setLines(next);
+                }}
+                placeholder="Item"
+                className="h-9 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#6d28d9]"
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={line.amount}
+                onChange={(event) => {
+                  const next = [...lines];
+                  next[index] = { ...next[index], amount: event.target.value };
+                  setLines(next);
+                }}
+                placeholder="0.00"
+                className="h-9 w-24 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#6d28d9]"
+              />
+              <button
+                type="button"
+                onClick={() => setLines((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== index)))}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600"
+                aria-label="Remove line"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+          {lines.length < 12 ? (
+            <button
+              type="button"
+              onClick={() => setLines((prev) => [...prev, { description: "", amount: "" }])}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-[#6d28d9]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add line
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-9 rounded-full px-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={sending || total < 1}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#6d28d9] px-4 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Receipt className="h-3.5 w-3.5" />}
+          Send invoice
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -375,9 +709,17 @@ function SessionCard({ thread, onPay }) {
             View profile
           </Link>
         ) : null}
+        {thread.appointment.agreedAmount != null ? (
+          <div className="rounded-2xl bg-[#f7f8fb] px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">Agreed amount</p>
+            <p className="text-sm font-semibold tabular-nums text-slate-950">
+              {moneyGhs(thread.appointment.agreedAmount)}
+            </p>
+          </div>
+        ) : null}
         {thread.canPay ? (
-          <button type="button" onClick={onPay} className="inline-flex h-10 items-center justify-center rounded-full bg-[#6d28d9] text-sm font-semibold text-white hover:bg-[#5b21b6]">
-            Pay with Paystack
+          <button type="button" onClick={() => onPay()} className="inline-flex h-10 items-center justify-center rounded-full bg-[#6d28d9] text-sm font-semibold text-white hover:bg-[#5b21b6]">
+            {thread.pay?.amount != null ? `Pay ${moneyGhs(thread.pay.amount)}` : "Pay with Paystack"}
           </button>
         ) : null}
       </div>

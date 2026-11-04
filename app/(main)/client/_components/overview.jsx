@@ -89,7 +89,9 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
     <div className="-m-3 min-h-full w-full min-w-0 !max-w-none bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold text-slate-950 md:text-xl">{firstName}</h1>
+          <h1 className="truncate text-lg font-semibold text-slate-950 md:text-xl">
+            Welcome, {firstName}
+          </h1>
           <p className="text-sm text-slate-400">Campaigns, orders, and messages.</p>
         </div>
         <Link

@@ -21,7 +21,8 @@ export function MainWrapper({ children }) {
     pathname?.startsWith("/talents") ||
     pathname?.startsWith("/campaigns") ||
     pathname?.startsWith("/products") ||
-    pathname?.startsWith("/rate-cards");
+    pathname?.startsWith("/rate-cards") ||
+    pathname?.startsWith("/help");
   const isMessages = pathname?.startsWith("/messages");
   const isAuthPage =
     pathname?.startsWith("/sign-in") ||

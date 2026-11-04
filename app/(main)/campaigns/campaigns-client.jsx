@@ -3,40 +3,24 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
-  ArrowRight,
   BadgeCheck,
   Calendar,
   Check,
   CreditCard,
-  Loader2,
   MapPin,
   Megaphone,
   Search,
   ShieldCheck,
   SlidersHorizontal,
-  UserRound,
   Users,
   Wallet,
 } from "lucide-react";
 import { siFacebook, siInstagram, siTiktok, siX, siYoutube } from "simple-icons";
-import { toast } from "sonner";
-import { applyToCampaign } from "@/actions/campaigns";
 import { campaignCategoryLabel } from "@/lib/campaign-categories";
+import { formatFollowerRange } from "@/lib/campaign-followers";
 import { campaignPlaceLabel } from "@/lib/campaign-places";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const BUDGET_FILTERS = [
@@ -55,6 +39,26 @@ const CAMPAIGN_TYPES = [
   { id: "review", label: "Product Reviews" },
 ];
 
+const PLATFORMS = [
+  { id: "tiktok", label: "TikTok", icon: siTiktok, pattern: /tik\s?tok/i },
+  { id: "instagram", label: "Instagram", icon: siInstagram, pattern: /instagram|\binsta\b/i },
+  { id: "youtube", label: "YouTube", icon: siYoutube, pattern: /youtube|youtu\.be/i },
+  { id: "facebook", label: "Facebook", icon: siFacebook, pattern: /facebook/i },
+  { id: "x", label: "X (Twitter)", icon: siX, pattern: /twitter|\bx\.com\b/i },
+];
+
+const POSTED_FILTERS = [
+  { id: "any", label: "Any time" },
+  { id: "7", label: "Last 7 days" },
+  { id: "30", label: "Last 30 days" },
+];
+
+function campaignHaystack(campaign) {
+  return [campaign.title, campaign.description, campaign.category, campaign.subcategory, ...(campaign.requirements || [])]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function matchesCampaignType(campaign, typeId) {
   const blob = `${campaign.category || ""} ${campaign.subcategory || ""} ${campaignHaystack(campaign)}`;
   if (typeId === "influencer") return campaign.category === "Influencer" || /influencer/i.test(blob);
@@ -71,20 +75,6 @@ function matchesCampaignType(campaign, typeId) {
   return false;
 }
 
-const PLATFORMS = [
-  { id: "tiktok", label: "TikTok", icon: siTiktok, pattern: /tik\s?tok/i },
-  { id: "instagram", label: "Instagram", icon: siInstagram, pattern: /instagram|\binsta\b/i },
-  { id: "youtube", label: "YouTube", icon: siYoutube, pattern: /youtube|youtu\.be/i },
-  { id: "facebook", label: "Facebook", icon: siFacebook, pattern: /facebook/i },
-  { id: "x", label: "X (Twitter)", icon: siX, pattern: /twitter|\bx\.com\b/i },
-];
-
-function campaignHaystack(campaign) {
-  return [campaign.title, campaign.description, campaign.category, campaign.subcategory, ...(campaign.requirements || [])]
-    .filter(Boolean)
-    .join(" ");
-}
-
 function campaignPlatformIds(campaign) {
   const text = campaignHaystack(campaign);
   return PLATFORMS.filter((platform) => platform.pattern.test(text)).map((platform) => platform.id);
@@ -97,12 +87,6 @@ function PlatformGlyph({ icon, className = "h-4 w-4" }) {
     </svg>
   );
 }
-
-const POSTED_FILTERS = [
-  { id: "any", label: "Any time" },
-  { id: "7", label: "Last 7 days" },
-  { id: "30", label: "Last 30 days" },
-];
 
 function asMoney(value) {
   if (value == null || value === "") return null;
@@ -145,40 +129,6 @@ function matchesPosted(campaign, filter) {
   return Date.now() - created <= days * 24 * 60 * 60 * 1000;
 }
 
-function talentHref(talent) {
-  if (!talent?.id || !talent.specialty) return null;
-  return `/talents/${encodeURIComponent(talent.specialty)}/${talent.id}`;
-}
-
-const EMPTY_APPLICATION = {
-  name: "",
-  email: "",
-  phone: "",
-  location: "",
-  portfolio: "",
-  experience: "",
-  rate: "",
-  availability: "",
-  additionalInfo: "",
-};
-
-function applicationFromProfile(profile) {
-  if (!profile?.defaults) return { ...EMPTY_APPLICATION };
-  return {
-    ...EMPTY_APPLICATION,
-    ...profile.defaults,
-    name: profile.defaults.name || "",
-    email: profile.defaults.email || "",
-    phone: profile.defaults.phone || "",
-    location: profile.defaults.location || "",
-    portfolio: profile.defaults.portfolio || "",
-    experience: profile.defaults.experience || "",
-    rate: profile.defaults.rate || "",
-    availability: profile.defaults.availability || "",
-    additionalInfo: profile.defaults.additionalInfo || "",
-  };
-}
-
 function FilterChoices({ legend, value, onChange, options, scrollable = false }) {
   return (
     <fieldset>
@@ -215,20 +165,6 @@ function MetaItem({ icon: Icon, children }) {
   );
 }
 
-function DetailRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5f3ff] text-[#6d28d9]">
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="text-sm font-medium text-slate-900">{value}</p>
-      </div>
-    </div>
-  );
-}
-
 function CampaignArt({ title }) {
   const letter = (title || "C").trim().charAt(0).toUpperCase() || "C";
   return (
@@ -239,8 +175,7 @@ function CampaignArt({ title }) {
   );
 }
 
-export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }) {
-  const router = useRouter();
+export function CampaignsClient({ initialCampaigns = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [campaignTypes, setCampaignTypes] = useState([]);
   const [locationFilter, setLocationFilter] = useState("all");
@@ -248,14 +183,7 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
   const [postedFilter, setPostedFilter] = useState("any");
   const [platformFilter, setPlatformFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
-  const [selectedId, setSelectedId] = useState(initialCampaigns[0]?.id || null);
-  const [applyCampaign, setApplyCampaign] = useState(null);
-  const [applicationForm, setApplicationForm] = useState(EMPTY_APPLICATION);
-  const [usedProfile, setUsedProfile] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  const canUseProfile = Boolean(creatorProfile?.ready);
 
   const locationOptions = useMemo(() => {
     return [...new Set(initialCampaigns.map((campaign) => campaign.location).filter(Boolean))].sort();
@@ -288,10 +216,17 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
       if (sortBy === "budget") return (budgetCeiling(b) || 0) - (budgetCeiling(a) || 0);
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-  }, [initialCampaigns, searchQuery, campaignTypes, locationFilter, budgetFilter, postedFilter, platformFilter, sortBy]);
+  }, [
+    initialCampaigns,
+    searchQuery,
+    campaignTypes,
+    locationFilter,
+    budgetFilter,
+    postedFilter,
+    platformFilter,
+    sortBy,
+  ]);
 
-  const selected =
-    filteredCampaigns.find((campaign) => campaign.id === selectedId) || filteredCampaigns[0] || null;
   const heroImage = initialCampaigns.find((campaign) => campaign.imageUrl)?.imageUrl || null;
 
   const toggleCampaignType = (typeId) => {
@@ -307,70 +242,6 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
     setBudgetFilter("any");
     setPostedFilter("any");
     setPlatformFilter("all");
-  };
-
-  const selectCampaign = (campaign) => {
-    setSelectedId(campaign.id);
-    document.getElementById("campaign-details")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  };
-
-  const openApplyDialog = (campaign) => {
-    setApplyCampaign(campaign);
-    if (canUseProfile) {
-      setApplicationForm(applicationFromProfile(creatorProfile));
-      setUsedProfile(true);
-    } else {
-      setApplicationForm({
-        ...EMPTY_APPLICATION,
-        name: creatorProfile?.defaults?.name || "",
-        email: creatorProfile?.defaults?.email || "",
-      });
-      setUsedProfile(false);
-    }
-  };
-
-  const closeApplyDialog = () => {
-    setApplyCampaign(null);
-    setApplicationForm(EMPTY_APPLICATION);
-    setUsedProfile(false);
-  };
-
-  const fillFromProfile = () => {
-    if (!canUseProfile) return;
-    setApplicationForm(applicationFromProfile(creatorProfile));
-    setUsedProfile(true);
-    toast.success("Filled from your creator profile");
-  };
-
-  const updateApplicationField = (field) => (event) => {
-    const value = event.target.value;
-    setApplicationForm((current) => ({ ...current, [field]: value }));
-    setUsedProfile(false);
-  };
-
-  const handleSubmitApplication = async (event) => {
-    event.preventDefault();
-    if (!applyCampaign) return;
-
-    const formData = new FormData();
-    formData.append("campaignId", applyCampaign.id);
-    Object.entries(applicationForm).forEach(([key, value]) => {
-      formData.append(key, value ?? "");
-    });
-
-    setIsSubmitting(true);
-    try {
-      const result = await applyToCampaign(formData);
-      if (result?.success) {
-        toast.success("Application submitted successfully!");
-        closeApplyDialog();
-        router.refresh();
-      }
-    } catch (error) {
-      toast.error(error.message || "Failed to submit application");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -419,7 +290,7 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
         </div>
       </section>
 
-      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)_20rem]">
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-28">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Filter campaigns</h2>
@@ -466,7 +337,9 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
               <legend className="text-sm font-medium text-slate-800">Platform</legend>
               <div className="mt-2 space-y-0.5">
                 {PLATFORMS.map((platform) => {
-                  const count = initialCampaigns.filter((campaign) => campaignPlatformIds(campaign).includes(platform.id)).length;
+                  const count = initialCampaigns.filter((campaign) =>
+                    campaignPlatformIds(campaign).includes(platform.id)
+                  ).length;
                   const selected = platformFilter === platform.id;
                   return (
                     <button
@@ -513,7 +386,10 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
               legend="Location"
               value={locationFilter}
               onChange={setLocationFilter}
-              options={[{ id: "all", label: "Any location" }, ...locationOptions.map((location) => ({ id: location, label: location }))]}
+              options={[
+                { id: "all", label: "Any location" },
+                ...locationOptions.map((location) => ({ id: location, label: location })),
+              ]}
               scrollable
             />
 
@@ -556,397 +432,86 @@ export function CampaignsClient({ initialCampaigns = [], creatorProfile = null }
             </div>
           ) : (
             <ul className="space-y-3">
-              {filteredCampaigns.map((campaign) => {
-                const active = selected?.id === campaign.id;
-                return (
-                  <li key={campaign.id}>
-                    <article
-                      className={cn(
-                        "rounded-2xl border bg-white p-4 shadow-sm",
-                        active ? "border-[#6d28d9] ring-1 ring-[#6d28d9]/20" : "border-slate-200"
-                      )}
-                    >
-                      <div className="flex gap-4">
-                        <div className="relative h-[5.5rem] w-[7.25rem] shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                          {campaign.imageUrl ? (
-                            <Image src={campaign.imageUrl} alt="" fill className="object-cover" sizes="140px" />
-                          ) : (
-                            <CampaignArt title={campaign.brand || campaign.title} />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                                {campaign.brand}
-                              </p>
-                              <h3 className="truncate text-base font-semibold text-slate-950">{campaign.title}</h3>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => selectCampaign(campaign)}
-                              className="hidden shrink-0 rounded-lg border border-[#6d28d9]/30 px-3 py-1.5 text-sm font-medium text-[#6d28d9] hover:bg-[#f5f3ff] sm:inline-flex"
-                            >
-                              View details
-                            </button>
+              {filteredCampaigns.map((campaign) => (
+                <li key={campaign.id}>
+                  <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-[#6d28d9]/35">
+                    <div className="flex gap-4">
+                      <Link
+                        href={`/campaigns/${campaign.id}`}
+                        className="relative h-[5.5rem] w-[7.25rem] shrink-0 overflow-hidden rounded-xl bg-slate-100"
+                      >
+                        {campaign.imageUrl ? (
+                          <Image src={campaign.imageUrl} alt="" fill className="object-cover" sizes="140px" />
+                        ) : (
+                          <CampaignArt title={campaign.brand || campaign.title} />
+                        )}
+                      </Link>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="flex items-center gap-1 text-sm font-medium text-slate-700">
+                              {campaign.brand}
+                            </p>
+                            <Link href={`/campaigns/${campaign.id}`} className="block">
+                              <h3 className="truncate text-base font-semibold text-slate-950 hover:text-[#6d28d9]">
+                                {campaign.title}
+                              </h3>
+                            </Link>
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            {campaign.category ? (
-                              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                                {campaignCategoryLabel(campaign)}
-                              </span>
-                            ) : null}
-                            {PLATFORMS.filter((platform) => campaignPlatformIds(campaign).includes(platform.id)).map((platform) => (
-                              <span key={platform.id} title={platform.label} className="inline-flex">
-                                <PlatformGlyph icon={platform.icon} className="h-3.5 w-3.5" />
-                              </span>
-                            ))}
-                          </div>
-                          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{campaign.description}</p>
+                          <Link
+                            href={`/campaigns/${campaign.id}`}
+                            className="hidden shrink-0 rounded-lg border border-[#6d28d9]/30 px-3 py-1.5 text-sm font-medium text-[#6d28d9] hover:bg-[#f5f3ff] sm:inline-flex"
+                          >
+                            View details
+                          </Link>
                         </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {campaign.category ? (
+                            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                              {campaignCategoryLabel(campaign)}
+                            </span>
+                          ) : null}
+                          {PLATFORMS.filter((platform) =>
+                            campaignPlatformIds(campaign).includes(platform.id)
+                          ).map((platform) => (
+                            <span key={platform.id} title={platform.label} className="inline-flex">
+                              <PlatformGlyph icon={platform.icon} className="h-3.5 w-3.5" />
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">
+                          {campaign.description}
+                        </p>
                       </div>
+                    </div>
                       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-slate-100 pt-3">
-                        <MetaItem icon={Wallet}>{formatBudget(campaign)}</MetaItem>
+                      <MetaItem icon={Wallet}>{formatBudget(campaign)}</MetaItem>
+                      {formatFollowerRange(campaign) ? (
+                        <MetaItem icon={Users}>{formatFollowerRange(campaign)}</MetaItem>
+                      ) : (
                         <MetaItem icon={Users}>
-                          {campaign.applicants || 0} {(campaign.applicants || 0) === 1 ? "applicant" : "applicants"}
+                          {campaign.applicants || 0}{" "}
+                          {(campaign.applicants || 0) === 1 ? "applicant" : "applicants"}
                         </MetaItem>
-                        <MetaItem icon={MapPin}>{campaignPlaceLabel(campaign)}</MetaItem>
-                        <MetaItem icon={Calendar}>{format(new Date(campaign.deadline), "MMM d, yyyy")}</MetaItem>
-                        <button
-                          type="button"
-                          onClick={() => selectCampaign(campaign)}
-                          className="rounded-lg border border-[#6d28d9]/30 px-3 py-1.5 text-sm font-medium text-[#6d28d9] sm:hidden"
-                        >
-                          View details
-                        </button>
-                      </div>
-                    </article>
-                  </li>
-                );
-              })}
+                      )}
+                      <MetaItem icon={MapPin}>{campaignPlaceLabel(campaign)}</MetaItem>
+                      <MetaItem icon={Calendar}>
+                        {format(new Date(campaign.deadline), "MMM d, yyyy")}
+                      </MetaItem>
+                      <Link
+                        href={`/campaigns/${campaign.id}`}
+                        className="rounded-lg border border-[#6d28d9]/30 px-3 py-1.5 text-sm font-medium text-[#6d28d9] sm:hidden"
+                      >
+                        View details
+                      </Link>
+                    </div>
+                  </article>
+                </li>
+              ))}
             </ul>
           )}
         </section>
-
-        <aside id="campaign-details" className="lg:sticky lg:top-28">
-          {selected ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-medium text-slate-400">Campaign details</p>
-                <h2 className="mt-2 text-xl font-semibold leading-snug text-slate-950">{selected.title}</h2>
-                <p className="mt-1 text-sm text-slate-500">{selected.brand}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {selected.category ? (
-                    <span className="inline-flex rounded-full bg-[#f5f3ff] px-2.5 py-1 text-xs font-medium text-[#6d28d9]">
-                      {campaignCategoryLabel(selected)}
-                    </span>
-                  ) : null}
-                  {PLATFORMS.filter((platform) => campaignPlatformIds(selected).includes(platform.id)).map((platform) => (
-                    <span key={platform.id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                      <PlatformGlyph icon={platform.icon} className="h-3.5 w-3.5" />
-                      {platform.label}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600">{selected.description}</p>
-                <div className="mt-5 space-y-3">
-                  <DetailRow icon={Wallet} label="Budget" value={formatBudget(selected)} />
-                  <DetailRow icon={Users} label="Applicants" value={String(selected.applicants || 0)} />
-                  <DetailRow icon={MapPin} label="Location" value={campaignPlaceLabel(selected)} />
-                  <DetailRow icon={Calendar} label="Deadline" value={format(new Date(selected.deadline), "MMM d, yyyy")} />
-                </div>
-                {selected.requirements?.length > 0 ? (
-                  <ul className="mt-4 space-y-1.5 border-t border-slate-100 pt-4 text-sm text-slate-600">
-                    {selected.requirements.map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#6d28d9]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => openApplyDialog(selected)}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6d28d9] py-3 text-sm font-semibold text-white hover:bg-[#5b21b6]"
-                >
-                  Apply now
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                {canUseProfile ? (
-                  <p className="mt-2 text-center text-xs text-slate-500">
-                    Your creator profile can fill this application in one tap.
-                  </p>
-                ) : creatorProfile ? (
-                  <p className="mt-2 text-center text-xs text-slate-500">
-                    <Link href="/creator/profile" className="font-medium text-[#6d28d9] hover:underline">
-                      Complete your profile
-                    </Link>{" "}
-                    to apply faster next time.
-                  </p>
-                ) : null}
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Applicants ({selected.applicants || 0})</h3>
-                </div>
-                {selected.applications?.length > 0 ? (
-                  <ul className="mt-3 space-y-3">
-                    {selected.applications.map((application) => {
-                      const talent = application.talent;
-                      const href = talentHref(talent);
-                      const row = (
-                        <>
-                          <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-100">
-                            {talent?.imageUrl ? (
-                              <Image src={talent.imageUrl} alt="" fill className="object-cover" sizes="36px" />
-                            ) : (
-                              <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-500">
-                                {(talent?.name || "?").charAt(0).toUpperCase()}
-                              </span>
-                            )}
-                          </span>
-                          <span className="min-w-0">
-                            <span className="flex items-center gap-1 text-sm font-medium text-slate-900">
-                              <span className="truncate">{talent?.name || "Creator"}</span>
-                              {talent?.verificationStatus === "VERIFIED" ? (
-                                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-500" />
-                              ) : null}
-                            </span>
-                            {talent?.specialty ? (
-                              <span className="block truncate text-xs text-slate-500">{talent.specialty}</span>
-                            ) : null}
-                          </span>
-                        </>
-                      );
-                      return (
-                        <li key={application.id}>
-                          {href ? (
-                            <Link href={href} className="flex items-center gap-3 rounded-xl hover:bg-slate-50">
-                              {row}
-                            </Link>
-                          ) : (
-                            <div className="flex items-center gap-3">{row}</div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="mt-2 text-sm text-slate-500">No one has applied yet.</p>
-                )}
-              </div>
-              <div className="rounded-2xl border border-violet-100 bg-[#f5f3ff] p-4 text-sm text-slate-600">
-                <p className="font-semibold text-slate-900">Before you apply</p>
-                <ul className="mt-2 space-y-1.5">
-                  <li>Say what you will deliver for this brief.</li>
-                  <li>Add a portfolio or social link the brand can open.</li>
-                  <li>Check the location and deadline before you send it.</li>
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-              Campaign details show here when a brief is open.
-            </div>
-          )}
-        </aside>
       </div>
-
-      <Dialog open={Boolean(applyCampaign)} onOpenChange={(open) => !open && closeApplyDialog()}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl border-slate-200 bg-white text-slate-900">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-slate-950">Apply to campaign</DialogTitle>
-            <DialogDescription className="text-slate-500">
-              {applyCampaign?.title} · {applyCampaign?.brand}
-            </DialogDescription>
-          </DialogHeader>
-
-          {creatorProfile ? (
-            <div
-              className={cn(
-                "mt-4 flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-center sm:justify-between",
-                usedProfile
-                  ? "border-violet-200 bg-[#f5f3ff]"
-                  : "border-slate-200 bg-slate-50"
-              )}
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900">
-                  {usedProfile
-                    ? "Using your creator profile"
-                    : canUseProfile
-                      ? "Apply with your creator profile"
-                      : "Finish your creator profile for one-tap apply"}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {canUseProfile
-                    ? "Name, email, portfolio, experience, skills, and rate fill in automatically. Edit anything before you send."
-                    : "Add a bio, specialty, or portfolio links on your profile, then come back here."}
-                </p>
-              </div>
-              {canUseProfile ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={fillFromProfile}
-                  disabled={isSubmitting}
-                  className="shrink-0 rounded-full border-violet-200 bg-white text-[#6d28d9] hover:bg-violet-50"
-                >
-                  <UserRound className="mr-1.5 h-4 w-4" />
-                  {usedProfile ? "Refill from profile" : "Use my profile"}
-                </Button>
-              ) : (
-                <Button asChild type="button" variant="outline" className="shrink-0 rounded-full">
-                  <Link href="/creator/profile">Complete profile</Link>
-                </Button>
-              )}
-            </div>
-          ) : null}
-
-          <form onSubmit={handleSubmitApplication} className="mt-4 space-y-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={applicationForm.name}
-                  onChange={updateApplicationField("name")}
-                  placeholder="Your full name"
-                  required
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={applicationForm.email}
-                  onChange={updateApplicationField("email")}
-                  placeholder="you@email.com"
-                  required
-                  className="rounded-xl"
-                />
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={applicationForm.phone}
-                  onChange={updateApplicationField("phone")}
-                  placeholder="+233 …"
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  name="location"
-                  value={applicationForm.location}
-                  onChange={updateApplicationField("location")}
-                  placeholder="City, region"
-                  className="rounded-xl"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="portfolio">Portfolio / social links</Label>
-              <Textarea
-                id="portfolio"
-                name="portfolio"
-                value={applicationForm.portfolio}
-                onChange={updateApplicationField("portfolio")}
-                placeholder="Instagram, YouTube, site…"
-                rows={2}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="experience">Relevant experience *</Label>
-              <Textarea
-                id="experience"
-                name="experience"
-                value={applicationForm.experience}
-                onChange={updateApplicationField("experience")}
-                placeholder="Why you’re a fit for this campaign…"
-                rows={4}
-                required
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rate">Your rate (GH₵)</Label>
-              <Input
-                id="rate"
-                name="rate"
-                type="number"
-                value={applicationForm.rate}
-                onChange={updateApplicationField("rate")}
-                placeholder="Expected compensation"
-                min="0"
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="availability">Availability</Label>
-              <Textarea
-                id="availability"
-                name="availability"
-                value={applicationForm.availability}
-                onChange={updateApplicationField("availability")}
-                placeholder="Start dates, constraints…"
-                rows={2}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="additionalInfo">Anything else?</Label>
-              <Textarea
-                id="additionalInfo"
-                name="additionalInfo"
-                value={applicationForm.additionalInfo}
-                onChange={updateApplicationField("additionalInfo")}
-                placeholder="Optional details"
-                rows={3}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 rounded-full"
-                onClick={closeApplyDialog}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 rounded-full bg-[#6d28d9] font-semibold hover:bg-[#5b21b6]"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting…
-                  </>
-                ) : (
-                  "Submit application"
-                )}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

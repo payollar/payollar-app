@@ -29,7 +29,13 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { doctorId, startTime, endTime, description: rawDescription } = body;
+    const {
+      doctorId,
+      startTime,
+      endTime,
+      description: rawDescription,
+      invoiceId,
+    } = body;
 
     /** Paystack metadata is stringified; keep brief within a safe length. */
     const description =
@@ -64,11 +70,41 @@ export async function POST(request) {
       );
     }
 
-    // Booking amount: use creator's first service rate (in GHS) or default
+    // Prefer negotiated invoice amount when paying from chat
     let amountGHS = DEFAULT_BOOKING_AMOUNT_GHS;
-    if (doctor.services?.[0]?.rate != null) {
+    let resolvedInvoiceId = null;
+    if (invoiceId) {
+      const invoice = await db.bookingInvoice.findFirst({
+        where: {
+          id: invoiceId,
+          createdById: doctorId,
+          status: "SENT",
+          appointment: {
+            clientId: client.id,
+            creatorId: doctorId,
+            status: "REQUESTED",
+          },
+        },
+        select: { id: true, amount: true, notes: true, title: true },
+      });
+      if (!invoice) {
+        return NextResponse.json(
+          { error: "That invoice is no longer available to pay" },
+          { status: 400 }
+        );
+      }
+      amountGHS = Number(invoice.amount);
+      resolvedInvoiceId = invoice.id;
+    } else if (doctor.services?.[0]?.rate != null) {
       amountGHS = Number(doctor.services[0].rate);
       if (amountGHS < 0.1) amountGHS = DEFAULT_BOOKING_AMOUNT_GHS;
+    }
+
+    if (!Number.isFinite(amountGHS) || amountGHS < 0.1) {
+      return NextResponse.json(
+        { error: "Invalid payment amount" },
+        { status: 400 }
+      );
     }
 
     const baseUrl =
@@ -85,6 +121,7 @@ export async function POST(request) {
         startTime,
         endTime,
         description: description || "",
+        invoiceId: resolvedInvoiceId || "",
       },
       currency: "GHS",
     });

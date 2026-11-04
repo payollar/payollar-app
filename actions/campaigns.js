@@ -8,6 +8,7 @@ const CAMPAIGN_OWNER_ROLES = ["CLIENT", "MEDIA_AGENCY"];
 
 function revalidateCampaignPaths() {
   revalidatePath("/campaigns");
+  revalidatePath("/creator/applications");
   revalidatePath("/client");
   revalidatePath("/client/campaigns");
   revalidatePath("/media-agency");
@@ -42,6 +43,44 @@ async function getCampaignOwner(userId) {
 /**
  * Create a new campaign
  */
+function parseStringList(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item).trim()).filter(Boolean);
+    }
+  } catch {
+    /* treat as comma-separated */
+  }
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseFaqList(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => ({
+        question: String(item?.question || "").trim(),
+        answer: String(item?.answer || "").trim(),
+      }))
+      .filter((item) => item.question && item.answer);
+  } catch {
+    return [];
+  }
+}
+
+function parseOptionalInt(value) {
+  if (value == null || value === "") return null;
+  const number = Number.parseInt(String(value), 10);
+  return Number.isFinite(number) ? number : null;
+}
+
 export async function createCampaign(formData) {
   const authResult = await getAuthUserId();
 
@@ -56,7 +95,6 @@ export async function createCampaign(formData) {
       throw new Error("Only clients and media agencies can create campaigns");
     }
 
-    // Get form data
     const title = formData.get("title");
     const brand = formData.get("brand");
     const description = formData.get("description");
@@ -64,14 +102,22 @@ export async function createCampaign(formData) {
     const subcategory = formData.get("subcategory");
     const budgetMin = formData.get("budgetMin");
     const budgetMax = formData.get("budgetMax");
+    const followerMin = formData.get("followerMin");
+    const followerMax = formData.get("followerMax");
     const location = formData.get("location");
     const country = formData.get("country");
     const deadline = formData.get("deadline");
     const imageUrl = formData.get("imageUrl");
-    const requirements = formData.get("requirements"); // JSON string or comma-separated
+    const targetAudience = formData.get("targetAudience");
+    const paymentNote = formData.get("paymentNote");
     const status = formData.get("status") || "DRAFT";
 
-    // Validate required fields
+    const requirementsArray = parseStringList(formData.get("requirements"));
+    const deliverablesArray = parseStringList(formData.get("deliverables"));
+    const objectivesArray = parseStringList(formData.get("objectives"));
+    const benefitsArray = parseStringList(formData.get("benefits"));
+    const faqsArray = parseFaqList(formData.get("faqs"));
+
     if (!title || !brand || !description || !category || !subcategory || !country || !location || !deadline) {
       throw new Error("Title, brand, description, category, subcategory, country, location, and deadline are required");
     }
@@ -82,18 +128,12 @@ export async function createCampaign(formData) {
       throw new Error("Minimum budget cannot be higher than the maximum");
     }
 
-    // Parse requirements
-    let requirementsArray = [];
-    if (requirements) {
-      try {
-        requirementsArray = JSON.parse(requirements);
-      } catch {
-        // If not JSON, treat as comma-separated string
-        requirementsArray = requirements.split(",").map((r) => r.trim()).filter(Boolean);
-      }
+    const minFollowers = parseOptionalInt(followerMin);
+    const maxFollowers = parseOptionalInt(followerMax);
+    if (minFollowers != null && maxFollowers != null && minFollowers > maxFollowers) {
+      throw new Error("Minimum followers cannot be higher than the maximum");
     }
 
-    // Create campaign
     const campaign = await db.campaign.create({
       data: {
         clientId: owner.id,
@@ -104,11 +144,19 @@ export async function createCampaign(formData) {
         subcategory: subcategory.trim(),
         budgetMin: minBudget,
         budgetMax: maxBudget,
+        followerMin: minFollowers,
+        followerMax: maxFollowers,
         location: location.trim(),
         country: country.trim(),
         deadline: new Date(deadline),
+        targetAudience: targetAudience?.trim() || null,
+        paymentNote: paymentNote?.trim() || null,
         imageUrl: imageUrl || null,
         requirements: requirementsArray,
+        deliverables: deliverablesArray,
+        objectives: objectivesArray,
+        benefits: benefitsArray,
+        faqs: faqsArray.length ? faqsArray : null,
         status: status,
       },
     });
@@ -124,52 +172,82 @@ export async function createCampaign(formData) {
 /**
  * Get all active campaigns (for public listing)
  */
+const publicCampaignInclude = {
+  client: {
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+    },
+  },
+  applications: {
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: {
+      id: true,
+      talent: {
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          specialty: true,
+          verificationStatus: true,
+        },
+      },
+    },
+  },
+  _count: { select: { applications: true } },
+};
+
+function withApplicantCount(campaign) {
+  if (!campaign) return null;
+  return {
+    ...campaign,
+    applicants: campaign._count?.applications ?? 0,
+  };
+}
+
 export async function getActiveCampaigns() {
   try {
     const campaigns = await db.campaign.findMany({
       where: {
         status: "ACTIVE",
       },
-      include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            imageUrl: true,
-          },
-        },
-        applications: {
-          orderBy: { createdAt: "desc" },
-          take: 6,
-          select: {
-            id: true,
-            talent: {
-              select: {
-                id: true,
-                name: true,
-                imageUrl: true,
-                specialty: true,
-                verificationStatus: true,
-              },
-            },
-          },
-        },
-        _count: { select: { applications: true } },
-      },
+      include: publicCampaignInclude,
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    const campaignsWithCounts = campaigns.map((campaign) => ({
-      ...campaign,
-      applicants: campaign._count.applications,
-    }));
-
-    return { campaigns: campaignsWithCounts };
+    return {
+      campaigns: campaigns.map(withApplicantCount),
+    };
   } catch (error) {
     console.error("Failed to fetch campaigns:", error);
     throw new Error("Failed to fetch campaigns: " + error.message);
+  }
+}
+
+/**
+ * Public campaign detail for the dedicated /campaigns/[id] page.
+ * Active campaigns only.
+ */
+export async function getPublicCampaignById(campaignId) {
+  if (!campaignId) return null;
+
+  try {
+    const campaign = await db.campaign.findFirst({
+      where: {
+        id: campaignId,
+        status: "ACTIVE",
+      },
+      include: publicCampaignInclude,
+    });
+
+    return withApplicantCount(campaign);
+  } catch (error) {
+    console.error("Failed to fetch campaign:", error);
+    return null;
   }
 }
 
@@ -279,6 +357,62 @@ export async function updateCampaignStatus(formData) {
   } catch (error) {
     console.error("Failed to update campaign status:", error);
     throw new Error("Failed to update campaign: " + error.message);
+  }
+}
+
+/**
+ * Campaign applications submitted by the logged-in creator.
+ */
+export async function getCreatorCampaignApplications() {
+  const authResult = await getAuthUserId();
+
+  if (!authResult?.userId) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const talent = await db.user.findUnique({
+      where: {
+        id: authResult.userId,
+        role: "CREATOR",
+      },
+      select: { id: true },
+    });
+
+    if (!talent) {
+      throw new Error("Creator account required");
+    }
+
+    const applications = await db.campaignApplication.findMany({
+      where: { talentId: talent.id },
+      include: {
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            brand: true,
+            description: true,
+            category: true,
+            subcategory: true,
+            location: true,
+            country: true,
+            deadline: true,
+            status: true,
+            imageUrl: true,
+            budgetMin: true,
+            budgetMax: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { applications };
+  } catch (error) {
+    console.error("Failed to fetch creator campaign applications:", error);
+    throw new Error(
+      "Failed to fetch applications: " + (error.message || "Unknown error")
+    );
   }
 }
 
@@ -478,6 +612,8 @@ export async function applyToCampaign(formData) {
     });
 
     revalidatePath("/campaigns");
+    revalidatePath(`/campaigns/${campaignId}`);
+    revalidatePath("/creator/applications");
     return { success: true, application };
   } catch (error) {
     console.error("Failed to apply to campaign:", error);

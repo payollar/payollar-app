@@ -1,19 +1,8 @@
-import {
-  getActiveCampaigns,
-  getCreatorApplicationProfile,
-} from "@/actions/campaigns";
+import { getActiveCampaigns } from "@/actions/campaigns";
 import { CampaignsClient } from "./campaigns-client";
 
 export default async function CampaignsPage() {
-  const [campaignsData, creatorProfile] = await Promise.all([
-    getActiveCampaigns().catch(() => ({ campaigns: [] })),
-    getCreatorApplicationProfile().catch(() => null),
-  ]);
+  const campaignsData = await getActiveCampaigns().catch(() => ({ campaigns: [] }));
 
-  return (
-    <CampaignsClient
-      initialCampaigns={campaignsData.campaigns || []}
-      creatorProfile={creatorProfile}
-    />
-  );
+  return <CampaignsClient initialCampaigns={campaignsData.campaigns || []} />;
 }

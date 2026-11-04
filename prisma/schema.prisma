@@ -68,6 +68,7 @@ model User {
   clientChats          BookingConversation[] @relation("ClientChats")
   creatorChats         BookingConversation[] @relation("CreatorChats")
   sentBookingMessages  BookingMessage[]      @relation("SentBookingMessages")
+  bookingInvoices      BookingInvoice[]      @relation("BookingInvoiceCreator")
 }
 
 model ProfileView {
@@ -196,10 +197,14 @@ model Appointment {
   videoSessionId    String? // Vonage Video API Session ID
   videoSessionToken String? // Optional: Can store tokens if needed
 
+  // Negotiated session price in GHS (from latest booking invoice)
+  agreedAmount Float?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   conversation BookingConversation?
+  invoices     BookingInvoice[]
 
   @@index([status, startTime])
   @@index([creatorId, startTime])
@@ -216,6 +221,7 @@ model BookingConversation {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   messages      BookingMessage[]
+  invoices      BookingInvoice[]
 
   @@index([clientId, updatedAt])
   @@index([creatorId, updatedAt])
@@ -228,10 +234,48 @@ model BookingMessage {
   senderId       String
   sender         User                @relation("SentBookingMessages", fields: [senderId], references: [id], onDelete: Cascade)
   body           String              @db.Text
+  kind           BookingMessageKind  @default(TEXT)
   createdAt      DateTime            @default(now())
   readAt         DateTime?
+  invoice        BookingInvoice?
 
   @@index([conversationId, createdAt])
+}
+
+enum BookingMessageKind {
+  TEXT
+  INVOICE
+}
+
+model BookingInvoice {
+  id             String               @id @default(uuid())
+  appointmentId  String
+  appointment    Appointment          @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   BookingConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String               @unique
+  message        BookingMessage       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdById    String
+  createdBy      User                 @relation("BookingInvoiceCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  title          String
+  notes          String?              @db.Text
+  /// Optional line items: [{ description: string, amount: number }]
+  lineItems      Json?
+  amount         Float
+  currency       String               @default("GHS")
+  status         BookingInvoiceStatus @default(SENT)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([appointmentId, status, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+enum BookingInvoiceStatus {
+  SENT
+  PAID
+  CANCELLED
+  SUPERSEDED
 }
 
 enum AppointmentStatus {
@@ -255,6 +299,7 @@ enum TransactionType {
   CREDIT_PURCHASE // Credits purchased through Clerk Billing
   APPOINTMENT_DEDUCTION // Credit used for appointment
   ADMIN_ADJUSTMENT // Manual adjustment by admin
+  TASK_REWARD // One-time reward for completing an onboarding task
 }
 
 model Payout {
@@ -292,10 +337,18 @@ model Campaign {
   subcategory  String? // e.g., "Clipping", "Product review"
   budgetMin    Float? // Minimum budget
   budgetMax    Float? // Maximum budget
+  followerMin  Int? // Minimum follower / audience size
+  followerMax  Int? // Maximum follower / audience size
   location     String // City or region, e.g. "Accra", "Nationwide", "Remote"
   country      String? // e.g. "Ghana". Older campaigns may not have one.
   deadline     DateTime
+  targetAudience String?      @db.Text // Who the campaign should reach
+  deliverables String[]       @default([]) // Expected creator outputs
+  objectives   String[]       @default([]) // Campaign goals / objectives
+  benefits     String[]       @default([]) // Rewards & benefits for creators
   requirements String[] // Array of requirement strings
+  faqs         Json? // [{ question: string, answer: string }]
+  paymentNote  String? // e.g. "Per creator", "Product + fee"
   imageUrl     String? // Campaign image URL
   status       CampaignStatus @default(DRAFT)
   createdAt    DateTime       @default(now())

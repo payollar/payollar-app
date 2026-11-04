@@ -22,6 +22,7 @@ export function MainShell({ children }) {
     pathname.startsWith("/rate-cards") ||
     pathname.startsWith("/media") ||
     pathname.startsWith("/services") ||
+    pathname.startsWith("/help") ||
     pathname.startsWith("/clip") ||
     pathname.startsWith("/academy");
 

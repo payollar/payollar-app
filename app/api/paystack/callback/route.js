@@ -40,7 +40,7 @@ export async function GET(request) {
       );
     }
 
-    const { doctorId, clientId, startTime, endTime, description } =
+    const { doctorId, clientId, startTime, endTime, description, invoiceId } =
       result.metadata;
 
     if (!doctorId || !clientId || !startTime || !endTime) {
@@ -132,6 +132,29 @@ export async function GET(request) {
       await ensureBookingConversation(appointment.id);
     } catch (chatError) {
       console.error("Failed to open booking chat:", chatError);
+    }
+
+    if (invoiceId) {
+      try {
+        await db.bookingInvoice.updateMany({
+          where: {
+            id: invoiceId,
+            appointmentId: appointment.id,
+            status: { in: ["SENT", "SUPERSEDED"] },
+          },
+          data: { status: "PAID" },
+        });
+        await db.bookingInvoice.updateMany({
+          where: {
+            appointmentId: appointment.id,
+            id: { not: invoiceId },
+            status: "SENT",
+          },
+          data: { status: "SUPERSEDED" },
+        });
+      } catch (invoiceError) {
+        console.error("Failed to mark booking invoice paid:", invoiceError);
+      }
     }
 
     if (client.email) {

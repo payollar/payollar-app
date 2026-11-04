@@ -27,10 +27,40 @@ function mapChat(conversation, userId, unreadByConversation) {
     startTime: toIso(conversation.appointment.startTime),
     other,
     lastMessage: last
-      ? { body: last.body, createdAt: toIso(last.createdAt), mine: last.senderId === userId }
+      ? {
+          body: last.body,
+          kind: last.kind || "TEXT",
+          createdAt: toIso(last.createdAt),
+          mine: last.senderId === userId,
+        }
       : null,
     unread: unreadByConversation.get(conversation.id) || 0,
   };
+}
+
+function mapInvoice(invoice) {
+  if (!invoice) return null;
+  return {
+    id: invoice.id,
+    title: invoice.title,
+    notes: invoice.notes || "",
+    lineItems: Array.isArray(invoice.lineItems) ? invoice.lineItems : [],
+    amount: Number(invoice.amount || 0),
+    currency: invoice.currency || "GHS",
+    status: invoice.status,
+    createdAt: toIso(invoice.createdAt),
+  };
+}
+
+function normalizeLineItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => ({
+      description: String(item?.description || "").trim().slice(0, 120),
+      amount: Number(item?.amount || 0),
+    }))
+    .filter((item) => item.description && item.amount > 0)
+    .slice(0, 12);
 }
 
 async function requireUserId() {
@@ -119,37 +149,65 @@ export async function getBookingThread(appointmentId) {
     const full = await db.bookingConversation.findUnique({
       where: { id: conversation.id },
       include: {
-        appointment: { select: { id: true, startTime: true, endTime: true, status: true, clientDescription: true } },
+        appointment: {
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            clientDescription: true,
+            agreedAmount: true,
+          },
+        },
         client: { select: personSelect },
         creator: { select: personSelect },
-        messages: { orderBy: { createdAt: "asc" }, take: 200 },
+        messages: {
+          orderBy: { createdAt: "asc" },
+          take: 200,
+          include: { invoice: true },
+        },
       },
     });
 
     if (!full) return { error: "This chat is not available." };
 
     const other = full.clientId === userId ? full.creator : full.client;
+    const latestInvoice = [...full.messages]
+      .reverse()
+      .map((message) => message.invoice)
+      .find((invoice) => invoice && invoice.status === "SENT");
+
     return {
       appointmentId: full.appointmentId,
       appointment: {
         ...full.appointment,
         startTime: toIso(full.appointment.startTime),
         endTime: toIso(full.appointment.endTime),
+        agreedAmount: full.appointment.agreedAmount,
       },
       other,
+      isCreator: full.creatorId === userId,
       canSend: full.appointment.status !== "CANCELLED",
+      canInvoice:
+        full.creatorId === userId &&
+        full.appointment.status !== "CANCELLED" &&
+        full.appointment.status !== "COMPLETED",
       canPay: full.appointment.status === "REQUESTED" && full.clientId === userId,
       pay: {
         doctorId: full.creatorId,
         startTime: toIso(full.appointment.startTime),
         endTime: toIso(full.appointment.endTime),
         description: full.appointment.clientDescription || "",
+        invoiceId: latestInvoice?.id || null,
+        amount: latestInvoice?.amount ?? full.appointment.agreedAmount ?? null,
       },
       messages: full.messages.map((message) => ({
         id: message.id,
         body: message.body,
+        kind: message.kind || "TEXT",
         createdAt: toIso(message.createdAt),
         mine: message.senderId === userId,
+        invoice: mapInvoice(message.invoice),
       })),
     };
   } catch (error) {
@@ -258,6 +316,7 @@ export async function sendBookingMessage(appointmentId, body) {
         conversationId: conversation.id,
         senderId: userId,
         body: text,
+        kind: "TEXT",
       },
     });
     await db.bookingConversation.update({
@@ -274,5 +333,109 @@ export async function sendBookingMessage(appointmentId, body) {
     }
     console.error("sendBookingMessage failed:", error);
     return { error: friendlyDbError(error) || "Could not send that message." };
+  }
+}
+
+/**
+ * Creator sends a customizable invoice into the booking chat (negotiated price).
+ */
+export async function sendBookingInvoice(appointmentId, payload = {}) {
+  try {
+    const userId = await requireUserId();
+    const conversation = await loadParticipantConversation(appointmentId, userId);
+    if (!conversation) return { error: "This chat is not available." };
+    if (conversation.creatorId !== userId) {
+      return { error: "Only the creator can send invoices in this chat." };
+    }
+
+    const appointment = await db.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { id: true, status: true },
+    });
+    if (!appointment || appointment.status === "CANCELLED") {
+      return { error: "This booking is cancelled, so invoices are closed." };
+    }
+    if (appointment.status === "COMPLETED") {
+      return { error: "This booking is already completed." };
+    }
+
+    const title = String(payload.title || "Session invoice").trim().slice(0, 80) || "Session invoice";
+    const notes = String(payload.notes || "").trim().slice(0, 1000);
+    const lineItems = normalizeLineItems(payload.lineItems);
+    const amountFromLines = lineItems.reduce((sum, item) => sum + item.amount, 0);
+    const amount = Number(
+      lineItems.length > 0 ? amountFromLines : payload.amount
+    );
+
+    if (!Number.isFinite(amount) || amount < 1) {
+      return { error: "Enter an invoice amount of at least GH₵ 1." };
+    }
+    if (amount > 1000000) {
+      return { error: "That invoice amount is too high." };
+    }
+
+    const preview = `Invoice · GH₵ ${amount.toLocaleString("en-GH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+    const result = await db.$transaction(async (tx) => {
+      await tx.bookingInvoice.updateMany({
+        where: {
+          appointmentId,
+          status: "SENT",
+        },
+        data: { status: "SUPERSEDED" },
+      });
+
+      const message = await tx.bookingMessage.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: userId,
+          body: preview,
+          kind: "INVOICE",
+        },
+      });
+
+      const invoice = await tx.bookingInvoice.create({
+        data: {
+          appointmentId,
+          conversationId: conversation.id,
+          messageId: message.id,
+          createdById: userId,
+          title,
+          notes: notes || null,
+          lineItems: lineItems.length ? lineItems : null,
+          amount,
+          currency: "GHS",
+          status: "SENT",
+        },
+      });
+
+      await tx.appointment.update({
+        where: { id: appointmentId },
+        data: { agreedAmount: amount },
+      });
+
+      await tx.bookingConversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+
+      return invoice;
+    });
+
+    revalidatePath("/messages");
+    revalidatePath(`/messages/${appointmentId}`);
+    revalidatePath("/client/bookings");
+    revalidatePath("/creator/bookings");
+
+    return { success: true, invoiceId: result.id, amount: result.amount };
+  } catch (error) {
+    if (error?.code === "UNAUTHENTICATED" || error?.message === "Unauthorized") {
+      return { code: "UNAUTHENTICATED", error: "Sign in to send an invoice." };
+    }
+    console.error("sendBookingInvoice failed:", error);
+    return { error: friendlyDbError(error) || "Could not send that invoice." };
   }
 }

@@ -92,7 +92,8 @@ export function MediaAgencyOverview({
   reports = [],
   talentCampaigns = [],
 }) {
-  const displayName = (agencyName || contactName || "Media agency").trim();
+  const welcomeName =
+    (contactName || agencyName || "there").trim().split(" ")[0] || "there";
   const activeTalentCampaigns = talentCampaigns.filter((c) => c.status === "ACTIVE");
   const pendingApplications = talentCampaigns.reduce(
     (acc, c) => acc + (c.pendingApplications ?? 0),
@@ -105,7 +106,7 @@ export function MediaAgencyOverview({
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold text-slate-950 md:text-xl">
-            {displayName}
+            Welcome, {welcomeName}
           </h1>
           <p className="text-sm text-slate-400">
             Listings, bookings, and packages at a glance.

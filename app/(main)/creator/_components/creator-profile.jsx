@@ -2,28 +2,63 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadButton } from "@uploadthing/react";
-import { Save, Loader2, User } from "lucide-react";
+import {
+  Save,
+  Loader2,
+  User,
+  Mail,
+  BadgeCheck,
+  CalendarDays,
+  Shield,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { updateCreatorProfile } from "@/actions/doctor";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
+import { cn } from "@/lib/utils";
+
+const fieldClass =
+  "h-11 rounded-xl border-slate-200 bg-white text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+
+function formatMemberSince(value) {
+  if (!value) return "N/A";
+  return new Date(value).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function verificationMeta(status) {
+  if (status === "VERIFIED") {
+    return { label: "Verified", className: "bg-emerald-50 text-emerald-700" };
+  }
+  if (status === "PENDING") {
+    return { label: "Pending review", className: "bg-amber-50 text-amber-700" };
+  }
+  if (status === "REJECTED") {
+    return { label: "Rejected", className: "bg-rose-50 text-rose-700" };
+  }
+  return { label: status || "Unknown", className: "bg-slate-100 text-slate-600" };
+}
 
 export function CreatorProfile({ user }) {
   const router = useRouter();
-  
+
   const [fullName, setFullName] = useState(user?.name || "");
   const [specialty, setSpecialty] = useState(user?.specialty || "");
   const [description, setDescription] = useState(user?.description || "");
   const [profileImage, setProfileImage] = useState(user?.imageUrl || null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Handle profile save
+  const verification = verificationMeta(user?.verificationStatus);
+  const canSave = Boolean(fullName.trim() && description.trim());
+
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
       toast.error("Name is required");
@@ -48,7 +83,7 @@ export function CreatorProfile({ user }) {
       }
 
       const result = await updateCreatorProfile(formData);
-      
+
       if (result?.success) {
         toast.success("Profile updated successfully!");
         router.refresh();
@@ -63,235 +98,264 @@ export function CreatorProfile({ user }) {
     }
   };
 
+  const handleUploadComplete = (res) => {
+    try {
+      let imageUrl = null;
+
+      if (Array.isArray(res) && res.length > 0) {
+        const file = res[0];
+        imageUrl = file?.key
+          ? `https://utfs.io/f/${file.key}`
+          : file?.url || file?.serverData?.url;
+      } else if (res && typeof res === "object" && !Array.isArray(res)) {
+        imageUrl = res.key
+          ? `https://utfs.io/f/${res.key}`
+          : res.url || res.serverData?.url;
+      }
+
+      if (imageUrl) {
+        setProfileImage(imageUrl);
+        toast.success("Profile picture uploaded successfully");
+      } else {
+        toast.error("Upload completed but URL not found");
+      }
+    } catch (error) {
+      console.error("Error processing upload:", error);
+      toast.error("Error processing upload");
+    }
+  };
+
   return (
     <CreatorPageShell
       eyebrow="Settings"
       title="Account"
       description="Update your creator profile and account details."
+      actions={
+        <Button
+          onClick={handleSaveProfile}
+          disabled={isSaving || !canSave}
+          className="hidden h-10 rounded-full bg-[#0055ff] px-5 text-white hover:bg-[#003ecc] sm:inline-flex"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save changes
+            </>
+          )}
+        </Button>
+      }
     >
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className={creatorCardClass}>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center text-center space-y-6">
-              {/* Profile Picture */}
-              <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#e8f0ff]">
-                {profileImage ? (
-                  <Image
-                    src={profileImage}
-                    alt={fullName}
-                    fill
-                    className="object-cover"
-                    unoptimized={true}
-                    onError={() => {
-                      toast.error("Failed to load profile image");
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#e8f0ff]">
-                    <User className="h-12 w-12 text-slate-400" />
-                  </div>
-                )}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)]">
+        {/* Profile summary */}
+        <aside className="space-y-4 lg:sticky lg:top-4">
+          <section className={cn(creatorCardClass, "overflow-hidden p-5")}>
+            <div className="flex flex-col items-center text-center">
+              <div className="relative">
+                <div className="relative h-28 w-28 overflow-hidden rounded-full bg-[#e8f0ff] ring-4 ring-[#eef4ff]">
+                  {profileImage ? (
+                    <Image
+                      src={profileImage}
+                      alt={fullName || "Profile"}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      onError={() => toast.error("Failed to load profile image")}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <User className="h-10 w-10 text-slate-400" />
+                    </div>
+                  )}
+                </div>
+                {user?.verificationStatus === "VERIFIED" ? (
+                  <span className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#0055ff] text-white shadow-sm ring-2 ring-white">
+                    <BadgeCheck className="h-4 w-4" />
+                  </span>
+                ) : null}
               </div>
 
-              {/* Name */}
-              <div>
-                <h2 className="mb-1 text-2xl font-semibold text-foreground">
-                  {fullName || "Your Name"}
-                </h2>
-                <p className="text-sm text-muted-foreground">{user?.email || ""}</p>
-                {specialty && (
-                  <p className="mt-1 text-sm text-primary">{specialty}</p>
-                )}
-              </div>
+              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-950">
+                {fullName || "Your name"}
+              </h2>
+              <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-500">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{user?.email || "No email"}</span>
+              </p>
+              {specialty ? (
+                <p className="mt-2 text-sm font-medium text-[#0055ff]">{specialty}</p>
+              ) : (
+                <p className="mt-2 text-sm text-slate-400">Add a specialty</p>
+              )}
 
-              {/* Account Type */}
-              <div className="w-full">
-                <p className="text-slate-500 text-xs uppercase mb-2">Account Type</p>
-                <div className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+              <div className="mt-5 w-full space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Account type
+                </p>
+                <div className="inline-flex w-full items-center justify-center rounded-full bg-[#eef4ff] px-4 py-2 text-sm font-semibold text-[#0055ff]">
                   Creator account
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Right Column - Profile Information Form */}
-        <Card className={creatorCardClass}>
-          <CardHeader>
-            <CardTitle className="text-foreground">Profile information</CardTitle>
-            <p className="text-slate-500 text-sm">
-              Update your account details and profile information.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Full Name */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-slate-600">Full Name *</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="border-border/60 bg-background"
-                placeholder="Your Name"
-              />
+            <div className="mt-5 space-y-2 border-t border-slate-100 pt-5">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f7f8fc] px-3 py-2.5">
+                <span className="inline-flex items-center gap-2 text-xs text-slate-500">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Member since
+                </span>
+                <span className="text-xs font-semibold text-slate-900">
+                  {formatMemberSince(user?.createdAt)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f7f8fc] px-3 py-2.5">
+                <span className="inline-flex items-center gap-2 text-xs text-slate-500">
+                  <Shield className="h-3.5 w-3.5" />
+                  Verification
+                </span>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                    verification.className
+                  )}
+                >
+                  {verification.label}
+                </span>
+              </div>
             </div>
 
-            {/* Specialty */}
-            <div className="space-y-2">
-              <Label htmlFor="specialty" className="text-slate-600">Specialty</Label>
-              <Input
-                id="specialty"
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
-                className="border-border/60 bg-background"
-                placeholder="e.g., Musician, Actor, Influencer"
-              />
-            </div>
-
-            {/* Description/Bio */}
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-slate-600">Bio/Description *</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="border-border/60 bg-background"
-                placeholder="Tell us about yourself..."
-                rows={5}
-              />
-              <p className="text-xs text-muted-foreground">
-                This will be displayed on your public profile
-              </p>
-            </div>
-
-            {/* Email (Read-only) */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-600">Email Address</Label>
-              <Input
-                id="email"
-                value={user?.email || ""}
-                disabled
-                className="cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500"
-              />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed. Contact support if you need to update your email.
-              </p>
-            </div>
-
-            {/* Profile Picture Upload */}
-            <div className="space-y-2">
-              <Label className="text-slate-600">Profile Picture</Label>
-              <div className="space-y-3">
-                {profileImage && (
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-slate-200">
-                    <Image
-                      key={profileImage}
-                      src={profileImage}
-                      alt="Profile"
-                      fill
-                      className="object-cover"
-                      unoptimized={true}
-                      onError={() => {
-                        toast.error("Failed to load profile image");
-                      }}
-                    />
-                  </div>
-                )}
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-medium text-slate-500">Profile photo</p>
+              <div className="creator-settings-upload [&_button]:!h-9 [&_button]:!rounded-full [&_button]:!bg-[#0055ff] [&_button]:!px-4 [&_button]:!text-xs [&_button]:!font-semibold [&_label]:!rounded-full">
                 <UploadButton
                   endpoint="profileImage"
-                  onClientUploadComplete={(res) => {
-                    try {
-                      let imageUrl = null;
-                      
-                      if (Array.isArray(res) && res.length > 0) {
-                        const file = res[0];
-                        imageUrl = file?.key ? `https://utfs.io/f/${file.key}` : file?.url || file?.serverData?.url;
-                      } else if (res && typeof res === 'object' && !Array.isArray(res)) {
-                        imageUrl = res.key ? `https://utfs.io/f/${res.key}` : res.url || res.serverData?.url;
-                      }
-                      
-                      if (imageUrl) {
-                        setProfileImage(imageUrl);
-                        toast.success("Profile picture uploaded successfully");
-                      } else {
-                        toast.error("Upload completed but URL not found");
-                      }
-                    } catch (error) {
-                      console.error("Error processing upload:", error);
-                      toast.error("Error processing upload");
-                    }
-                  }}
+                  onClientUploadComplete={handleUploadComplete}
                   onUploadError={(error) => {
                     console.error("Upload error:", error);
-                    toast.error(`Upload failed: ${error.message || "Please try again."}`);
+                    toast.error(
+                      `Upload failed: ${error.message || "Please try again."}`
+                    );
                   }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+                Square image works best. JPG or PNG, up to 4MB.
+              </p>
+            </div>
+          </section>
+        </aside>
+
+        {/* Form */}
+        <section className={cn(creatorCardClass, "overflow-hidden")}>
+          <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+            <h2 className="text-base font-semibold text-slate-950">Profile information</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              These details appear on your public talent profile and campaign applications.
+            </p>
+          </div>
+
+          <div className="space-y-5 px-5 py-5 sm:px-6">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-sm font-medium text-slate-700">
+                  Full name <span className="text-[#0055ff]">*</span>
+                </Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className={fieldClass}
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="specialty" className="text-sm font-medium text-slate-700">
+                  Specialty
+                </Label>
+                <Input
+                  id="specialty"
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                  className={fieldClass}
+                  placeholder="e.g. Content creator, Musician"
                 />
               </div>
             </div>
 
-            {/* Save Button */}
-            <Button
-              onClick={handleSaveProfile}
-              disabled={isSaving || !fullName.trim() || !description.trim()}
-              variant="marketing"
-              className="w-full"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Account Information */}
-      <Card className={creatorCardClass}>
-        <CardHeader>
-          <CardTitle className="text-foreground">Account information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Member since</p>
-              <p className="font-medium text-foreground">
-                {user?.createdAt
-                  ? new Date(user.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "N/A"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Account status</p>
-              <p className="font-medium text-foreground">Active</p>
-            </div>
-          </div>
-          {user?.verificationStatus && (
-            <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Verification</p>
-                <p className="font-medium capitalize text-foreground">
-                  {user.verificationStatus.toLowerCase()}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium text-slate-700">
+                Bio <span className="text-[#0055ff]">*</span>
+              </Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="min-h-[140px] resize-y rounded-xl border-slate-200 bg-white text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                placeholder="Tell brands who you are and what you create…"
+                rows={5}
+              />
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400">Shown on your public profile.</p>
+                <p className="text-xs tabular-nums text-slate-400">
+                  {description.trim().length} chars
                 </p>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                Email address
+              </Label>
+              <Input
+                id="email"
+                value={user?.email || ""}
+                disabled
+                className={cn(
+                  fieldClass,
+                  "cursor-not-allowed bg-slate-50 text-slate-500"
+                )}
+              />
+              <p className="text-xs text-slate-400">
+                Email can’t be changed here. Contact{" "}
+                <a href="mailto:hey@payollar.com" className="font-medium text-[#0055ff] hover:underline">
+                  hey@payollar.com
+                </a>{" "}
+                if you need an update.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-slate-100 bg-[#fafbfd] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p className="text-xs text-slate-400">
+              {canSave
+                ? "Ready to save your latest changes."
+                : "Name and bio are required before saving."}
+            </p>
+            <Button
+              onClick={handleSaveProfile}
+              disabled={isSaving || !canSave}
+              className="h-10 rounded-full bg-[#0055ff] px-5 text-white hover:bg-[#003ecc]"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save changes
+                </>
+              )}
+            </Button>
+          </div>
+        </section>
+      </div>
     </CreatorPageShell>
   );
 }

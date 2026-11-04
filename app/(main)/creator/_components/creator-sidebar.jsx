@@ -7,9 +7,10 @@ import mark from "../../../icon.png";
 import {
   LayoutDashboard,
   User,
-  CheckSquare,
+  BadgeCheck,
   ShoppingBag,
   Calendar,
+  FileText,
   MessageCircle,
   BarChart3,
   Settings,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { SidebarWelcomeCreditsPromo } from "./welcome-credits-card";
 
 const menuItems = [
   {
@@ -45,7 +47,7 @@ const menuItems = [
   },
   {
     title: "Services",
-    icon: CheckSquare,
+    icon: BadgeCheck,
     href: "/creator/services",
   },
   {
@@ -59,6 +61,11 @@ const menuItems = [
     href: "/creator/bookings",
   },
   {
+    title: "Campaigns",
+    icon: FileText,
+    href: "/creator/applications",
+  },
+  {
     title: "Messages",
     icon: MessageCircle,
     href: "/messages",
@@ -69,7 +76,7 @@ const menuItems = [
     href: "/creator/analytics",
   },
   {
-    title: "Payouts",
+    title: "Earnings",
     icon: Wallet,
     href: "/creator/payouts",
   },
@@ -163,18 +170,8 @@ export function CreatorSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="gap-3 p-3 text-white">
-        <div className="rounded-2xl bg-white/10 p-4 group-data-[collapsible=icon]:hidden">
-          <p className="text-sm font-semibold text-white">Payouts</p>
-          <p className="mt-1 text-xs leading-relaxed text-white/70">
-            Review product earnings before you send them out.
-          </p>
-          <Link
-            href="/creator/payouts"
-            onClick={() => setOpenMobile(false)}
-            className="mt-3 inline-flex rounded-full bg-[#0055ff] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#0046d4]"
-          >
-            View payouts
-          </Link>
+        <div className="group-data-[collapsible=icon]:hidden">
+          <SidebarWelcomeCreditsPromo />
         </div>
         <SidebarMenu>
           <SidebarMenuItem>

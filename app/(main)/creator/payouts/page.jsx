@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
 import { getDoctorPayouts, getDoctorEarnings } from "@/actions/payout";
+import { getCreatorCreditActivity } from "@/actions/credits";
 import { CreatorPayoutsPage } from "../_components/creator-payouts";
 
 // Force dynamic rendering to avoid static generation issues with headers()
@@ -17,9 +18,10 @@ export default async function CreatorPayoutsPageRoute() {
     redirect("/creator/verification");
   }
 
-  const [payoutsData, earningsData] = await Promise.all([
+  const [payoutsData, earningsData, creditActivityData] = await Promise.all([
     getDoctorPayouts().catch(() => ({ payouts: [] })),
     getDoctorEarnings().catch(() => ({ earnings: {} })),
+    getCreatorCreditActivity().catch(() => ({ activities: [] })),
   ]);
 
   return (
@@ -27,6 +29,7 @@ export default async function CreatorPayoutsPageRoute() {
       user={user}
       payouts={payoutsData.payouts || []}
       earnings={earningsData.earnings || {}}
+      creditActivity={creditActivityData.activities || []}
     />
   );
 }

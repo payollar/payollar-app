@@ -1,7 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
+import Link from "next/link";
+import { format } from "date-fns";
+import {
+  ArrowRight,
+  BarChart3,
+  Calendar,
+  CheckCircle2,
+  Clock3,
+  Download,
+  Eye,
+  FileText,
+  FolderOpen,
+  MapPin,
+  Radio,
+  Search,
+  Tv,
+  TrendingUp,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -10,29 +33,184 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Calendar,
-  Search,
-  FileText,
-  Download,
-  Tv,
-  Radio,
-  MapPin,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Eye,
-  BarChart3,
-  FolderOpen,
-  TrendingUp,
-} from "lucide-react";
-import { format } from "date-fns";
-import Link from "next/link";
-import { ClientPageShell } from "./client-page-shell";
+import { cn } from "@/lib/utils";
+import { ClientPageShell, clientCardClass } from "./client-page-shell";
+
+const TABS = [
+  { id: "bookings", label: "Bookings", icon: Calendar },
+  { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "certificates", label: "Certificates", icon: FileText },
+];
+
+function formatFileType(type) {
+  if (type?.includes("pdf")) return "PDF";
+  if (type?.includes("image")) return "Image";
+  return type?.split("/")[1]?.toUpperCase() || "File";
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return "Unknown size";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function statusMeta(status) {
+  if (status === "CONFIRMED") {
+    return {
+      label: "Confirmed",
+      className: "border-sky-200 bg-sky-50 text-sky-700",
+      icon: CheckCircle2,
+    };
+  }
+  if (status === "COMPLETED") {
+    return {
+      label: "Completed",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      icon: CheckCircle2,
+    };
+  }
+  if (status === "CANCELLED") {
+    return {
+      label: "Cancelled",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+      icon: XCircle,
+    };
+  }
+  return {
+    label: status || "Pending",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+    icon: AlertCircle,
+  };
+}
+
+function mediaTypeIcon(type) {
+  if (type === "TV") return Tv;
+  if (type === "RADIO") return Radio;
+  return FolderOpen;
+}
+
+function StatCard({ label, value, icon: Icon, tone = "blue" }) {
+  const tones = {
+    blue: "bg-[#eef4ff] text-[#0055ff]",
+    amber: "bg-amber-50 text-amber-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    violet: "bg-violet-50 text-violet-600",
+    slate: "bg-slate-100 text-slate-600",
+  };
+
+  return (
+    <Card className={cn(clientCardClass, "border-0")}>
+      <CardContent className="flex items-center justify-between p-4 sm:p-5">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950 sm:text-3xl">
+            {value}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+            tones[tone]
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+}) {
+  return (
+    <Card className={cn(clientCardClass, "border-0")}>
+      <CardContent className="flex flex-col items-center px-6 py-16 text-center">
+        <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eef4ff] text-[#0055ff]">
+          <Icon className="h-7 w-7" />
+        </span>
+        <h3 className="mt-5 text-lg font-semibold text-slate-950">{title}</h3>
+        <p className="mt-1.5 max-w-md text-sm leading-relaxed text-slate-500">
+          {description}
+        </p>
+        {actionLabel && actionHref ? (
+          <Button
+            asChild
+            className="mt-6 rounded-full bg-[#0055ff] hover:bg-[#0044cc]"
+          >
+            <Link href={actionHref}>
+              {actionLabel}
+              <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FilterBar({
+  searchQuery,
+  setSearchQuery,
+  searchPlaceholder,
+  statusFilter,
+  setStatusFilter,
+  mediaTypeFilter,
+  setMediaTypeFilter,
+  showStatus = false,
+  showMediaType = false,
+}) {
+  return (
+    <Card className={cn(clientCardClass, "border-0")}>
+      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-10 rounded-xl border-slate-200 bg-slate-50 pl-9"
+          />
+        </div>
+        {showStatus ? (
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white sm:w-44">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
+        {showMediaType ? (
+          <Select value={mediaTypeFilter} onValueChange={setMediaTypeFilter}>
+            <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white sm:w-44">
+              <SelectValue placeholder="Media type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="TV">TV</SelectItem>
+              <SelectItem value="RADIO">Radio</SelectItem>
+              <SelectItem value="BILLBOARD">Billboard</SelectItem>
+              <SelectItem value="DIGITAL">Digital</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function MediaLibrary({
   bookings = [],
@@ -44,37 +222,31 @@ export function MediaLibrary({
   const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("bookings");
 
-  // Calculate statistics
   const stats = useMemo(() => {
     const totalBookings = bookings.length;
     const activeBookings = bookings.filter(
-      (b) =>
-        b.status === "CONFIRMED" &&
-        new Date(b.endDate || b.startDate || Date.now()) >= new Date(),
+      (booking) =>
+        booking.status === "CONFIRMED" &&
+        new Date(booking.endDate || booking.startDate || Date.now()) >= new Date()
     ).length;
     const completedBookings = bookings.filter(
-      (b) => b.status === "COMPLETED",
+      (booking) => booking.status === "COMPLETED"
     ).length;
-    const totalCertificates = certificates.length;
-    const totalReports = reports.length;
 
     return {
       totalBookings,
       activeBookings,
       completedBookings,
-      totalCertificates,
-      totalReports,
+      totalCertificates: certificates.length,
+      totalReports: reports.length,
     };
   }, [bookings, certificates, reports]);
 
-  // Filter bookings
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
       const matchesSearch =
         searchQuery === "" ||
-        booking.listing?.name
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
+        booking.listing?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         booking.agency?.agencyName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
@@ -91,7 +263,6 @@ export function MediaLibrary({
     });
   }, [bookings, searchQuery, statusFilter, mediaTypeFilter]);
 
-  // Filter certificates
   const filteredCertificates = useMemo(() => {
     return certificates.filter((cert) => {
       const matchesSearch =
@@ -100,7 +271,8 @@ export function MediaLibrary({
         cert.agency?.agencyName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        cert.campaignRefId?.toLowerCase().includes(searchQuery.toLowerCase());
+        cert.campaignRefId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cert.fileName?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesMediaType =
         mediaTypeFilter === "all" ||
@@ -114,501 +286,394 @@ export function MediaLibrary({
     });
   }, [certificates, searchQuery, mediaTypeFilter]);
 
-  // Filter reports
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
-      const matchesSearch =
+      return (
         searchQuery === "" ||
         report.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.agency?.agencyName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        report.reportType?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchesSearch;
+        report.reportType?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     });
   }, [reports, searchQuery]);
 
-  const formatFileType = (type) => {
-    if (type?.includes("pdf")) return "PDF";
-    if (type?.includes("image")) return "Image";
-    return type?.split("/")[1]?.toUpperCase() || "File";
-  };
-
-  const formatFileSize = (bytes) => {
-    if (!bytes) return "Unknown";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const getStatusBadge = (status) => {
-    const variants = {
-      PENDING: { variant: "secondary", icon: AlertCircle },
-      CONFIRMED: { variant: "default", icon: CheckCircle },
-      COMPLETED: { variant: "outline", icon: CheckCircle },
-      CANCELLED: { variant: "destructive", icon: XCircle },
-    };
-    return variants[status] || variants.PENDING;
-  };
-
-  const getMediaTypeIcon = (type) => {
-    switch (type) {
-      case "TV":
-        return Tv;
-      case "RADIO":
-        return Radio;
-      default:
-        return FolderOpen;
-    }
+  const tabCounts = {
+    bookings: bookings.length,
+    reports: reports.length,
+    certificates: certificates.length,
   };
 
   return (
     <ClientPageShell
       eyebrow="Library"
       title="Media Library"
-      description="Manage your media bookings, campaign reports, and transmission certificates."
+      description="Track media bookings, campaign reports, and transmission certificates in one place."
+      actions={
+        <Button asChild className="rounded-full bg-[#0055ff] hover:bg-[#0044cc]">
+          <Link href="/products">
+            Browse media
+            <ArrowRight className="ml-1.5 h-4 w-4" />
+          </Link>
+        </Button>
+      }
     >
       <div className="space-y-6">
-        {/* Statistics Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
-          <Card className="bg-transparent backdrop-blur-md border-white/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total Bookings
-                  </p>
-                  <p className="text-2xl font-bold">{stats.totalBookings}</p>
-                </div>
-                <Calendar className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-transparent backdrop-blur-md border-white/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Active Campaigns
-                  </p>
-                  <p className="text-2xl font-bold">{stats.activeBookings}</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-transparent backdrop-blur-md border-white/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold">
-                    {stats.completedBookings}
-                  </p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-transparent backdrop-blur-md border-white/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Certificates</p>
-                  <p className="text-2xl font-bold">
-                    {stats.totalCertificates}
-                  </p>
-                </div>
-                <FileText className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-transparent backdrop-blur-md border-white/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Reports</p>
-                  <p className="text-2xl font-bold">{stats.totalReports}</p>
-                </div>
-                <BarChart3 className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <StatCard
+            label="Total bookings"
+            value={stats.totalBookings}
+            icon={Calendar}
+            tone="blue"
+          />
+          <StatCard
+            label="Active"
+            value={stats.activeBookings}
+            icon={TrendingUp}
+            tone="amber"
+          />
+          <StatCard
+            label="Completed"
+            value={stats.completedBookings}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <StatCard
+            label="Certificates"
+            value={stats.totalCertificates}
+            icon={FileText}
+            tone="violet"
+          />
+          <StatCard
+            label="Reports"
+            value={stats.totalReports}
+            icon={BarChart3}
+            tone="slate"
+          />
         </div>
 
-        {/* Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-6"
-        >
-          <TabsList className="grid h-auto w-full grid-cols-3">
-            <TabsTrigger
-              value="bookings"
-              className="px-1 text-xs data-[state=active]:bg-white data-[state=active]:text-gray-900 sm:text-sm"
-            >
-              Bookings ({bookings.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="reports"
-              className="px-1 text-xs data-[state=active]:bg-white data-[state=active]:text-gray-900 sm:text-sm"
-            >
-              Reports ({reports.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="certificates"
-              className="px-1 text-xs data-[state=active]:bg-white data-[state=active]:text-gray-900 sm:text-sm"
-            >
-              Certificates ({certificates.length})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Bookings Tab */}
-          <TabsContent value="bookings" className="space-y-4">
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search bookings..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={mediaTypeFilter}
-                onValueChange={setMediaTypeFilter}
-              >
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Media Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="TV">TV</SelectItem>
-                  <SelectItem value="RADIO">Radio</SelectItem>
-                  <SelectItem value="BILLBOARD">Billboard</SelectItem>
-                  <SelectItem value="DIGITAL">Digital</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Bookings List */}
-            {filteredBookings.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-lg font-medium mb-2">No bookings found</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {bookings.length === 0
-                      ? "You haven't made any media bookings yet."
-                      : "Try adjusting your filters to see more results."}
-                  </p>
-                  {bookings.length === 0 && (
-                    <Button
-                      asChild
-                      className="bg-white hover:bg-gray-100 text-gray-900"
-                    >
-                      <Link href="/products">Browse Media Services</Link>
-                    </Button>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max min-w-full gap-1">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                    setMediaTypeFilter("all");
+                  }}
+                  className={cn(
+                    "inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
+                    active
+                      ? "bg-[#0055ff] text-white shadow-md shadow-blue-500/20"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   )}
-                </CardContent>
-              </Card>
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {tab.label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
+                      active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                    )}
+                  >
+                    {tabCounts[tab.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {activeTab === "bookings" ? (
+          <div className="space-y-4">
+            <FilterBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchPlaceholder="Search bookings, agencies, or packages"
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              mediaTypeFilter={mediaTypeFilter}
+              setMediaTypeFilter={setMediaTypeFilter}
+              showStatus
+              showMediaType
+            />
+
+            {filteredBookings.length === 0 ? (
+              <EmptyState
+                icon={Calendar}
+                title={bookings.length === 0 ? "No bookings yet" : "No matching bookings"}
+                description={
+                  bookings.length === 0
+                    ? "Book TV, radio, digital, or outdoor media and everything will show up here."
+                    : "Try another search or clear your filters."
+                }
+                actionLabel={bookings.length === 0 ? "Browse media services" : null}
+                actionHref={bookings.length === 0 ? "/products" : null}
+              />
             ) : (
-              <div className="space-y-4">
+              <ul className="space-y-3">
                 {filteredBookings.map((booking) => {
-                  const statusBadge = getStatusBadge(booking.status);
-                  const MediaIcon = getMediaTypeIcon(
-                    booking.listing?.listingType,
-                  );
+                  const status = statusMeta(booking.status);
+                  const StatusIcon = status.icon;
+                  const MediaIcon = mediaTypeIcon(booking.listing?.listingType);
                   const relatedCerts = certificates.filter(
-                    (c) => c.bookingId === booking.id,
+                    (cert) => cert.bookingId === booking.id
                   );
                   const relatedReports = reports.filter(
-                    (r) => r.bookingId === booking.id,
+                    (report) => report.bookingId === booking.id
                   );
 
                   return (
-                    <Card
-                      key={booking.id}
-                      className="hover:shadow-lg transition-shadow"
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-start gap-4 flex-1">
-                            {booking.listing?.imageUrl ? (
-                              <img
-                                src={booking.listing.imageUrl}
-                                alt={booking.listing.name}
-                                className="w-20 h-20 rounded-lg object-cover"
-                              />
-                            ) : (
-                              <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
-                                {MediaIcon && (
-                                  <MediaIcon className="h-8 w-8 text-muted-foreground" />
-                                )}
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="text-lg font-semibold">
-                                  {booking.listing?.name || "Media Listing"}
-                                </h3>
-                                <Badge {...statusBadge}>{booking.status}</Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {booking.agency?.agencyName}
-                              </p>
-                              {booking.packageName && (
-                                <p className="text-sm font-medium mb-2">
-                                  Package: {booking.packageName}
-                                </p>
+                    <li key={booking.id}>
+                      <Card className={cn(clientCardClass, "border-0 overflow-hidden")}>
+                        <CardContent className="p-4 sm:p-5">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                            <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-24 sm:w-36">
+                              {booking.listing?.imageUrl ? (
+                                <Image
+                                  src={booking.listing.imageUrl}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="144px"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
+                                  <MediaIcon className="h-8 w-8" />
+                                </div>
                               )}
-                              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                                {booking.listing?.location && (
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="h-4 w-4" />
-                                    <span>{booking.listing.location}</span>
-                                  </div>
-                                )}
-                                {booking.startDate && (
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>
-                                      {format(
-                                        new Date(booking.startDate),
-                                        "MMM d, yyyy",
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="truncate text-lg font-semibold text-slate-950">
+                                      {booking.listing?.name || "Media listing"}
+                                    </h3>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "rounded-full gap-1 font-medium",
+                                        status.className
                                       )}
-                                      {booking.endDate &&
-                                        ` - ${format(new Date(booking.endDate), "MMM d, yyyy")}`}
-                                    </span>
+                                    >
+                                      <StatusIcon className="h-3.5 w-3.5" />
+                                      {status.label}
+                                    </Badge>
+                                    {booking.listing?.listingType ? (
+                                      <Badge
+                                        variant="secondary"
+                                        className="rounded-full bg-slate-100 text-slate-600"
+                                      >
+                                        {booking.listing.listingType}
+                                      </Badge>
+                                    ) : null}
                                   </div>
-                                )}
-                                {booking.duration && (
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
-                                    <span>{booking.duration}</span>
-                                  </div>
-                                )}
-                                {booking.slots && (
-                                  <span>{booking.slots} spots</span>
-                                )}
+                                  <p className="mt-1 text-sm text-slate-500">
+                                    {booking.agency?.agencyName || "Media agency"}
+                                    {booking.packageName
+                                      ? ` · ${booking.packageName}`
+                                      : ""}
+                                  </p>
+                                </div>
+                                {booking.totalAmount != null ? (
+                                  <p className="text-lg font-semibold tabular-nums text-slate-950">
+                                    ₵{Number(booking.totalAmount).toLocaleString()}
+                                  </p>
+                                ) : null}
                               </div>
-                              {booking.totalAmount && (
-                                <p className="text-lg font-bold mt-2">
-                                  ₵{booking.totalAmount.toLocaleString()}
-                                </p>
+
+                              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
+                                {booking.listing?.location ? (
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    {booking.listing.location}
+                                  </span>
+                                ) : null}
+                                {booking.startDate ? (
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {format(new Date(booking.startDate), "MMM d, yyyy")}
+                                    {booking.endDate
+                                      ? ` – ${format(new Date(booking.endDate), "MMM d, yyyy")}`
+                                      : ""}
+                                  </span>
+                                ) : null}
+                                {booking.duration ? (
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Clock3 className="h-3.5 w-3.5" />
+                                    {booking.duration}
+                                  </span>
+                                ) : null}
+                                {booking.slots ? (
+                                  <span>{booking.slots} spots</span>
+                                ) : null}
+                              </div>
+
+                              {(relatedCerts.length > 0 || relatedReports.length > 0) && (
+                                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                                  {relatedCerts.length > 0 ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef4ff] px-2.5 py-1 text-xs font-medium text-[#0055ff]">
+                                      <FileText className="h-3.5 w-3.5" />
+                                      {relatedCerts.length} certificate
+                                      {relatedCerts.length === 1 ? "" : "s"}
+                                    </span>
+                                  ) : null}
+                                  {relatedReports.length > 0 ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                                      <BarChart3 className="h-3.5 w-3.5" />
+                                      {relatedReports.length} report
+                                      {relatedReports.length === 1 ? "" : "s"}
+                                    </span>
+                                  ) : null}
+                                </div>
                               )}
                             </div>
                           </div>
-                        </div>
-
-                        {/* Related Certificates and Reports */}
-                        {(relatedCerts.length > 0 ||
-                          relatedReports.length > 0) && (
-                          <div className="pt-4 border-t flex gap-4 text-sm">
-                            {relatedCerts.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-muted-foreground">
-                                  {relatedCerts.length} certificate
-                                  {relatedCerts.length > 1 ? "s" : ""}
-                                </span>
-                              </div>
-                            )}
-                            {relatedReports.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-muted-foreground">
-                                  {relatedReports.length} report
-                                  {relatedReports.length > 1 ? "s" : ""}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
-          </TabsContent>
+          </div>
+        ) : null}
 
-          {/* Reports Tab */}
-          <TabsContent value="reports" className="space-y-4">
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search reports..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+        {activeTab === "reports" ? (
+          <div className="space-y-4">
+            <FilterBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchPlaceholder="Search reports by title, agency, or type"
+            />
 
-            {/* Reports List */}
             {filteredReports.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-lg font-medium mb-2">No reports found</p>
-                  <p className="text-sm text-muted-foreground">
-                    {reports.length === 0
-                      ? "No campaign reports have been shared with you yet."
-                      : "Try adjusting your search to see more results."}
-                  </p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={BarChart3}
+                title={reports.length === 0 ? "No reports yet" : "No matching reports"}
+                description={
+                  reports.length === 0
+                    ? "Campaign performance reports shared by media agencies will appear here."
+                    : "Try another search term."
+                }
+              />
             ) : (
-              <div className="space-y-4">
+              <ul className="space-y-3">
                 {filteredReports.map((report) => (
-                  <Card
-                    key={report.id}
-                    className="hover:shadow-lg transition-shadow"
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold">
-                              {report.title}
-                            </h3>
-                            <Badge variant="outline">{report.reportType}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {report.agency?.agencyName}
-                          </p>
-                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-2">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              <span>
-                                {format(
-                                  new Date(report.startDate),
-                                  "MMM d, yyyy",
-                                )}{" "}
-                                -{" "}
-                                {format(
-                                  new Date(report.endDate),
-                                  "MMM d, yyyy",
-                                )}
-                              </span>
+                  <li key={report.id}>
+                    <Card className={cn(clientCardClass, "border-0")}>
+                      <CardContent className="p-4 sm:p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-lg font-semibold text-slate-950">
+                                {report.title}
+                              </h3>
+                              {report.reportType ? (
+                                <Badge
+                                  variant="secondary"
+                                  className="rounded-full bg-slate-100 text-slate-600"
+                                >
+                                  {report.reportType}
+                                </Badge>
+                              ) : null}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              <span>
-                                Created{" "}
-                                {format(
-                                  new Date(report.createdAt),
-                                  "MMM d, yyyy",
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                          {report.content && (
-                            <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">
-                              {report.content}
+                            <p className="mt-1 text-sm text-slate-500">
+                              {report.agency?.agencyName || "Media agency"}
                             </p>
-                          )}
-                          {report.metrics && (
-                            <div className="mt-2">
-                              <p className="text-xs font-medium text-muted-foreground mb-1">
-                                Key Metrics:
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {Object.entries(report.metrics)
-                                  .slice(0, 5)
-                                  .map(([key, value]) => (
-                                    <Badge
-                                      key={key}
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {key}: {String(value)}
-                                    </Badge>
-                                  ))}
-                                {Object.keys(report.metrics).length > 5 && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    +{Object.keys(report.metrics).length - 5}{" "}
-                                    more
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          )}
+                          </div>
+                          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+                            <BarChart3 className="h-4 w-4" />
+                          </span>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
+                          {report.startDate && report.endDate ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5" />
+                              {format(new Date(report.startDate), "MMM d, yyyy")} –{" "}
+                              {format(new Date(report.endDate), "MMM d, yyyy")}
+                            </span>
+                          ) : null}
+                          {report.createdAt ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Clock3 className="h-3.5 w-3.5" />
+                              Shared{" "}
+                              {format(new Date(report.createdAt), "MMM d, yyyy")}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {report.content ? (
+                          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600 whitespace-pre-wrap">
+                            {report.content}
+                          </p>
+                        ) : null}
+
+                        {report.metrics && Object.keys(report.metrics).length > 0 ? (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {Object.entries(report.metrics)
+                              .slice(0, 6)
+                              .map(([key, value]) => (
+                                <span
+                                  key={key}
+                                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
+                                >
+                                  {key}: {String(value)}
+                                </span>
+                              ))}
+                            {Object.keys(report.metrics).length > 6 ? (
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+                                +{Object.keys(report.metrics).length - 6} more
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-          </TabsContent>
+          </div>
+        ) : null}
 
-          {/* Certificates Tab */}
-          <TabsContent value="certificates" className="space-y-4">
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search certificates..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select
-                value={mediaTypeFilter}
-                onValueChange={setMediaTypeFilter}
-              >
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Media Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="TV">TV</SelectItem>
-                  <SelectItem value="RADIO">Radio</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {activeTab === "certificates" ? (
+          <div className="space-y-4">
+            <FilterBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchPlaceholder="Search certificates, stations, or campaign IDs"
+              mediaTypeFilter={mediaTypeFilter}
+              setMediaTypeFilter={setMediaTypeFilter}
+              showMediaType
+            />
 
-            {/* Certificates List */}
             {filteredCertificates.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-lg font-medium mb-2">
-                    No certificates found
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {certificates.length === 0
-                      ? "No transmission certificates have been shared with you yet."
-                      : "Try adjusting your filters to see more results."}
-                  </p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={FileText}
+                title={
+                  certificates.length === 0
+                    ? "No certificates yet"
+                    : "No matching certificates"
+                }
+                description={
+                  certificates.length === 0
+                    ? "Transmission certificates uploaded by agencies after your ads air will show up here."
+                    : "Try another search or media type filter."
+                }
+              />
             ) : (
-              <div className="space-y-4">
+              <ul className="space-y-3">
                 {filteredCertificates.map((cert) => {
                   const isTV =
                     cert.stationName?.toLowerCase().includes("tv") ||
@@ -616,99 +681,109 @@ export function MediaLibrary({
                   const StationIcon = isTV ? Tv : Radio;
 
                   return (
-                    <Card
-                      key={cert.id}
-                      className="hover:shadow-lg transition-shadow"
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4 flex-1">
-                            <div className="p-3 rounded-lg bg-primary/10">
-                              {cert.fileType?.includes("pdf") ? (
-                                <FileText className="h-6 w-6 text-primary" />
-                              ) : (
-                                <Eye className="h-6 w-6 text-primary" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-semibold">
-                                  {cert.fileName}
-                                </h3>
-                                <Badge variant="outline">
-                                  {formatFileType(cert.fileType)}
-                                </Badge>
-                                <Badge variant="secondary">
-                                  {formatFileSize(cert.fileSize)}
-                                </Badge>
-                              </div>
-                              <div className="grid md:grid-cols-2 gap-3 text-sm text-muted-foreground mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>
-                                    Aired:{" "}
-                                    {format(
-                                      new Date(cert.airDate),
-                                      "MMM d, yyyy",
-                                    )}
-                                  </span>
-                                </div>
-                                {cert.airTime && (
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    <span>{cert.airTime}</span>
-                                  </div>
+                    <li key={cert.id}>
+                      <Card className={cn(clientCardClass, "border-0")}>
+                        <CardContent className="p-4 sm:p-5">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 flex-1 gap-3">
+                              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+                                {cert.fileType?.includes("pdf") ? (
+                                  <FileText className="h-5 w-5" />
+                                ) : (
+                                  <Eye className="h-5 w-5" />
                                 )}
-                                {cert.stationName && (
-                                  <div className="flex items-center gap-2">
-                                    <StationIcon className="h-4 w-4" />
-                                    <span>{cert.stationName}</span>
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  <span className="font-medium">Campaign:</span>
-                                  <span className="font-mono text-xs">
-                                    {cert.campaignRefId}
-                                  </span>
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="truncate text-base font-semibold text-slate-950">
+                                    {cert.fileName}
+                                  </h3>
+                                  <Badge
+                                    variant="secondary"
+                                    className="rounded-full bg-slate-100 text-slate-600"
+                                  >
+                                    {formatFileType(cert.fileType)}
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="rounded-full border-slate-200 text-slate-500"
+                                  >
+                                    {formatFileSize(cert.fileSize)}
+                                  </Badge>
                                 </div>
-                              </div>
-                              {cert.notes && (
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                                  {cert.notes}
+
+                                <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
+                                  {cert.airDate ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Calendar className="h-3.5 w-3.5" />
+                                      Aired{" "}
+                                      {format(new Date(cert.airDate), "MMM d, yyyy")}
+                                    </span>
+                                  ) : null}
+                                  {cert.airTime ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Clock3 className="h-3.5 w-3.5" />
+                                      {cert.airTime}
+                                    </span>
+                                  ) : null}
+                                  {cert.stationName ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <StationIcon className="h-3.5 w-3.5" />
+                                      {cert.stationName}
+                                    </span>
+                                  ) : null}
+                                  {cert.campaignRefId ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <FileText className="h-3.5 w-3.5" />
+                                      <span className="font-mono">
+                                        {cert.campaignRefId}
+                                      </span>
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                {cert.notes ? (
+                                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                                    {cert.notes}
+                                  </p>
+                                ) : null}
+
+                                <p className="mt-2 text-xs text-slate-400">
+                                  Uploaded{" "}
+                                  {format(new Date(cert.createdAt), "MMM d, yyyy")}
+                                  {cert.agency?.agencyName
+                                    ? ` by ${cert.agency.agencyName}`
+                                    : ""}
                                 </p>
-                              )}
-                              <p className="text-xs text-muted-foreground">
-                                Uploaded{" "}
-                                {format(
-                                  new Date(cert.createdAt),
-                                  "MMM d, yyyy",
-                                )}{" "}
-                                by {cert.agency?.agencyName}
-                              </p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button variant="outline" size="sm" asChild>
-                              <a
-                                href={cert.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
+
+                            {cert.fileUrl ? (
+                              <Button
+                                asChild
+                                variant="outline"
+                                className="shrink-0 rounded-full border-slate-200"
                               >
-                                <Download className="h-4 w-4 mr-2" />
-                                View
-                              </a>
-                            </Button>
+                                <a
+                                  href={cert.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Download className="mr-1.5 h-4 w-4" />
+                                  View
+                                </a>
+                              </Button>
+                            ) : null}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : null}
       </div>
     </ClientPageShell>
   );

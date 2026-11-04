@@ -75,12 +75,14 @@ export function LandingNavbar() {
   const { theme: landingTheme } = useLandingTheme();
   const isHome = pathname === "/";
   const homeIsLight = isHome && landingTheme === "light";
+  const isHelp = pathname?.startsWith("/help");
   const isLightSurface =
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
     pathname?.startsWith("/media");
-  /** Dark floating pill (readable white logo) vs light home shell */
-  const useDarkPill = isLightSurface || !homeIsLight;
+  /** Light pill on home (light theme) + help; dark pill elsewhere / other light product surfaces */
+  const useLightPill = homeIsLight || isHelp;
+  const useDarkPill = !useLightPill;
   const linkClass = useDarkPill
     ? "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
     : "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-slate-950";
@@ -139,11 +141,11 @@ export function LandingNavbar() {
               {!isSignedIn && (
                 <Link href="/onboarding" className="hidden sm:block">
                   <Button
-                    variant={homeIsLight ? "default" : "marketingWhite"}
+                    variant={useLightPill ? "default" : "marketingWhite"}
                     size="sm"
                     className={cn(
                       "hidden rounded-full md:inline-flex",
-                      homeIsLight &&
+                      useLightPill &&
                         "bg-[#0055ff] text-white hover:bg-[#003ecc]"
                     )}
                   >
