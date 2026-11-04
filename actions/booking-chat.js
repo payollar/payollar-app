@@ -192,7 +192,12 @@ export async function getBookingThread(appointmentId) {
         full.creatorId === userId &&
         full.appointment.status !== "CANCELLED" &&
         full.appointment.status !== "COMPLETED",
-      canPay: full.appointment.status === "REQUESTED" && full.clientId === userId,
+      // Clients can pay open invoices / unpaid requested bookings
+      canPay:
+        full.clientId === userId &&
+        full.appointment.status !== "CANCELLED" &&
+        full.appointment.status !== "COMPLETED" &&
+        (full.appointment.status === "REQUESTED" || Boolean(latestInvoice)),
       pay: {
         doctorId: full.creatorId,
         startTime: toIso(full.appointment.startTime),

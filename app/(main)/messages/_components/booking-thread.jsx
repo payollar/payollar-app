@@ -72,6 +72,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   const [sending, setSending] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [payingInvoiceId, setPayingInvoiceId] = useState(null);
   const [query, setQuery] = useState("");
   const endRef = useRef(null);
 
@@ -113,6 +114,8 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
 
   const payForSession = async (invoiceId) => {
     if (!thread?.pay) return;
+    const targetInvoiceId = invoiceId || thread.pay.invoiceId || null;
+    setPayingInvoiceId(targetInvoiceId || "session");
     try {
       const res = await fetch("/api/paystack/initialize", {
         method: "POST",
@@ -122,7 +125,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
           startTime: thread.pay.startTime,
           endTime: thread.pay.endTime,
           description: thread.pay.description || undefined,
-          invoiceId: invoiceId || thread.pay.invoiceId || undefined,
+          invoiceId: targetInvoiceId || undefined,
         }),
       });
       const data = await res.json();
@@ -137,6 +140,8 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
       toast.error("Payment link not received.");
     } catch {
       toast.error("Something went wrong. Please try again.");
+    } finally {
+      setPayingInvoiceId(null);
     }
   };
 
@@ -266,6 +271,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
             sending={sending}
             endRef={endRef}
             onPay={payForSession}
+            payingInvoiceId={payingInvoiceId}
             invoiceOpen={invoiceOpen}
             setInvoiceOpen={setInvoiceOpen}
             sendingInvoice={sendingInvoice}
@@ -297,6 +303,7 @@ function ThreadPane({
   sending,
   endRef,
   onPay,
+  payingInvoiceId,
   invoiceOpen,
   setInvoiceOpen,
   sendingInvoice,
@@ -304,6 +311,10 @@ function ThreadPane({
 }) {
   const href = profileHref(thread.other);
   let lastDay = "";
+  const clientCanPayInvoice =
+    !thread.isCreator &&
+    thread.appointment?.status !== "CANCELLED" &&
+    thread.appointment?.status !== "COMPLETED";
 
   return (
     <>
@@ -353,7 +364,8 @@ function ThreadPane({
                     <InvoiceMessageCard
                       invoice={message.invoice}
                       mine={message.mine}
-                      canPay={thread.canPay && message.invoice.status === "SENT"}
+                      canPay={clientCanPayInvoice && message.invoice.status === "SENT"}
+                      paying={payingInvoiceId === message.invoice.id}
                       onPay={() => onPay(message.invoice.id)}
                       createdAt={message.createdAt}
                     />
@@ -444,7 +456,7 @@ function ThreadPane({
   );
 }
 
-function InvoiceMessageCard({ invoice, mine, canPay, onPay, createdAt }) {
+function InvoiceMessageCard({ invoice, mine, canPay, paying, onPay, createdAt }) {
   const superseded = invoice.status === "SUPERSEDED";
   const paid = invoice.status === "PAID";
   return (
@@ -495,10 +507,22 @@ function InvoiceMessageCard({ invoice, mine, canPay, onPay, createdAt }) {
           <button
             type="button"
             onClick={onPay}
-            className="inline-flex h-9 w-full items-center justify-center rounded-full bg-[#6d28d9] text-xs font-semibold text-white hover:bg-[#5b21b6]"
+            disabled={paying}
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-[#6d28d9] text-sm font-semibold text-white hover:bg-[#5b21b6] disabled:opacity-60"
           >
-            Pay {moneyGhs(invoice.amount)}
+            {paying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Redirecting…
+              </>
+            ) : (
+              <>Pay now · {moneyGhs(invoice.amount)}</>
+            )}
           </button>
+        ) : mine && invoice.status === "SENT" ? (
+          <p className="rounded-xl bg-slate-50 px-3 py-2 text-center text-[11px] text-slate-500">
+            Client can tap Pay now to complete payment
+          </p>
         ) : null}
       </div>
     </div>

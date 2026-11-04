@@ -82,7 +82,7 @@ export async function POST(request) {
           appointment: {
             clientId: client.id,
             creatorId: doctorId,
-            status: "REQUESTED",
+            status: { in: ["REQUESTED", "SCHEDULED"] },
           },
         },
         select: { id: true, amount: true, notes: true, title: true },
