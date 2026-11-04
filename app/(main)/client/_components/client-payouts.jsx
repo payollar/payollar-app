@@ -1,106 +1,267 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import {
-  DollarSign,
-  CreditCard,
-  Clock,
-  CheckCircle,
-  XCircle,
-  ArrowUpRight,
   ArrowDownRight,
+  ArrowUpRight,
+  Activity,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  DollarSign,
+  Loader2,
+  Megaphone,
+  Radio,
+  Receipt,
   Shield,
   Users,
-  Radio,
-  Megaphone,
-  PieChart,
+  Wallet,
 } from "lucide-react";
-import { format } from "date-fns";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
-function ExpenseBreakdownBody({ breakdown }) {
+const TABS = [
+  { id: "escrow", label: "Escrow", icon: Shield },
+  { id: "history", label: "History", icon: CreditCard },
+];
+
+function money(n) {
+  const value = Number(n);
+  if (!Number.isFinite(value)) return "₵0.00";
+  return `₵${value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function statusMeta(status) {
+  const map = {
+    PENDING: {
+      label: "Pending",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+      icon: Clock3,
+    },
+    IN_ESCROW: {
+      label: "In escrow",
+      className: "border-slate-200 bg-slate-50 text-slate-700",
+      icon: Shield,
+    },
+    COMPLETED: {
+      label: "Completed",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      icon: CheckCircle2,
+    },
+    RELEASED: {
+      label: "Released",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      icon: CheckCircle2,
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+      icon: Clock3,
+    },
+    REFUNDED: {
+      label: "Refunded",
+      className: "border-rose-200 bg-rose-50 text-rose-700",
+      icon: Clock3,
+    },
+  };
+  return map[status] || map.PENDING;
+}
+
+function StatusBadge({ status }) {
+  const meta = statusMeta(status);
+  const Icon = meta.icon;
+  return (
+    <Badge
+      variant="outline"
+      className={cn("rounded-full gap-1 font-medium", meta.className)}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {meta.label}
+    </Badge>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, hint, accent }) {
+  return (
+    <div
+      className={cn(
+        clientCardClass,
+        "p-4",
+        accent === "amber" && "ring-1 ring-amber-200",
+        accent === "emerald" && "ring-1 ring-emerald-100"
+      )}
+    >
+      <div className="flex items-center gap-2 text-slate-400">
+        <Icon className="h-4 w-4" />
+        <span className="text-[11px] font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">
+        {value}
+      </p>
+      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+function MetricTile({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-slate-400">
+        <Icon className="h-3.5 w-3.5" />
+        <span className="text-[10px] font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="mt-1 text-lg font-semibold tabular-nums text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, hint }) {
+  return (
+    <div className="rounded-xl border border-slate-100 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{value}</p>
+      {hint ? <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p> : null}
+    </div>
+  );
+}
+
+function ExpenseBreakdown({ breakdown, loading }) {
   const talents = breakdown?.talents?.total ?? 0;
   const media = breakdown?.mediaBookings?.total ?? 0;
   const campaigns = breakdown?.campaignPayouts?.total ?? 0;
-  const sum = talents + media + campaigns || 1;
+  const total = talents + media + campaigns;
+  const denom = total || 1;
 
   const rows = [
     {
       key: "talents",
       label: "Talents",
-      sub:
-        breakdown?.talents?.appointmentBookingsGhs > 0 || breakdown?.talents?.creatorProductsGhs > 0
-          ? `Appointments ₵${(breakdown.talents.appointmentBookingsGhs || 0).toFixed(2)} · Creator products ₵${(breakdown.talents.creatorProductsGhs || 0).toFixed(2)}`
-          : "Appointments (credits) and purchases from creators",
       icon: Users,
       amount: talents,
-      color: "bg-primary",
+      tone: "bg-slate-950",
+      sub:
+        breakdown?.talents?.appointmentBookingsGhs > 0 ||
+        breakdown?.talents?.creatorProductsGhs > 0
+          ? `Bookings ${money(breakdown.talents.appointmentBookingsGhs || 0)} · Products ${money(breakdown.talents.creatorProductsGhs || 0)}`
+          : "Appointments & creator purchases",
     },
     {
       key: "media",
-      label: "Media bookings",
-      sub: "Confirmed or completed TV, radio, rate card, and other media buys",
+      label: "Media",
       icon: Radio,
       amount: media,
-      color: "bg-blue-500",
+      tone: "bg-slate-500",
+      sub: "TV, radio, rate cards, and other media buys",
     },
     {
       key: "campaigns",
-      label: "Campaigns (talent payout)",
-      sub:
-        (breakdown?.campaignPayouts?.acceptedApplications ?? 0) > 0
-          ? `${breakdown.campaignPayouts.acceptedApplications} accepted application(s) with a stated rate`
-          : "Sum of rates on accepted applications to your campaigns",
+      label: "Campaigns",
       icon: Megaphone,
       amount: campaigns,
-      color: "bg-violet-500",
+      tone: "bg-slate-300",
+      sub:
+        (breakdown?.campaignPayouts?.acceptedApplications ?? 0) > 0
+          ? `${breakdown.campaignPayouts.acceptedApplications} accepted rate${breakdown.campaignPayouts.acceptedApplications === 1 ? "" : "s"}`
+          : "Accepted application rates",
     },
   ];
 
+  if (loading) {
+    return (
+      <div className={cn(clientCardClass, "flex items-center justify-center gap-2 p-8 text-sm text-slate-500")}>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading spend…
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5">
-      {rows.map(({ key, label, sub, icon: Icon, amount, color }) => {
-        const pct = Math.round((amount / sum) * 1000) / 10;
-        return (
-          <div key={key} className="space-y-2">
-            <div className="flex items-start justify-between gap-4">
+    <div className={cn(clientCardClass, "p-4 sm:p-5")}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Spend mix
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Talent, media, and campaign compensation tracked so far
+          </p>
+        </div>
+        <p className="text-right">
+          <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Tracked total
+          </span>
+          <span className="text-xl font-semibold tabular-nums text-slate-950">
+            {money(total)}
+          </span>
+        </p>
+      </div>
+
+      <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-slate-100">
+        {rows.map((row) => {
+          const width = total > 0 ? (row.amount / denom) * 100 : 0;
+          if (width <= 0) return null;
+          return (
+            <div
+              key={row.key}
+              className={cn("h-full first:rounded-l-full last:rounded-r-full", row.tone)}
+              style={{ width: `${width}%` }}
+              title={`${row.label}: ${money(row.amount)}`}
+            />
+          );
+        })}
+      </div>
+
+      <ul className="mt-4 divide-y divide-slate-100">
+        {rows.map((row) => {
+          const Icon = row.icon;
+          const pct = Math.round((row.amount / denom) * 1000) / 10;
+          return (
+            <li
+              key={row.key}
+              className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
+            >
               <div className="flex min-w-0 items-start gap-3">
-                <div className="mt-0.5 rounded-lg bg-muted p-2">
-                  <Icon className="h-4 w-4 text-foreground" />
-                </div>
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-100">
+                  <Icon className="h-4 w-4" />
+                </span>
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground">{label}</p>
-                  <p className="text-sm text-muted-foreground">{sub}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-950">{row.label}</p>
+                    <span className={cn("h-2 w-2 rounded-full", row.tone)} />
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">{row.sub}</p>
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <p className="font-semibold tabular-nums text-foreground">₵{amount.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">{pct}% of tracked spend</p>
+                <p className="text-sm font-semibold tabular-nums text-slate-950">
+                  {money(row.amount)}
+                </p>
+                <p className="text-[11px] text-slate-400">{pct}%</p>
               </div>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full rounded-full transition-all ${color}`}
-                style={{ width: `${Math.min(100, pct)}%` }}
-              />
-            </div>
-          </div>
-        );
-      })}
-      <p className="border-t border-border/60 pt-4 text-xs text-muted-foreground">
-        Media totals use bookings tied to your account email with status confirmed or completed. Campaign totals use
-        accepted application rates only; actual transfers may differ.
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-400">
+        Media totals use confirmed/completed bookings. Campaign totals use accepted application
+        rates; actual transfers may differ.
       </p>
     </div>
   );
 }
 
 export function ClientPayoutsPage() {
+  const [tab, setTab] = useState("escrow");
   const [transactions, setTransactions] = useState([]);
   const [escrowPayments, setEscrowPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,298 +276,340 @@ export function ClientPayoutsPage() {
     mediaBookings: { total: 0 },
     campaignPayouts: { total: 0, acceptedApplications: 0 },
   });
+  const [transactionStats, setTransactionStats] = useState({
+    totalCount: 0,
+    creditPurchases: 0,
+    creditsIn: 0,
+    creditsOut: 0,
+    mediaBookings: 0,
+    productPurchases: 0,
+    campaignRates: 0,
+    escrowCount: 0,
+    volumeGhs: 0,
+    avgTicketGhs: 0,
+    last30Days: 0,
+  });
 
   useEffect(() => {
-    fetchPayoutData();
-  }, []);
-
-  const fetchPayoutData = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/client/payouts", {
-        credentials: "include",
-      });
-      if (res.ok) {
+    let cancelled = false;
+    (async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/client/payouts", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
+        if (cancelled) return;
         setTransactions(data.transactions || []);
         setEscrowPayments(data.escrowPayments || []);
         setStats(data.stats || stats);
-        if (data.expenseBreakdown) {
-          setExpenseBreakdown(data.expenseBreakdown);
-        }
+        if (data.expenseBreakdown) setExpenseBreakdown(data.expenseBreakdown);
+        if (data.transactionStats) setTransactionStats(data.transactionStats);
+      } catch (error) {
+        console.error("Failed to fetch payout data:", error);
+        if (!cancelled) toast.error("Failed to load payout information");
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch payout data:", error);
-      toast.error("Failed to load payout information");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      PENDING: { variant: "secondary", icon: Clock, label: "Pending", color: "text-yellow-500" },
-      IN_ESCROW: { variant: "default", icon: Shield, label: "In Escrow", color: "text-blue-500" },
-      COMPLETED: { variant: "default", icon: CheckCircle, label: "Completed", color: "text-green-500" },
-      RELEASED: { variant: "default", icon: CheckCircle, label: "Released", color: "text-green-500" },
-      CANCELLED: { variant: "destructive", icon: XCircle, label: "Cancelled", color: "text-red-500" },
-      REFUNDED: { variant: "destructive", icon: XCircle, label: "Refunded", color: "text-red-500" },
+    })();
+    return () => {
+      cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount fetch
+  }, []);
 
-    const config = statusConfig[status] || statusConfig.PENDING;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className={`h-3 w-3 ${config.color}`} />
-        {config.label}
-      </Badge>
-    );
-  };
+  const tabCounts = useMemo(
+    () => ({
+      escrow: escrowPayments.length,
+      history: transactions.length,
+    }),
+    [escrowPayments.length, transactions.length]
+  );
 
   return (
     <ClientPageShell
       eyebrow="Payments"
-      title="Payouts & payments"
-      description="Track escrow, completed payments, where your spend goes, and your payment history."
+      title="Payouts"
+      description="Escrow balances, spend mix, and payment history across talent, media, and campaigns."
     >
-    <div className="space-y-6">
-      {/* Expense breakdown */}
-      <Card className={clientCardClass}>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <PieChart className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle className="text-foreground">Expense breakdown</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Where your money has gone: talent services, media bookings, and accepted campaign talent
-                compensation (rates on accepted applications).
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="py-6 text-center text-muted-foreground">Loading breakdown…</div>
-          ) : (
-            <ExpenseBreakdownBody breakdown={expenseBreakdown} />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className={clientCardClass}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Total spent</p>
-                <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.totalSpent.toFixed(2)}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3">
-                <DollarSign className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={clientCardClass}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">In escrow</p>
-                <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.inEscrow.toFixed(2)}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={clientCardClass}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold tabular-nums text-foreground">₵{stats.pendingPayments.toFixed(2)}</p>
-              </div>
-              <div className="rounded-lg bg-amber-500/10 p-3">
-                <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={clientCardClass}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mb-1 text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold tabular-nums text-primary">₵{stats.completedPayments.toFixed(2)}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3">
-                <CheckCircle className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          icon={DollarSign}
+          label="Total spent"
+          value={isLoading ? "—" : money(stats.totalSpent)}
+          hint="All tracked outflows"
+        />
+        <StatCard
+          icon={Shield}
+          label="In escrow"
+          value={isLoading ? "—" : money(stats.inEscrow)}
+          hint="Held until delivery"
+        />
+        <StatCard
+          icon={Clock3}
+          label="Pending"
+          value={isLoading ? "—" : money(stats.pendingPayments)}
+          hint="Awaiting confirmation"
+          accent={stats.pendingPayments > 0 ? "amber" : undefined}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Completed"
+          value={isLoading ? "—" : money(stats.completedPayments)}
+          hint="Released / settled"
+          accent="emerald"
+        />
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="escrow" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 rounded-xl border border-border/60 bg-card/60 p-1">
-          <TabsTrigger
-            value="escrow"
-            className="rounded-lg data-[state=active]:bg-slate-950 data-[state=active]:text-white"
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            Escrow
-          </TabsTrigger>
-          <TabsTrigger
-            value="transactions"
-            className="rounded-lg data-[state=active]:bg-slate-950 data-[state=active]:text-white"
-          >
-            <CreditCard className="mr-2 h-4 w-4" />
-            History
-          </TabsTrigger>
-        </TabsList>
+      <ExpenseBreakdown breakdown={expenseBreakdown} loading={isLoading} />
 
-        {/* Escrow Payments Tab */}
-        <TabsContent value="escrow" className="mt-6 space-y-4">
-          <Card className={clientCardClass}>
-            <CardHeader>
-              <CardTitle className="text-foreground">Escrow</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Payments held until services are completed
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="py-8 text-center text-muted-foreground">Loading...</div>
-              ) : escrowPayments.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <Shield className="mx-auto mb-4 h-12 w-12 opacity-50" />
-                  <p>No escrow payments at this time</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {escrowPayments.map((payment) => (
-                    <div
-                      key={payment.id}
-                      className="rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-primary/30"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-center gap-3">
-                            <h3 className="font-semibold text-foreground">{payment.title}</h3>
-                            {getStatusBadge(payment.status)}
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-                            <div>
-                              <p className="text-muted-foreground">Amount</p>
-                              <p className="font-medium tabular-nums text-foreground">₵{payment.amount.toFixed(2)}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">To</p>
-                              <p className="font-medium text-foreground">{payment.recipientName}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Date</p>
-                              <p className="font-medium text-foreground">
-                                {format(new Date(payment.createdAt), "MMM d, yyyy")}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Reference</p>
-                              <p className="font-mono text-xs text-foreground">{payment.paymentReference}</p>
-                            </div>
-                          </div>
-                          {payment.description && (
-                            <p className="mt-2 text-sm text-muted-foreground">{payment.description}</p>
+      <section className={cn(clientCardClass, "p-4 sm:p-5")}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Transaction stats
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Volume and counts across credits, media, products, and campaigns
+            </p>
+          </div>
+          {!isLoading ? (
+            <p className="text-xs text-slate-400">
+              {transactionStats.last30Days} in the last 30 days
+            </p>
+          ) : null}
+        </div>
+
+        {isLoading ? (
+          <div className="mt-4 flex items-center justify-center gap-2 py-6 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading transactions…
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MetricTile
+                icon={Receipt}
+                label="Total transactions"
+                value={String(transactionStats.totalCount)}
+              />
+              <MetricTile
+                icon={Activity}
+                label="Volume"
+                value={money(transactionStats.volumeGhs)}
+              />
+              <MetricTile
+                icon={Wallet}
+                label="Avg ticket"
+                value={money(transactionStats.avgTicketGhs)}
+              />
+              <MetricTile
+                icon={Shield}
+                label="In escrow now"
+                value={String(transactionStats.escrowCount)}
+              />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniStat
+                label="Credits in"
+                value={money(transactionStats.creditsIn)}
+                hint={`${transactionStats.creditPurchases} purchase${transactionStats.creditPurchases === 1 ? "" : "s"}`}
+              />
+              <MiniStat
+                label="Credits out"
+                value={money(transactionStats.creditsOut)}
+                hint="Talent bookings & adjustments"
+              />
+              <MiniStat
+                label="Media bookings"
+                value={String(transactionStats.mediaBookings)}
+                hint="Confirmed / completed"
+              />
+              <MiniStat
+                label="Products · campaigns"
+                value={`${transactionStats.productPurchases} · ${transactionStats.campaignRates}`}
+                hint="Purchases · accepted rates"
+              />
+            </div>
+          </>
+        )}
+      </section>
+
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((item) => {
+          const Icon = item.icon;
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                active
+                  ? "bg-slate-950 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-100"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {item.label}
+              <span className="opacity-70">{tabCounts[item.id]}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "escrow" ? (
+        <section className={cn(clientCardClass, "overflow-hidden")}>
+          <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
+            <h2 className="text-base font-semibold text-slate-950">Escrow</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Payments held until the related service or delivery is complete
+            </p>
+          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 px-5 py-12 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading escrow…
+            </div>
+          ) : escrowPayments.length === 0 ? (
+            <div className="flex flex-col items-center px-5 py-12 text-center">
+              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <Shield className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-medium text-slate-700">Nothing in escrow</p>
+              <p className="mt-1 max-w-sm text-xs text-slate-400">
+                When you fund a booking or campaign payout, it will sit here until release.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {escrowPayments.map((payment) => (
+                <li
+                  key={payment.id}
+                  className="flex flex-col gap-3 px-4 py-4 transition hover:bg-slate-50/80 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                >
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="truncate text-sm font-semibold text-slate-950">
+                        {payment.title}
+                      </h3>
+                      <StatusBadge status={payment.status} />
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <span>
+                        To{" "}
+                        <span className="font-medium text-slate-700">
+                          {payment.recipientName}
+                        </span>
+                      </span>
+                      <span>
+                        {format(new Date(payment.createdAt), "MMM d, yyyy")}
+                      </span>
+                      {payment.paymentReference ? (
+                        <span className="font-mono text-[11px] text-slate-400">
+                          {payment.paymentReference}
+                        </span>
+                      ) : null}
+                    </div>
+                    {payment.description ? (
+                      <p className="text-sm text-slate-500">{payment.description}</p>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <p className="text-base font-semibold tabular-nums text-slate-950">
+                      {money(payment.amount)}
+                    </p>
+                    {payment.status === "IN_ESCROW" ? (
+                      <Button variant="outline" size="sm" className="rounded-full">
+                        Details
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <section className={cn(clientCardClass, "overflow-hidden")}>
+          <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
+            <h2 className="text-base font-semibold text-slate-950">Payment history</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Credit purchases and other settled transactions
+            </p>
+          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 px-5 py-12 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading history…
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="flex flex-col items-center px-5 py-12 text-center">
+              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <CreditCard className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-medium text-slate-700">No payments yet</p>
+              <p className="mt-1 max-w-sm text-xs text-slate-400">
+                Credit top-ups and completed payouts will appear in this list.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {transactions.map((transaction) => {
+                const isCredit = transaction.type === "CREDIT_PURCHASE";
+                return (
+                  <li
+                    key={transaction.id}
+                    className="flex items-center justify-between gap-4 px-4 py-4 transition hover:bg-slate-50/80 sm:px-5"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1",
+                          isCredit
+                            ? "bg-slate-950 text-white ring-slate-950"
+                            : "bg-slate-50 text-slate-600 ring-slate-100"
+                        )}
+                      >
+                        {isCredit ? (
+                          <ArrowDownRight className="h-4 w-4" />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4" />
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-950">
+                          {transaction.description}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {format(
+                            new Date(transaction.createdAt),
+                            "MMM d, yyyy · h:mm a"
                           )}
-                        </div>
-                        <div className="ml-4">
-                          {payment.status === "IN_ESCROW" && (
-                            <Button variant="glass" size="sm">
-                              Details
-                            </Button>
-                          )}
-                        </div>
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payment History Tab */}
-        <TabsContent value="transactions" className="mt-6 space-y-4">
-          <Card className={clientCardClass}>
-            <CardHeader>
-              <CardTitle className="text-foreground">Payment history</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Transactions and credit purchases
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="py-8 text-center text-muted-foreground">Loading...</div>
-              ) : transactions.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <CreditCard className="mx-auto mb-4 h-12 w-12 opacity-50" />
-                  <p>No payment history yet</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {transactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:border-primary/30"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`rounded-lg p-3 ${
-                              transaction.type === "CREDIT_PURCHASE" ? "bg-primary/10" : "bg-muted"
-                            }`}
-                          >
-                            {transaction.type === "CREDIT_PURCHASE" ? (
-                              <ArrowDownRight className="h-5 w-5 text-primary" />
-                            ) : (
-                              <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-foreground">{transaction.description}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(transaction.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`font-bold tabular-nums ${
-                              transaction.type === "CREDIT_PURCHASE" ? "text-primary" : "text-foreground"
-                            }`}
-                          >
-                            {transaction.type === "CREDIT_PURCHASE" ? "+" : "-"}₵
-                            {Math.abs(transaction.amount).toFixed(2)}
-                          </p>
-                          {getStatusBadge(transaction.status)}
-                        </div>
+                    <div className="shrink-0 text-right">
+                      <p
+                        className={cn(
+                          "text-sm font-semibold tabular-nums",
+                          isCredit ? "text-emerald-600" : "text-slate-950"
+                        )}
+                      >
+                        {isCredit ? "+" : "−"}
+                        {money(Math.abs(transaction.amount))}
+                      </p>
+                      <div className="mt-1 flex justify-end">
+                        <StatusBadge status={transaction.status} />
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
     </ClientPageShell>
   );
 }

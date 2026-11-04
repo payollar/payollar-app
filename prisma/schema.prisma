@@ -69,6 +69,8 @@ model User {
   creatorChats         BookingConversation[] @relation("CreatorChats")
   sentBookingMessages  BookingMessage[]      @relation("SentBookingMessages")
   bookingInvoices      BookingInvoice[]      @relation("BookingInvoiceCreator")
+  creatorDeliveryReports DeliveryReport[]    @relation("CreatorDeliveryReports")
+  clientDeliveryReports  DeliveryReport[]    @relation("ClientDeliveryReports")
 }
 
 model ProfileView {
@@ -203,8 +205,9 @@ model Appointment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  conversation BookingConversation?
-  invoices     BookingInvoice[]
+  conversation   BookingConversation?
+  invoices       BookingInvoice[]
+  deliveryReport DeliveryReport?
 
   @@index([status, startTime])
   @@index([creatorId, startTime])
@@ -348,6 +351,8 @@ model Campaign {
   benefits     String[]       @default([]) // Rewards & benefits for creators
   requirements String[] // Array of requirement strings
   faqs         Json? // [{ question: string, answer: string }]
+  /// Optional engagement goals for social campaigns: { views, likes, comments, shares, reach }
+  metricTargets Json?
   paymentNote  String? // e.g. "Per creator", "Product + fee"
   imageUrl     String? // Campaign image URL
   status       CampaignStatus @default(DRAFT)
@@ -386,15 +391,56 @@ model CampaignApplication {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
+  deliveryReport DeliveryReport?
+
   @@unique([campaignId, talentId]) // Prevent duplicate applications
   @@index([campaignId, status])
   @@index([talentId])
+}
+
+enum DeliveryReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
+}
+
+/// Creator delivery / proof-of-work report for a campaign hire or booking.
+model DeliveryReport {
+  id            String               @id @default(uuid())
+  applicationId String?              @unique
+  application   CampaignApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  appointmentId String?              @unique
+  appointment   Appointment?         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  creatorId     String
+  creator       User                 @relation("CreatorDeliveryReports", fields: [creatorId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        User                 @relation("ClientDeliveryReports", fields: [clientId], references: [id], onDelete: Cascade)
+  title         String
+  status        DeliveryReportStatus @default(DRAFT)
+  /// [{ id, label, done }]
+  checklist     Json
+  proofLinks    String[]             @default([])
+  /// [{ url, name, type, size, key }]
+  proofFiles    Json                 @default("[]")
+  proofNotes    String?              @db.Text
+  /// { targets, entries[], platform, postUrl, views, likes, comments, shares, reach, source }
+  metrics       Json?
+  clientFeedback String?             @db.Text
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([creatorId, status, updatedAt])
+  @@index([clientId, status, updatedAt])
 }
 
 enum ApplicationStatus {
   PENDING
   ACCEPTED
   REJECTED
+  REDRAWN
 }
 
 model DigitalProduct {

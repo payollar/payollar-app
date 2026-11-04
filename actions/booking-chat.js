@@ -298,6 +298,147 @@ export async function startBookingChat({ doctorId, startTime, endTime, descripti
   }
 }
 
+/**
+ * Open (or create) an in-app chat with a campaign applicant.
+ * Reuses any open booking thread between the parties when one exists.
+ */
+export async function startCampaignApplicationChat(applicationId) {
+  try {
+    const auth = await getAuthUserId();
+    if (!auth?.userId) {
+      return { code: "UNAUTHENTICATED", error: "Sign in to message this creator." };
+    }
+    const userId = auth.userId;
+
+    if (!applicationId) {
+      return { error: "Application not found." };
+    }
+
+    const owner = await db.user.findFirst({
+      where: { id: userId, role: { in: ["CLIENT", "MEDIA_AGENCY"] } },
+      select: { id: true, role: true, name: true },
+    });
+    if (!owner) {
+      return { error: "Only clients and media agencies can message campaign applicants." };
+    }
+
+    const application = await db.campaignApplication.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        name: true,
+        rate: true,
+        talentId: true,
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            brand: true,
+            clientId: true,
+          },
+        },
+        talent: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!application || application.campaign.clientId !== owner.id) {
+      return { error: "Application not found or unauthorized." };
+    }
+    if (!application.talent || application.talent.role !== "CREATOR") {
+      return { error: "This creator is not available to message." };
+    }
+
+    const existing = await db.appointment.findFirst({
+      where: {
+        clientId: owner.id,
+        creatorId: application.talentId,
+        status: { in: ["REQUESTED", "SCHEDULED"] },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    });
+
+    let appointmentId = existing?.id || null;
+    let isNew = false;
+
+    if (!appointmentId) {
+      const start = new Date();
+      start.setDate(start.getDate() + 7);
+      start.setHours(12, 0, 0, 0);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      const brief = [
+        `Campaign application: ${application.campaign.title}`,
+        application.campaign.brand ? `Brand: ${application.campaign.brand}` : null,
+        application.rate != null && Number.isFinite(Number(application.rate))
+          ? `Asked rate: ₵${Number(application.rate).toLocaleString()}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 2000);
+
+      const created = await db.appointment.create({
+        data: {
+          clientId: owner.id,
+          creatorId: application.talentId,
+          startTime: start,
+          endTime: end,
+          clientDescription: brief,
+          status: "REQUESTED",
+        },
+        select: { id: true },
+      });
+      appointmentId = created.id;
+      isNew = true;
+    }
+
+    const conversation = await ensureBookingConversation(appointmentId);
+    if (!conversation) {
+      return { error: "Could not open the chat." };
+    }
+
+    const messageCount = await db.bookingMessage.count({
+      where: { conversationId: conversation.id },
+    });
+
+    if (messageCount === 0) {
+      const applicantName = application.name || application.talent.name || "there";
+      const intro = [
+        `Hi ${applicantName}, thanks for applying to “${application.campaign.title}”.`,
+        "I'd like to chat about deliverables and next steps on Payollar.",
+      ].join(" ");
+
+      await db.bookingMessage.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: owner.id,
+          body: intro.slice(0, 2000),
+          kind: "TEXT",
+        },
+      });
+      await db.bookingConversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+    }
+
+    revalidatePath("/messages");
+    revalidatePath(`/messages/${appointmentId}`);
+    revalidatePath("/client/bookings");
+    revalidatePath("/creator/bookings");
+    return { appointmentId, isNew };
+  } catch (error) {
+    console.error("startCampaignApplicationChat failed:", error);
+    return { error: friendlyDbError(error) || "Could not open the chat. Please try again." };
+  }
+}
+
 export async function sendBookingMessage(appointmentId, body) {
   try {
     const userId = await requireUserId();

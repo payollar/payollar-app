@@ -38,6 +38,11 @@ import {
   FOLLOWER_RANGE_PRESETS,
   matchFollowerPreset,
 } from "@/lib/campaign-followers";
+import {
+  PROOF_METRIC_FIELDS,
+  emptyMetricTargetsForm,
+} from "@/lib/delivery-report-ui";
+import { isSocialCampaignCategory } from "@/lib/social-metrics";
 
 const fieldClass =
   "h-11 rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-slate-950/20";
@@ -70,11 +75,16 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
   const [benefits, setBenefits] = useState([]);
   const [faqs, setFaqs] = useState([]);
   const [faqDraft, setFaqDraft] = useState({ question: "", answer: "" });
+  const [metricTargets, setMetricTargets] = useState(emptyMetricTargetsForm());
 
   const [formData, setFormData] = useState({
     ...EMPTY_FORM,
     brand: defaultBrand,
   });
+  const showMetricTargets = isSocialCampaignCategory(
+    formData.category,
+    formData.subcategory
+  );
 
   const selectedFollowerPreset = matchFollowerPreset(
     formData.followerMin,
@@ -99,6 +109,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
     setBenefits([]);
     setFaqs([]);
     setFaqDraft({ question: "", answer: "" });
+    setMetricTargets(emptyMetricTargetsForm());
   };
 
   const applyFollowerPreset = (preset) => {
@@ -162,6 +173,9 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
       submitFormData.append("imageUrl", formData.imageUrl || "");
       submitFormData.append("requirements", JSON.stringify(requirements));
       submitFormData.append("deliverables", JSON.stringify(deliverables));
+      if (showMetricTargets) {
+        submitFormData.append("metricTargets", JSON.stringify(metricTargets));
+      }
       submitFormData.append("objectives", JSON.stringify(objectives));
       submitFormData.append("benefits", JSON.stringify(benefits));
       submitFormData.append("faqs", JSON.stringify(faqs));
@@ -434,6 +448,41 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                 items={benefits}
                 onChange={setBenefits}
               />
+              {showMetricTargets ? (
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">
+                      Engagement targets
+                      <span className="font-normal text-slate-400"> · optional</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Creators will see these goals on the delivery report and fill in actual
+                      results when they submit proof.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                    {PROOF_METRIC_FIELDS.map(([key, label]) => (
+                      <label key={key} className="space-y-1">
+                        <span className="text-[11px] font-medium text-slate-500">{label}</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          inputMode="numeric"
+                          value={metricTargets[key] ?? ""}
+                          placeholder="—"
+                          className={fieldClass}
+                          onChange={(e) =>
+                            setMetricTargets((prev) => ({
+                              ...prev,
+                              [key]: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className="space-y-4">

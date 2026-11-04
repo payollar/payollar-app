@@ -31,6 +31,7 @@
     "@radix-ui/react-tabs": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.56.0",
+    "@supadata/js": "^1.4.0",
     "@uploadthing/react": "^7.3.3",
     "@vonage/auth": "^1.12.0",
     "@vonage/client-sdk-video": "^2.30.0",

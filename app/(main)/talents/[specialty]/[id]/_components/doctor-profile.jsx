@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -328,9 +328,11 @@ function PortfolioTile({ item }) {
 
 export function DoctorProfile({ doctor, availableDays }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const sessionUser = session?.user;
   const canReview = sessionUser?.role === "CLIENT";
+  const campaignFromHire = searchParams?.get("campaign")?.trim() || "";
 
   const [tab, setTab] = useState("overview");
   const [showBooking, setShowBooking] = useState(false);
@@ -384,6 +386,17 @@ export function DoctorProfile({ doctor, availableDays }) {
       setReviews([]);
     }
   }, [reviewsStorageKey]);
+
+  useEffect(() => {
+    if (!campaignFromHire) return;
+    setBookingServiceNote(`Campaign hire: ${campaignFromHire}`);
+    if (typeof window !== "undefined" && window.location.hash === "#booking-section") {
+      setTab("availability");
+      setTimeout(() => {
+        document.getElementById("booking-section")?.scrollIntoView({ behavior: "smooth" });
+      }, 120);
+    }
+  }, [campaignFromHire]);
 
   useEffect(() => {
     if (!sessionUser?.id) return;

@@ -16,6 +16,7 @@ import {
   HelpCircle,
   ScrollText,
   Megaphone,
+  MessageCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const menuItems = [
   { title: "Smart rate card", icon: FileText, href: "/media-agency/smart-rate-card" },
   { title: "Requests", icon: Inbox, href: "/media-agency/requests" },
   { title: "Campaigns", icon: Megaphone, href: "/media-agency/campaigns" },
+  { title: "Messages", icon: MessageCircle, href: "/messages" },
   { title: "Terms & conditions", icon: ScrollText, href: "/media-agency/terms" },
   {
     title: "Transmission certificates",

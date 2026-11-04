@@ -160,7 +160,7 @@ export function CampaignApplyDialog({
                 variant="outline"
                 onClick={fillFromProfile}
                 disabled={isSubmitting}
-                className="shrink-0 rounded-full border-violet-200 bg-white text-[#6d28d9] hover:bg-violet-50"
+                className="shrink-0 rounded-full border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
               >
                 <UserRound className="mr-1.5 h-4 w-4" />
                 {usedProfile ? "Refill from profile" : "Use my profile"}
@@ -300,7 +300,8 @@ export function CampaignApplyDialog({
             </Button>
             <Button
               type="submit"
-              className="flex-1 rounded-full bg-[#6d28d9] font-semibold hover:bg-[#5b21b6]"
+              variant="black"
+              className="flex-1 rounded-full font-semibold"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

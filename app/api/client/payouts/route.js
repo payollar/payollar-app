@@ -209,11 +209,54 @@ export async function GET() {
       status: txStatus(t.type, t.amount),
     }));
 
+    const creditPurchases = transactions.filter(
+      (t) => t.type === "CREDIT_PURCHASE" && t.amount > 0
+    );
+    const creditSpend = transactions.filter((t) => t.amount < 0);
+    const creditsIn = creditPurchases.reduce((s, t) => s + (t.amount || 0), 0);
+    const creditsOut = creditSpend.reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+    const completedMediaCount = [...mediaBookingsAll, ...rateCardBookingsAll].filter((b) =>
+      mediaCommittedStatuses.includes(b.status)
+    ).length;
+    const completedProductCount = productSalesCompleted.length;
+    const activityCount =
+      transactions.length +
+      completedMediaCount +
+      completedProductCount +
+      acceptedCampaignApps.length;
+    const volumeGhs =
+      creditsIn + creditsOut + talentProductsGhs + mediaSpentGhs + campaignPayoutsGhs;
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const recentCount =
+      transactions.filter((t) => new Date(t.createdAt).getTime() >= thirtyDaysAgo).length +
+      [...mediaBookingsAll, ...rateCardBookingsAll].filter(
+        (b) =>
+          mediaCommittedStatuses.includes(b.status) &&
+          new Date(b.createdAt).getTime() >= thirtyDaysAgo
+      ).length +
+      productSalesCompleted.filter((p) => new Date(p.createdAt).getTime() >= thirtyDaysAgo)
+        .length;
+
+    const transactionStats = {
+      totalCount: activityCount,
+      creditPurchases: creditPurchases.length,
+      creditsIn,
+      creditsOut,
+      mediaBookings: completedMediaCount,
+      productPurchases: completedProductCount,
+      campaignRates: acceptedCampaignApps.length,
+      escrowCount: escrowPayments.length,
+      volumeGhs,
+      avgTicketGhs: activityCount > 0 ? volumeGhs / activityCount : 0,
+      last30Days: recentCount,
+    };
+
     return NextResponse.json({
       transactions: enrichedTransactions,
       escrowPayments,
       stats,
       expenseBreakdown,
+      transactionStats,
     });
   } catch (error) {
     console.error("Error fetching client payouts:", error);

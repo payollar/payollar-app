@@ -57,5 +57,24 @@ export const ourFileRouter = {
         size: file.size,
       };
     }),
+  /** Delivery report proof: screenshots, PDFs, short videos */
+  deliveryProof: f(
+    {
+      image: { maxFileSize: "16MB", maxFileCount: 8 },
+      pdf: { maxFileSize: "16MB", maxFileCount: 8 },
+      video: { maxFileSize: "64MB", maxFileCount: 4 },
+    },
+    {
+      awaitServerData: false,
+    }
+  ).onUploadComplete(async ({ file }) => {
+    return {
+      url: file.url || `https://utfs.io/f/${file.key}`,
+      key: file.key,
+      type: file.type,
+      name: file.name,
+      size: file.size,
+    };
+  }),
 };
 

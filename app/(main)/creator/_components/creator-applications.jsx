@@ -1,22 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format, isPast } from "date-fns";
 import {
   ArrowRight,
   Calendar,
   CheckCircle2,
+  ClipboardList,
   Clock3,
   ExternalLink,
   FileText,
+  Loader2,
   MapPin,
   Megaphone,
   Search,
   Wallet,
   XCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { startDeliveryReportFromApplication } from "@/actions/delivery-reports";
 import { campaignCategoryLabel } from "@/lib/campaign-categories";
 import { campaignPlaceLabel } from "@/lib/campaign-places";
 import { cn } from "@/lib/utils";
@@ -38,6 +43,7 @@ const STATUS_FILTERS = [
   { id: "PENDING", label: "Pending" },
   { id: "ACCEPTED", label: "Accepted" },
   { id: "REJECTED", label: "Rejected" },
+  { id: "REDRAWN", label: "Redrawn" },
 ];
 
 function asMoney(value) {
@@ -73,6 +79,13 @@ function statusMeta(status) {
       icon: XCircle,
     };
   }
+  if (status === "REDRAWN") {
+    return {
+      label: "Redrawn",
+      className: "border-slate-200 bg-slate-100 text-slate-700",
+      icon: XCircle,
+    };
+  }
   return {
     label: "Pending",
     className: "border-amber-200 bg-amber-50 text-amber-700",
@@ -93,8 +106,30 @@ function CampaignArt({ title }) {
 }
 
 export function CreatorApplications({ applications = [] }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [startingId, setStartingId] = useState(null);
+  const [pending, startTransition] = useTransition();
+
+  const openReport = (application) => {
+    if (application.deliveryReport?.id) {
+      router.push(`/creator/reports/${application.deliveryReport.id}`);
+      return;
+    }
+    setStartingId(application.id);
+    startTransition(async () => {
+      try {
+        const result = await startDeliveryReportFromApplication(application.id);
+        router.push(`/creator/reports/${result.reportId}`);
+        router.refresh();
+      } catch (error) {
+        toast.error(error.message || "Could not open report");
+      } finally {
+        setStartingId(null);
+      }
+    });
+  };
 
   const counts = useMemo(() => {
     return applications.reduce(
@@ -321,6 +356,27 @@ export function CreatorApplications({ applications = [] }) {
                           </div>
 
                           <div className="flex shrink-0 flex-wrap gap-2">
+                            {application.status === "ACCEPTED" ? (
+                              <Button
+                                type="button"
+                                variant="black"
+                                size="sm"
+                                className="rounded-full"
+                                disabled={pending && startingId === application.id}
+                                onClick={() => openReport(application)}
+                              >
+                                {pending && startingId === application.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <>
+                                    <ClipboardList className="h-3.5 w-3.5" />
+                                    {application.deliveryReport?.id
+                                      ? "Open report"
+                                      : "Delivery report"}
+                                  </>
+                                )}
+                              </Button>
+                            ) : null}
                             {campaign?.id ? (
                               <Button
                                 asChild

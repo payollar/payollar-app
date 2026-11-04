@@ -10,6 +10,7 @@ import {
   BadgeCheck,
   ShoppingBag,
   Calendar,
+  ClipboardList,
   FileText,
   MessageCircle,
   BarChart3,
@@ -64,6 +65,11 @@ const menuItems = [
     title: "Campaigns",
     icon: FileText,
     href: "/creator/applications",
+  },
+  {
+    title: "Reports",
+    icon: ClipboardList,
+    href: "/creator/reports",
   },
   {
     title: "Messages",

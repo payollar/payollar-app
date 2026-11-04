@@ -9,8 +9,10 @@ const CAMPAIGN_OWNER_ROLES = ["CLIENT", "MEDIA_AGENCY"];
 function revalidateCampaignPaths() {
   revalidatePath("/campaigns");
   revalidatePath("/creator/applications");
+  revalidatePath("/creator/reports");
   revalidatePath("/client");
   revalidatePath("/client/campaigns");
+  revalidatePath("/client/reports");
   revalidatePath("/media-agency");
   revalidatePath("/media-agency/campaigns");
 }
@@ -117,6 +119,28 @@ export async function createCampaign(formData) {
     const objectivesArray = parseStringList(formData.get("objectives"));
     const benefitsArray = parseStringList(formData.get("benefits"));
     const faqsArray = parseFaqList(formData.get("faqs"));
+    let metricTargets = null;
+    try {
+      const rawTargets = formData.get("metricTargets");
+      if (rawTargets) {
+        const parsed = typeof rawTargets === "string" ? JSON.parse(rawTargets) : rawTargets;
+        const num = (v) => {
+          if (v === "" || v == null) return null;
+          const n = Number(v);
+          return Number.isFinite(n) && n >= 0 ? n : null;
+        };
+        const next = {
+          views: num(parsed?.views),
+          likes: num(parsed?.likes),
+          comments: num(parsed?.comments),
+          shares: num(parsed?.shares),
+          reach: num(parsed?.reach),
+        };
+        if (Object.values(next).some((v) => v != null)) metricTargets = next;
+      }
+    } catch {
+      metricTargets = null;
+    }
 
     if (!title || !brand || !description || !category || !subcategory || !country || !location || !deadline) {
       throw new Error("Title, brand, description, category, subcategory, country, location, and deadline are required");
@@ -157,6 +181,7 @@ export async function createCampaign(formData) {
         objectives: objectivesArray,
         benefits: benefitsArray,
         faqs: faqsArray.length ? faqsArray : null,
+        metricTargets,
         status: status,
       },
     });
@@ -251,6 +276,39 @@ export async function getPublicCampaignById(campaignId) {
   }
 }
 
+const CLIENT_CAMPAIGN_APPLICATION_SELECT = {
+  id: true,
+  status: true,
+  name: true,
+  email: true,
+  phone: true,
+  location: true,
+  portfolio: true,
+  experience: true,
+  rate: true,
+  availability: true,
+  additionalInfo: true,
+  createdAt: true,
+  talent: {
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      specialty: true,
+    },
+  },
+};
+
+function withApplicationCounts(campaign) {
+  const applications = campaign.applications || [];
+  return {
+    ...campaign,
+    applicants: applications.length,
+    pendingApplications: applications.filter((app) => app.status === "PENDING").length,
+    acceptedApplications: applications.filter((app) => app.status === "ACCEPTED").length,
+  };
+}
+
 /**
  * Get campaigns created by the current client or media agency user
  */
@@ -274,19 +332,8 @@ export async function getClientCampaigns() {
       },
       include: {
         applications: {
-          select: {
-            id: true,
-            status: true,
-            talent: {
-              select: {
-                id: true,
-                name: true,
-                imageUrl: true,
-                specialty: true,
-              },
-            },
-            createdAt: true,
-          },
+          select: CLIENT_CAMPAIGN_APPLICATION_SELECT,
+          orderBy: { createdAt: "desc" },
         },
       },
       orderBy: {
@@ -294,17 +341,55 @@ export async function getClientCampaigns() {
       },
     });
 
-    // Add applicant counts
-    const campaignsWithCounts = campaigns.map((campaign) => ({
-      ...campaign,
-      applicants: campaign.applications.length,
-      pendingApplications: campaign.applications.filter((app) => app.status === "PENDING").length,
-    }));
-
-    return { campaigns: campaignsWithCounts };
+    return { campaigns: campaigns.map(withApplicationCounts) };
   } catch (error) {
     console.error("Failed to fetch client campaigns:", error);
     throw new Error("Failed to fetch campaigns: " + error.message);
+  }
+}
+
+/**
+ * Single campaign with applications for the owning client or media agency.
+ */
+export async function getClientCampaignById(campaignId) {
+  const authResult = await getAuthUserId();
+
+  if (!authResult || !authResult.userId) {
+    throw new Error("Unauthorized");
+  }
+
+  if (!campaignId) {
+    throw new Error("Campaign ID is required");
+  }
+
+  try {
+    const owner = await getCampaignOwner(authResult.userId);
+
+    if (!owner) {
+      throw new Error("Only clients and media agencies can view campaigns");
+    }
+
+    const campaign = await db.campaign.findFirst({
+      where: {
+        id: campaignId,
+        clientId: owner.id,
+      },
+      include: {
+        applications: {
+          select: CLIENT_CAMPAIGN_APPLICATION_SELECT,
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!campaign) {
+      return null;
+    }
+
+    return withApplicationCounts(campaign);
+  } catch (error) {
+    console.error("Failed to fetch client campaign:", error);
+    throw new Error("Failed to fetch campaign: " + error.message);
   }
 }
 
@@ -401,7 +486,11 @@ export async function getCreatorCampaignApplications() {
             imageUrl: true,
             budgetMin: true,
             budgetMax: true,
+            deliverables: true,
           },
+        },
+        deliveryReport: {
+          select: { id: true, status: true, updatedAt: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -645,6 +734,10 @@ export async function updateApplicationStatus(formData) {
       throw new Error("Application ID and status are required");
     }
 
+    if (!["PENDING", "ACCEPTED", "REJECTED", "REDRAWN"].includes(status)) {
+      throw new Error("Invalid application status");
+    }
+
     const application = await db.campaignApplication.findUnique({
       where: {
         id: applicationId,
@@ -672,10 +765,118 @@ export async function updateApplicationStatus(formData) {
     });
 
     revalidateCampaignPaths();
+    revalidatePath(`/client/campaigns/${application.campaignId}/applications`);
+    revalidatePath(`/media-agency/campaigns/${application.campaignId}/applications`);
     return { success: true, application: updatedApplication };
   } catch (error) {
     console.error("Failed to update application status:", error);
     throw new Error("Failed to update application: " + error.message);
+  }
+}
+
+/**
+ * Release an accepted hire when the parties do not reach agreement,
+ * so the brand can pick another applicant.
+ */
+export async function redrawCampaignApplication(applicationId, note = "") {
+  const authResult = await getAuthUserId();
+
+  if (!authResult || !authResult.userId) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const owner = await getCampaignOwner(authResult.userId);
+
+    if (!owner) {
+      throw new Error("Only clients and media agencies can redraw applications");
+    }
+
+    if (!applicationId) {
+      throw new Error("Application ID is required");
+    }
+
+    const application = await db.campaignApplication.findUnique({
+      where: { id: applicationId },
+      include: {
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            clientId: true,
+          },
+        },
+        talent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!application || application.campaign.clientId !== owner.id) {
+      throw new Error("Application not found or unauthorized");
+    }
+
+    if (application.status !== "ACCEPTED") {
+      throw new Error("Only accepted applications can be redrawn");
+    }
+
+    const updatedApplication = await db.campaignApplication.update({
+      where: { id: applicationId },
+      data: { status: "REDRAWN" },
+    });
+
+    const reason = String(note || "").trim().slice(0, 500);
+    const openBooking = await db.appointment.findFirst({
+      where: {
+        clientId: owner.id,
+        creatorId: application.talentId,
+        status: { in: ["REQUESTED", "SCHEDULED"] },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        conversation: { select: { id: true } },
+      },
+    });
+
+    if (openBooking?.conversation?.id) {
+      const body = [
+        `We've redrawn the hire for “${application.campaign.title}” because we couldn't reach an agreement.`,
+        reason ? `Note: ${reason}` : null,
+        "You're welcome to stay in touch on Payollar for other opportunities.",
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+        .slice(0, 2000);
+
+      await db.bookingMessage.create({
+        data: {
+          conversationId: openBooking.conversation.id,
+          senderId: owner.id,
+          body,
+          kind: "TEXT",
+        },
+      });
+      await db.bookingConversation.update({
+        where: { id: openBooking.conversation.id },
+        data: { updatedAt: new Date() },
+      });
+      revalidatePath("/messages");
+      revalidatePath(`/messages/${openBooking.id}`);
+    }
+
+    revalidateCampaignPaths();
+    revalidatePath(`/client/campaigns/${application.campaignId}/applications`);
+    revalidatePath(`/media-agency/campaigns/${application.campaignId}/applications`);
+    revalidatePath("/creator/applications");
+
+    return { success: true, application: updatedApplication };
+  } catch (error) {
+    console.error("Failed to redraw application:", error);
+    throw new Error("Failed to redraw application: " + (error.message || "Unknown error"));
   }
 }
 

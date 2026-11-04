@@ -214,9 +214,14 @@ export function OverviewPage({
     let pending = 0;
     for (const application of applications) {
       const campaign = application.campaign;
+      if (!campaign) continue;
+      // Accepted hires always show — even if the brief closed after accept.
+      if (application.status === "ACCEPTED") {
+        active.push(application);
+        continue;
+      }
       if (!isLiveCampaign(campaign)) continue;
       if (application.status === "PENDING") pending += 1;
-      if (application.status === "ACCEPTED") active.push(application);
     }
     return { activeCampaigns: active, pendingApplications: pending };
   }, [applications]);

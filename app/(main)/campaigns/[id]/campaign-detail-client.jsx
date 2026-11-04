@@ -458,7 +458,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                   className={cn(
                     "inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all",
                     active
-                      ? "bg-[#6d28d9] text-white shadow-md shadow-violet-500/20"
+                      ? "bg-slate-950 text-white shadow-md shadow-slate-950/15"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   )}
                 >
@@ -747,15 +747,15 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
 
         {/* Sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-36 lg:self-start">
-          <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_20px_50px_-28px_rgba(109,40,217,0.4)]">
-            <div className="bg-[#6d28d9] px-5 py-4 text-white">
+          <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_20px_50px_-28px_rgba(15,23,42,0.35)]">
+            <div className="bg-slate-950 px-5 py-4 text-white">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
                   <Rocket className="h-4 w-4" />
                 </span>
                 <div>
                   <p className="text-sm font-semibold">Apply for This Campaign</p>
-                  <p className="text-xs text-violet-100">
+                  <p className="text-xs text-slate-300">
                     {closed
                       ? "This brief is no longer accepting applications"
                       : canUseProfile
@@ -777,10 +777,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
               )}
 
               {closed ? (
-                <Button
-                  asChild
-                  className="h-11 w-full rounded-xl bg-[#6d28d9] text-sm font-semibold hover:bg-[#5b21b6]"
-                >
+                <Button asChild variant="black" className="h-11 w-full rounded-full text-sm font-semibold">
                   <Link href="/campaigns">
                     Browse open campaigns
                     <ArrowRight className="ml-1 h-4 w-4" />
@@ -789,8 +786,9 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
               ) : (
                 <Button
                   type="button"
+                  variant="black"
                   onClick={() => setApplyOpen(true)}
-                  className="h-11 w-full rounded-xl bg-[#6d28d9] text-sm font-semibold hover:bg-[#5b21b6]"
+                  className="h-11 w-full rounded-full text-sm font-semibold"
                 >
                   Submit Application
                   <ArrowRight className="ml-1 h-4 w-4" />
@@ -807,7 +805,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                 asChild
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-xl border-[#6d28d9]/25 bg-white text-[#6d28d9] hover:bg-[#f5f3ff]"
+                className="h-11 w-full rounded-full border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
               >
                 <Link href="/contact-support">
                   <MessageSquare className="mr-1.5 h-4 w-4" />
@@ -819,7 +817,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                 <p className="text-center text-xs text-slate-500">
                   <Link
                     href="/creator/profile"
-                    className="font-medium text-[#6d28d9] hover:underline"
+                    className="font-medium text-slate-950 hover:underline"
                   >
                     Complete your profile
                   </Link>{" "}
@@ -884,7 +882,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </div>
             <Link
               href="/campaigns"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#6d28d9] hover:underline"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-slate-950 hover:underline"
             >
               Browse more campaigns
               <ArrowRight className="h-3.5 w-3.5" />
@@ -903,14 +901,15 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </p>
           </div>
           {closed ? (
-            <Button asChild className="rounded-xl bg-[#6d28d9] hover:bg-[#5b21b6]">
+            <Button asChild variant="black" className="rounded-full">
               <Link href="/campaigns">Browse</Link>
             </Button>
           ) : (
             <Button
               type="button"
+              variant="black"
               onClick={() => setApplyOpen(true)}
-              className="rounded-xl bg-[#6d28d9] hover:bg-[#5b21b6]"
+              className="rounded-full"
             >
               Apply
             </Button>

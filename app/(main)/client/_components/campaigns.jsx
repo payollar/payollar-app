@@ -41,7 +41,6 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { CreateCampaignModal } from "./create-campaign-modal";
-import { CampaignApplicationsModal } from "./campaign-applications-modal";
 import { updateCampaignStatus } from "@/actions/campaigns";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -50,6 +49,7 @@ import { MediaAgencyPageShell } from "@/app/(main)/media-agency/_components/medi
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { campaignCategoryLabel } from "@/lib/campaign-categories";
 import { campaignPlaceLabel } from "@/lib/campaign-places";
+import { cn } from "@/lib/utils";
 
 export function ClientCampaigns({
   campaigns = [],
@@ -59,10 +59,9 @@ export function ClientCampaigns({
 }) {
   const isMediaAgency = variant === "media-agency";
   const cardClass = isMediaAgency ? DASHBOARD_CARD_CLASS : clientCardClass;
+  const campaignsBase = isMediaAgency ? "/media-agency/campaigns" : "/client/campaigns";
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialCreateOpen);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const [isApplicationsModalOpen, setIsApplicationsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -84,10 +83,7 @@ export function ClientCampaigns({
     }
   };
 
-  const handleViewApplications = (campaign) => {
-    setSelectedCampaign(campaign);
-    setIsApplicationsModalOpen(true);
-  };
+  const applicationsHref = (campaignId) => `${campaignsBase}/${campaignId}/applications`;
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -213,7 +209,7 @@ export function ClientCampaigns({
                 key={campaign.id}
                 cardClass={cardClass}
                 campaign={campaign}
-                onViewApplications={() => handleViewApplications(campaign)}
+                applicationsHref={applicationsHref(campaign.id)}
                 onStatusUpdate={handleStatusUpdate}
               />
             ))}
@@ -234,7 +230,7 @@ export function ClientCampaigns({
                 key={campaign.id}
                 cardClass={cardClass}
                 campaign={campaign}
-                onViewApplications={() => handleViewApplications(campaign)}
+                applicationsHref={applicationsHref(campaign.id)}
                 onStatusUpdate={handleStatusUpdate}
               />
             ))}
@@ -255,7 +251,7 @@ export function ClientCampaigns({
                 key={campaign.id}
                 cardClass={cardClass}
                 campaign={campaign}
-                onViewApplications={() => handleViewApplications(campaign)}
+                applicationsHref={applicationsHref(campaign.id)}
                 onStatusUpdate={handleStatusUpdate}
               />
             ))}
@@ -275,7 +271,7 @@ export function ClientCampaigns({
                 key={campaign.id}
                 cardClass={cardClass}
                 campaign={campaign}
-                onViewApplications={() => handleViewApplications(campaign)}
+                applicationsHref={applicationsHref(campaign.id)}
                 onStatusUpdate={handleStatusUpdate}
               />
             ))}
@@ -311,21 +307,11 @@ export function ClientCampaigns({
         </Card>
       )}
 
-      {/* Create Campaign Modal */}
       <CreateCampaignModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         defaultBrand={defaultBrand}
       />
-
-      {/* Applications Modal */}
-      {selectedCampaign && (
-        <CampaignApplicationsModal
-          open={isApplicationsModalOpen}
-          onOpenChange={setIsApplicationsModalOpen}
-          campaign={selectedCampaign}
-        />
-      )}
     </div>
   );
 
@@ -361,7 +347,12 @@ export function ClientCampaigns({
   );
 }
 
-function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass = clientCardClass }) {
+function CampaignCard({
+  campaign,
+  applicationsHref,
+  onStatusUpdate,
+  cardClass = clientCardClass,
+}) {
   const budgetDisplay = campaign.budgetMin && campaign.budgetMax
     ? `₵${campaign.budgetMin.toLocaleString()} - ₵${campaign.budgetMax.toLocaleString()}`
     : campaign.budgetMin
@@ -385,6 +376,8 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
   };
 
   const applicantsCount = campaign.applicants || campaign._count?.applications || 0;
+  const acceptedApplications =
+    campaign.applications?.filter((app) => app.status === "ACCEPTED").length || 0;
 
   return (
     <Card
@@ -450,13 +443,19 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
                     </DropdownMenuItem>
                   </>
                 )}
-                <DropdownMenuItem
-                  onClick={() => onViewApplications(campaign)}
-                  disabled={applicantsCount === 0}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View applications ({applicantsCount})
-                </DropdownMenuItem>
+                {applicantsCount > 0 ? (
+                  <DropdownMenuItem asChild>
+                    <Link href={applicationsHref}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View applications ({applicantsCount})
+                    </Link>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View applications (0)
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -481,16 +480,23 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
               Deadline: {format(new Date(campaign.deadline), "MMM d, yyyy")}
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center text-muted-foreground">
               <Users className="h-4 w-4 mr-2" />
               <span>{applicantsCount} applicant{applicantsCount !== 1 ? 's' : ''}</span>
             </div>
-            {campaign.pendingApplications > 0 && (
-              <Badge variant="outline" className="border-primary/30 text-primary">
-                {campaign.pendingApplications} pending
-              </Badge>
-            )}
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {campaign.pendingApplications > 0 ? (
+                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+                  {campaign.pendingApplications} pending
+                </Badge>
+              ) : null}
+              {acceptedApplications > 0 ? (
+                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
+                  {acceptedApplications} accepted
+                </Badge>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -511,13 +517,30 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
 
         <div className="flex flex-col gap-2 pt-2">
           <Button
-            variant="outline"
-            className="h-10 w-full rounded-xl border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-            onClick={() => onViewApplications(campaign)}
+            asChild={applicantsCount > 0}
+            variant={applicantsCount > 0 ? "black" : "outline"}
+            className={cn(
+              "h-10 w-full rounded-full",
+              applicantsCount === 0 &&
+                "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+            )}
             disabled={applicantsCount === 0}
           >
-            <Eye className="mr-2 h-4 w-4" />
-            View applications ({applicantsCount})
+            {applicantsCount > 0 ? (
+              <Link href={applicationsHref}>
+                <Eye className="mr-2 h-4 w-4" />
+                {campaign.pendingApplications > 0
+                  ? `Review applications (${campaign.pendingApplications} pending)`
+                  : acceptedApplications > 0
+                    ? `Message & pay hires (${acceptedApplications})`
+                    : `View applications (${applicantsCount})`}
+              </Link>
+            ) : (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                View applications (0)
+              </>
+            )}
           </Button>
           {campaign.status === "DRAFT" && (
             <Button variant="black" className="w-full rounded-full" onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}>

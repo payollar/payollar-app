@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar,
+  ClipboardList,
   Clock,
   User,
   Video,
@@ -32,6 +33,7 @@ import {
   markAppointmentCompleted,
 } from "@/actions/doctor";
 import { generateVideoToken } from "@/actions/appointments";
+import { startDeliveryReportFromAppointment } from "@/actions/delivery-reports";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -45,7 +47,21 @@ export function AppointmentCard({
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState(null); // 'cancel', 'notes', 'video', or 'complete'
   const [notes, setNotes] = useState(appointment.notes || "");
+  const [reportPending, startReportTransition] = useTransition();
   const router = useRouter();
+
+  const openDeliveryReport = () => {
+    startReportTransition(async () => {
+      try {
+        const result = await startDeliveryReportFromAppointment(appointment.id);
+        setOpen(false);
+        router.push(`/creator/reports/${result.reportId}`);
+        router.refresh();
+      } catch (error) {
+        toast.error(error.message || "Could not open delivery report");
+      }
+    });
+  };
 
   // UseFetch hooks for server actions
   const {
@@ -526,7 +542,31 @@ export function AppointmentCard({
           </div>
 
           <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {userRole === "CREATOR" &&
+                (appointment.status === "SCHEDULED" ||
+                  appointment.status === "COMPLETED") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={openDeliveryReport}
+                    disabled={reportPending}
+                    className="border-slate-300"
+                  >
+                    {reportPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Opening…
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardList className="mr-2 h-4 w-4" />
+                        Delivery report
+                      </>
+                    )}
+                  </Button>
+                )}
+
               {/* Mark as Complete Button - Only for doctors */}
               {canMarkCompleted() && (
                 <Button
