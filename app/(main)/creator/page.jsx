@@ -5,7 +5,6 @@ import { getDoctorEarnings, getDoctorPayouts } from "@/actions/payout";
 import { getCreatorAnalytics } from "@/actions/analytics";
 import { listBookingChats } from "@/actions/booking-chat";
 import { getCreatorCampaignApplications } from "@/actions/campaigns";
-import { getCreatorWelcomeCreditsStatus } from "@/actions/credits";
 import { OverviewPage } from "./_components/overview-page";
 
 // Force dynamic rendering to avoid static generation issues with headers()
@@ -29,7 +28,6 @@ export default async function CreatorDashboardPage() {
     analytics,
     chats,
     applicationsData,
-    welcomeCredits,
   ] = await Promise.all([
     getDoctorAppointments(),
     getDoctorEarnings(),
@@ -40,7 +38,6 @@ export default async function CreatorDashboardPage() {
     }),
     listBookingChats().catch(() => []),
     getCreatorCampaignApplications().catch(() => ({ applications: [] })),
-    getCreatorWelcomeCreditsStatus().catch(() => null),
   ]);
 
   return (
@@ -52,7 +49,6 @@ export default async function CreatorDashboardPage() {
       analytics={analytics}
       chats={chats || []}
       applications={applicationsData.applications || []}
-      welcomeCredits={welcomeCredits}
     />
   );
 }

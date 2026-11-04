@@ -123,7 +123,7 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
       title="Digital products"
       description="Create and manage digital products to sell directly to clients."
       actions={
-        <Button variant="marketing" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+        <Button variant="black" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           Create product
         </Button>
@@ -367,7 +367,7 @@ export function CreatorProducts({ products = [], productEarnings = {} }) {
             <p className="mx-auto mb-6 max-w-md text-muted-foreground">
               Create your first digital product to start earning. Sell music, videos, courses, templates, and more!
             </p>
-            <Button variant="marketing" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+            <Button variant="black" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
               Create your first product
             </Button>

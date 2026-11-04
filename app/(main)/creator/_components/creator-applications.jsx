@@ -135,7 +135,7 @@ export function CreatorApplications({ applications = [] }) {
       title="Campaigns"
       description="Track every campaign you’ve applied to, and jump back into open briefs."
       actions={
-        <Button asChild className="rounded-full bg-[#0055ff] hover:bg-[#0044cc]">
+        <Button asChild variant="black" className="rounded-full">
           <Link href="/campaigns">
             <Megaphone className="mr-1.5 h-4 w-4" />
             Browse campaigns
@@ -238,7 +238,8 @@ export function CreatorApplications({ applications = [] }) {
             {applications.length === 0 ? (
               <Button
                 asChild
-                className="mt-5 rounded-full bg-[#0055ff] hover:bg-[#0044cc]"
+                variant="black"
+                className="mt-5 rounded-full"
               >
                 <Link href="/campaigns">
                   Find campaigns to apply

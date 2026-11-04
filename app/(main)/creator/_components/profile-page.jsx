@@ -683,7 +683,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                 <Button
                   onClick={handleSaveProfile}
                   disabled={isSaving || !fullName.trim() || !bio.trim()}
-                  variant="marketing"
+                  variant="black"
                   className="w-full"
                   size="lg"
                 >
@@ -855,7 +855,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                       <Button
                         onClick={addPortfolioUrl}
                         disabled={!newPortfolioUrl.trim()}
-                        variant="marketing"
+                        variant="black"
                       >
                         Add
                       </Button>
@@ -1062,7 +1062,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                     <Button
                       onClick={handleSaveAvailability}
                       disabled={isSavingAvailability || !startTime || !endTime || selectedDays.size === 0}
-                      variant="marketing"
+                      variant="black"
                     >
                       {isSavingAvailability ? (
                         <>

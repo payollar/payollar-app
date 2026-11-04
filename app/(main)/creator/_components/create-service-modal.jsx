@@ -195,7 +195,7 @@ export function CreateServiceModal({ open, onOpenChange }) {
                       endpoint="serviceImage"
                       appearance={{
                         container: "w-auto items-start",
-                        button: "h-10 rounded-xl bg-[#0055ff] px-4 text-sm font-medium text-white",
+                        button: "h-10 rounded-xl bg-slate-950 px-4 text-sm font-medium text-white",
                         allowedContent: "text-xs text-slate-400",
                       }}
                       onClientUploadComplete={(res) => {
@@ -333,7 +333,7 @@ export function CreateServiceModal({ open, onOpenChange }) {
             </Button>
             <Button
               type="submit"
-              variant="marketing"
+              variant="black"
               className="h-11 rounded-xl px-5"
               disabled={isSubmitting || !formData.title || !formData.rate}
             >

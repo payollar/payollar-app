@@ -97,7 +97,7 @@ export default async function VerificationPage() {
                   <Button asChild variant="glass">
                     <Link href="/">Return to Home</Link>
                   </Button>
-                  <Button asChild variant="marketing">
+                  <Button asChild variant="black">
                     <Link href="/creator">Go to dashboard</Link>
                   </Button>
                 </>
@@ -106,7 +106,7 @@ export default async function VerificationPage() {
                   <Button asChild variant="glass">
                     <Link href="/">Return to Home</Link>
                   </Button>
-                  <Button asChild variant="marketing">
+                  <Button asChild variant="black">
                     <Link href="/contact-support">Contact support</Link>
                   </Button>
                 </>

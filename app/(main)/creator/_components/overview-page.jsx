@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { campaignCategoryLabel } from "@/lib/campaign-categories";
-import { WelcomeCreditsCard } from "./welcome-credits-card";
 
 function formatPercentTrend(value) {
   if (value == null || Number.isNaN(value) || !Number.isFinite(value)) return null;
@@ -126,7 +125,7 @@ function EmptyPanel({ icon: Icon, title, description, href, action }) {
       {href && action ? (
         <Link
           href={href}
-          className="mt-4 inline-flex h-9 items-center rounded-full bg-[#0055ff] px-4 text-sm font-semibold text-white hover:bg-[#003ecc]"
+          className="mt-4 inline-flex h-9 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-black"
         >
           {action}
         </Link>
@@ -168,7 +167,6 @@ export function OverviewPage({
   analytics = null,
   chats = [],
   applications = [],
-  welcomeCredits = null,
 }) {
   const firstName = user?.name?.split(" ")[0] || "Creator";
 
@@ -255,8 +253,6 @@ export function OverviewPage({
       </div>
 
       <div className="space-y-4">
-        <WelcomeCreditsCard offer={welcomeCredits} />
-
         <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Sessions"
@@ -316,7 +312,7 @@ export function OverviewPage({
               </dl>
               <Link
                 href="/creator/bookings"
-                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-full bg-[#0055ff] text-sm font-semibold text-white hover:bg-[#003ecc]"
+                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white hover:bg-black"
               >
                 View bookings
               </Link>

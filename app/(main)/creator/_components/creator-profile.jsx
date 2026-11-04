@@ -134,7 +134,7 @@ export function CreatorProfile({ user }) {
         <Button
           onClick={handleSaveProfile}
           disabled={isSaving || !canSave}
-          className="hidden h-10 rounded-full bg-[#0055ff] px-5 text-white hover:bg-[#003ecc] sm:inline-flex"
+          className="hidden h-10 rounded-full bg-slate-950 px-5 text-white hover:bg-black sm:inline-flex"
         >
           {isSaving ? (
             <>
@@ -230,7 +230,7 @@ export function CreatorProfile({ user }) {
 
             <div className="mt-5">
               <p className="mb-2 text-xs font-medium text-slate-500">Profile photo</p>
-              <div className="creator-settings-upload [&_button]:!h-9 [&_button]:!rounded-full [&_button]:!bg-[#0055ff] [&_button]:!px-4 [&_button]:!text-xs [&_button]:!font-semibold [&_label]:!rounded-full">
+              <div className="creator-settings-upload [&_button]:!h-9 [&_button]:!rounded-full [&_button]:!bg-slate-950 [&_button]:!px-4 [&_button]:!text-xs [&_button]:!font-semibold [&_label]:!rounded-full">
                 <UploadButton
                   endpoint="profileImage"
                   onClientUploadComplete={handleUploadComplete}
@@ -339,7 +339,7 @@ export function CreatorProfile({ user }) {
             <Button
               onClick={handleSaveProfile}
               disabled={isSaving || !canSave}
-              className="h-10 rounded-full bg-[#0055ff] px-5 text-white hover:bg-[#003ecc]"
+              className="h-10 rounded-full bg-slate-950 px-5 text-white hover:bg-black"
             >
               {isSaving ? (
                 <>

@@ -330,7 +330,7 @@ export function CreatorPayoutsPage({
             )}
           </Button>
           <Button
-            className="h-10 rounded-full bg-[#0055ff] text-white hover:bg-[#003ecc]"
+            className="h-10 rounded-full bg-slate-950 text-white hover:bg-black"
             onClick={() => setShowRequestDialog(true)}
           >
             <Wallet className="mr-2 h-4 w-4" />
@@ -796,7 +796,7 @@ export function CreatorPayoutsPage({
                     setShowRequestDialog(false);
                     setShowBankDialog(true);
                   }}
-                  className="w-full rounded-full bg-[#0055ff] hover:bg-[#003ecc]"
+                  className="w-full rounded-full bg-slate-950 hover:bg-black"
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
                   Add payment method
@@ -842,7 +842,7 @@ export function CreatorPayoutsPage({
                 <Button
                   onClick={handleRequestPayout}
                   disabled={loading || availableForPayout < 1}
-                  className="w-full rounded-full bg-[#0055ff] hover:bg-[#003ecc]"
+                  className="w-full rounded-full bg-slate-950 hover:bg-black"
                 >
                   {loading ? (
                     <>
@@ -1043,7 +1043,7 @@ export function CreatorPayoutsPage({
               <Button
                 type="submit"
                 disabled={isSubmittingBank}
-                className="rounded-full bg-[#0055ff] hover:bg-[#003ecc]"
+                className="rounded-full bg-slate-950 hover:bg-black"
               >
                 {isSubmittingBank ? (
                   <>

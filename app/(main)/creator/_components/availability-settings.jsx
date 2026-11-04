@@ -176,7 +176,7 @@ export function AvailabilitySettings({ slots }) {
 
             <Button
               onClick={() => setShowForm(true)}
-              variant="marketing"
+              variant="black"
               className="w-full"
             >
               {slots.length === 0 ? (

@@ -146,7 +146,7 @@ export function CreatorServices({
       description="Manage your services and set your rates for clients to book."
       actions={
         <Button
-          variant="marketing"
+          variant="black"
           size="lg"
           onClick={() => setIsCreateModalOpen(true)}
           className="gap-2"
@@ -311,7 +311,7 @@ export function CreatorServices({
               Create your first service to let clients know what you offer and at what rate.
               You can set hourly rates, per-session rates, or fixed prices.
             </p>
-            <Button variant="marketing" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+            <Button variant="black" size="lg" onClick={() => setIsCreateModalOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
               Create your first service
             </Button>
