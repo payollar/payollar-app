@@ -6,13 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Smartphone, Search, Users, Target, Star, Facebook, Instagram, Youtube, Twitter, MapPin, Calendar, ArrowRight } from "lucide-react"
+import { Smartphone, Search, Users, Target, Star, Facebook, Instagram, Youtube, MapPin, Calendar, ArrowRight } from "lucide-react"
+import { siX } from "simple-icons"
 import Link from "next/link"
 import InquiryFormModal from "@/components/InquiryFormModal"
 import CustomPackageBuilder from "@/components/CustomPackageBuilder"
 import { getHeaderImage } from "@/lib/getHeaderImage"
 import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar"
+
+function XIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path fill="currentColor" d={siX.path} />
+    </svg>
+  )
+}
 
 export default function DigitalMediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -134,9 +143,9 @@ export default function DigitalMediaPage() {
     },
     {
       id: 4,
-      name: "Twitter/X Ads",
+      name: "X Ads",
       platform: "X Corp",
-      icon: Twitter,
+      icon: XIcon,
       reach: "550M users",
       rating: 4.5,
       targeting: "Moderate",

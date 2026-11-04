@@ -124,7 +124,7 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
       title="Bookings"
       description="Manage your appointments and consultations."
       actions={
-        <Button variant="marketing" className="gap-2" asChild>
+        <Button variant="black" className="gap-2 rounded-full" asChild>
           <Link href="/client/talents">
             <Search className="h-4 w-4" />
             Find talents
@@ -264,7 +264,7 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
                 <p className="mb-6 text-muted-foreground">
                   Browse our talented creators and book your next session.
                 </p>
-                <Button variant="marketing" asChild>
+                <Button variant="black" className="rounded-full" asChild>
                   <Link href="/client/talents">Browse talents</Link>
                 </Button>
               </CardContent>
@@ -353,7 +353,7 @@ export function ClientBookings({ appointments = [], error, paymentSuccess, payme
               You don&apos;t have any appointments scheduled yet. Browse our talented creators and book
               your first consultation.
             </p>
-            <Button variant="marketing" asChild>
+            <Button variant="black" className="rounded-full" asChild>
               <Link href="/client/talents">Browse talents</Link>
             </Button>
           </CardContent>

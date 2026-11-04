@@ -108,7 +108,7 @@ export default function MediaPackagesPage() {
           duration: "1 month",
           slots: 20,
           estimatedReach: "500K+ impressions",
-          features: ["Facebook, Instagram, Twitter", "Targeted ads", "Analytics"],
+          features: ["Facebook, Instagram, X", "Targeted ads", "Analytics"],
           rating: 4.9,
         },
         {

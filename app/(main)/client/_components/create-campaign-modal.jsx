@@ -40,7 +40,7 @@ import {
 } from "@/lib/campaign-followers";
 
 const fieldClass =
-  "h-11 rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+  "h-11 rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-slate-950/20";
 
 const EMPTY_FORM = {
   title: "",
@@ -247,7 +247,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                         className={cn(
                           "rounded-xl border px-3 py-2.5 text-left transition-colors",
                           selected
-                            ? "border-[#0055ff] bg-[#0055ff]/[0.06]"
+                            ? "border-slate-950 bg-slate-950/[0.06]"
                             : "border-slate-200 bg-white hover:border-slate-300"
                         )}
                       >
@@ -275,7 +275,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-sm transition-colors",
                             selected
-                              ? "border-[#0055ff] bg-[#0055ff] text-white"
+                              ? "border-slate-950 bg-slate-950 text-white"
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                           )}
                         >
@@ -296,7 +296,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                   value={formData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   rows={4}
-                  className="min-h-28 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                  className="min-h-28 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-slate-950/20"
                   placeholder="What should creators make, and what do they get in return?"
                   required
                 />
@@ -360,7 +360,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-sm transition-colors",
                           selected
-                            ? "border-[#0055ff] bg-[#0055ff] text-white"
+                            ? "border-slate-950 bg-slate-950 text-white"
                             : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                         )}
                       >
@@ -402,7 +402,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                   value={formData.targetAudience}
                   onChange={(e) => handleInputChange("targetAudience", e.target.value)}
                   rows={2}
-                  className="min-h-20 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                  className="min-h-20 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-slate-950/20"
                   placeholder="e.g. Gen Z in Accra interested in beauty and wellness"
                 />
               </div>
@@ -468,7 +468,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                       endpoint="portfolioUploader"
                       appearance={{
                         container: "w-full items-stretch gap-1",
-                        button: "h-10 w-full rounded-xl bg-[#0055ff] text-sm font-medium text-white",
+                        button: "h-10 w-full rounded-xl bg-slate-950 text-sm font-medium text-white",
                         allowedContent: "text-xs text-slate-400",
                       }}
                       onClientUploadComplete={(res) => {
@@ -532,7 +532,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                     setFaqDraft((prev) => ({ ...prev, answer: e.target.value }))
                   }
                   rows={2}
-                  className="min-h-20 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                  className="min-h-20 resize-none rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-slate-950/20"
                   placeholder="Answer"
                 />
                 <Button
@@ -593,7 +593,7 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
                       className={cn(
                         "rounded-2xl border px-4 py-3 text-left transition-colors",
                         selected
-                          ? "border-[#0055ff] bg-[#0055ff]/[0.06]"
+                          ? "border-slate-950 bg-slate-950/[0.06]"
                           : "border-slate-200 bg-white hover:border-slate-300"
                       )}
                     >
@@ -624,8 +624,8 @@ export function CreateCampaignModal({ open, onOpenChange, defaultBrand = "" }) {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                variant="marketing"
-                className="h-11 flex-1 rounded-xl px-5 sm:flex-none"
+                variant="black"
+                className="h-11 flex-1 rounded-full px-5 sm:flex-none"
               >
                 {isSubmitting ? (
                   <>
@@ -711,8 +711,8 @@ function SearchSelect({ placeholder, value, options, onChange, disabled, loading
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-800 hover:bg-[#0055ff]/10",
-                    option === value && "bg-[#0055ff]/10 font-medium text-[#0055ff]"
+                    "flex w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-950/10",
+                    option === value && "bg-slate-950/10 font-medium text-slate-950"
                   )}
                 >
                   {option}
@@ -909,8 +909,8 @@ function CloseDateField({ value, onChange }) {
                   }}
                   className={cn(
                     "flex h-8 items-center justify-center rounded-full text-sm",
-                    active && "bg-[#0055ff] font-medium text-white",
-                    !active && inMonth && !past && "text-slate-800 hover:bg-[#0055ff]/10",
+                    active && "bg-slate-950 font-medium text-white",
+                    !active && inMonth && !past && "text-slate-800 hover:bg-slate-950/10",
                     !active && !inMonth && "text-slate-300",
                     past && "cursor-not-allowed text-slate-300"
                   )}
@@ -976,13 +976,13 @@ function TagListField({ label, placeholder, items, onChange }) {
           {items.map((item, index) => (
             <span
               key={`${item}-${index}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#0055ff]/20 bg-[#0055ff]/[0.08] px-3 py-1 text-sm text-[#0055ff]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-950/[0.08] px-3 py-1 text-sm text-slate-950"
             >
               {item}
               <button
                 type="button"
                 onClick={() => onChange(items.filter((_, i) => i !== index))}
-                className="rounded-full text-[#0055ff]/70 hover:text-[#0055ff]"
+                className="rounded-full text-slate-500 hover:text-slate-950"
                 aria-label={`Remove ${item}`}
               >
                 <X className="h-3.5 w-3.5" />
@@ -997,10 +997,10 @@ function TagListField({ label, placeholder, items, onChange }) {
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">{children}</p>
+    <p className="text-xs font-medium uppercase tracking-wider text-slate-950">{children}</p>
   );
 }
 
 function Required() {
-  return <span className="text-[#0055ff]">*</span>;
+  return <span className="text-slate-950">*</span>;
 }

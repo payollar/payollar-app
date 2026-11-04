@@ -92,7 +92,7 @@ function mediaTypeIcon(type) {
 
 function StatCard({ label, value, icon: Icon, tone = "blue" }) {
   const tones = {
-    blue: "bg-[#eef4ff] text-[#0055ff]",
+    blue: "bg-slate-100 text-slate-950",
     amber: "bg-amber-50 text-amber-600",
     emerald: "bg-emerald-50 text-emerald-600",
     violet: "bg-violet-50 text-violet-600",
@@ -133,7 +133,7 @@ function EmptyState({
   return (
     <Card className={cn(clientCardClass, "border-0")}>
       <CardContent className="flex flex-col items-center px-6 py-16 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eef4ff] text-[#0055ff]">
+        <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-950">
           <Icon className="h-7 w-7" />
         </span>
         <h3 className="mt-5 text-lg font-semibold text-slate-950">{title}</h3>
@@ -143,7 +143,7 @@ function EmptyState({
         {actionLabel && actionHref ? (
           <Button
             asChild
-            className="mt-6 rounded-full bg-[#0055ff] hover:bg-[#0044cc]"
+            className="mt-6 rounded-full bg-slate-950 hover:bg-slate-800"
           >
             <Link href={actionHref}>
               {actionLabel}
@@ -311,7 +311,7 @@ export function MediaLibrary({
       title="Media Library"
       description="Track media bookings, campaign reports, and transmission certificates in one place."
       actions={
-        <Button asChild className="rounded-full bg-[#0055ff] hover:bg-[#0044cc]">
+        <Button asChild className="rounded-full bg-slate-950 hover:bg-slate-800">
           <Link href="/products">
             Browse media
             <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -371,7 +371,7 @@ export function MediaLibrary({
                   className={cn(
                     "inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                     active
-                      ? "bg-[#0055ff] text-white shadow-md shadow-blue-500/20"
+                      ? "bg-slate-950 text-white shadow-md shadow-slate-900/20"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   )}
                 >
@@ -521,7 +521,7 @@ export function MediaLibrary({
                               {(relatedCerts.length > 0 || relatedReports.length > 0) && (
                                 <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
                                   {relatedCerts.length > 0 ? (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef4ff] px-2.5 py-1 text-xs font-medium text-[#0055ff]">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-950">
                                       <FileText className="h-3.5 w-3.5" />
                                       {relatedCerts.length} certificate
                                       {relatedCerts.length === 1 ? "" : "s"}
@@ -591,7 +591,7 @@ export function MediaLibrary({
                               {report.agency?.agencyName || "Media agency"}
                             </p>
                           </div>
-                          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-950">
                             <BarChart3 className="h-4 w-4" />
                           </span>
                         </div>
@@ -686,7 +686,7 @@ export function MediaLibrary({
                         <CardContent className="p-4 sm:p-5">
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="flex min-w-0 flex-1 gap-3">
-                              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+                              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-950">
                                 {cert.fileType?.includes("pdf") ? (
                                   <FileText className="h-5 w-5" />
                                 ) : (

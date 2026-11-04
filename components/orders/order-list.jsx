@@ -8,7 +8,7 @@ import { Calendar, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS = {
-  REQUESTED: { label: "Chat open", className: "bg-[#e8f0ff] text-[#0b3db8]" },
+  REQUESTED: { label: "Chat open", className: "bg-slate-100 text-slate-700" },
   SCHEDULED: { label: "Booked", className: "bg-amber-50 text-amber-700" },
   COMPLETED: { label: "Completed", className: "bg-emerald-50 text-emerald-700" },
   CANCELLED: { label: "Cancelled", className: "bg-rose-50 text-rose-600" },
@@ -42,6 +42,13 @@ function initials(name) {
   );
 }
 
+function moneyGhs(value) {
+  return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function OrderList({ orders = [], basePath, paymentSuccess, paymentError }) {
   const router = useRouter();
   const [filter, setFilter] = useState("all");
@@ -63,7 +70,7 @@ export function OrderList({ orders = [], basePath, paymentSuccess, paymentError 
 
   return (
     <div className="-m-4 min-h-full bg-[#f7f8fc] p-4 text-slate-900 md:-m-6 md:p-6">
-      <p className="text-xs font-semibold uppercase tracking-wider text-[#0055ff]">Orders</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-950">Orders</p>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Orders</h1>
       <p className="mt-1 text-sm text-slate-500">Open a booking to see the session, brief, timeline, and chat.</p>
 
@@ -74,7 +81,7 @@ export function OrderList({ orders = [], basePath, paymentSuccess, paymentError 
             type="button"
             onClick={() => setFilter(value)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              filter === value ? "bg-[#0055ff] text-white" : "bg-white text-slate-600 shadow-sm"
+              filter === value ? "bg-slate-950 text-white" : "bg-white text-slate-600 shadow-sm"
             }`}
           >
             {label}
@@ -97,7 +104,7 @@ export function OrderList({ orders = [], basePath, paymentSuccess, paymentError 
                 href={`${basePath}/${order.id}`}
                 className="flex items-center gap-4 rounded-[22px] bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0ff] text-sm font-semibold text-[#0b3db8]">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
                   {order.other.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={order.other.imageUrl} alt="" className="h-full w-full object-cover" />
@@ -111,13 +118,32 @@ export function OrderList({ orders = [], basePath, paymentSuccess, paymentError 
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.className}`}>
                       {status.label}
                     </span>
+                    {order.hasOpenInvoice ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                        Invoice due
+                      </span>
+                    ) : order.invoice?.status === "PAID" ? (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        Invoice paid
+                      </span>
+                    ) : null}
                   </span>
                   <span className="mt-0.5 block truncate text-sm text-slate-500">
                     {format(new Date(order.startTime), "d MMM yyyy · h:mm a")}
-                    {order.brief ? ` · ${order.brief}` : ""}
+                    {order.invoice
+                      ? ` · ${order.invoice.title || "Invoice"} ${moneyGhs(order.invoice.amount)}`
+                      : order.brief
+                        ? ` · ${order.brief}`
+                        : ""}
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                {order.hasOpenInvoice ? (
+                  <span className="hidden shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white sm:inline">
+                    Pay now
+                  </span>
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                )}
               </Link>
             );
           })

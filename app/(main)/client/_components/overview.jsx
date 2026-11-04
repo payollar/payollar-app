@@ -20,8 +20,83 @@ function money(value) {
   return `GH₵ ${Number(value || 0).toLocaleString("en-GH")}`;
 }
 
+/** Layered chrome rim — highlight → mid steel → deep edge → highlight */
+const METAL_BORDER = `
+  linear-gradient(
+    145deg,
+    #ffffff 0%,
+    #c9d1d9 8%,
+    #8b949e 18%,
+    #e8ecef 32%,
+    #6b7280 48%,
+    #f3f4f6 58%,
+    #9ca3af 72%,
+    #4b5563 86%,
+    #d1d5db 94%,
+    #ffffff 100%
+  )
+`;
+
+function MetalCard({
+  children,
+  className = "",
+  theme = "dark",
+  radius = 24,
+  strength = 0.85,
+  duration = 8,
+  animated = true,
+  rim = 2,
+}) {
+  const innerRadius = Math.max(radius - rim, 10);
+  const frame = (
+    <div
+      className="relative h-full"
+      style={{
+        borderRadius: radius,
+        padding: rim,
+        background: METAL_BORDER,
+        boxShadow:
+          theme === "dark"
+            ? "0 18px 44px -22px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.55)"
+            : "0 12px 32px -18px rgba(15,23,42,0.18), inset 0 1px 0 rgba(255,255,255,0.9)",
+      }}
+    >
+      <div
+        className="relative h-full overflow-hidden"
+        style={{
+          borderRadius: innerRadius,
+          boxShadow:
+            theme === "dark"
+              ? "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.45)"
+              : "inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(15,23,42,0.06)",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+
+  if (!animated) {
+    return <div className={className}>{frame}</div>;
+  }
+
+  return (
+    <BorderBeam
+      className={className}
+      size="md"
+      theme={theme}
+      colorVariant="mono"
+      strength={strength}
+      borderRadius={radius}
+      duration={duration}
+    >
+      {frame}
+    </BorderBeam>
+  );
+}
+
 const ORDER_STATUS = {
-  REQUESTED: { label: "Chat open", className: "bg-[#e8f0ff] text-[#0b3db8]" },
+  REQUESTED: { label: "Chat open", className: "bg-slate-100 text-slate-700" },
   SCHEDULED: { label: "Booked", className: "bg-amber-50 text-amber-700" },
   COMPLETED: { label: "Completed", className: "bg-emerald-50 text-emerald-700" },
   CANCELLED: { label: "Cancelled", className: "bg-rose-50 text-rose-600" },
@@ -96,7 +171,7 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
         </div>
         <Link
           href="/client/campaigns?create=true"
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#0055ff] px-4 text-sm font-semibold text-white hover:bg-[#003ecc] sm:w-auto"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Post a campaign
@@ -104,33 +179,39 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
       </div>
 
       <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <BorderBeam className="h-full" size="md" theme="light" colorVariant="colorful" strength={0.7} borderRadius={24} duration={8}>
-        <section className="h-full rounded-[24px] bg-gradient-to-br from-[#003ecc] via-[#0055ff] to-[#6d5efc] p-6 text-white md:p-8">
-          <h2 className="max-w-md text-2xl font-semibold tracking-tight md:text-3xl">
-            Find the right creators.
-          </h2>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-white/80">
-            Post a campaign, book a session, and keep the brief in one place.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Link href="/client/campaigns?create=true" className="inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-[#003ecc]">
-              Post a campaign
-            </Link>
-            <Link href="/client/talents" className="inline-flex h-10 items-center rounded-full border border-white/40 px-4 text-sm font-semibold text-white">
-              Browse talents
-            </Link>
-          </div>
-        </section>
-        </BorderBeam>
+        <MetalCard className="h-full" theme="dark" strength={0.95} duration={9} rim={2.5}>
+          <section className="relative h-full overflow-hidden bg-[radial-gradient(120%_80%_at_0%_0%,rgba(255,255,255,0.14),transparent_42%),linear-gradient(145deg,#12141c_0%,#0a0a0a_48%,#1a1d27_100%)] p-6 text-white md:p-8">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"
+            />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              Client workspace
+            </p>
+            <h2 className="mt-3 max-w-md text-2xl font-semibold tracking-tight md:text-3xl">
+              Find the right creators.
+            </h2>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-white/65">
+              Post a campaign, book a session, and keep the brief in one place.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Link href="/client/campaigns?create=true" className="inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]">
+                Post a campaign
+              </Link>
+              <Link href="/client/talents" className="inline-flex h-10 items-center rounded-full border border-white/25 bg-white/5 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10">
+                Browse talents
+              </Link>
+            </div>
+          </section>
+        </MetalCard>
 
-        <BorderBeam className="h-full" size="md" theme="light" colorVariant="ocean" strength={0.8} borderRadius={24} duration={7}>
         <section className="flex h-full flex-col rounded-[24px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
           <p className="text-sm text-slate-500">This month</p>
           <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{stats?.appointmentsThisMonth ?? 0}</p>
           <p className="text-sm text-slate-400">
             {(stats?.appointmentsThisMonth ?? 0) === 1 ? "session" : "sessions"} on your calendar
           </p>
-          <dl className="mt-4 space-y-2 text-sm">
+          <dl className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-slate-400">Upcoming</dt>
               <dd className="font-semibold text-slate-900">{stats?.upcomingAppointments ?? 0}</dd>
@@ -142,12 +223,11 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
           </dl>
           <Link
             href="/client/bookings"
-            className="mt-auto inline-flex h-10 items-center justify-center rounded-full bg-[#0055ff] text-sm font-semibold text-white hover:bg-[#003ecc]"
+            className="mt-auto inline-flex h-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
           >
             View orders
           </Link>
         </section>
-        </BorderBeam>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
@@ -195,12 +275,12 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
                 return (
                   <li key={campaign.id} className="rounded-2xl bg-[#f7f8fc] p-3">
                     <div className="flex gap-3">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#e8f0ff]">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                         {campaign.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={campaign.imageUrl} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#0b3db8]">
+                          <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-700">
                             {initials(campaign.brand || campaign.title)}
                           </span>
                         )}
@@ -259,17 +339,21 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
           )}
         </section>
 
-        <BorderBeam size="md" theme="light" colorVariant="ocean" strength={0.85} borderRadius={24} duration={6}>
-        <section className="rounded-[24px] bg-gradient-to-b from-[#0055ff] to-[#003ecc] p-4 text-white shadow-[0_12px_28px_rgba(0,85,255,0.22)]">
-          <h2 className="text-base font-semibold">Quick actions</h2>
-          <div className="mt-3 space-y-2">
-            <Quick href="/client/campaigns?create=true" icon={Plus} label="Post a campaign" />
-            <Quick href="/client/talents" icon={Search} label="Browse talents" />
-            <Quick href="/client/bookings" icon={Calendar} label="View orders" />
-            <Quick href="/messages" icon={MessageCircle} label="Open messages" />
-          </div>
-        </section>
-        </BorderBeam>
+        <MetalCard theme="dark" strength={0.95} duration={7} rim={2.5}>
+          <section className="relative overflow-hidden bg-[radial-gradient(90%_70%_at_100%_0%,rgba(255,255,255,0.1),transparent_45%),linear-gradient(180deg,#171a22_0%,#0a0a0a_100%)] p-4 text-white">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent"
+            />
+            <h2 className="text-base font-semibold">Quick actions</h2>
+            <div className="mt-3 space-y-2">
+              <Quick href="/client/campaigns?create=true" icon={Plus} label="Post a campaign" />
+              <Quick href="/client/talents" icon={Search} label="Browse talents" />
+              <Quick href="/client/bookings" icon={Calendar} label="View orders" />
+              <Quick href="/messages" icon={MessageCircle} label="Open messages" />
+            </div>
+          </section>
+        </MetalCard>
       </div>
 
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -284,7 +368,7 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
                   <p className="truncate text-xs text-slate-400">{creator.specialty || "Creator"}</p>
                   <Link
                     href={`/talents/${encodeURIComponent(creator.specialty || "all")}/${creator.id}`}
-                    className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-full bg-[#0055ff] text-xs font-semibold text-white"
+                    className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white hover:bg-slate-800"
                   >
                     View profile
                   </Link>
@@ -318,7 +402,7 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
                       </span>
                     </span>
                     {chat.unread > 0 ? (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0055ff] px-1.5 text-[11px] font-semibold text-white">
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1.5 text-[11px] font-semibold text-white">
                         {chat.unread}
                       </span>
                     ) : null}
@@ -337,9 +421,12 @@ export function ClientOverview({ stats, recentAppointments = [], appointments = 
 
 function Stat({ icon: Icon, label, value, hint, href }) {
   return (
-    <Link href={href} className="rounded-2xl bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+    <Link
+      href={href}
+      className="block rounded-2xl bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] transition hover:shadow-[0_10px_28px_rgba(15,23,42,0.07)]"
+    >
       <span className="flex items-center justify-between">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e8f0ff] text-[#0055ff]">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-white">
           <Icon className="h-4 w-4" />
         </span>
         <ArrowUpRight className="h-4 w-4 text-slate-300" />
@@ -355,7 +442,7 @@ function SectionTitle({ title, href }) {
   return (
     <div className="mb-3 flex items-center justify-between">
       <h2 className="text-base font-semibold text-slate-950">{title}</h2>
-      <Link href={href} className="text-sm font-medium text-[#0055ff]">
+      <Link href={href} className="text-sm font-medium text-slate-950 hover:text-slate-700">
         View all
       </Link>
     </div>
@@ -364,19 +451,22 @@ function SectionTitle({ title, href }) {
 
 function Quick({ href, icon: Icon, label }) {
   return (
-    <Link href={href} className="flex items-center justify-between rounded-2xl bg-white/12 px-3 py-3 text-sm font-medium text-white hover:bg-white/20">
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-3 text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-white/[0.12]"
+    >
       <span className="flex items-center gap-2">
-        <Icon className="h-4 w-4" />
+        <Icon className="h-4 w-4 text-white/80" />
         {label}
       </span>
-      <ArrowUpRight className="h-4 w-4 text-white/70" />
+      <ArrowUpRight className="h-4 w-4 text-white/50" />
     </Link>
   );
 }
 
 function Avatar({ name, imageUrl, className = "h-10 w-10 text-xs" }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0ff] font-semibold text-[#0b3db8] ${className}`}>
+    <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 font-semibold text-slate-700 ${className}`}>
       {imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={imageUrl} alt="" className="h-full w-full object-cover" />
@@ -391,7 +481,7 @@ function Empty({ label, href, action }) {
   return (
     <div className="px-2 py-8 text-center text-sm text-slate-400">
       <p>{label}</p>
-      <Link href={href} className="mt-2 inline-block font-medium text-[#0055ff]">
+      <Link href={href} className="mt-2 inline-block font-medium text-slate-950 hover:text-slate-700">
         {action}
       </Link>
     </div>

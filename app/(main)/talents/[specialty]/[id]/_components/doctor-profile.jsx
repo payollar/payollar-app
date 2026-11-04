@@ -458,7 +458,7 @@ export function DoctorProfile({ doctor, availableDays }) {
     const text = doctor.name ? `${doctor.name} on Payollar` : "Payollar creator";
     const targets = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
-      x: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      x: `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
     };

@@ -23,7 +23,7 @@ export function ClientPageShell({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-1">
               {eyebrow ? (
-                <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">{eyebrow}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-950">{eyebrow}</p>
               ) : null}
               {title ? (
                 <h1 className="text-2xl font-semibold tracking-tight text-slate-950 md:text-3xl">{title}</h1>

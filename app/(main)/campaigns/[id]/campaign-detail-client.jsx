@@ -37,7 +37,7 @@ const PLATFORMS = [
   { id: "instagram", label: "Instagram", icon: siInstagram, pattern: /instagram|\binsta\b/i },
   { id: "youtube", label: "YouTube", icon: siYoutube, pattern: /youtube|youtu\.be/i },
   { id: "facebook", label: "Facebook", icon: siFacebook, pattern: /facebook/i },
-  { id: "x", label: "X (Twitter)", icon: siX, pattern: /twitter|\bx\.com\b/i },
+  { id: "x", label: "X", icon: siX, pattern: /twitter|\bx\.com\b/i },
 ];
 
 const TABS = [

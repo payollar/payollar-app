@@ -258,14 +258,14 @@ export function ClientPayoutsPage() {
         <TabsList className="grid w-full grid-cols-2 rounded-xl border border-border/60 bg-card/60 p-1">
           <TabsTrigger
             value="escrow"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-lg data-[state=active]:bg-slate-950 data-[state=active]:text-white"
           >
             <Shield className="mr-2 h-4 w-4" />
             Escrow
           </TabsTrigger>
           <TabsTrigger
             value="transactions"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-lg data-[state=active]:bg-slate-950 data-[state=active]:text-white"
           >
             <CreditCard className="mr-2 h-4 w-4" />
             History

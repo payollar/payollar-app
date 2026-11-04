@@ -519,10 +519,6 @@ function InvoiceMessageCard({ invoice, mine, canPay, paying, onPay, createdAt })
               <>Pay now · {moneyGhs(invoice.amount)}</>
             )}
           </button>
-        ) : mine && invoice.status === "SENT" ? (
-          <p className="rounded-xl bg-slate-50 px-3 py-2 text-center text-[11px] text-slate-500">
-            Client can tap Pay now to complete payment
-          </p>
         ) : null}
       </div>
     </div>

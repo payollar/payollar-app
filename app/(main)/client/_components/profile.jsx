@@ -189,8 +189,8 @@ export function ClientProfile({ user }) {
             </div>
 
             <Button
-              variant="marketing"
-              className="w-full"
+              variant="black"
+              className="w-full rounded-full"
               onClick={handleSaveProfile}
               disabled={isSaving || !fullName.trim()}
             >

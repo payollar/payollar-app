@@ -2,10 +2,19 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Twitter, Instagram, Facebook, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { Instagram, Facebook, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { siX } from "simple-icons";
 import { cn } from "@/lib/utils";
 import { SectionParticles } from "@/components/landing/section-particles";
 import { useLandingTheme } from "@/components/landing/landing-theme";
+
+function XIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path fill="currentColor" d={siX.path} />
+    </svg>
+  );
+}
 
 const quickLinks = [
   ["/#how-it-works", "How it works"],
@@ -66,7 +75,7 @@ export function Footer() {
             </p>
             <div className="flex flex-wrap gap-2">
               {[
-                { Icon: Twitter, href: "https://twitter.com", label: "Twitter" },
+                { Icon: XIcon, href: "https://x.com", label: "X" },
                 { Icon: Instagram, href: "https://instagram.com", label: "Instagram" },
                 { Icon: Facebook, href: "https://facebook.com", label: "Facebook" },
                 { Icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },

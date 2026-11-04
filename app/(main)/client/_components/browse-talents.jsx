@@ -54,7 +54,7 @@ export function BrowseTalents({ talents = [], categories = [] }) {
       actions={
         <Link
           href="/talents"
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-[#0055ff] px-4 text-sm font-semibold text-white hover:bg-[#003ecc]"
+          className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
         >
           <Search className="h-4 w-4" />
           Public directory
@@ -147,11 +147,11 @@ function TalentCard({ talent }) {
   return (
     <article className="flex h-full flex-col rounded-2xl bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
       <div className="flex h-11 items-center gap-2.5">
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#e8f0ff]">
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-100">
           {talent.imageUrl ? (
             <Image src={talent.imageUrl} alt="" fill className="object-cover" sizes="40px" />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-[#0055ff]">
+            <span className="flex h-full w-full items-center justify-center text-slate-950">
               <User className="h-4 w-4" />
             </span>
           )}
@@ -160,7 +160,7 @@ function TalentCard({ talent }) {
           <h2 className="truncate text-sm font-semibold leading-5 text-slate-950">{talent.name || "Creator"}</h2>
           <div className="mt-0.5 flex h-4 min-w-0 items-center gap-1.5">
             {talent.specialty ? (
-              <span className="truncate rounded-full bg-[#e8f0ff] px-1.5 py-0.5 text-[10px] font-medium leading-none text-[#0b3db8]">
+              <span className="truncate rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-slate-700">
                 {talent.specialty}
               </span>
             ) : (
@@ -179,14 +179,14 @@ function TalentCard({ talent }) {
 
       <div className="mt-2">
         <p className="mb-1 flex h-4 items-center gap-1 text-[11px] font-semibold text-slate-600">
-          <ClipboardPenLine className="h-3 w-3 text-[#0055ff]" />
+          <ClipboardPenLine className="h-3 w-3 text-slate-950" />
           Services ({servicesCount})
         </p>
         <div className="flex h-8 items-center justify-between gap-2 rounded-lg bg-[#f7f8fc] px-2">
           {service ? (
             <>
               <p className="min-w-0 truncate text-xs font-medium text-slate-900">{service.title}</p>
-              <p className="shrink-0 text-[11px] font-semibold tabular-nums text-[#0055ff]">
+              <p className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-950">
                 {money(service.rate, service.rateType)}
                 {moreServices > 0 ? <span className="ml-1 font-medium text-slate-400">+{moreServices}</span> : null}
               </p>
@@ -221,7 +221,7 @@ function TalentCard({ talent }) {
 
       <Link
         href={profileHref}
-        className="mt-3 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#0055ff] text-xs font-semibold text-white hover:bg-[#003ecc]"
+        className="mt-3 inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white hover:bg-slate-800"
       >
         View profile
       </Link>

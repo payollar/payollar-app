@@ -137,11 +137,11 @@ export function ClientCampaigns({
   const cancelledCampaigns = filteredCampaigns.filter((c) => c.status === "CANCELLED");
 
   const fieldClass =
-    "h-11 rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+    "h-11 rounded-xl border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-slate-950/20";
 
   const metrics = [
     { label: "Total", value: stats.total, icon: FileText, tone: "text-slate-950" },
-    { label: "Active", value: stats.active, icon: Sparkles, tone: "text-[#0055ff]" },
+    { label: "Active", value: stats.active, icon: Sparkles, tone: "text-slate-950" },
     { label: "Draft", value: stats.draft, icon: Edit, tone: "text-amber-600" },
     { label: "Closed", value: stats.closed, icon: Archive, tone: "text-slate-500" },
     { label: "Applications", value: stats.totalApplications, icon: Users, tone: "text-slate-950" },
@@ -152,7 +152,7 @@ export function ClientCampaigns({
       <div className={`${cardClass} grid grid-cols-2 overflow-hidden sm:grid-cols-3 lg:grid-cols-5`}>
         {metrics.map((metric) => (
           <div key={metric.label} className="flex items-center gap-3 border-slate-100 px-4 py-4 sm:border-r sm:last:border-r-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0055ff]/[0.08] text-[#0055ff]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950/[0.08] text-slate-950">
               <metric.icon className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -303,7 +303,7 @@ export function ClientCampaigns({
             <p className="mb-6 text-muted-foreground">
               Create your first campaign to connect with talented creators and grow your brand.
             </p>
-            <Button variant="marketing" onClick={() => setIsCreateModalOpen(true)}>
+            <Button variant="black" className="rounded-full" onClick={() => setIsCreateModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create your first campaign
             </Button>
@@ -330,7 +330,7 @@ export function ClientCampaigns({
   );
 
   const createCampaignAction = (
-    <Button variant="marketing" size="lg" className="gap-2" onClick={() => setIsCreateModalOpen(true)}>
+    <Button variant="black" size="lg" className="gap-2 rounded-full" onClick={() => setIsCreateModalOpen(true)}>
       <Plus className="h-4 w-4" />
       Create campaign
     </Button>
@@ -371,7 +371,7 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
     : "Budget not specified";
 
   const statusColors = {
-    ACTIVE: "border-[#0055ff]/20 bg-[#0055ff]/10 text-[#0055ff]",
+    ACTIVE: "border-slate-300 bg-slate-950/10 text-slate-950",
     DRAFT: "border-amber-500/30 bg-amber-500/10 text-amber-700",
     CLOSED: "border-slate-200 bg-slate-100 text-slate-500",
     CANCELLED: "border-red-200 bg-red-50 text-red-600",
@@ -520,7 +520,7 @@ function CampaignCard({ campaign, onViewApplications, onStatusUpdate, cardClass 
             View applications ({applicantsCount})
           </Button>
           {campaign.status === "DRAFT" && (
-            <Button variant="marketing" className="w-full" onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}>
+            <Button variant="black" className="w-full rounded-full" onClick={() => onStatusUpdate(campaign.id, "ACTIVE")}>
               <Sparkles className="mr-2 h-4 w-4" />
               Publish campaign
             </Button>

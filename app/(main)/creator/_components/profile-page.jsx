@@ -23,7 +23,6 @@ import {
   ExternalLink,
   Link2,
   Facebook,
-  Twitter,
   Linkedin,
   Mail,
   Calendar,
@@ -34,10 +33,19 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { siX } from "simple-icons";
 import { updateCreatorProfile } from "@/actions/doctor";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
+
+function XIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path fill="currentColor" d={siX.path} />
+    </svg>
+  );
+}
 
 export function ProfilePage({ user, availabilitySlots = [] }) {
   const router = useRouter();
@@ -234,7 +242,7 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
     const encodedText = encodeURIComponent(shareText);
 
     const urls = {
-      twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+      x: `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
       email: `mailto:?subject=${encodeURIComponent(shareText)}&body=${encodedUrl}`,
@@ -886,12 +894,12 @@ export function ProfilePage({ user, availabilitySlots = [] }) {
                       )}
                     </Button>
                     <Button
-                      onClick={() => shareOnSocial("twitter")}
+                      onClick={() => shareOnSocial("x")}
                       variant="outline"
                       className="border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
-                      <Twitter className="h-4 w-4 mr-2" />
-                      Twitter
+                      <XIcon className="mr-2 h-4 w-4" />
+                      X
                     </Button>
                     <Button
                       onClick={() => shareOnSocial("facebook")}

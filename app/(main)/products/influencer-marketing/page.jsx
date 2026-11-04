@@ -79,7 +79,7 @@ export default function InfluencerMarketingPage() {
       followers: "350K+",
       rating: 4.8,
       engagement: "7.2%",
-      platforms: ["YouTube", "Instagram", "Twitter"],
+      platforms: ["YouTube", "Instagram", "X"],
       demographics: ["Men 25-44", "Tech Enthusiasts"],
       packages: [
         {
@@ -90,7 +90,7 @@ export default function InfluencerMarketingPage() {
         {
           name: "Tech Campaign",
           price: "₵12,000",
-          deliverables: ["2 YouTube videos", "3 Instagram posts", "Twitter thread", "14-day campaign"],
+          deliverables: ["2 YouTube videos", "3 Instagram posts", "X thread", "14-day campaign"],
         },
         {
           name: "Long-term Partnership",

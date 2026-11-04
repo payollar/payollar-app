@@ -19,13 +19,21 @@ import {
   X,
   Link2,
   Facebook,
-  Twitter,
   Linkedin,
   Mail,
   Loader2
 } from "lucide-react";
+import { siX } from "simple-icons";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+function XIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path fill="currentColor" d={siX.path} />
+    </svg>
+  );
+}
 
 export function PublicProfile({ user, skills = [] }) {
   const router = useRouter();
@@ -76,7 +84,7 @@ export function PublicProfile({ user, skills = [] }) {
     const encodedText = encodeURIComponent(shareText);
 
     const urls = {
-      twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+      x: `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
       email: `mailto:?subject=${encodeURIComponent(shareText)}&body=${encodedUrl}`,
@@ -493,12 +501,12 @@ export function PublicProfile({ user, skills = [] }) {
               )}
             </Button>
             <Button
-              onClick={() => shareOnSocial("twitter")}
+              onClick={() => shareOnSocial("x")}
               variant="outline"
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
-              <Twitter className="h-4 w-4 mr-2" />
-              Twitter
+              <XIcon className="mr-2 h-4 w-4" />
+              X
             </Button>
             <Button
               onClick={() => shareOnSocial("facebook")}

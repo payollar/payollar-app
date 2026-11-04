@@ -43,9 +43,9 @@ function statusCopy(order, index) {
   if (order.status === "CANCELLED") return { label: "Cancelled", className: "bg-rose-50 text-rose-600" };
   if (order.status === "COMPLETED") return { label: "Completed", className: "bg-emerald-50 text-emerald-700" };
   if (index === 3) return { label: "Ready to complete", className: "bg-amber-50 text-amber-700" };
-  if (index === 2) return { label: "In session", className: "bg-[#e8f0ff] text-[#0b3db8]" };
-  if (index === 1) return { label: "Booked", className: "bg-[#e8f0ff] text-[#0b3db8]" };
-  return { label: "Chat open", className: "bg-[#e8f0ff] text-[#0b3db8]" };
+  if (index === 2) return { label: "In session", className: "bg-slate-100 text-slate-700" };
+  if (index === 1) return { label: "Booked", className: "bg-slate-100 text-slate-700" };
+  return { label: "Chat open", className: "bg-slate-100 text-slate-700" };
 }
 
 function stepWhen(order, step, index) {
@@ -85,11 +85,19 @@ function deadlineHint(endTime) {
   return `${days} days left`;
 }
 
+function moneyGhs(value) {
+  return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function OrderDetail({ order, basePath }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [busy, setBusy] = useState("");
+  const [paying, setPaying] = useState(false);
   const cancelled = order.status === "CANCELLED";
   const index = progressIndex(order);
   const status = statusCopy(order, index);
@@ -99,8 +107,15 @@ export function OrderDetail({ order, basePath }) {
     Math.round((new Date(order.endTime).getTime() - new Date(order.startTime).getTime()) / 60000)
   );
   const title = order.brief || order.other.specialty || "Session";
+  const openInvoice = order.invoice?.status === "SENT" ? order.invoice : null;
+  const canPayInvoice =
+    order.role === "CLIENT" &&
+    Boolean(openInvoice) &&
+    order.status !== "CANCELLED" &&
+    order.status !== "COMPLETED";
 
-  const pay = async () => {
+  const pay = async (invoiceId) => {
+    setPaying(true);
     try {
       const res = await fetch("/api/paystack/initialize", {
         method: "POST",
@@ -110,6 +125,7 @@ export function OrderDetail({ order, basePath }) {
           startTime: order.startTime,
           endTime: order.endTime,
           description: order.brief || undefined,
+          invoiceId: invoiceId || openInvoice?.id || undefined,
         }),
       });
       const data = await res.json();
@@ -124,6 +140,8 @@ export function OrderDetail({ order, basePath }) {
       toast.error("Payment link not received.");
     } catch {
       toast.error("Something went wrong. Please try again.");
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -204,7 +222,7 @@ export function OrderDetail({ order, basePath }) {
             </div>
             <Link
               href={`/messages/${order.id}`}
-              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-[#d5e2ff] bg-white px-4 text-sm font-semibold text-[#0b3db8] shadow-sm"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-[#d5e2ff] bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm"
             >
               <MessageCircle className="h-4 w-4" />
               Message
@@ -225,7 +243,7 @@ export function OrderDetail({ order, basePath }) {
                     <span
                       className={`z-[1] flex h-9 w-9 items-center justify-center rounded-full border text-xs font-semibold ${
                         done || current
-                          ? "border-[#0055ff] bg-[#0055ff] text-white"
+                          ? "border-slate-950 bg-slate-950 text-white"
                           : "border-slate-200 bg-white text-slate-400"
                       }`}
                     >
@@ -293,20 +311,67 @@ export function OrderDetail({ order, basePath }) {
               </div>
             </div>
 
+            {openInvoice ? (
+              <div className="mt-4 rounded-2xl border border-[#dbe7ff] bg-[#f7f9ff] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-950">
+                      Invoice
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-slate-950">{openInvoice.title}</p>
+                    {openInvoice.notes ? (
+                      <p className="mt-1 text-sm text-slate-500">{openInvoice.notes}</p>
+                    ) : null}
+                    {openInvoice.lineItems?.length ? (
+                      <ul className="mt-2 space-y-1">
+                        {openInvoice.lineItems.map((item, i) => (
+                          <li key={`${item.description}-${i}`} className="flex justify-between gap-3 text-xs text-slate-600">
+                            <span>{item.description}</span>
+                            <span className="font-medium tabular-nums text-slate-900">
+                              {moneyGhs(item.amount)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                  <p className="text-xl font-semibold tabular-nums text-slate-950">
+                    {moneyGhs(openInvoice.amount)}
+                  </p>
+                </div>
+                {canPayInvoice ? (
+                  <button
+                    type="button"
+                    disabled={paying}
+                    onClick={() => pay(openInvoice.id)}
+                    className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Pay now · {moneyGhs(openInvoice.amount)}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="mt-4 flex flex-wrap gap-2">
               {order.role === "CREATOR" && order.status === "SCHEDULED" && Date.now() >= new Date(order.endTime).getTime() ? (
                 <button
                   type="button"
                   disabled={busy === "complete"}
                   onClick={() => run("complete", markAppointmentCompleted)}
-                  className="inline-flex h-11 items-center rounded-full bg-[#0055ff] px-5 text-sm font-semibold text-white disabled:opacity-50"
+                  className="inline-flex h-11 items-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-50"
                 >
                   {busy === "complete" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
                   Mark as complete
                 </button>
               ) : null}
-              {order.role === "CLIENT" && order.status === "REQUESTED" ? (
-                <button type="button" onClick={pay} className="h-11 rounded-full bg-[#0055ff] px-5 text-sm font-semibold text-white">
+              {order.role === "CLIENT" && order.status === "REQUESTED" && !openInvoice ? (
+                <button
+                  type="button"
+                  disabled={paying}
+                  onClick={() => pay()}
+                  className="h-11 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-60"
+                >
                   Pay for session
                 </button>
               ) : null}
@@ -337,7 +402,7 @@ export function OrderDetail({ order, basePath }) {
             <ul className="mt-4 space-y-4">
               {timeline.map((item) => (
                 <li key={item.text} className="flex gap-3">
-                  <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[#0055ff]" />
+                  <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-950" />
                   <span>
                     <span className="block text-xs text-slate-400">{format(new Date(item.at), "MMM d, yyyy · h:mm a")}</span>
                     <span className="text-sm text-slate-800">{item.text}</span>
@@ -352,7 +417,7 @@ export function OrderDetail({ order, basePath }) {
           <section className="rounded-[22px] border border-slate-100 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-950">Conversation</h2>
-              <Link href={`/messages/${order.id}`} className="text-sm font-medium text-[#0055ff]">
+              <Link href={`/messages/${order.id}`} className="text-sm font-medium text-slate-950">
                 Open
               </Link>
             </div>
@@ -362,7 +427,7 @@ export function OrderDetail({ order, basePath }) {
               ) : (
                 order.messages.map((message) => (
                   <div key={message.id} className="flex gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-[11px] font-semibold text-[#0b3db8]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
                       {message.mine ? "Y" : initials(order.other.name)}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -393,7 +458,7 @@ export function OrderDetail({ order, basePath }) {
                   type="submit"
                   disabled={sending || !draft.trim()}
                   aria-label="Send"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#0055ff] text-white disabled:opacity-40"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-white disabled:opacity-40"
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
@@ -407,6 +472,14 @@ export function OrderDetail({ order, basePath }) {
               <Row label="With" value={order.other.name} />
               <Row label="Status" value={status.label} />
               <Row label="Length" value={`${minutes} min`} />
+              {order.invoice ? (
+                <Row
+                  label="Invoice"
+                  value={`${order.invoice.status === "PAID" ? "Paid" : "Due"} · ${moneyGhs(order.invoice.amount)}`}
+                />
+              ) : order.agreedAmount != null ? (
+                <Row label="Agreed" value={moneyGhs(order.agreedAmount)} />
+              ) : null}
               <Row label="Opened" value={format(new Date(order.createdAt), "d MMM yyyy")} />
             </dl>
           </section>
