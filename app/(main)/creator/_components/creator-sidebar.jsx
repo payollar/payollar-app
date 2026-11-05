@@ -18,6 +18,7 @@ import {
   HelpCircle,
   LogOut,
   Wallet,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -65,6 +66,11 @@ const menuItems = [
     title: "Campaigns",
     icon: FileText,
     href: "/creator/applications",
+  },
+  {
+    title: "Product logistics",
+    icon: Package,
+    href: "/creator/logistics",
   },
   {
     title: "Reports",

@@ -15,6 +15,7 @@ import {
   FileText,
   FolderOpen,
   MapPin,
+  MessageSquare,
   Radio,
   Search,
   Tv,
@@ -307,9 +308,9 @@ export function MediaLibrary({
 
   return (
     <ClientPageShell
-      eyebrow="Library"
-      title="Media Library"
-      description="Track media bookings, campaign reports, and proof of airing in one place."
+      eyebrow="Media bookings"
+      title="Media bookings"
+      description="Track bookings, negotiate discounts with stations, and review proof of airing."
       actions={
         <Button asChild className="rounded-full bg-slate-950 hover:bg-slate-800">
           <Link href="/products">
@@ -518,24 +519,38 @@ export function MediaLibrary({
                                 ) : null}
                               </div>
 
-                              {(relatedCerts.length > 0 || relatedReports.length > 0) && (
-                                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-                                  {relatedCerts.length > 0 ? (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-950">
-                                      <FileText className="h-3.5 w-3.5" />
-                                      {relatedCerts.length} certificate
-                                      {relatedCerts.length === 1 ? "" : "s"}
-                                    </span>
-                                  ) : null}
-                                  {relatedReports.length > 0 ? (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                                      <BarChart3 className="h-3.5 w-3.5" />
-                                      {relatedReports.length} report
-                                      {relatedReports.length === 1 ? "" : "s"}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              )}
+                              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                                {booking.status !== "CANCELLED" &&
+                                booking.totalAmount != null &&
+                                Number(booking.totalAmount) > 0 ? (
+                                  <Button asChild variant="black" size="sm" className="rounded-full">
+                                    <Link
+                                      href={`/client/media/negotiate/start/${
+                                        booking.bookingType === "RATE_CARD"
+                                          ? "RATE_CARD_BOOKING"
+                                          : "MEDIA_BOOKING"
+                                      }/${booking.id}`}
+                                    >
+                                      <MessageSquare className="h-3.5 w-3.5" />
+                                      Negotiate discount
+                                    </Link>
+                                  </Button>
+                                ) : null}
+                                {relatedCerts.length > 0 ? (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-950">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    {relatedCerts.length} certificate
+                                    {relatedCerts.length === 1 ? "" : "s"}
+                                  </span>
+                                ) : null}
+                                {relatedReports.length > 0 ? (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                                    <BarChart3 className="h-3.5 w-3.5" />
+                                    {relatedReports.length} report
+                                    {relatedReports.length === 1 ? "" : "s"}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
                         </CardContent>

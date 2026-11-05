@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Users,
   ListOrdered,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -98,6 +99,7 @@ const menuItems = [
   },
   { title: "Messages", icon: MessageCircle, href: "/messages" },
   { title: "Campaigns", icon: BarChart3, href: "/client/campaigns" },
+  { title: "Product logistics", icon: Package, href: "/client/logistics" },
   {
     title: "Reports",
     icon: ClipboardList,
@@ -120,7 +122,7 @@ const menuItems = [
       },
     ],
   },
-  { title: "Media library", icon: FolderOpen, href: "/client/media" },
+  { title: "Media bookings", icon: FolderOpen, href: "/client/media" },
   { title: "Payouts", icon: Wallet, href: "/client/payouts" },
   { title: "Settings", icon: Settings, href: "/client/settings" },
 ];

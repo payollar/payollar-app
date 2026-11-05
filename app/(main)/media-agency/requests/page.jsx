@@ -4,7 +4,7 @@ import { db } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Inbox, CheckCircle, XCircle, Clock, FileText, Upload } from "lucide-react";
+import { Inbox, CheckCircle, XCircle, Clock, FileText, Upload, MessageSquare } from "lucide-react";
 import { updateBookingStatus } from "./actions";
 import Link from "next/link";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
@@ -163,7 +163,15 @@ export default async function MediaAgencyRequestsPage() {
                     <p className="text-xs text-muted-foreground">
                       Requested on {new Date(booking.createdAt).toLocaleString()}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {booking.totalAmount != null && Number(booking.totalAmount) > 0 && booking.status !== "CANCELLED" ? (
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/media-agency/negotiations/start/MEDIA_BOOKING/${booking.id}`}>
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Negotiate
+                          </Link>
+                        </Button>
+                      ) : null}
                       {booking.status === "PENDING" && (
                         <>
                           <form action={updateBookingStatus}>
@@ -305,7 +313,15 @@ export default async function MediaAgencyRequestsPage() {
                     <p className="text-xs text-muted-foreground">
                       Requested on {new Date(booking.createdAt).toLocaleString()}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {booking.totalAmount != null && Number(booking.totalAmount) > 0 && booking.status !== "CANCELLED" ? (
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/media-agency/negotiations/start/RATE_CARD_BOOKING/${booking.id}`}>
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Negotiate
+                          </Link>
+                        </Button>
+                      ) : null}
                       {booking.status === "PENDING" && (
                         <>
                           <form action={updateBookingStatus}>

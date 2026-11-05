@@ -71,6 +71,8 @@ model User {
   bookingInvoices      BookingInvoice[]      @relation("BookingInvoiceCreator")
   creatorDeliveryReports DeliveryReport[]    @relation("CreatorDeliveryReports")
   clientDeliveryReports  DeliveryReport[]    @relation("ClientDeliveryReports")
+  clientLogisticsShipments  LogisticsShipment[] @relation("ClientLogisticsShipments")
+  creatorLogisticsShipments LogisticsShipment[] @relation("CreatorLogisticsShipments")
 }
 
 model ProfileView {
@@ -400,6 +402,7 @@ model CampaignApplication {
   updatedAt      DateTime          @updatedAt
 
   deliveryReport DeliveryReport?
+  logisticsShipment LogisticsShipment?
 
   @@unique([campaignId, talentId]) // Prevent duplicate applications
   @@index([campaignId, status])
@@ -449,6 +452,65 @@ enum ApplicationStatus {
   ACCEPTED
   REJECTED
   REDRAWN
+}
+
+enum LogisticsShipmentStatus {
+  DRAFT
+  DISPATCHED
+  RECEIVED_OK
+  PROBLEM
+  RETURN_REQUESTED
+  RETURN_ACKED
+  CLOSED
+}
+
+/// Whether the kit is keepable (gift) or expected back.
+enum LogisticsDisposition {
+  GIFT
+  RETURNABLE
+}
+
+/// Self-managed product kit logistics between brand and creator (proof only).
+model LogisticsShipment {
+  id            String                  @id @default(uuid())
+  applicationId String                  @unique
+  application   CampaignApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        User                    @relation("ClientLogisticsShipments", fields: [clientId], references: [id], onDelete: Cascade)
+  creatorId     String
+  creator       User                    @relation("CreatorLogisticsShipments", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  title         String
+  status        LogisticsShipmentStatus @default(DRAFT)
+  mode          String                  @default("SELF_MANAGED")
+  /// Gift = creator keeps it. Returnable = brand expects it back.
+  disposition   LogisticsDisposition    @default(GIFT)
+
+  courier       String?
+  riderNumber   String?
+  trackingRef   String?
+  dispatchNotes String?                 @db.Text
+  dispatchedAt  DateTime?
+  /// [{ url, name, type, size, key }]
+  proofFiles    Json                    @default("[]")
+
+  receiveNotes  String?                 @db.Text
+  receivedAt    DateTime?
+  problemNotes  String?                 @db.Text
+
+  returnRequestedAt DateTime?
+  returnNotes       String?             @db.Text
+  returnAckedAt     DateTime?
+  returnAckNotes    String?             @db.Text
+
+  /// [{ id, at, actorId, actorRole, type, message, meta? }]
+  events        Json                    @default("[]")
+
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@index([clientId, status, updatedAt])
+  @@index([creatorId, status, updatedAt])
 }
 
 model DigitalProduct {
@@ -534,6 +596,7 @@ model MediaAgency {
   transmissionCertificates TransmissionCertificate[]
   rateCards RateCard[]
   rateCardBookings RateCardBookingItem[]
+  negotiations MediaNegotiation[]
 
   @@index([verificationStatus, createdAt])
 }
@@ -895,6 +958,73 @@ model RateCardBookingItem {
   @@index([rateCardId])
   @@index([agencyId, status])
   @@index([status, createdAt])
+}
+
+enum MediaNegotiationSource {
+  MEDIA_BOOKING
+  RATE_CARD_BOOKING
+}
+
+enum MediaNegotiationStatus {
+  OPEN
+  DISCOUNT_REQUESTED
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  CLOSED
+}
+
+enum MediaNegotiationMessageType {
+  TEXT
+  DISCOUNT_REQUEST
+  COUNTER_OFFER
+  ACCEPT
+  REJECT
+  SYSTEM
+}
+
+/// Client ↔ station negotiation thread for media booking discounts.
+model MediaNegotiation {
+  id                   String                   @id @default(uuid())
+  sourceType           MediaNegotiationSource
+  sourceId             String
+  agencyId             String
+  agency               MediaAgency              @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  clientUserId         String?
+  clientEmail          String
+  clientName           String?
+  title                String
+  stationName          String?
+  packageLabel         String?
+  listAmount           Float
+  requestedDiscountPct Float?
+  proposedAmount       Float?
+  counterAmount        Float?
+  agreedAmount         Float?
+  status               MediaNegotiationStatus   @default(OPEN)
+  messages             MediaNegotiationMessage[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@unique([sourceType, sourceId])
+  @@index([agencyId, status, updatedAt])
+  @@index([clientEmail, updatedAt])
+  @@index([clientUserId, updatedAt])
+}
+
+model MediaNegotiationMessage {
+  id            String                       @id @default(uuid())
+  negotiationId String
+  negotiation   MediaNegotiation             @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  senderRole    String // CLIENT | AGENCY | SYSTEM
+  senderUserId  String?
+  type          MediaNegotiationMessageType  @default(TEXT)
+  body          String                       @db.Text
+  /// { discountPct?, amount? }
+  meta          Json?
+  createdAt     DateTime                     @default(now())
+
+  @@index([negotiationId, createdAt])
 }
 
 model McpOAuthClient {

@@ -17,6 +17,7 @@ import {
   ScrollText,
   Megaphone,
   MessageCircle,
+  Percent,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const menuItems = [
   { title: "Custom packages", icon: Package, href: "/media-agency/rate-card" },
   { title: "Smart rate card", icon: FileText, href: "/media-agency/smart-rate-card" },
   { title: "Requests", icon: Inbox, href: "/media-agency/requests" },
+  { title: "Negotiations", icon: Percent, href: "/media-agency/negotiations" },
   { title: "Campaigns", icon: Megaphone, href: "/media-agency/campaigns" },
   { title: "Messages", icon: MessageCircle, href: "/messages" },
   { title: "Terms & conditions", icon: ScrollText, href: "/media-agency/terms" },
