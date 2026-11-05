@@ -39,7 +39,7 @@ import { ClientPageShell, clientCardClass } from "./client-page-shell";
 const TABS = [
   { id: "bookings", label: "Bookings", icon: Calendar },
   { id: "reports", label: "Reports", icon: BarChart3 },
-  { id: "certificates", label: "Certificates", icon: FileText },
+  { id: "certificates", label: "Proof of airing", icon: FileText },
 ];
 
 function formatFileType(type) {
@@ -309,7 +309,7 @@ export function MediaLibrary({
     <ClientPageShell
       eyebrow="Library"
       title="Media Library"
-      description="Track media bookings, campaign reports, and transmission certificates in one place."
+      description="Track media bookings, campaign reports, and proof of airing in one place."
       actions={
         <Button asChild className="rounded-full bg-slate-950 hover:bg-slate-800">
           <Link href="/products">
@@ -340,7 +340,7 @@ export function MediaLibrary({
             tone="emerald"
           />
           <StatCard
-            label="Certificates"
+            label="Proof of airing"
             value={stats.totalCertificates}
             icon={FileText}
             tone="violet"
@@ -663,8 +663,8 @@ export function MediaLibrary({
                 icon={FileText}
                 title={
                   certificates.length === 0
-                    ? "No certificates yet"
-                    : "No matching certificates"
+                    ? "No proof of airing yet"
+                    : "No matching proof files"
                 }
                 description={
                   certificates.length === 0

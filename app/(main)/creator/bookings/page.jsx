@@ -18,5 +18,5 @@ export default async function CreatorBookingsPage() {
 
   const orders = await listMyOrders();
 
-  return <OrderList orders={orders} basePath="/creator/bookings" />;
+  return <OrderList orders={orders} basePath="/creator/bookings" showMedia={false} />;
 }

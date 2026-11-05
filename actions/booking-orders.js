@@ -27,12 +27,28 @@ function latestOpenInvoice(invoices = []) {
   );
 }
 
+function resolveAppointmentCategory(row) {
+  if (row.source === "CAMPAIGN") return "CAMPAIGN";
+  if (row.source === "TALENT") {
+    const brief = String(row.clientDescription || "");
+    if (/^Campaign application:/i.test(brief.trim())) return "CAMPAIGN";
+    return "TALENT";
+  }
+  const brief = String(row.clientDescription || "");
+  if (/^Campaign application:/i.test(brief.trim())) return "CAMPAIGN";
+  return "TALENT";
+}
+
 function shape(row, userId) {
   const other = row.creatorId === userId ? row.client : row.creator;
   const invoices = Array.isArray(row.invoices) ? row.invoices : [];
   const invoice = mapInvoice(latestOpenInvoice(invoices));
+  const category = resolveAppointmentCategory(row);
   return {
     id: row.id,
+    category,
+    kind: "APPOINTMENT",
+    href: null,
     status: row.status,
     startTime: row.startTime.toISOString(),
     endTime: row.endTime.toISOString(),
@@ -50,6 +66,168 @@ function shape(row, userId) {
       specialty: other?.specialty || "",
     },
   };
+}
+
+function mediaStatusToOrderStatus(status) {
+  switch (String(status || "").toUpperCase()) {
+    case "PENDING":
+      return "REQUESTED";
+    case "CONFIRMED":
+      return "SCHEDULED";
+    case "COMPLETED":
+      return "COMPLETED";
+    case "CANCELLED":
+      return "CANCELLED";
+    default:
+      return "REQUESTED";
+  }
+}
+
+function toIso(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function shapeMediaBooking(booking) {
+  const start =
+    toIso(booking.startDate) ||
+    toIso(booking.createdAt) ||
+    new Date().toISOString();
+  const end = toIso(booking.endDate) || start;
+  const amount = Number(booking.totalAmount ?? booking.packagePrice ?? 0);
+  const listingName = booking.listing?.name || booking.packageName || "Media booking";
+  const agencyName = booking.agency?.agencyName || "Media agency";
+  const typeLabel =
+    booking.bookingType === "RATE_CARD"
+      ? "Rate card"
+      : booking.listing?.listingType || "Media";
+
+  return {
+    id: `media:${booking.id}`,
+    category: "MEDIA",
+    kind: booking.bookingType === "RATE_CARD" ? "RATE_CARD" : "MEDIA",
+    href: "/client/media",
+    status: mediaStatusToOrderStatus(booking.status),
+    mediaStatus: booking.status,
+    startTime: start,
+    endTime: end,
+    createdAt: toIso(booking.createdAt) || start,
+    updatedAt: toIso(booking.updatedAt) || start,
+    brief: [booking.packageName, typeLabel].filter(Boolean).join(" · "),
+    notes: booking.notes?.trim() || "",
+    agreedAmount: Number.isFinite(amount) ? amount : null,
+    invoice: Number.isFinite(amount) && amount > 0
+      ? {
+          id: `media-amount:${booking.id}`,
+          title: booking.packageName || "Media order",
+          notes: "",
+          lineItems: [],
+          amount,
+          currency: "GHS",
+          status: booking.status === "PENDING" ? "SENT" : "PAID",
+          createdAt: toIso(booking.createdAt) || start,
+        }
+      : null,
+    hasOpenInvoice: false,
+    other: {
+      id: booking.agency?.id || booking.listing?.id || "",
+      name: agencyName,
+      imageUrl: booking.listing?.imageUrl || "",
+      specialty: listingName,
+    },
+  };
+}
+
+async function listClientMediaOrders(userId) {
+  const user = await db.user.findUnique({
+    where: { id: userId, role: "CLIENT" },
+    select: { email: true },
+  });
+  if (!user?.email) return [];
+
+  const [mediaBookings, rateCardBookings] = await Promise.all([
+    db.mediaBooking.findMany({
+      where: { clientEmail: user.email },
+      include: {
+        listing: {
+          select: {
+            id: true,
+            name: true,
+            listingType: true,
+            location: true,
+            imageUrl: true,
+          },
+        },
+        agency: {
+          select: { id: true, agencyName: true, contactName: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.rateCardBookingItem.findMany({
+      where: { clientEmail: user.email },
+      include: {
+        rateCard: {
+          select: {
+            id: true,
+            title: true,
+            listingType: true,
+            location: true,
+            imageUrl: true,
+            listingId: true,
+          },
+        },
+        agency: {
+          select: { id: true, agencyName: true, contactName: true },
+        },
+        row: {
+          include: {
+            table: {
+              include: {
+                section: { select: { title: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const rateCardShaped = rateCardBookings.map((booking) =>
+    shapeMediaBooking({
+      id: booking.id,
+      packageName:
+        booking.snapshotDescription ||
+        booking.row?.table?.section?.title ||
+        "Rate card item",
+      packagePrice: booking.snapshotPrice,
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      totalAmount: booking.totalAmount,
+      status: booking.status,
+      notes: booking.notes,
+      createdAt: booking.createdAt,
+      updatedAt: booking.updatedAt,
+      listing: {
+        id: booking.rateCard.id,
+        name: booking.rateCard.title,
+        listingType: booking.rateCard.listingType || "DIGITAL",
+        location: booking.rateCard.location,
+        imageUrl: booking.rateCard.imageUrl,
+      },
+      agency: booking.agency,
+      bookingType: "RATE_CARD",
+    })
+  );
+
+  return [
+    ...mediaBookings.map((booking) =>
+      shapeMediaBooking({ ...booking, bookingType: "MEDIA" })
+    ),
+    ...rateCardShaped,
+  ];
 }
 
 async function viewer() {
@@ -90,12 +268,29 @@ export async function listMyOrders() {
     orderBy: { startTime: "desc" },
   });
 
-  return rows.map((row) => shape(row, user.id));
+  const appointments = rows.map((row) => shape(row, user.id));
+
+  if (user.role !== "CLIENT") {
+    return appointments;
+  }
+
+  const mediaOrders = await listClientMediaOrders(user.id).catch((error) => {
+    console.error("listClientMediaOrders failed:", error);
+    return [];
+  });
+
+  return [...appointments, ...mediaOrders].sort(
+    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+  );
 }
 
 export async function getMyOrder(id) {
   const user = await viewer();
   if (!user || !id) return null;
+
+  if (String(id).startsWith("media:")) {
+    return null;
+  }
 
   const row = await db.appointment.findFirst({
     where: {

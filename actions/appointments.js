@@ -117,6 +117,7 @@ export async function bookAppointment(formData) {
         endTime,
         clientDescription,
         status: "SCHEDULED",
+        source: "TALENT",
         videoSessionId: sessionId, // Store the Vonage session ID
       },
     });

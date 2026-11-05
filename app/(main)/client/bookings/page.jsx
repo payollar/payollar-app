@@ -14,6 +14,9 @@ export default async function ClientBookingsPage({ searchParams }) {
 
   const params = searchParams ? await searchParams : {};
   const orders = await listMyOrders();
+  const category = ["CAMPAIGN", "MEDIA", "TALENT"].includes(params?.category)
+    ? params.category
+    : "all";
 
   return (
     <OrderList
@@ -21,6 +24,7 @@ export default async function ClientBookingsPage({ searchParams }) {
       basePath="/client/bookings"
       paymentSuccess={params?.success}
       paymentError={params?.error}
+      initialCategory={category}
     />
   );
 }

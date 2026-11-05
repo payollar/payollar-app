@@ -276,6 +276,7 @@ export async function startBookingChat({ doctorId, startTime, endTime, descripti
           endTime: end,
           clientDescription: brief || null,
           status: "REQUESTED",
+          source: "TALENT",
         },
         select: { id: true },
       }));
@@ -391,11 +392,17 @@ export async function startCampaignApplicationChat(applicationId) {
           endTime: end,
           clientDescription: brief,
           status: "REQUESTED",
+          source: "CAMPAIGN",
         },
         select: { id: true },
       });
       appointmentId = created.id;
       isNew = true;
+    } else {
+      await db.appointment.update({
+        where: { id: appointmentId },
+        data: { source: "CAMPAIGN" },
+      });
     }
 
     const conversation = await ensureBookingConversation(appointmentId);

@@ -124,6 +124,7 @@ export async function GET(request) {
             endTime: end,
             clientDescription: description || null,
             status: "SCHEDULED",
+            source: "TALENT",
             videoSessionId: sessionId,
           },
         });

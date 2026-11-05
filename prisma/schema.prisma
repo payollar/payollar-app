@@ -192,6 +192,8 @@ model Appointment {
   startTime         DateTime // Start time of appointment
   endTime           DateTime // End time of appointment
   status            AppointmentStatus @default(SCHEDULED)
+  /// Where this booking started: talent session vs campaign hire chat.
+  source            AppointmentSource @default(TALENT)
   notes             String?           @db.Text
   clientDescription String?           @db.Text
 
@@ -211,6 +213,7 @@ model Appointment {
 
   @@index([status, startTime])
   @@index([creatorId, startTime])
+  @@index([clientId, source, startTime])
 }
 
 model BookingConversation {
@@ -286,6 +289,11 @@ enum AppointmentStatus {
   SCHEDULED
   COMPLETED
   CANCELLED
+}
+
+enum AppointmentSource {
+  TALENT
+  CAMPAIGN
 }
 
 model CreditTransaction {

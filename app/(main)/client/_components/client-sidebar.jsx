@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import mark from "../../../icon.png";
 import {
   LayoutDashboard,
@@ -16,6 +17,11 @@ import {
   HelpCircle,
   LogOut,
   Wallet,
+  Megaphone,
+  Clapperboard,
+  ChevronDown,
+  Users,
+  ListOrdered,
 } from "lucide-react";
 import {
   Sidebar,
@@ -27,20 +33,93 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
+import { cn } from "@/lib/utils";
+
+function isBookingsPath(pathname) {
+  return (
+    pathname === "/client/bookings" || pathname?.startsWith("/client/bookings/")
+  );
+}
+
+function isReportsPath(pathname) {
+  return (
+    pathname === "/client/reports" || pathname?.startsWith("/client/reports/")
+  );
+}
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/client" },
   { title: "Browse talents", icon: Search, href: "/client/talents" },
-  { title: "Orders", icon: Calendar, href: "/client/bookings" },
+  {
+    title: "Orders",
+    icon: Calendar,
+    href: "/client/bookings",
+    key: "orders",
+    children: [
+      {
+        title: "All orders",
+        href: "/client/bookings",
+        icon: ListOrdered,
+        isActive: (pathname, params) =>
+          isBookingsPath(pathname) &&
+          !["CAMPAIGN", "MEDIA", "TALENT"].includes(params.category || ""),
+      },
+      {
+        title: "Campaign orders",
+        href: "/client/bookings?category=CAMPAIGN",
+        icon: Megaphone,
+        isActive: (pathname, params) =>
+          isBookingsPath(pathname) && params.category === "CAMPAIGN",
+      },
+      {
+        title: "Media orders",
+        href: "/client/bookings?category=MEDIA",
+        icon: Clapperboard,
+        isActive: (pathname, params) =>
+          isBookingsPath(pathname) && params.category === "MEDIA",
+      },
+      {
+        title: "Talent orders",
+        href: "/client/bookings?category=TALENT",
+        icon: Users,
+        isActive: (pathname, params) =>
+          isBookingsPath(pathname) && params.category === "TALENT",
+      },
+    ],
+  },
   { title: "Messages", icon: MessageCircle, href: "/messages" },
   { title: "Campaigns", icon: BarChart3, href: "/client/campaigns" },
-  { title: "Reports", icon: ClipboardList, href: "/client/reports" },
+  {
+    title: "Reports",
+    icon: ClipboardList,
+    href: "/client/reports",
+    key: "reports",
+    children: [
+      {
+        title: "Campaign reports",
+        href: "/client/reports",
+        icon: Megaphone,
+        isActive: (pathname, params) =>
+          isReportsPath(pathname) && params.section !== "media",
+      },
+      {
+        title: "Media proof of airing",
+        href: "/client/reports?section=media",
+        icon: Clapperboard,
+        isActive: (pathname, params) =>
+          pathname === "/client/reports" && params.section === "media",
+      },
+    ],
+  },
   { title: "Media library", icon: FolderOpen, href: "/client/media" },
   { title: "Payouts", icon: Wallet, href: "/client/payouts" },
   { title: "Settings", icon: Settings, href: "/client/settings" },
@@ -48,7 +127,29 @@ const menuItems = [
 
 export function ClientSidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { setOpenMobile } = useSidebar();
+  const params = {
+    section: searchParams?.get("section") || "",
+    category: searchParams?.get("category") || "",
+  };
+
+  const routeOpenKeys = {
+    orders: isBookingsPath(pathname),
+    reports: isReportsPath(pathname),
+  };
+
+  const [openKeys, setOpenKeys] = useState(() => ({
+    orders: Boolean(routeOpenKeys.orders),
+    reports: Boolean(routeOpenKeys.reports),
+  }));
+
+  useEffect(() => {
+    setOpenKeys((prev) => ({
+      orders: prev.orders || routeOpenKeys.orders,
+      reports: prev.reports || routeOpenKeys.reports,
+    }));
+  }, [routeOpenKeys.orders, routeOpenKeys.reports]);
 
   const handleSignOut = async () => {
     try {
@@ -67,6 +168,12 @@ export function ClientSidebar() {
       console.error("Sign out error:", error);
       toast.error("An error occurred while signing out");
     }
+  };
+
+  const closeMobile = () => setOpenMobile(false);
+
+  const toggleOpen = (key) => {
+    setOpenKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -101,9 +208,77 @@ export function ClientSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
+                const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+                const childActive = hasChildren
+                  ? item.children.some((child) => child.isActive?.(pathname, params))
+                  : false;
                 const isActive =
+                  childActive ||
                   pathname === item.href ||
-                  (item.href !== "/client" && pathname?.startsWith(item.href));
+                  (item.href !== "/client" &&
+                    !hasChildren &&
+                    pathname?.startsWith(item.href));
+                const expanded = hasChildren
+                  ? Boolean(openKeys[item.key] || routeOpenKeys[item.key])
+                  : false;
+
+                if (hasChildren) {
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        type="button"
+                        isActive={isActive}
+                        tooltip={item.title}
+                        onClick={() => toggleOpen(item.key)}
+                        className={
+                          isActive
+                            ? "rounded-xl !h-10 !bg-transparent font-medium !text-[#8eb7ff] hover:!bg-white/10 hover:!text-[#8eb7ff] data-[active=true]:!bg-transparent data-[active=true]:!text-[#8eb7ff]"
+                            : "rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"
+                        }
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="flex-1 text-left">{item.title}</span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 shrink-0 opacity-70 transition group-data-[collapsible=icon]:hidden",
+                            expanded && "rotate-180"
+                          )}
+                        />
+                      </SidebarMenuButton>
+                      {expanded ? (
+                        <SidebarMenuSub className="!mx-3.5 !border-white/10">
+                          {item.children.map((child) => {
+                            const ChildIcon = child.icon;
+                            const subActive = Boolean(
+                              child.isActive?.(pathname, params)
+                            );
+                            return (
+                              <SidebarMenuSubItem key={child.href}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={subActive}
+                                  className={
+                                    subActive
+                                      ? "!bg-white/10 !text-[#8eb7ff] hover:!bg-white/15 hover:!text-[#8eb7ff]"
+                                      : "!text-white/65 hover:!bg-white/10 hover:!text-white"
+                                  }
+                                >
+                                  <Link href={child.href} onClick={closeMobile}>
+                                    {ChildIcon ? (
+                                      <ChildIcon className="h-3.5 w-3.5" />
+                                    ) : null}
+                                    <span>{child.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      ) : null}
+                    </SidebarMenuItem>
+                  );
+                }
+
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -116,7 +291,7 @@ export function ClientSidebar() {
                           : "rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"
                       }
                     >
-                      <Link href={item.href} onClick={() => setOpenMobile(false)}>
+                      <Link href={item.href} onClick={closeMobile}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </Link>
@@ -152,7 +327,7 @@ export function ClientSidebar() {
                 <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.9}>
                   <Link
                     href="/client/campaigns"
-                    onClick={() => setOpenMobile(false)}
+                    onClick={closeMobile}
                     className="inline-flex h-8 items-center rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition hover:bg-black"
                   >
                     View campaigns
@@ -169,7 +344,7 @@ export function ClientSidebar() {
               tooltip="Help"
               className="rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"
             >
-              <Link href="/help" onClick={() => setOpenMobile(false)}>
+              <Link href="/help" onClick={closeMobile}>
                 <HelpCircle className="h-4 w-4" />
                 <span>Help</span>
               </Link>

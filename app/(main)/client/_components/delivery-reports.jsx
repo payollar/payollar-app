@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
   CheckCircle2,
+  Clapperboard,
   ClipboardList,
   Clock3,
   Eye,
   FileText,
   Heart,
   Link2,
+  Megaphone,
   MessageCircle,
   Target,
 } from "lucide-react";
@@ -23,6 +26,17 @@ import {
 } from "@/lib/delivery-report-ui";
 import { cn } from "@/lib/utils";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
+import { MediaProofOfAiring } from "./media-proof-of-airing";
+
+const SECTIONS = [
+  { id: "campaign", label: "Campaign reports", href: "/client/reports", icon: Megaphone },
+  {
+    id: "media",
+    label: "Media proof of airing",
+    href: "/client/reports?section=media",
+    icon: Clapperboard,
+  },
+];
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -119,28 +133,97 @@ function formatCompact(n) {
   return Math.round(n).toLocaleString();
 }
 
-export function ClientDeliveryReports({ reports = [] }) {
+export function ClientDeliveryReports({
+  reports = [],
+  mediaBookings = [],
+  mediaCertificates = [],
+  mediaReports = [],
+  initialSection = "campaign",
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sectionFromUrl =
+    searchParams?.get("section") === "media" || initialSection === "media"
+      ? "media"
+      : "campaign";
+  const [section, setSection] = useState(sectionFromUrl);
   const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    setSection(sectionFromUrl);
+  }, [sectionFromUrl]);
+
   const sorted = useMemo(() => sortReportsForClient(reports), [reports]);
   const stats = useMemo(() => buildReportPortfolioStats(reports), [reports]);
   const needsReview = stats.byStatus.SUBMITTED;
+  const mediaProofCount = mediaCertificates.length;
 
   const filtered = useMemo(() => {
     if (filter === "all") return sorted;
     return sorted.filter((r) => r.status === filter);
   }, [filter, sorted]);
 
+  const goToSection = (next) => {
+    setSection(next);
+    router.push(next === "media" ? "/client/reports?section=media" : "/client/reports");
+  };
+
   return (
     <ClientPageShell
       eyebrow="Delivery"
       title="Reports"
       description={
-        needsReview > 0
-          ? `${needsReview} report${needsReview === 1 ? "" : "s"} waiting for your review.`
-          : "Review creator checklists, proof links, and social performance."
+        section === "media"
+          ? "Monitor media bookings, station transmission proof, and airing fulfillment."
+          : needsReview > 0
+            ? `${needsReview} campaign report${needsReview === 1 ? "" : "s"} waiting for your review.`
+            : "Review creator checklists, proof links, and social performance."
       }
     >
-      {reports.length > 0 ? (
+      <div className="overflow-x-auto rounded-2xl bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max gap-1">
+          {SECTIONS.map((item) => {
+            const Icon = item.icon;
+            const active = section === item.id;
+            const count =
+              item.id === "media" ? mediaProofCount : reports.length;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => goToSection(item.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition",
+                  active
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0 opacity-80" />
+                {item.label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
+                    active ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {section === "media" ? (
+        <MediaProofOfAiring
+          bookings={mediaBookings}
+          certificates={mediaCertificates}
+          reports={mediaReports}
+        />
+      ) : null}
+
+      {section === "campaign" && reports.length > 0 ? (
         <section className="space-y-3">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
@@ -206,7 +289,7 @@ export function ClientDeliveryReports({ reports = [] }) {
         </section>
       ) : null}
 
-      {reports.length > 0 ? (
+      {section === "campaign" && reports.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((item) => {
             const count =
@@ -234,7 +317,7 @@ export function ClientDeliveryReports({ reports = [] }) {
         </div>
       ) : null}
 
-      {reports.length === 0 ? (
+      {section === "campaign" && reports.length === 0 ? (
         <div className={cn(clientCardClass, "flex flex-col items-center px-5 py-14 text-center")}>
           <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <ClipboardList className="h-5 w-5" />
@@ -244,11 +327,15 @@ export function ClientDeliveryReports({ reports = [] }) {
             When an accepted creator submits proof of work, it will show up here for review.
           </p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : null}
+
+      {section === "campaign" && reports.length > 0 && filtered.length === 0 ? (
         <div className={cn(clientCardClass, "px-5 py-10 text-center text-sm text-slate-500")}>
           No reports in this filter.
         </div>
-      ) : (
+      ) : null}
+
+      {section === "campaign" && filtered.length > 0 ? (
         <ul className="space-y-3">
           {filtered.map((report) => {
             const meta = reportStatusMeta(report.status);
@@ -319,7 +406,7 @@ export function ClientDeliveryReports({ reports = [] }) {
             );
           })}
         </ul>
-      )}
+      ) : null}
     </ClientPageShell>
   );
 }
