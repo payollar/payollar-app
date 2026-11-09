@@ -210,6 +210,7 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
     mediaBookings,
     delivery,
     marketplace,
+    transactions,
     verification,
     operations,
     disputes,
@@ -222,19 +223,19 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
 
   const salesBreakdown = [
     {
-      label: "Product sales",
-      value: money(marketplace?.revenue),
-      trend: users?.growthRate,
-    },
-    {
-      label: "Credit payouts",
-      value: money(payouts?.totalAmount),
-      trend: payouts?.pending ? -1 : 2,
+      label: "Talent invoices",
+      value: money(transactions?.talentsGhs),
+      trend: transactions?.talentInvoicesPaid ? 2.4 : 0,
     },
     {
       label: "Media bookings",
-      value: String((mediaBookings?.confirmed || 0) + (mediaBookings?.pending || 0)),
-      trend: mediaBookings?.pending ? 1.2 : 0.4,
+      value: money(transactions?.mediaGhs),
+      trend: mediaBookings?.confirmed ? 1.2 : 0.4,
+    },
+    {
+      label: "Campaign hires",
+      value: money(transactions?.campaignsGhs),
+      trend: transactions?.campaignHires ? 1.8 : 0,
     },
   ];
 
@@ -316,8 +317,7 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
   ];
 
   const totalOrders = appointments?.total || 0;
-  const transactionValue =
-    (marketplace?.revenue || 0) + (payouts?.totalAmount || 0);
+  const transactionValue = Number(transactions?.volumeGhs || 0);
 
   const kpiCards = [
     {
@@ -347,10 +347,10 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
     {
       label: "Transaction value",
       value: money(transactionValue),
-      hint: "Marketplace + payouts",
-      trend: marketplace?.completed ? 6.1 : 1.2,
+      hint: "Talent · media · campaigns",
+      trend: transactionValue > 0 ? 4.8 : 0,
       icon: Wallet,
-      href: "/admin?tab=marketplace",
+      href: "/admin?tab=booking-payments",
     },
   ];
 
@@ -379,7 +379,7 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
     },
     {
       title: "Unified orders",
-      flow: "Talent · campaign · media · marketplace queues",
+      flow: "Talent · campaign · media booking queues",
       status: `${operations?.attention || 0} attention items`,
       href: "/admin?tab=analytics",
       icon: Package,
@@ -539,11 +539,11 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
             Filter by
           </button>
           <Link
-            href="/admin?tab=marketplace"
+            href="/admin?tab=media-agencies"
             className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-xs font-semibold text-white hover:bg-slate-800"
           >
             <Plus className="h-3.5 w-3.5" />
-            Review marketplace
+            Review media
           </Link>
         </div>
       </header>
@@ -767,7 +767,7 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
             <div>
               <h2 className="text-base font-semibold text-slate-950">Live performance</h2>
               <p className="mt-0.5 text-sm text-slate-500">
-                Marketplace, users, and channel activity at a glance.
+                Booking volume across talent, media, and campaigns. Marketplace coming soon.
               </p>
             </div>
           </div>
@@ -777,18 +777,20 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
       {/* Top row */}
       <div className="grid items-stretch gap-4 xl:grid-cols-3">
         <Panel
-          title="Marketplace sales"
-          action={<GhostLink href="/admin?tab=marketplace">Report</GhostLink>}
+          title="Booking volume"
+          action={
+            <GhostLink href="/admin?tab=booking-payments">Payments</GhostLink>
+          }
         >
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-3xl font-semibold tracking-tight text-slate-950">
-                {money(marketplace?.revenue)}
+                {money(transactions?.volumeGhs)}
               </p>
               <div className="mt-1 flex items-center gap-2">
-                <Trend value={users?.growthRate || 2} />
+                <Trend value={transactionValue > 0 ? 4.8 : 0} />
                 <span className="text-xs text-slate-400">
-                  {marketplace?.completed || 0} completed sales
+                  {transactions?.count || 0} booking payments
                 </span>
               </div>
             </div>
@@ -984,7 +986,7 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
               {(
                 (appointments?.recent || 0) +
                 (users?.recent || 0) +
-                (marketplace?.completed || 0)
+                (transactions?.count || 0)
               ).toLocaleString()}
             </p>
             <div className="mt-1 flex items-center gap-2">
@@ -998,7 +1000,7 @@ export function AnalyticsDashboard({ analytics, focus = "overview" }) {
               { label: "Appointments", value: appointments?.recent || 0 },
               { label: "New users", value: users?.recent || 0 },
               { label: "Active campaigns", value: campaigns?.active || 0 },
-              { label: "Active products", value: products?.active || 0 },
+              { label: "Booking payments", value: transactions?.count || 0 },
               { label: "Shipments", value: logistics?.total || 0 },
               {
                 label: "Certificates",

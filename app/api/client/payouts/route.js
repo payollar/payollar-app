@@ -58,6 +58,7 @@ export async function GET() {
       mediaBookingsAll,
       rateCardBookingsAll,
       acceptedCampaignApps,
+      paidBookingInvoices,
     ] = await Promise.all([
       db.creditTransaction.findMany({
         where: { userId: user.id },
@@ -109,14 +110,36 @@ export async function GET() {
           campaign: { select: { title: true } },
         },
       }),
+      db.bookingInvoice.findMany({
+        where: {
+          status: "PAID",
+          appointment: { clientId: user.id },
+        },
+        include: {
+          appointment: {
+            select: {
+              id: true,
+              status: true,
+              startTime: true,
+              creator: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 50,
+      }),
     ]);
 
     const talentAppointmentGhs = appointmentDeductions.reduce(
       (s, t) => s + talentSpendFromCredits(t.amount),
       0
     );
+    const talentInvoiceGhs = paidBookingInvoices.reduce(
+      (s, inv) => s + (Number(inv.amount) || 0),
+      0
+    );
     const talentProductsGhs = productSalesCompleted.reduce((s, p) => s + (p.amount || 0), 0);
-    const talentsTotal = talentAppointmentGhs + talentProductsGhs;
+    const talentsTotal = talentAppointmentGhs + talentInvoiceGhs + talentProductsGhs;
 
     const mediaCommittedStatuses = ["CONFIRMED", "COMPLETED"];
     const mediaSpentGhs = [...mediaBookingsAll, ...rateCardBookingsAll].reduce((sum, b) => {
@@ -129,7 +152,7 @@ export async function GET() {
     const expenseBreakdown = {
       talents: {
         total: talentsTotal,
-        appointmentBookingsGhs: talentAppointmentGhs,
+        appointmentBookingsGhs: talentAppointmentGhs + talentInvoiceGhs,
         creatorProductsGhs: talentProductsGhs,
       },
       mediaBookings: {
@@ -148,16 +171,45 @@ export async function GET() {
 
     const pendingProductAmount = productSalesPending.reduce((s, p) => s + (p.amount || 0), 0);
 
+    const paidInvoiceEscrowGhs = paidBookingInvoices.reduce((sum, inv) => {
+      const status = inv.appointment?.status;
+      if (status === "SCHEDULED" || status === "REQUESTED") {
+        return sum + (Number(inv.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    const paidInvoiceCompletedGhs = paidBookingInvoices.reduce((sum, inv) => {
+      if (inv.appointment?.status === "COMPLETED") {
+        return sum + (Number(inv.amount) || 0);
+      }
+      return sum;
+    }, 0);
+
     const totalSpent = talentsTotal + mediaSpentGhs + campaignPayoutsGhs;
 
     const stats = {
       totalSpent,
-      inEscrow: pendingMediaAmount,
+      inEscrow: pendingMediaAmount + paidInvoiceEscrowGhs,
       pendingPayments: pendingProductAmount,
-      completedPayments: talentProductsGhs + mediaSpentGhs,
+      completedPayments: talentProductsGhs + mediaSpentGhs + paidInvoiceCompletedGhs,
     };
 
     const escrowPayments = [];
+
+    for (const inv of paidBookingInvoices) {
+      const status = inv.appointment?.status;
+      if (status !== "SCHEDULED" && status !== "REQUESTED") continue;
+      escrowPayments.push({
+        id: `invoice-${inv.id}`,
+        title: inv.title || "Talent session invoice",
+        amount: Number(inv.amount) || 0,
+        status: "IN_ESCROW",
+        recipientName: inv.appointment?.creator?.name || "Talent",
+        createdAt: inv.updatedAt || inv.createdAt,
+        paymentReference: inv.id.slice(0, 8),
+        description: "Paid · held until session completes",
+      });
+    }
 
     for (const b of mediaBookingsAll) {
       if (b.status !== "PENDING" || b.totalAmount == null) continue;
@@ -200,14 +252,28 @@ export async function GET() {
 
     escrowPayments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const enrichedTransactions = transactions.map((t) => ({
-      id: t.id,
-      amount: t.amount,
-      type: t.type,
-      createdAt: t.createdAt,
-      description: txDescription(t.type, t.amount),
-      status: txStatus(t.type, t.amount),
+    const invoiceHistory = paidBookingInvoices.map((inv) => ({
+      id: `invoice-${inv.id}`,
+      amount: -(Number(inv.amount) || 0),
+      type: "BOOKING_INVOICE",
+      createdAt: inv.updatedAt || inv.createdAt,
+      description: inv.title
+        ? `Talent invoice · ${inv.title}`
+        : `Talent invoice · ${inv.appointment?.creator?.name || "session"}`,
+      status: "COMPLETED",
     }));
+
+    const enrichedTransactions = [
+      ...transactions.map((t) => ({
+        id: t.id,
+        amount: t.amount,
+        type: t.type,
+        createdAt: t.createdAt,
+        description: txDescription(t.type, t.amount),
+        status: txStatus(t.type, t.amount),
+      })),
+      ...invoiceHistory,
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const creditPurchases = transactions.filter(
       (t) => t.type === "CREDIT_PURCHASE" && t.amount > 0
@@ -221,14 +287,21 @@ export async function GET() {
     const completedProductCount = productSalesCompleted.length;
     const activityCount =
       transactions.length +
+      invoiceHistory.length +
       completedMediaCount +
       completedProductCount +
       acceptedCampaignApps.length;
     const volumeGhs =
-      creditsIn + creditsOut + talentProductsGhs + mediaSpentGhs + campaignPayoutsGhs;
+      creditsIn +
+      creditsOut +
+      talentInvoiceGhs +
+      talentProductsGhs +
+      mediaSpentGhs +
+      campaignPayoutsGhs;
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recentCount =
       transactions.filter((t) => new Date(t.createdAt).getTime() >= thirtyDaysAgo).length +
+      invoiceHistory.filter((t) => new Date(t.createdAt).getTime() >= thirtyDaysAgo).length +
       [...mediaBookingsAll, ...rateCardBookingsAll].filter(
         (b) =>
           mediaCommittedStatuses.includes(b.status) &&

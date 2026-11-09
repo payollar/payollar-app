@@ -16,6 +16,7 @@ import { UsersDashboard } from "./components/users-dashboard";
 import { PendingDoctors } from "./components/pending-doctors";
 import { VerifiedDoctors } from "./components/verified-doctors";
 import { PendingPayouts } from "./components/pending-payouts";
+import { BookingPayments } from "./components/booking-payments";
 import { PendingMediaAgencies } from "./components/pending-media-agencies";
 import { VerifiedMediaAgencies } from "./components/verified-media-agencies";
 import { DisputesDashboard } from "./components/disputes-dashboard";
@@ -139,6 +140,12 @@ function AdminPageContent() {
       <div className="-m-3 min-h-full bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:p-5">
         <PendingPayouts payouts={data?.pendingPayouts?.payouts || []} />
       </div>
+    );
+  }
+
+  if (tab === "booking-payments") {
+    return (
+      <BookingPayments transactions={analytics?.transactions || null} />
     );
   }
 
@@ -318,7 +325,7 @@ function AdminPageContent() {
     return (
       <AdminFeaturePanel
         title="Digital marketplace"
-        description="Product listings, completed sales, fees, and creator earnings."
+        description="Coming soon. Live transaction value on the overview is talent invoices, media bookings, and campaign hires only."
         metrics={[
           {
             icon: ShoppingBag,
@@ -346,8 +353,8 @@ function AdminPageContent() {
           },
         ]}
         links={[
+          { href: "/admin?tab=booking-payments", label: "Booking payments" },
           { href: "/admin?tab=payouts", label: "Credit payouts" },
-          { href: "/admin?tab=dashboard", label: "Back to dashboard" },
         ]}
       />
     );

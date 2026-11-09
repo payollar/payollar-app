@@ -1,22 +1,9 @@
 import { NextResponse } from "next/server";
 import { verifyTransaction } from "@/lib/paystack";
-import { db } from "@/lib/prisma";
-import { Vonage } from "@vonage/server-sdk";
-import { Auth } from "@vonage/auth";
-import { sendAppointmentConfirmationEmail } from "@/lib/email";
-import { ensureBookingConversation } from "@/lib/booking-chat";
-import { format } from "date-fns";
-
-const credentials = new Auth({
-  applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
-  privateKey: process.env.VONAGE_PRIVATE_KEY,
-});
-const vonage = new Vonage(credentials, {});
-
-async function createVideoSession() {
-  const session = await vonage.video.createSession({ mediaMode: "routed" });
-  return session.sessionId;
-}
+import {
+  fulfillPayollarBookingPayment,
+  isPayollarBookingPayment,
+} from "@/lib/paystack-fulfill-booking";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -40,141 +27,30 @@ export async function GET(request) {
       );
     }
 
-    const { doctorId, clientId, startTime, endTime, description, invoiceId } =
-      result.metadata;
+    const metadata = result.metadata || {};
 
-    if (!doctorId || !clientId || !startTime || !endTime) {
+    // Shared Paystack keys may include other companies' charges
+    if (!isPayollarBookingPayment(metadata)) {
       return NextResponse.redirect(
         `${bookingsUrl}?success=0&error=invalid_metadata`
       );
     }
 
-    const client = await db.user.findUnique({
-      where: { id: clientId, role: "CLIENT" },
-    });
-    const doctor = await db.user.findUnique({
-      where: {
-        id: doctorId,
-        role: "CREATOR",
-        verificationStatus: "VERIFIED",
-      },
+    const paidAmountGhs =
+      typeof result.data?.amount === "number"
+        ? result.data.amount / 100
+        : null;
+
+    const fulfilled = await fulfillPayollarBookingPayment({
+      metadata,
+      reference,
+      paidAmountGhs,
     });
 
-    if (!client || !doctor) {
+    if (!fulfilled.ok) {
       return NextResponse.redirect(
-        `${bookingsUrl}?success=0&error=user_not_found`
+        `${bookingsUrl}?success=0&error=${fulfilled.error || "booking_failed"}`
       );
-    }
-
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-
-    const overlapping = await db.appointment.findFirst({
-      where: {
-        creatorId: doctorId,
-        status: "SCHEDULED",
-        OR: [
-          {
-            startTime: { lte: start },
-            endTime: { gt: start },
-          },
-          {
-            startTime: { lt: end },
-            endTime: { gte: end },
-          },
-          {
-            startTime: { gte: start },
-            endTime: { lte: end },
-          },
-        ],
-      },
-    });
-
-    if (overlapping) {
-      return NextResponse.redirect(
-        `${bookingsUrl}?success=0&error=slot_no_longer_available`
-      );
-    }
-
-    const sessionId = await createVideoSession();
-
-    const pending = await db.appointment.findFirst({
-      where: {
-        clientId: client.id,
-        creatorId: doctor.id,
-        startTime: start,
-        status: "REQUESTED",
-      },
-    });
-
-    const appointment = pending
-      ? await db.appointment.update({
-          where: { id: pending.id },
-          data: {
-            status: "SCHEDULED",
-            videoSessionId: sessionId,
-            clientDescription: description || pending.clientDescription,
-          },
-        })
-      : await db.appointment.create({
-          data: {
-            clientId: client.id,
-            creatorId: doctor.id,
-            startTime: start,
-            endTime: end,
-            clientDescription: description || null,
-            status: "SCHEDULED",
-            source: "TALENT",
-            videoSessionId: sessionId,
-          },
-        });
-
-    try {
-      await ensureBookingConversation(appointment.id);
-    } catch (chatError) {
-      console.error("Failed to open booking chat:", chatError);
-    }
-
-    if (invoiceId) {
-      try {
-        await db.bookingInvoice.updateMany({
-          where: {
-            id: invoiceId,
-            appointmentId: appointment.id,
-            status: { in: ["SENT", "SUPERSEDED"] },
-          },
-          data: { status: "PAID" },
-        });
-        await db.bookingInvoice.updateMany({
-          where: {
-            appointmentId: appointment.id,
-            id: { not: invoiceId },
-            status: "SENT",
-          },
-          data: { status: "SUPERSEDED" },
-        });
-      } catch (invoiceError) {
-        console.error("Failed to mark booking invoice paid:", invoiceError);
-      }
-    }
-
-    if (client.email) {
-      try {
-        const duration = Math.round((end - start) / (1000 * 60));
-        await sendAppointmentConfirmationEmail(
-          client.email,
-          client.name || "Client",
-          {
-            talentName: doctor.name || "Talent",
-            date: format(start, "EEEE, MMMM d, yyyy"),
-            time: format(start, "h:mm a"),
-            duration,
-            type: "Video Call",
-          }
-        );
-      } catch (e) {
-        console.error("Appointment confirmation email failed:", e);
-      }
     }
 
     return NextResponse.redirect(`${bookingsUrl}?success=1`);

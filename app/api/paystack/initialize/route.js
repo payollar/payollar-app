@@ -73,6 +73,7 @@ export async function POST(request) {
     // Prefer negotiated invoice amount when paying from chat
     let amountGHS = DEFAULT_BOOKING_AMOUNT_GHS;
     let resolvedInvoiceId = null;
+    let appointmentId = null;
     if (invoiceId) {
       const invoice = await db.bookingInvoice.findFirst({
         where: {
@@ -85,7 +86,13 @@ export async function POST(request) {
             status: { in: ["REQUESTED", "SCHEDULED"] },
           },
         },
-        select: { id: true, amount: true, notes: true, title: true },
+        select: {
+          id: true,
+          amount: true,
+          notes: true,
+          title: true,
+          appointmentId: true,
+        },
       });
       if (!invoice) {
         return NextResponse.json(
@@ -95,6 +102,7 @@ export async function POST(request) {
       }
       amountGHS = Number(invoice.amount);
       resolvedInvoiceId = invoice.id;
+      appointmentId = invoice.appointmentId;
     } else if (doctor.services?.[0]?.rate != null) {
       amountGHS = Number(doctor.services[0].rate);
       if (amountGHS < 0.1) amountGHS = DEFAULT_BOOKING_AMOUNT_GHS;
@@ -122,6 +130,7 @@ export async function POST(request) {
         endTime,
         description: description || "",
         invoiceId: resolvedInvoiceId || "",
+        appointmentId: appointmentId || "",
       },
       currency: "GHS",
     });

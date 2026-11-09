@@ -535,7 +535,7 @@ export function ClientPayoutsPage() {
           <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
             <h2 className="text-base font-semibold text-slate-950">Payment history</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Credit purchases and other settled transactions
+              Credits, talent invoices, and other settled payments
             </p>
           </div>
           {isLoading ? (
@@ -556,7 +556,9 @@ export function ClientPayoutsPage() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {transactions.map((transaction) => {
-                const isCredit = transaction.type === "CREDIT_PURCHASE";
+                const isCredit =
+                  transaction.type === "CREDIT_PURCHASE" ||
+                  Number(transaction.amount) > 0;
                 return (
                   <li
                     key={transaction.id}

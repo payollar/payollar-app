@@ -21,6 +21,7 @@ import {
   Megaphone,
   BadgeCheck,
   Scale,
+  Receipt,
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,6 +54,11 @@ const operationsItems = [
   { title: "Logistics", icon: Truck, href: "/admin?tab=logistics" },
   { title: "Negotiations", icon: Percent, href: "/admin?tab=negotiations" },
   { title: "Payouts", icon: CreditCard, href: "/admin?tab=payouts" },
+  {
+    title: "Booking payments",
+    icon: Receipt,
+    href: "/admin?tab=booking-payments",
+  },
   { title: "Marketplace", icon: Package, href: "/admin?tab=marketplace" },
 ];
 

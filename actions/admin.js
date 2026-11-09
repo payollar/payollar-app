@@ -695,7 +695,7 @@ export async function getAdminAnalytics() {
       db.transmissionCertificate.count(),
     ]);
 
-    // Marketplace sales
+    // Marketplace sales (coming soon — keep tracked, not in live transaction value)
     const [salesCompleted, salesPending, salesRefunded, salesRevenue] = await Promise.all([
       db.digitalProductSale.count({ where: { status: "COMPLETED" } }),
       db.digitalProductSale.count({ where: { status: "PENDING" } }),
@@ -705,6 +705,171 @@ export async function getAdminAnalytics() {
         _sum: { amount: true, platformFee: true, creatorEarnings: true },
       }),
     ]);
+
+    // Live booking volume: talents + media + campaigns (marketplace excluded until launch)
+    const mediaCommitted = { in: ["CONFIRMED", "COMPLETED"] };
+    const [
+      talentInvoiceAgg,
+      talentInvoiceCount,
+      mediaListingAgg,
+      mediaRateCardAgg,
+      campaignRatesAgg,
+      recentTalentInvoices,
+      recentMediaListings,
+      recentRateCards,
+      recentCampaignRates,
+    ] = await Promise.all([
+      db.bookingInvoice.aggregate({
+        where: { status: "PAID" },
+        _sum: { amount: true },
+      }),
+      db.bookingInvoice.count({ where: { status: "PAID" } }),
+      db.mediaBooking.aggregate({
+        where: { status: mediaCommitted },
+        _sum: { totalAmount: true },
+        _count: true,
+      }),
+      db.rateCardBookingItem.aggregate({
+        where: { status: mediaCommitted },
+        _sum: { totalAmount: true },
+        _count: true,
+      }),
+      db.campaignApplication.aggregate({
+        where: { status: "ACCEPTED", rate: { not: null } },
+        _sum: { rate: true },
+        _count: true,
+      }),
+      db.bookingInvoice.findMany({
+        where: { status: "PAID" },
+        orderBy: { updatedAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          title: true,
+          amount: true,
+          currency: true,
+          updatedAt: true,
+          createdAt: true,
+          appointment: {
+            select: {
+              id: true,
+              status: true,
+              client: { select: { name: true, email: true } },
+              creator: { select: { name: true, email: true } },
+            },
+          },
+        },
+      }),
+      db.mediaBooking.findMany({
+        where: { status: mediaCommitted },
+        orderBy: { updatedAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          totalAmount: true,
+          status: true,
+          packageName: true,
+          clientName: true,
+          updatedAt: true,
+          createdAt: true,
+          agency: { select: { agencyName: true } },
+          listing: { select: { name: true } },
+        },
+      }),
+      db.rateCardBookingItem.findMany({
+        where: { status: mediaCommitted },
+        orderBy: { updatedAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          totalAmount: true,
+          status: true,
+          snapshotDescription: true,
+          clientName: true,
+          updatedAt: true,
+          createdAt: true,
+          agency: { select: { agencyName: true } },
+          rateCard: { select: { title: true } },
+        },
+      }),
+      db.campaignApplication.findMany({
+        where: { status: "ACCEPTED", rate: { not: null } },
+        orderBy: { updatedAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          rate: true,
+          name: true,
+          updatedAt: true,
+          createdAt: true,
+          campaign: { select: { title: true } },
+          talent: { select: { name: true } },
+        },
+      }),
+    ]);
+
+    const talentsGhs = Number(talentInvoiceAgg._sum.amount || 0);
+    const mediaGhs =
+      Number(mediaListingAgg._sum.totalAmount || 0) +
+      Number(mediaRateCardAgg._sum.totalAmount || 0);
+    const campaignsGhs = Number(campaignRatesAgg._sum.rate || 0);
+    const bookingVolumeGhs = talentsGhs + mediaGhs + campaignsGhs;
+    const bookingTxnCount =
+      talentInvoiceCount +
+      (mediaListingAgg._count || 0) +
+      (mediaRateCardAgg._count || 0) +
+      (campaignRatesAgg._count || 0);
+
+    const recentTransactions = [
+      ...recentTalentInvoices.map((inv) => ({
+        id: `talent-${inv.id}`,
+        source: "TALENT",
+        title: inv.title || "Talent session invoice",
+        amount: Number(inv.amount) || 0,
+        status: inv.appointment?.status === "COMPLETED" ? "COMPLETED" : "PAID",
+        party: inv.appointment?.client?.name || "Client",
+        counterparty: inv.appointment?.creator?.name || "Talent",
+        createdAt: inv.updatedAt || inv.createdAt,
+      })),
+      ...recentMediaListings.map((b) => ({
+        id: `media-${b.id}`,
+        source: "MEDIA",
+        title: b.listing?.name
+          ? `Media · ${b.listing.name}`
+          : b.packageName || "Media booking",
+        amount: Number(b.totalAmount) || 0,
+        status: b.status,
+        party: b.clientName || "Client",
+        counterparty: b.agency?.agencyName || "Agency",
+        createdAt: b.updatedAt || b.createdAt,
+      })),
+      ...recentRateCards.map((b) => ({
+        id: `rate-${b.id}`,
+        source: "MEDIA",
+        title: b.rateCard?.title
+          ? `Rate card · ${b.rateCard.title}`
+          : b.snapshotDescription || "Rate card booking",
+        amount: Number(b.totalAmount) || 0,
+        status: b.status,
+        party: b.clientName || "Client",
+        counterparty: b.agency?.agencyName || "Agency",
+        createdAt: b.updatedAt || b.createdAt,
+      })),
+      ...recentCampaignRates.map((a) => ({
+        id: `campaign-${a.id}`,
+        source: "CAMPAIGN",
+        title: a.campaign?.title
+          ? `Campaign · ${a.campaign.title}`
+          : "Campaign hire",
+        amount: Number(a.rate) || 0,
+        status: "ACCEPTED",
+        party: a.campaign?.title ? "Brand" : "Client",
+        counterparty: a.talent?.name || a.name || "Talent",
+        createdAt: a.updatedAt || a.createdAt,
+      })),
+    ]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 20);
 
     // Verification queues
     const [pendingCreators, pendingAgencies] = await Promise.all([
@@ -836,6 +1001,20 @@ export async function getAdminAnalytics() {
         revenue: salesRevenue._sum.amount || 0,
         platformFees: salesRevenue._sum.platformFee || 0,
         creatorEarnings: salesRevenue._sum.creatorEarnings || 0,
+        comingSoon: true,
+      },
+      /** Live GMV from bookings only (marketplace excluded until launch). */
+      transactions: {
+        volumeGhs: bookingVolumeGhs,
+        count: bookingTxnCount,
+        talentsGhs,
+        mediaGhs,
+        campaignsGhs,
+        talentInvoicesPaid: talentInvoiceCount,
+        mediaBookingsCommitted:
+          (mediaListingAgg._count || 0) + (mediaRateCardAgg._count || 0),
+        campaignHires: campaignRatesAgg._count || 0,
+        recent: recentTransactions,
       },
       verification: {
         pendingCreators,
