@@ -249,10 +249,10 @@ export function MediaPageView({ listingsByType, customPackages = [] }) {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Choose a channel to buy media, or open a listing to schedule with a partner.
+              Pick a channel to buy media, then drill into partner listings when you&apos;re ready to schedule.
             </motion.p>
           </div>
-          <div className="mt-12">
+          <div className="mt-10 md:mt-12">
             <MediaListingsGrid listingsByType={listingsByType} />
           </div>
         </SectionShell>

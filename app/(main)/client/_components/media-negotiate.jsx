@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   Loader2,
   MessageSquare,
@@ -27,6 +28,10 @@ import {
   requestMediaDiscount,
   sendMediaNegotiationMessage,
 } from "@/actions/media-negotiate";
+import {
+  applyNegotiatedTotalToCartItem,
+  patchMediaPlannerCartItem,
+} from "@/lib/media-planner-cart";
 import { cn } from "@/lib/utils";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
@@ -167,6 +172,8 @@ export function MediaNegotiateWorkspace({
   backLabel = "Back",
   PageShell = ClientPageShell,
   cardClass = clientCardClass,
+  fromCart = false,
+  cartItemId = "",
 }) {
   const router = useRouter();
   const [negotiation, setNegotiation] = useState(initial);
@@ -181,6 +188,7 @@ export function MediaNegotiateWorkspace({
   const [counterNote, setCounterNote] = useState("");
   const [pending, startTransition] = useTransition();
   const endRef = useRef(null);
+  const syncedCartRef = useRef(false);
   const closed = ["ACCEPTED", "REJECTED", "CLOSED"].includes(negotiation.status);
   const status = statusMeta(negotiation.status);
 
@@ -204,6 +212,35 @@ export function MediaNegotiateWorkspace({
       clearInterval(timer);
     };
   }, [negotiation.id]);
+
+  useEffect(() => {
+    if (!fromCart || !cartItemId || perspective !== "CLIENT") return;
+    patchMediaPlannerCartItem(cartItemId, {
+      negotiationId: negotiation.id,
+      rateCardBookingId: negotiation.sourceId,
+    });
+  }, [fromCart, cartItemId, perspective, negotiation.id, negotiation.sourceId]);
+
+  useEffect(() => {
+    if (!fromCart || !cartItemId || perspective !== "CLIENT") return;
+    if (negotiation.status !== "ACCEPTED" || negotiation.agreedAmount == null) return;
+    if (syncedCartRef.current) return;
+    syncedCartRef.current = true;
+    applyNegotiatedTotalToCartItem(cartItemId, negotiation.agreedAmount);
+    patchMediaPlannerCartItem(cartItemId, {
+      negotiationId: negotiation.id,
+      rateCardBookingId: negotiation.sourceId,
+    });
+    toast.success("Negotiated rate saved to your cart");
+  }, [
+    fromCart,
+    cartItemId,
+    perspective,
+    negotiation.status,
+    negotiation.agreedAmount,
+    negotiation.id,
+    negotiation.sourceId,
+  ]);
 
   const run = (fn, successMessage) => {
     startTransition(async () => {
@@ -470,11 +507,21 @@ export function MediaNegotiateWorkspace({
               </div>
             </div>
           ) : (
-            <div className="border-t border-slate-100 px-4 py-4 text-sm text-slate-500 sm:px-5">
-              This negotiation is {negotiation.status.toLowerCase()}.
-              {negotiation.agreedAmount != null
-                ? ` Agreed total: ${money(negotiation.agreedAmount)}.`
-                : ""}
+            <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-sm text-slate-500 sm:px-5">
+              <p>
+                This negotiation is {negotiation.status.toLowerCase()}.
+                {negotiation.agreedAmount != null
+                  ? ` Agreed total: ${money(negotiation.agreedAmount)}.`
+                  : ""}
+              </p>
+              {fromCart && negotiation.status === "ACCEPTED" ? (
+                <Button asChild variant="black" className="rounded-full">
+                  <Link href="/products/media-cart">
+                    Return to cart & checkout
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           )}
         </section>

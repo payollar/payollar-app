@@ -9,6 +9,7 @@ import {
   FileText,
   Heart,
   Loader2,
+  MessageSquare,
   Plus,
   Radio,
   ShoppingCart,
@@ -19,10 +20,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
 import { cn } from "@/lib/utils";
+import { startPlannerCartNegotiation } from "@/actions/media-negotiate";
 import {
   addMediaPlannerCartItem,
   clearMediaPlannerCart,
   loadMediaPlannerCart,
+  patchMediaPlannerCartItem,
   removeMediaPlannerCartItem,
   saveMediaPlannerCart,
 } from "@/lib/media-planner-cart";
@@ -106,6 +109,7 @@ export default function MediaPlannerCartPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [hydrated, setHydrated] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [negotiatingId, setNegotiatingId] = useState(null);
 
   useEffect(() => {
     const refreshCart = () => {
@@ -242,6 +246,44 @@ export default function MediaPlannerCartPage() {
       `Adding more ${channel === "RADIO" ? "radio" : "TV"} spots to “${group.mediaCampaignName}”`
     );
     router.push(mediaPlannerExtendHref(channel));
+  };
+
+  const negotiateRate = async (item) => {
+    if (!item) {
+      toast.error("Select a flight to negotiate");
+      return;
+    }
+    if (!item.rateCardId) {
+      toast.error("This flight has no station rate card to negotiate");
+      return;
+    }
+    setNegotiatingId(item.id);
+    try {
+      const result = await startPlannerCartNegotiation(item);
+      if (!result?.href) {
+        toast.error("Could not open negotiation");
+        return;
+      }
+      patchMediaPlannerCartItem(item.id, {
+        rateCardBookingId: result.bookingId,
+        negotiationId: result.negotiationId,
+        listTotal: item.listTotal != null ? item.listTotal : item.total,
+      });
+      toast.message("Opening rate negotiation with the station");
+      router.push(result.href);
+    } catch (error) {
+      const message = error?.message || "Could not start negotiation";
+      if (/unauthorized|sign in|client/i.test(message)) {
+        toast.error("Sign in as a client to negotiate rates");
+        router.push(
+          `/sign-in?redirect_url=${encodeURIComponent("/products/media-cart")}`
+        );
+        return;
+      }
+      toast.error(message);
+    } finally {
+      setNegotiatingId(null);
+    }
   };
 
   const checkout = async () => {
@@ -497,10 +539,43 @@ export default function MediaPlannerCartPage() {
                                         <Heart className="h-4 w-4" />
                                       </button>
                                     </div>
-                                    <p className="text-base font-semibold tabular-nums text-slate-950 sm:text-lg">
-                                      {money(item.total)}
-                                    </p>
+                                    <div className="text-right">
+                                      <p className="text-base font-semibold tabular-nums text-slate-950 sm:text-lg">
+                                        {money(item.total)}
+                                      </p>
+                                      {item.negotiatedAmount != null ? (
+                                        <p className="mt-0.5 text-[11px] font-medium text-emerald-700">
+                                          Negotiated
+                                          {item.listTotal != null &&
+                                          Number(item.listTotal) > Number(item.total)
+                                            ? ` · was ${money(item.listTotal)}`
+                                            : ""}
+                                        </p>
+                                      ) : item.negotiationId ? (
+                                        <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                                          Negotiation open
+                                        </p>
+                                      ) : null}
+                                    </div>
                                   </div>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={negotiatingId === item.id}
+                                    onClick={() => negotiateRate(item)}
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    {negotiatingId === item.id ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <MessageSquare className="h-3.5 w-3.5" />
+                                    )}
+                                    {item.negotiationId
+                                      ? "Continue negotiation"
+                                      : "Negotiate rate"}
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -557,9 +632,45 @@ export default function MediaPlannerCartPage() {
 
                 <Button
                   type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedItems.length === 0) {
+                      toast.error("Select a flight to negotiate");
+                      return;
+                    }
+                    if (selectedItems.length > 1) {
+                      toast.message("Negotiate one flight at a time", {
+                        description: "Deselect the others, or use Negotiate rate on a single flight.",
+                      });
+                      return;
+                    }
+                    negotiateRate(selectedItems[0]);
+                  }}
+                  disabled={
+                    negotiatingId != null ||
+                    checkingOut ||
+                    summary.count === 0
+                  }
+                  className="mt-6 h-11 w-full rounded-full border-slate-200 text-sm font-semibold text-slate-800"
+                >
+                  {negotiatingId ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening negotiation…
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Negotiate rate
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
                   onClick={checkout}
                   disabled={checkingOut || summary.count === 0}
-                  className="mt-6 h-12 w-full rounded-full bg-slate-950 text-base font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
+                  className="mt-2.5 h-12 w-full rounded-full bg-slate-950 text-base font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
                 >
                   {checkingOut ? (
                     <>
@@ -583,7 +694,8 @@ export default function MediaPlannerCartPage() {
                 </Button>
 
                 <p className="mt-4 text-center text-[11px] leading-relaxed text-slate-400">
-                  Only selected flights are charged. Unselected items stay in your cart.
+                  Negotiate with the station before checkout if you want a better rate.
+                  Only selected flights are charged.
                 </p>
               </div>
             </aside>
