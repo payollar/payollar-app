@@ -27,6 +27,15 @@ const MEDIA_TYPES = [
     tags: ["AM/FM", "Local reach", "Spots"],
   },
   {
+    id: "DIGITAL",
+    name: "Digital Media",
+    href: "/products/digital-media",
+    image: "/social-media.jpg",
+    description:
+      "Social, search, and video ads across digital platforms and networks.",
+    tags: ["Social", "Search", "Video"],
+  },
+  {
     id: "BILLBOARD",
     name: "Billboard Media",
     href: null,
@@ -199,7 +208,7 @@ function ChannelCard({ type, filteredListings }) {
 
 export function MediaListingsGrid({ listingsByType }) {
   return (
-    <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+    <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-2 lg:gap-6">
       {MEDIA_TYPES.map((type) => {
         const allListings = listingsByType[type.id] || [];
         const filteredListings = allListings.filter(

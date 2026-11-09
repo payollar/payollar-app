@@ -36,6 +36,7 @@ import {
   socialPlatformLabel,
 } from "@/components/social-platform-icon";
 import { cn } from "@/lib/utils";
+import { ClientExpectationsPanel } from "@/components/reports/client-expectations-panel";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 import { DeliveryReportInfographic } from "./delivery-report-infographic";
 
@@ -55,6 +56,7 @@ export function ClientDeliveryReportDetail({ report: initial }) {
   const status = reportStatusMeta(report.status);
   const StatusIcon = status.icon;
   const campaign = report.application?.campaign;
+  const appointment = report.appointment;
   const proofEntries = useMemo(
     () => proofEntriesFromReport(report).filter((entry) => entry.url),
     [report]
@@ -114,8 +116,19 @@ export function ClientDeliveryReportDetail({ report: initial }) {
               </Link>
             </Button>
           ) : null}
+          {appointment?.id ? (
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href={`/messages/${appointment.id}`}>Booking chat</Link>
+            </Button>
+          ) : null}
           <Button asChild variant="outline" className="rounded-full">
-            <Link href="/client/reports">
+            <Link
+              href={
+                appointment?.id
+                  ? "/client/reports?section=bookings"
+                  : "/client/reports"
+              }
+            >
               <ArrowLeft className="h-4 w-4" />
               All reports
             </Link>
@@ -172,6 +185,12 @@ export function ClientDeliveryReportDetail({ report: initial }) {
           </p>
         </div>
       </div>
+
+      <ClientExpectationsPanel
+        brief={appointment?.clientDescription}
+        appointmentId={appointment?.id}
+        cardClassName={clientCardClass}
+      />
 
       <section className={cn(clientCardClass, "space-y-3 p-4 sm:p-5")}>
         <h2 className="text-base font-semibold text-slate-950">Checklist</h2>

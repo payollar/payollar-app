@@ -8,6 +8,7 @@ import {
   extractSocialPostMeta,
   isSocialCampaignCategory,
 } from "@/lib/social-metrics";
+import { checklistLabelsFromBrief } from "@/lib/booking-brief";
 
 function revalidateReportPaths(reportId) {
   revalidatePath("/creator/reports");
@@ -341,8 +342,8 @@ export async function startDeliveryReportFromAppointment(appointmentId) {
   }
 
   const checklist = buildChecklistFromDeliverables(
-    ["Session / deliverable completed", "Client brief requirements met"],
-    { social: true }
+    checklistLabelsFromBrief(appointment.clientDescription),
+    { social: false }
   );
 
   const report = await db.deliveryReport.create({

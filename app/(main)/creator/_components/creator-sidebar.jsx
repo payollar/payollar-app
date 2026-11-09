@@ -30,6 +30,7 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
@@ -37,6 +38,10 @@ import {
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { SidebarWelcomeCreditsPromo } from "./welcome-credits-card";
+import {
+  formatUnreadBadge,
+  useUnreadMessages,
+} from "@/hooks/use-unread-messages";
 
 const menuItems = [
   {
@@ -114,6 +119,8 @@ const menuItems = [
 export function CreatorSidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const unreadMessages = useUnreadMessages();
+  const unreadLabel = formatUnreadBadge(unreadMessages);
 
   const handleSignOut = async () => {
     try {
@@ -169,12 +176,17 @@ export function CreatorSidebar() {
               {menuItems.map((item) => {
                 const isActive = pathname === item.href || 
                   (item.href !== "/creator" && pathname?.startsWith(item.href));
+                const isMessages = item.href === "/messages";
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      tooltip={item.title}
+                      tooltip={
+                        isMessages && unreadLabel
+                          ? `${item.title} (${unreadLabel})`
+                          : item.title
+                      }
                       className={
                         isActive
                           ? "rounded-xl !h-10 !bg-transparent font-medium !text-[#8eb7ff] hover:!bg-white/10 hover:!text-[#8eb7ff] data-[active=true]:!bg-transparent data-[active=true]:!text-[#8eb7ff]"
@@ -186,6 +198,11 @@ export function CreatorSidebar() {
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {isMessages && unreadLabel ? (
+                      <SidebarMenuBadge className="!bg-[#0055ff] !text-white peer-hover/menu-button:!text-white peer-data-[active=true]/menu-button:!text-white group-data-[collapsible=icon]:!flex">
+                        {unreadLabel}
+                      </SidebarMenuBadge>
+                    ) : null}
                   </SidebarMenuItem>
                 );
               })}

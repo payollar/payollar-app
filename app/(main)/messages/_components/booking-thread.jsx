@@ -17,7 +17,13 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getBookingThread, sendBookingInvoice, sendBookingMessage } from "@/actions/booking-chat";
+import {
+  getBookingThread,
+  saveClientProjectBrief,
+  sendBookingInvoice,
+  sendBookingMessage,
+} from "@/actions/booking-chat";
+import { parseBriefFields } from "@/lib/booking-brief";
 
 function moneyGhs(value) {
   return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
@@ -71,7 +77,9 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [sendingBrief, setSendingBrief] = useState(false);
   const [payingInvoiceId, setPayingInvoiceId] = useState(null);
   const [query, setQuery] = useState("");
   const endRef = useRef(null);
@@ -80,6 +88,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
     setThread(initialThread);
     setDraft("");
     setInvoiceOpen(false);
+    setBriefOpen(false);
   }, [initialThread, appointmentId]);
 
   useEffect(() => {
@@ -162,6 +171,26 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
       toast.error(error?.message || "Could not send invoice.");
     } finally {
       setSendingInvoice(false);
+    }
+  };
+
+  const onSaveBrief = async (payload) => {
+    if (!appointmentId || sendingBrief) return;
+    setSendingBrief(true);
+    try {
+      const result = await saveClientProjectBrief(appointmentId, payload);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result?.updated ? "Updated brief sent in chat" : "Brief sent in chat");
+      setBriefOpen(false);
+      const next = await getBookingThread(appointmentId);
+      if (next && !next.error) setThread(next);
+    } catch (error) {
+      toast.error(error?.message || "Could not save your brief.");
+    } finally {
+      setSendingBrief(false);
     }
   };
 
@@ -276,6 +305,10 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
             setInvoiceOpen={setInvoiceOpen}
             sendingInvoice={sendingInvoice}
             onSendInvoice={onSendInvoice}
+            briefOpen={briefOpen}
+            setBriefOpen={setBriefOpen}
+            sendingBrief={sendingBrief}
+            onSaveBrief={onSaveBrief}
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -308,6 +341,10 @@ function ThreadPane({
   setInvoiceOpen,
   sendingInvoice,
   onSendInvoice,
+  briefOpen,
+  setBriefOpen,
+  sendingBrief,
+  onSaveBrief,
 }) {
   const href = profileHref(thread.other);
   let lastDay = "";
@@ -315,6 +352,7 @@ function ThreadPane({
     !thread.isCreator &&
     thread.appointment?.status !== "CANCELLED" &&
     thread.appointment?.status !== "COMPLETED";
+  const canSetBrief = Boolean(thread.canSetBrief);
 
   return (
     <>
@@ -345,7 +383,11 @@ function ThreadPane({
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#f7f8fb] px-4 py-4">
         {thread.messages.length === 0 ? (
-          <p className="py-10 text-center text-sm text-slate-500">Say hello and share anything they should know before the session.</p>
+          <p className="py-10 text-center text-sm text-slate-500">
+            {canSetBrief
+              ? "Say hello, or use the brief button to share what you want and expect from this booking."
+              : "Say hello and share anything they should know before the session."}
+          </p>
         ) : (
           thread.messages.map((message) => {
             const day = format(new Date(message.createdAt), "yyyy-MM-dd");
@@ -368,6 +410,17 @@ function ThreadPane({
                       paying={payingInvoiceId === message.invoice.id}
                       onPay={() => onPay(message.invoice.id)}
                       createdAt={message.createdAt}
+                    />
+                  </div>
+                ) : message.kind === "BRIEF" ? (
+                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                    <BriefMessageCard
+                      body={message.body}
+                      mine={message.mine}
+                      createdAt={message.createdAt}
+                      appointmentId={thread.appointmentId}
+                      isCreator={thread.isCreator}
                     />
                   </div>
                 ) : (
@@ -416,12 +469,24 @@ function ThreadPane({
         />
       ) : null}
 
+      {briefOpen && canSetBrief ? (
+        <BriefComposer
+          initialBrief={thread.appointment?.clientDescription || ""}
+          sending={sendingBrief}
+          onCancel={() => setBriefOpen(false)}
+          onSave={onSaveBrief}
+        />
+      ) : null}
+
       {thread.canSend ? (
         <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-slate-100 bg-white p-3">
           {thread.canInvoice ? (
             <button
               type="button"
-              onClick={() => setInvoiceOpen((open) => !open)}
+              onClick={() => {
+                setBriefOpen(false);
+                setInvoiceOpen((open) => !open);
+              }}
               aria-label="Create invoice"
               title="Send invoice"
               className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
@@ -431,6 +496,24 @@ function ThreadPane({
               }`}
             >
               <Receipt className="h-4 w-4" />
+            </button>
+          ) : null}
+          {canSetBrief ? (
+            <button
+              type="button"
+              onClick={() => {
+                setInvoiceOpen(false);
+                setBriefOpen((open) => !open);
+              }}
+              aria-label="Share what you want from this booking"
+              title="Share expectations"
+              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
+                briefOpen
+                  ? "border-[#6d28d9] bg-[#f3eefe] text-[#5b21b6]"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-[#6d28d9] hover:text-[#6d28d9]"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
             </button>
           ) : null}
           <input
@@ -453,6 +536,197 @@ function ThreadPane({
         <p className="border-t border-slate-100 px-4 py-3 text-sm text-slate-500">This booking was cancelled, so new messages are closed.</p>
       )}
     </>
+  );
+}
+
+function BriefMessageCard({ body, mine, createdAt, appointmentId, isCreator }) {
+  const fields = parseBriefFields(body);
+  const rows = [
+    fields.want ? { label: "Want", value: fields.want } : null,
+    fields.expect ? { label: "Expect", value: fields.expect } : null,
+    fields.timing ? { label: "Timing", value: fields.timing } : null,
+    fields.notes ? { label: "Notes", value: fields.notes } : null,
+  ].filter(Boolean);
+
+  return (
+    <div
+      className={`w-full max-w-[320px] overflow-hidden rounded-2xl border shadow-sm ${
+        mine ? "border-[#d6d3f5] bg-white" : "border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-[#f8f7ff] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#6d28d9]/10 text-[#6d28d9]">
+            <FileText className="h-3.5 w-3.5" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold text-slate-900">
+              {mine ? "Your expectations" : "Client expectations"}
+            </p>
+            <p className="text-[10px] text-slate-400">
+              {format(new Date(createdAt), "h:mm a")}
+            </p>
+          </div>
+        </div>
+        <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+          Brief
+        </span>
+      </div>
+      <div className="space-y-2 px-3 py-3">
+        {rows.length > 0 ? (
+          rows.map((row) => (
+            <div key={row.label}>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {row.label}
+              </p>
+              <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
+                {row.value}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
+            {body}
+          </p>
+        )}
+        {isCreator && appointmentId ? (
+          <Link
+            href={`/creator/bookings`}
+            className="inline-flex h-9 w-full items-center justify-center rounded-full border border-slate-200 text-xs font-semibold text-slate-700 hover:border-[#6d28d9] hover:text-[#6d28d9]"
+          >
+            Use in delivery report
+          </Link>
+        ) : null}
+        {mine ? (
+          <Link
+            href="/client/reports?section=bookings"
+            className="inline-flex h-9 w-full items-center justify-center rounded-full bg-[#6d28d9] text-xs font-semibold text-white hover:bg-[#5b21b6]"
+          >
+            View booking reports
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function BriefComposer({ initialBrief, sending, onCancel, onSave }) {
+  const parsed = useMemo(() => parseBriefFields(initialBrief), [initialBrief]);
+  const [want, setWant] = useState(parsed.want);
+  const [expect, setExpect] = useState(parsed.expect);
+  const [timing, setTiming] = useState(parsed.timing);
+  const [notes, setNotes] = useState(parsed.notes);
+
+  useEffect(() => {
+    const next = parseBriefFields(initialBrief);
+    setWant(next.want);
+    setExpect(next.expect);
+    setTiming(next.timing);
+    setNotes(next.notes);
+  }, [initialBrief]);
+
+  const charCount =
+    want.trim().length +
+    expect.trim().length +
+    timing.trim().length +
+    notes.trim().length;
+  const canSubmit = Boolean(want.trim() || expect.trim() || timing.trim() || notes.trim());
+
+  const submit = (event) => {
+    event.preventDefault();
+    if (!canSubmit || sending) return;
+    onSave({ want, expect, timing, notes });
+  };
+
+  return (
+    <form onSubmit={submit} className="border-t border-slate-100 bg-[#fbfaff] px-3 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">What you want from this booking</p>
+          <p className="text-xs text-slate-500">Shared in chat and saved on the session brief.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Close brief"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="block text-xs text-slate-500 sm:col-span-2">
+          What I want
+          <textarea
+            value={want}
+            onChange={(event) => setWant(event.target.value)}
+            rows={2}
+            maxLength={800}
+            placeholder="e.g. Help me refine my brand voice for a product launch"
+            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+          />
+        </label>
+        <label className="block text-xs text-slate-500 sm:col-span-2">
+          What I expect
+          <textarea
+            value={expect}
+            onChange={(event) => setExpect(event.target.value)}
+            rows={2}
+            maxLength={800}
+            placeholder="e.g. Clear feedback, examples, and next steps after the call"
+            className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+          />
+        </label>
+        <label className="block text-xs text-slate-500">
+          Timing / deadline
+          <input
+            value={timing}
+            onChange={(event) => setTiming(event.target.value)}
+            maxLength={160}
+            placeholder="e.g. Need this before Friday"
+            className="mt-1 h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+          />
+        </label>
+        <label className="block text-xs text-slate-500">
+          Other details
+          <input
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            maxLength={240}
+            placeholder="Links, budget notes, references…"
+            className="mt-1 h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[11px] tabular-nums text-slate-400">{charCount} / 2000</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={sending || !canSubmit}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[#6d28d9] px-4 text-xs font-semibold text-white disabled:opacity-40"
+          >
+            {sending ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Sharing…
+              </>
+            ) : (
+              "Share in chat"
+            )}
+          </button>
+        </div>
+      </div>
+    </form>
   );
 }
 

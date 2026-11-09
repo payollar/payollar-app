@@ -257,6 +257,7 @@ model BookingMessage {
 enum BookingMessageKind {
   TEXT
   INVOICE
+  BRIEF
 }
 
 model BookingInvoice {

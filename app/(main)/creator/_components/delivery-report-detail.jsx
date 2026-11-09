@@ -42,6 +42,7 @@ import {
   socialPlatformLabel,
 } from "@/components/social-platform-icon";
 import { cn } from "@/lib/utils";
+import { ClientExpectationsPanel } from "@/components/reports/client-expectations-panel";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
 /** Creators enter actuals against client targets later — hidden for now. */
@@ -103,6 +104,7 @@ export function CreatorDeliveryReportDetail({ report: initial }) {
   const status = reportStatusMeta(report.status);
   const StatusIcon = status.icon;
   const campaign = report.application?.campaign;
+  const appointment = report.appointment;
   const socialSuggested = Boolean(initial.metrics?.socialSuggested ?? report.metrics?.socialSuggested);
   const metricTargets = report.metrics?.targets || null;
   const targetsSummary = formatMetricTargetsSummary(metricTargets);
@@ -193,7 +195,9 @@ export function CreatorDeliveryReportDetail({ report: initial }) {
       description={
         campaign
           ? `${campaign.brand || "Brand"} · confirm deliverables and share results`
-          : "Confirm deliverables and share results"
+          : appointment
+            ? "Confirm the client’s expectations and share results"
+            : "Confirm deliverables and share results"
       }
       actions={
         <div className="flex flex-wrap gap-2">
@@ -201,6 +205,14 @@ export function CreatorDeliveryReportDetail({ report: initial }) {
             <Button asChild variant="outline" className="rounded-full">
               <Link href={`/campaigns/${campaign.id}`}>
                 Campaign
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          ) : null}
+          {appointment?.id ? (
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href={`/messages/${appointment.id}`}>
+                Booking chat
                 <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             </Button>
@@ -263,6 +275,12 @@ export function CreatorDeliveryReportDetail({ report: initial }) {
           </Button>
         ) : null}
       </div>
+
+      <ClientExpectationsPanel
+        brief={appointment?.clientDescription}
+        appointmentId={appointment?.id}
+        cardClassName={creatorCardClass}
+      />
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 text-xs text-slate-500">

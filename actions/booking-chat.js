@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { ensureBookingConversation } from "@/lib/booking-chat";
+import { formatClientBriefMessage } from "@/lib/booking-brief";
 
 const personSelect = {
   id: true,
@@ -135,6 +136,27 @@ export async function listBookingChats() {
   }
 }
 
+/** Total unread booking messages for the signed-in client or creator. */
+export async function getUnreadBookingMessageCount() {
+  const auth = await getAuthUserId();
+  if (!auth?.userId) return 0;
+
+  try {
+    return await db.bookingMessage.count({
+      where: {
+        readAt: null,
+        senderId: { not: auth.userId },
+        conversation: {
+          OR: [{ clientId: auth.userId }, { creatorId: auth.userId }],
+        },
+      },
+    });
+  } catch (error) {
+    console.error("getUnreadBookingMessageCount failed:", error);
+    return 0;
+  }
+}
+
 export async function getBookingThread(appointmentId) {
   try {
     const userId = await requireUserId();
@@ -198,6 +220,10 @@ export async function getBookingThread(appointmentId) {
         full.appointment.status !== "CANCELLED" &&
         full.appointment.status !== "COMPLETED" &&
         (full.appointment.status === "REQUESTED" || Boolean(latestInvoice)),
+      canSetBrief:
+        full.clientId === userId &&
+        full.appointment.status !== "CANCELLED" &&
+        full.appointment.status !== "COMPLETED",
       pay: {
         doctorId: full.creatorId,
         startTime: toIso(full.appointment.startTime),
@@ -486,6 +512,70 @@ export async function sendBookingMessage(appointmentId, body) {
     }
     console.error("sendBookingMessage failed:", error);
     return { error: friendlyDbError(error) || "Could not send that message." };
+  }
+}
+
+/**
+ * Client shares / updates booking expectations in chat and on the appointment brief.
+ */
+export async function saveClientProjectBrief(appointmentId, payload = {}) {
+  try {
+    const userId = await requireUserId();
+    const conversation = await loadParticipantConversation(appointmentId, userId);
+    if (!conversation) return { error: "This chat is not available." };
+    if (conversation.clientId !== userId) {
+      return { error: "Only the client can share booking expectations here." };
+    }
+
+    const appointment = await db.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { id: true, status: true, clientDescription: true },
+    });
+    if (!appointment || appointment.status === "CANCELLED") {
+      return { error: "This booking is cancelled, so the chat is closed." };
+    }
+    if (appointment.status === "COMPLETED") {
+      return { error: "This booking is completed, so the brief can’t be updated." };
+    }
+
+    const brief = formatClientBriefMessage(payload).slice(0, 2000);
+    if (!brief) {
+      return { error: "Add what you want or expect before sharing." };
+    }
+
+    const wasSet = Boolean(String(appointment.clientDescription || "").trim());
+
+    await db.$transaction(async (tx) => {
+      await tx.appointment.update({
+        where: { id: appointmentId },
+        data: { clientDescription: brief },
+      });
+      await tx.bookingMessage.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: userId,
+          body: brief.slice(0, 2000),
+          kind: "BRIEF",
+        },
+      });
+      await tx.bookingConversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+    });
+
+    revalidatePath("/messages");
+    revalidatePath(`/messages/${appointmentId}`);
+    revalidatePath("/client/bookings");
+    revalidatePath("/client/reports");
+    revalidatePath("/creator/bookings");
+    return { success: true, updated: wasSet };
+  } catch (error) {
+    if (error?.code === "UNAUTHENTICATED" || error?.message === "Unauthorized") {
+      return { code: "UNAUTHENTICATED", error: "Sign in to share your brief." };
+    }
+    console.error("saveClientProjectBrief failed:", error);
+    return { error: friendlyDbError(error) || "Could not save your brief." };
   }
 }
 

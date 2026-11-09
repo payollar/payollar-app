@@ -13,9 +13,11 @@ import {
   FileText,
   Heart,
   Link2,
+  Calendar,
   Megaphone,
   MessageCircle,
   Target,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,6 +32,12 @@ import { MediaProofOfAiring } from "./media-proof-of-airing";
 
 const SECTIONS = [
   { id: "campaign", label: "Campaign reports", href: "/client/reports", icon: Megaphone },
+  {
+    id: "bookings",
+    label: "Booking reports",
+    href: "/client/reports?section=bookings",
+    icon: Users,
+  },
   {
     id: "media",
     label: "Media proof of airing",
@@ -77,6 +85,7 @@ function buildReportPortfolioStats(reports = []) {
   let targetsCompared = 0;
   let targetsMet = 0;
   const campaignIds = new Set();
+  const bookingIds = new Set();
   const creators = new Set();
 
   for (const report of reports) {
@@ -85,6 +94,9 @@ function buildReportPortfolioStats(reports = []) {
     proofLinks += Array.isArray(report.proofLinks) ? report.proofLinks.length : 0;
     if (report.application?.campaign?.id) {
       campaignIds.add(report.application.campaign.id);
+    }
+    if (report.appointmentId || report.appointment?.id) {
+      bookingIds.add(report.appointmentId || report.appointment.id);
     }
     if (report.creatorId || report.creator?.id) {
       creators.add(report.creatorId || report.creator.id);
@@ -114,6 +126,7 @@ function buildReportPortfolioStats(reports = []) {
     proofFiles,
     proofLinks,
     campaigns: campaignIds.size,
+    bookings: bookingIds.size,
     creators: creators.size,
     targetsSet,
     targetsCompared,
@@ -142,9 +155,10 @@ export function ClientDeliveryReports({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const sectionParam = searchParams?.get("section") || initialSection || "campaign";
   const sectionFromUrl =
-    searchParams?.get("section") === "media" || initialSection === "media"
-      ? "media"
+    sectionParam === "media" || sectionParam === "bookings"
+      ? sectionParam
       : "campaign";
   const [section, setSection] = useState(sectionFromUrl);
   const [filter, setFilter] = useState("all");
@@ -153,8 +167,25 @@ export function ClientDeliveryReports({
     setSection(sectionFromUrl);
   }, [sectionFromUrl]);
 
-  const sorted = useMemo(() => sortReportsForClient(reports), [reports]);
-  const stats = useMemo(() => buildReportPortfolioStats(reports), [reports]);
+  const campaignReports = useMemo(
+    () => reports.filter((report) => Boolean(report.applicationId || report.application?.id)),
+    [reports]
+  );
+  const bookingReports = useMemo(
+    () => reports.filter((report) => Boolean(report.appointmentId || report.appointment?.id)),
+    [reports]
+  );
+  const sectionReports =
+    section === "bookings" ? bookingReports : section === "campaign" ? campaignReports : [];
+
+  const sorted = useMemo(
+    () => sortReportsForClient(sectionReports),
+    [sectionReports]
+  );
+  const stats = useMemo(
+    () => buildReportPortfolioStats(sectionReports),
+    [sectionReports]
+  );
   const needsReview = stats.byStatus.SUBMITTED;
   const mediaProofCount = mediaCertificates.length;
 
@@ -165,7 +196,10 @@ export function ClientDeliveryReports({
 
   const goToSection = (next) => {
     setSection(next);
-    router.push(next === "media" ? "/client/reports?section=media" : "/client/reports");
+    setFilter("all");
+    if (next === "media") router.push("/client/reports?section=media");
+    else if (next === "bookings") router.push("/client/reports?section=bookings");
+    else router.push("/client/reports");
   };
 
   return (
@@ -175,9 +209,13 @@ export function ClientDeliveryReports({
       description={
         section === "media"
           ? "Monitor media bookings, station transmission proof, and airing fulfillment."
-          : needsReview > 0
-            ? `${needsReview} campaign report${needsReview === 1 ? "" : "s"} waiting for your review.`
-            : "Review creator checklists, proof links, and social performance."
+          : section === "bookings"
+            ? needsReview > 0
+              ? `${needsReview} booking report${needsReview === 1 ? "" : "s"} waiting for your review.`
+              : "Review talent delivery against the expectations you shared in chat."
+            : needsReview > 0
+              ? `${needsReview} campaign report${needsReview === 1 ? "" : "s"} waiting for your review.`
+              : "Review creator checklists, proof links, and social performance."
       }
     >
       <div className="overflow-x-auto rounded-2xl bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -186,7 +224,11 @@ export function ClientDeliveryReports({
             const Icon = item.icon;
             const active = section === item.id;
             const count =
-              item.id === "media" ? mediaProofCount : reports.length;
+              item.id === "media"
+                ? mediaProofCount
+                : item.id === "bookings"
+                  ? bookingReports.length
+                  : campaignReports.length;
             return (
               <button
                 key={item.id}
@@ -223,14 +265,18 @@ export function ClientDeliveryReports({
         />
       ) : null}
 
-      {section === "campaign" && reports.length > 0 ? (
+      {(section === "campaign" || section === "bookings") && sectionReports.length > 0 ? (
         <section className="space-y-3">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
               icon={ClipboardList}
               label="Total reports"
               value={String(stats.total)}
-              hint={`${stats.campaigns} campaign${stats.campaigns === 1 ? "" : "s"} · ${stats.creators} creator${stats.creators === 1 ? "" : "s"}`}
+              hint={
+                section === "bookings"
+                  ? `${stats.bookings} booking${stats.bookings === 1 ? "" : "s"} · ${stats.creators} talent${stats.creators === 1 ? "" : "s"}`
+                  : `${stats.campaigns} campaign${stats.campaigns === 1 ? "" : "s"} · ${stats.creators} creator${stats.creators === 1 ? "" : "s"}`
+              }
             />
             <StatCard
               icon={Clock3}
@@ -246,7 +292,9 @@ export function ClientDeliveryReports({
               hint={
                 stats.targetsCompared > 0
                   ? `${stats.targetsMet}/${stats.targetsCompared} targets met`
-                  : `${stats.targetsSet} with targets set`
+                  : section === "bookings"
+                    ? "Against your shared expectations"
+                    : `${stats.targetsSet} with targets set`
               }
               accent="emerald"
             />
@@ -258,44 +306,63 @@ export function ClientDeliveryReports({
             />
           </div>
 
-          <div className={cn(clientCardClass, "p-4 sm:p-5")}>
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Portfolio engagement
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Totals across all campaign delivery reports
-                  {stats.views + stats.likes + stats.comments === 0
-                    ? " · results appear once creators submit metrics"
-                    : ""}
-                </p>
+          {section === "campaign" ? (
+            <div className={cn(clientCardClass, "p-4 sm:p-5")}>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Portfolio engagement
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Totals across all campaign delivery reports
+                    {stats.views + stats.likes + stats.comments === 0
+                      ? " · results appear once creators submit metrics"
+                      : ""}
+                  </p>
+                </div>
+                {stats.targetsSet > 0 ? (
+                  <p className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                    <Target className="h-3.5 w-3.5" />
+                    {stats.targetsSet} report{stats.targetsSet === 1 ? "" : "s"} with targets
+                  </p>
+                ) : null}
               </div>
-              {stats.targetsSet > 0 ? (
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                  <Target className="h-3.5 w-3.5" />
-                  {stats.targetsSet} report{stats.targetsSet === 1 ? "" : "s"} with targets
-                </p>
-              ) : null}
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <MetricChip icon={Eye} label="Views" value={stats.views} />
+                <MetricChip icon={Heart} label="Likes" value={stats.likes} />
+                <MetricChip icon={MessageCircle} label="Comments" value={stats.comments} />
+                <MetricChip icon={Link2} label="Shares" value={stats.shares} />
+                <MetricChip icon={Target} label="Reach" value={stats.reach} />
+              </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <MetricChip icon={Eye} label="Views" value={stats.views} />
-              <MetricChip icon={Heart} label="Likes" value={stats.likes} />
-              <MetricChip icon={MessageCircle} label="Comments" value={stats.comments} />
-              <MetricChip icon={Link2} label="Shares" value={stats.shares} />
-              <MetricChip icon={Target} label="Reach" value={stats.reach} />
+          ) : (
+            <div className={cn(clientCardClass, "p-4 sm:p-5")}>
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-700">
+                  <Calendar className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">
+                    Expectations from chat
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    When you share what you want in Messages, talents report against that brief
+                    here — same review flow as campaigns.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </section>
       ) : null}
 
-      {section === "campaign" && reports.length > 0 ? (
+      {(section === "campaign" || section === "bookings") && sectionReports.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((item) => {
             const count =
               item.id === "all"
-                ? reports.length
-                : reports.filter((r) => r.status === item.id).length;
+                ? sectionReports.length
+                : sectionReports.filter((r) => r.status === item.id).length;
             if (item.id !== "all" && count === 0) return null;
             return (
               <button
@@ -317,31 +384,45 @@ export function ClientDeliveryReports({
         </div>
       ) : null}
 
-      {section === "campaign" && reports.length === 0 ? (
+      {(section === "campaign" || section === "bookings") && sectionReports.length === 0 ? (
         <div className={cn(clientCardClass, "flex flex-col items-center px-5 py-14 text-center")}>
           <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-            <ClipboardList className="h-5 w-5" />
+            {section === "bookings" ? (
+              <Users className="h-5 w-5" />
+            ) : (
+              <ClipboardList className="h-5 w-5" />
+            )}
           </span>
-          <p className="text-sm font-medium text-slate-700">No delivery reports yet</p>
+          <p className="text-sm font-medium text-slate-700">
+            {section === "bookings"
+              ? "No booking reports yet"
+              : "No delivery reports yet"}
+          </p>
           <p className="mt-1 max-w-sm text-xs text-slate-400">
-            When an accepted creator submits proof of work, it will show up here for review.
+            {section === "bookings"
+              ? "Share your expectations in chat, then the talent submits a delivery report for you to review."
+              : "When an accepted creator submits proof of work, it will show up here for review."}
           </p>
         </div>
       ) : null}
 
-      {section === "campaign" && reports.length > 0 && filtered.length === 0 ? (
+      {(section === "campaign" || section === "bookings") &&
+      sectionReports.length > 0 &&
+      filtered.length === 0 ? (
         <div className={cn(clientCardClass, "px-5 py-10 text-center text-sm text-slate-500")}>
           No reports in this filter.
         </div>
       ) : null}
 
-      {section === "campaign" && filtered.length > 0 ? (
+      {(section === "campaign" || section === "bookings") && filtered.length > 0 ? (
         <ul className="space-y-3">
           {filtered.map((report) => {
             const meta = reportStatusMeta(report.status);
             const StatusIcon = meta.icon;
             const progress = checklistProgress(report.checklist);
             const views = report.metrics?.views;
+            const isBooking = Boolean(report.appointmentId || report.appointment?.id);
+            const hasBrief = Boolean(report.appointment?.clientDescription);
 
             return (
               <li key={report.id}>
@@ -382,6 +463,20 @@ export function ClientDeliveryReports({
                             <StatusIcon className="h-3.5 w-3.5" />
                             {meta.clientLabel}
                           </Badge>
+                          {isBooking ? (
+                            <Badge
+                              variant="outline"
+                              className="rounded-full border-violet-200 bg-violet-50 font-medium text-violet-700"
+                            >
+                              Talent booking
+                            </Badge>
+                          ) : null}
+                          {hasBrief ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                              <FileText className="h-3.5 w-3.5" />
+                              Brief attached
+                            </span>
+                          ) : null}
                           <span className="text-xs text-slate-500">
                             {progress.done}/{progress.total} checklist
                           </span>
