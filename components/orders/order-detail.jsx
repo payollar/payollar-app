@@ -13,12 +13,10 @@ import {
   Loader2,
   MessageCircle,
   Send,
-  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import { sendBookingMessage } from "@/actions/booking-chat";
 import { cancelAppointment, markAppointmentCompleted } from "@/actions/doctor";
-import { generateVideoToken } from "@/actions/appointments";
 
 const STEPS = [
   { key: "opened", label: "Opened" },
@@ -55,14 +53,6 @@ function stepWhen(order, step, index) {
   if (step === 3) return format(new Date(order.endTime), "MMM d");
   if (step === 4) return format(new Date(order.updatedAt), "MMM d");
   return "";
-}
-
-function canJoin(order) {
-  if (order.status !== "SCHEDULED") return false;
-  const now = Date.now();
-  const start = new Date(order.startTime).getTime();
-  const end = new Date(order.endTime).getTime();
-  return now >= start - 30 * 60 * 1000 && now <= end;
 }
 
 function initials(name) {
@@ -153,12 +143,6 @@ export function OrderDetail({ order, basePath }) {
       const result = await action(formData);
       if (result?.error) {
         toast.error(result.error);
-        return;
-      }
-      if (name === "video" && result?.videoSessionId && result?.token) {
-        router.push(
-          `/video-call?sessionId=${result.videoSessionId}&token=${result.token}&appointmentId=${order.id}`
-        );
         return;
       }
       toast.success(name === "complete" ? "Session marked completed." : "Booking cancelled.");
@@ -284,19 +268,7 @@ export function OrderDetail({ order, basePath }) {
                   <p className="mt-1 text-sm text-white/70">{format(new Date(order.startTime), "EEEE, d MMMM")}</p>
                   <p className="mt-1 text-xs text-white/50">{minutes} minutes with {order.other.name}</p>
                 </div>
-                {order.status === "SCHEDULED" ? (
-                  <button
-                    type="button"
-                    disabled={!canJoin(order) || busy === "video"}
-                    onClick={() => run("video", generateVideoToken)}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-slate-950 disabled:opacity-60"
-                  >
-                    {busy === "video" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
-                    {canJoin(order) ? "Join session" : "Opens 30 min before"}
-                  </button>
-                ) : (
-                  <p className="text-xs text-white/50">{status.label}</p>
-                )}
+                <p className="text-xs text-white/50">{status.label}</p>
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Booking message</p>
