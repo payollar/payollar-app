@@ -14,13 +14,18 @@ export default async function BookingMessagePage({ params }) {
   let thread;
   let chats = [];
   try {
-    [thread, chats] = await Promise.all([getBookingThread(appointmentId), listBookingChats()]);
+    [thread, chats] = await Promise.all([
+      getBookingThread(appointmentId),
+      listBookingChats(),
+    ]);
   } catch (error) {
     console.error("BookingMessagePage failed:", error);
     if (error?.code === "UNAUTHENTICATED" || error?.message === "Unauthorized") {
       redirect(`/sign-in?redirect_url=/messages/${appointmentId}`);
     }
-    throw error;
+    // Keep the page usable even if chat enrichment fails.
+    thread = { error: "Could not load this chat." };
+    chats = [];
   }
 
   if (thread?.code === "UNAUTHENTICATED") {
@@ -28,5 +33,11 @@ export default async function BookingMessagePage({ params }) {
   }
   if (thread?.error || !thread?.appointment) notFound();
 
-  return <MessagesWorkspace chats={chats} appointmentId={appointmentId} initialThread={thread} />;
+  return (
+    <MessagesWorkspace
+      chats={Array.isArray(chats) ? chats : []}
+      appointmentId={appointmentId}
+      initialThread={thread}
+    />
+  );
 }

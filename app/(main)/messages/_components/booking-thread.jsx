@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { format, isToday } from "date-fns";
 import {
@@ -25,17 +25,97 @@ import {
   sendBookingInvoice,
   sendBookingMessage,
 } from "@/actions/booking-chat";
-import {
-  reviewBookingDeliveryReportInChat,
-  sendBookingDeliveryReportInChat,
-} from "@/actions/delivery-reports";
 import { parseBriefFields } from "@/lib/booking-brief";
 
 function moneyGhs(value) {
-  return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
+  const amount = Number(value);
+  const safe = Number.isFinite(amount) ? amount : 0;
+  return `GH₵ ${safe.toLocaleString("en-GH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function toValidDate(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function safeTimeLabel(value) {
+  try {
+    const date = toValidDate(value);
+    if (!date) return "";
+    return format(date, "h:mm a");
+  } catch {
+    return "";
+  }
+}
+
+function safeDayKey(value) {
+  try {
+    const date = toValidDate(value);
+    if (!date) return "";
+    return format(date, "yyyy-MM-dd");
+  } catch {
+    return "";
+  }
+}
+
+function safeDayHeading(value) {
+  try {
+    const date = toValidDate(value);
+    if (!date) return "";
+    return isToday(date) ? "Today" : format(date, "MMM d, yyyy");
+  } catch {
+    return "";
+  }
+}
+
+function safeSessionWhen(startTime) {
+  try {
+    const date = toValidDate(startTime);
+    if (!date) return "";
+    return format(date, "MMM d, yyyy · h:mm a");
+  } catch {
+    return "";
+  }
+}
+
+function safeParseBrief(body) {
+  try {
+    return parseBriefFields(body || "");
+  } catch {
+    const text = String(body || "").trim();
+    return { want: text, expect: "", timing: "", notes: "" };
+  }
+}
+
+/** Keeps one bad chat card from blanking the whole messages page. */
+class MessageErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error) {
+    console.error("Booking message card failed:", error);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
+          {this.props.fallback || "Couldn’t display this message."}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function statusLabel(status) {
@@ -208,6 +288,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
     if (!appointmentId || sendingReport) return;
     setSendingReport(true);
     try {
+      const { sendBookingDeliveryReportInChat } = await import("@/actions/delivery-reports");
       const result = await sendBookingDeliveryReportInChat(appointmentId, payload);
       if (result?.error) {
         toast.error(result.error);
@@ -228,6 +309,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
     if (!appointmentId || !reportId || reviewingReportId) return;
     setReviewingReportId(reportId);
     try {
+      const { reviewBookingDeliveryReportInChat } = await import("@/actions/delivery-reports");
       const result = await reviewBookingDeliveryReportInChat(appointmentId, reportId, {
         decision,
         feedback,
@@ -322,7 +404,11 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
                           ? `${chat.lastMessage.mine ? "You: " : ""}${
                               chat.lastMessage.kind === "INVOICE"
                                 ? chat.lastMessage.body || "Invoice"
-                                : chat.lastMessage.body
+                                : chat.lastMessage.kind === "BRIEF"
+                                  ? chat.lastMessage.body || "Expectations brief"
+                                  : chat.lastMessage.kind === "REPORT"
+                                    ? chat.lastMessage.body || "Delivery report"
+                                    : chat.lastMessage.body
                             }`
                           : "No messages yet"}
                       </span>
@@ -412,12 +498,14 @@ function ThreadPane({
 }) {
   const href = profileHref(thread.other);
   let lastDay = "";
+  const messages = Array.isArray(thread?.messages) ? thread.messages : [];
   const clientCanPayInvoice =
     !thread.isCreator &&
     thread.appointment?.status !== "CANCELLED" &&
     thread.appointment?.status !== "COMPLETED";
   const canSetBrief = Boolean(thread.canSetBrief);
   const canSendReport = Boolean(thread.canSendReport);
+  const sessionWhen = safeSessionWhen(thread.appointment?.startTime);
 
   return (
     <>
@@ -428,16 +516,16 @@ function ThreadPane({
         <Avatar person={thread.other} className="h-11 w-11" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-slate-950">{thread.other?.name || "Booking chat"}</p>
-          <p className="truncate text-xs text-slate-500">
+          <p className="truncate text-xs text-slate-500" suppressHydrationWarning>
             {thread.other?.specialty ? `${thread.other.specialty} · ` : ""}
-            {format(new Date(thread.appointment.startTime), "MMM d, yyyy · h:mm a")}
-            {thread.appointment.agreedAmount != null
+            {sessionWhen}
+            {thread.appointment?.agreedAmount != null
               ? ` · ${moneyGhs(thread.appointment.agreedAmount)}`
               : ""}
           </p>
         </div>
         <span className="hidden rounded-full bg-[#f3eefe] px-2.5 py-1 text-xs font-semibold text-[#5b21b6] sm:inline">
-          {statusLabel(thread.appointment.status)}
+          {statusLabel(thread.appointment?.status)}
         </span>
         {href ? (
           <Link href={href} className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#6d28d9] sm:inline">
@@ -447,76 +535,92 @@ function ThreadPane({
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#f7f8fb] px-4 py-4">
-        {thread.messages.length === 0 ? (
+        {messages.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-500">
             {canSetBrief
               ? "Say hello, or use the brief button to share what you want and expect from this booking."
               : "Say hello and share anything they should know before the session."}
           </p>
         ) : (
-          thread.messages.map((message) => {
-            const day = format(new Date(message.createdAt), "yyyy-MM-dd");
-            const showDay = day !== lastDay;
-            lastDay = day;
+          messages.map((message) => {
+            if (!message?.id) return null;
+            const day = safeDayKey(message.createdAt);
+            const showDay = Boolean(day) && day !== lastDay;
+            if (day) lastDay = day;
+            const timeLabel = safeTimeLabel(message.createdAt);
             return (
               <div key={message.id}>
                 {showDay ? (
-                  <p className="mb-3 text-center text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                    {isToday(new Date(message.createdAt)) ? "Today" : format(new Date(message.createdAt), "MMM d, yyyy")}
+                  <p
+                    className="mb-3 text-center text-[11px] font-medium uppercase tracking-wide text-slate-400"
+                    suppressHydrationWarning
+                  >
+                    {safeDayHeading(message.createdAt)}
                   </p>
                 ) : null}
-                {message.kind === "INVOICE" && message.invoice ? (
-                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
-                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
-                    <InvoiceMessageCard
-                      invoice={message.invoice}
-                      mine={message.mine}
-                      canPay={clientCanPayInvoice && message.invoice.status === "SENT"}
-                      paying={payingInvoiceId === message.invoice.id}
-                      onPay={() => onPay(message.invoice.id)}
-                      createdAt={message.createdAt}
-                    />
-                  </div>
-                ) : message.kind === "BRIEF" ? (
-                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
-                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
-                    <BriefMessageCard
-                      body={message.body}
-                      mine={message.mine}
-                      createdAt={message.createdAt}
-                      appointmentId={thread.appointmentId}
-                      isCreator={thread.isCreator}
-                    />
-                  </div>
-                ) : message.kind === "REPORT" && message.report ? (
-                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
-                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
-                    <ReportMessageCard
-                      report={message.report}
-                      mine={message.mine}
-                      createdAt={message.createdAt}
-                      canReview={!thread.isCreator && message.report.status === "SUBMITTED"}
-                      reviewing={reviewingReportId === message.report.reportId}
-                      onReview={onReviewReport}
-                    />
-                  </div>
-                ) : (
-                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
-                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
-                    <div
-                      className={
-                        message.mine
-                          ? "max-w-[78%] rounded-2xl rounded-br-md bg-[#16181f] px-3 py-2 text-sm text-white"
-                          : "max-w-[78%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
-                      }
-                    >
-                      <p className="whitespace-pre-wrap">{message.body}</p>
-                      <p className={message.mine ? "mt-1 text-[10px] text-white/50" : "mt-1 text-[10px] text-slate-400"}>
-                        {format(new Date(message.createdAt), "h:mm a")}
-                      </p>
+                <MessageErrorBoundary fallback={message.body || "Message unavailable"}>
+                  {message.kind === "INVOICE" && message.invoice ? (
+                    <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                      {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                      <InvoiceMessageCard
+                        invoice={message.invoice}
+                        mine={message.mine}
+                        canPay={clientCanPayInvoice && message.invoice.status === "SENT"}
+                        paying={payingInvoiceId === message.invoice.id}
+                        onPay={() => onPay(message.invoice.id)}
+                        createdAt={message.createdAt}
+                      />
                     </div>
-                  </div>
-                )}
+                  ) : message.kind === "BRIEF" ? (
+                    <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                      {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                      <BriefMessageCard
+                        body={message.body}
+                        mine={message.mine}
+                        createdAt={message.createdAt}
+                        appointmentId={thread.appointmentId}
+                        isCreator={thread.isCreator}
+                      />
+                    </div>
+                  ) : message.kind === "REPORT" && message.report ? (
+                    <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                      {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                      <ReportMessageCard
+                        report={message.report}
+                        mine={message.mine}
+                        createdAt={message.createdAt}
+                        canReview={!thread.isCreator && message.report.status === "SUBMITTED"}
+                        reviewing={reviewingReportId === message.report.reportId}
+                        onReview={onReviewReport}
+                      />
+                    </div>
+                  ) : (
+                    <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                      {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                      <div
+                        className={
+                          message.mine
+                            ? "max-w-[78%] rounded-2xl rounded-br-md bg-[#16181f] px-3 py-2 text-sm text-white"
+                            : "max-w-[78%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
+                        }
+                      >
+                        <p className="whitespace-pre-wrap">{message.body}</p>
+                        {timeLabel ? (
+                          <p
+                            className={
+                              message.mine
+                                ? "mt-1 text-[10px] text-white/50"
+                                : "mt-1 text-[10px] text-slate-400"
+                            }
+                            suppressHydrationWarning
+                          >
+                            {timeLabel}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+                </MessageErrorBoundary>
               </div>
             );
           })
@@ -663,7 +767,9 @@ function reportStatusMeta(status) {
 function ReportMessageCard({ report, mine, createdAt, canReview, reviewing, onReview }) {
   const [feedback, setFeedback] = useState("");
   const [askRevision, setAskRevision] = useState(false);
+  if (!report?.reportId) return null;
   const status = reportStatusMeta(report.status);
+  const timeLabel = safeTimeLabel(createdAt);
 
   return (
     <div
@@ -677,10 +783,12 @@ function ReportMessageCard({ report, mine, createdAt, canReview, reviewing, onRe
             <ClipboardList className="h-3.5 w-3.5" />
           </span>
           <div>
-            <p className="text-xs font-semibold text-slate-900">{report.title}</p>
-            <p className="text-[10px] text-slate-400">
-              {format(new Date(createdAt), "h:mm a")}
+            <p className="text-xs font-semibold text-slate-900">
+              {report.title || "Delivery report"}
             </p>
+            {timeLabel ? (
+              <p className="text-[10px] text-slate-400">{timeLabel}</p>
+            ) : null}
           </div>
         </div>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>
@@ -689,7 +797,7 @@ function ReportMessageCard({ report, mine, createdAt, canReview, reviewing, onRe
       </div>
       <div className="space-y-2 px-3 py-3">
         <p className="text-xs text-slate-500">
-          Checklist {report.checklistDone}/{report.checklistTotal} complete
+          Checklist {report.checklistDone || 0}/{report.checklistTotal || 0} complete
         </p>
         {report.notes ? (
           <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
@@ -911,13 +1019,14 @@ function ReportComposer({ checklist, reportStatus, sending, onCancel, onSend }) 
 }
 
 function BriefMessageCard({ body, mine, createdAt, appointmentId, isCreator }) {
-  const fields = parseBriefFields(body);
+  const fields = safeParseBrief(body);
   const rows = [
     fields.want ? { label: "Want", value: fields.want } : null,
     fields.expect ? { label: "Expect", value: fields.expect } : null,
     fields.timing ? { label: "Timing", value: fields.timing } : null,
     fields.notes ? { label: "Notes", value: fields.notes } : null,
   ].filter(Boolean);
+  const timeLabel = safeTimeLabel(createdAt);
 
   return (
     <div
@@ -934,9 +1043,11 @@ function BriefMessageCard({ body, mine, createdAt, appointmentId, isCreator }) {
             <p className="text-xs font-semibold text-slate-900">
               {mine ? "Your expectations" : "Client expectations"}
             </p>
-            <p className="text-[10px] text-slate-400">
-              {format(new Date(createdAt), "h:mm a")}
-            </p>
+            {timeLabel ? (
+              <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                {timeLabel}
+              </p>
+            ) : null}
           </div>
         </div>
         <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
@@ -957,23 +1068,15 @@ function BriefMessageCard({ body, mine, createdAt, appointmentId, isCreator }) {
           ))
         ) : (
           <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
-            {body}
+            {body || "Expectations shared"}
           </p>
         )}
         {isCreator && appointmentId ? (
           <Link
-            href={`/creator/bookings`}
+            href="/creator/bookings"
             className="inline-flex h-9 w-full items-center justify-center rounded-full border border-slate-200 text-xs font-semibold text-slate-700 hover:border-[#6d28d9] hover:text-[#6d28d9]"
           >
             Use in delivery report
-          </Link>
-        ) : null}
-        {mine ? (
-          <Link
-            href="/client/reports?section=bookings"
-            className="inline-flex h-9 w-full items-center justify-center rounded-full bg-[#6d28d9] text-xs font-semibold text-white hover:bg-[#5b21b6]"
-          >
-            View booking reports
           </Link>
         ) : null}
       </div>
@@ -982,14 +1085,14 @@ function BriefMessageCard({ body, mine, createdAt, appointmentId, isCreator }) {
 }
 
 function BriefComposer({ initialBrief, sending, onCancel, onSave }) {
-  const parsed = useMemo(() => parseBriefFields(initialBrief), [initialBrief]);
+  const parsed = useMemo(() => safeParseBrief(initialBrief), [initialBrief]);
   const [want, setWant] = useState(parsed.want);
   const [expect, setExpect] = useState(parsed.expect);
   const [timing, setTiming] = useState(parsed.timing);
   const [notes, setNotes] = useState(parsed.notes);
 
   useEffect(() => {
-    const next = parseBriefFields(initialBrief);
+    const next = safeParseBrief(initialBrief);
     setWant(next.want);
     setExpect(next.expect);
     setTiming(next.timing);
@@ -1104,6 +1207,7 @@ function BriefComposer({ initialBrief, sending, onCancel, onSave }) {
 function InvoiceMessageCard({ invoice, mine, canPay, paying, onPay, createdAt }) {
   const superseded = invoice.status === "SUPERSEDED";
   const paid = invoice.status === "PAID";
+  const timeLabel = safeTimeLabel(createdAt);
   return (
     <div
       className={`w-full max-w-[320px] overflow-hidden rounded-2xl border shadow-sm ${
@@ -1116,8 +1220,12 @@ function InvoiceMessageCard({ invoice, mine, canPay, paying, onPay, createdAt })
             <FileText className="h-3.5 w-3.5" />
           </span>
           <div>
-            <p className="text-xs font-semibold text-slate-900">{invoice.title}</p>
-            <p className="text-[10px] text-slate-400">{format(new Date(createdAt), "h:mm a")}</p>
+            <p className="text-xs font-semibold text-slate-900">{invoice.title || "Invoice"}</p>
+            {timeLabel ? (
+              <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                {timeLabel}
+              </p>
+            ) : null}
           </div>
         </div>
         <span
@@ -1336,7 +1444,18 @@ function InvoiceComposer({ defaultAmount, sending, onCancel, onSend }) {
 
 function SessionCard({ thread, onPay }) {
   const href = profileHref(thread.other);
-  const brief = thread.appointment.clientDescription?.trim();
+  const brief = thread.appointment?.clientDescription?.trim();
+  let sessionLabel = "";
+  let untilLabel = "";
+  try {
+    const start = toValidDate(thread.appointment?.startTime);
+    const end = toValidDate(thread.appointment?.endTime);
+    if (start) sessionLabel = format(start, "EEE, MMM d · h:mm a");
+    if (end) untilLabel = format(end, "h:mm a");
+  } catch {
+    sessionLabel = "";
+    untilLabel = "";
+  }
   return (
     <div className="rounded-[1.6rem] bg-white p-4">
       <div className="flex items-center gap-3">
@@ -1351,20 +1470,26 @@ function SessionCard({ thread, onPay }) {
           <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
           <div>
             <dt className="text-xs text-slate-400">Session</dt>
-            <dd className="font-medium text-slate-900">{format(new Date(thread.appointment.startTime), "EEE, MMM d · h:mm a")}</dd>
-            <dd className="text-xs text-slate-500">until {format(new Date(thread.appointment.endTime), "h:mm a")}</dd>
+            <dd className="font-medium text-slate-900" suppressHydrationWarning>
+              {sessionLabel || "Time TBD"}
+            </dd>
+            {untilLabel ? (
+              <dd className="text-xs text-slate-500" suppressHydrationWarning>
+                until {untilLabel}
+              </dd>
+            ) : null}
           </div>
         </div>
         <div>
           <dt className="text-xs text-slate-400">Status</dt>
           <dd className="mt-1 inline-flex rounded-full bg-[#f3eefe] px-2.5 py-1 text-xs font-semibold text-[#5b21b6]">
-            {statusLabel(thread.appointment.status)}
+            {statusLabel(thread.appointment?.status)}
           </dd>
         </div>
         {brief ? (
           <div>
             <dt className="text-xs text-slate-400">Project brief</dt>
-            <dd className="mt-1 text-sm leading-relaxed text-slate-700">{brief}</dd>
+            <dd className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{brief}</dd>
           </div>
         ) : null}
       </dl>

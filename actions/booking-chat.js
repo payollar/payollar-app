@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { ensureBookingConversation } from "@/lib/booking-chat";
-import { formatClientBriefMessage } from "@/lib/booking-brief";
+import {
+  checklistFromBrief,
+  formatClientBriefMessage,
+} from "@/lib/booking-brief";
 import { decodeReportMessagePayload } from "@/lib/booking-report-message";
-import { checklistLabelsFromBrief } from "@/lib/booking-brief";
-import { buildChecklistFromDeliverables } from "@/lib/social-metrics";
 
 const personSelect = {
   id: true,
@@ -213,29 +214,55 @@ export async function getBookingThread(appointmentId) {
       .map((message) => message.invoice)
       .find((invoice) => invoice && invoice.status === "SENT");
 
-    const deliveryReport = await db.deliveryReport.findUnique({
-      where: { appointmentId: full.appointmentId },
-      select: {
-        id: true,
-        status: true,
-        title: true,
-        checklist: true,
-        proofNotes: true,
-      },
-    });
+    let deliveryReport = null;
+    try {
+      deliveryReport = await db.deliveryReport.findUnique({
+        where: { appointmentId: full.appointmentId },
+        select: {
+          id: true,
+          status: true,
+          title: true,
+          checklist: true,
+          proofNotes: true,
+        },
+      });
+    } catch (reportError) {
+      console.error("deliveryReport lookup failed:", reportError);
+    }
 
-    const reportChecklistSeed = buildChecklistFromDeliverables(
-      checklistLabelsFromBrief(full.appointment.clientDescription),
-      { social: false }
-    );
+    let reportChecklistSeed = [];
+    try {
+      reportChecklistSeed = checklistFromBrief(full.appointment.clientDescription);
+    } catch (checklistError) {
+      console.error("checklistFromBrief failed:", checklistError);
+      reportChecklistSeed = [
+        { id: "item_1", label: "Session / deliverable completed", done: false },
+        { id: "item_2", label: "Ready for client review", done: false },
+      ];
+    }
+
+    const reportChecklist = Array.isArray(deliveryReport?.checklist)
+      ? deliveryReport.checklist
+          .map((item, index) => ({
+            id: String(item?.id || `item_${index + 1}`),
+            label: String(item?.label || "").trim(),
+            done: Boolean(item?.done),
+          }))
+          .filter((item) => item.label)
+      : reportChecklistSeed;
 
     return {
       appointmentId: full.appointmentId,
       appointment: {
-        ...full.appointment,
+        id: full.appointment.id,
         startTime: toIso(full.appointment.startTime),
         endTime: toIso(full.appointment.endTime),
-        agreedAmount: full.appointment.agreedAmount,
+        status: full.appointment.status,
+        clientDescription: full.appointment.clientDescription || "",
+        agreedAmount:
+          full.appointment.agreedAmount == null
+            ? null
+            : Number(full.appointment.agreedAmount),
       },
       other,
       isCreator: full.creatorId === userId,
@@ -262,12 +289,10 @@ export async function getBookingThread(appointmentId) {
         ? {
             id: deliveryReport.id,
             status: deliveryReport.status,
-            title: deliveryReport.title,
+            title: deliveryReport.title || "Delivery report",
           }
         : null,
-      reportChecklist: Array.isArray(deliveryReport?.checklist)
-        ? deliveryReport.checklist
-        : reportChecklistSeed,
+      reportChecklist,
       pay: {
         doctorId: full.creatorId,
         startTime: toIso(full.appointment.startTime),
@@ -276,10 +301,10 @@ export async function getBookingThread(appointmentId) {
         invoiceId: latestInvoice?.id || null,
         amount: latestInvoice?.amount ?? full.appointment.agreedAmount ?? null,
       },
-      messages: full.messages.map((message) => ({
+      messages: (full.messages || []).map((message) => ({
         id: message.id,
-        body: message.body,
-        kind: message.kind || "TEXT",
+        body: message.body || "",
+        kind: String(message.kind || "TEXT"),
         createdAt: toIso(message.createdAt),
         mine: message.senderId === userId,
         invoice: mapInvoice(message.invoice),
