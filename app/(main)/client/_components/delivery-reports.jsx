@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
+  ArrowRight,
   CheckCircle2,
   Clapperboard,
   ClipboardList,
@@ -12,9 +13,9 @@ import {
   Download,
   Eye,
   FileText,
-  Info,
   Megaphone,
   Printer,
+  Search,
   Target,
   Users,
 } from "lucide-react";
@@ -160,6 +161,50 @@ function formatCedis(n) {
   })}`;
 }
 
+function MetricCell({ value, money = false }) {
+  const raw = Number(value);
+  const empty = !Number.isFinite(raw) || raw <= 0;
+  return (
+    <span
+      className={cn(
+        "tabular-nums",
+        empty ? "font-medium text-slate-300" : "font-medium text-slate-800"
+      )}
+    >
+      {money ? formatCedis(raw) : formatWhole(raw)}
+    </span>
+  );
+}
+
+function CreatorAvatar({ creator, size = "md" }) {
+  const name = creator?.name || "Creator";
+  const imageUrl = creator?.imageUrl;
+  const sizeClass = size === "sm" ? "h-9 w-9 text-xs" : "h-10 w-10 text-sm";
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt=""
+        className={cn(
+          "shrink-0 rounded-full object-cover ring-2 ring-white shadow-sm",
+          sizeClass
+        )}
+      />
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 font-semibold text-slate-600 ring-2 ring-white shadow-sm",
+        sizeClass
+      )}
+    >
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
 function metricValue(report, key) {
   const metrics = report?.metrics && typeof report.metrics === "object" ? report.metrics : {};
   const entries = Array.isArray(metrics.entries) ? metrics.entries : null;
@@ -241,6 +286,7 @@ export function ClientDeliveryReports({
       : "campaign";
   const [section, setSection] = useState(sectionFromUrl);
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     setSection(sectionFromUrl);
@@ -269,13 +315,28 @@ export function ClientDeliveryReports({
   const mediaProofCount = mediaCertificates.length;
 
   const filtered = useMemo(() => {
-    if (filter === "all") return sorted;
-    return sorted.filter((r) => r.status === filter);
-  }, [filter, sorted]);
+    let rows = filter === "all" ? sorted : sorted.filter((r) => r.status === filter);
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((report) => {
+      const hay = [
+        report.creator?.name,
+        report.title,
+        report.application?.campaign?.title,
+        campaignOrderLabel(report),
+        campaignOrderStatus(report).label,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [filter, sorted, query]);
 
   const goToSection = (next) => {
     setSection(next);
     setFilter("all");
+    setQuery("");
     if (next === "media") router.push("/client/reports?section=media");
     else if (next === "bookings") router.push("/client/reports?section=bookings");
     else router.push("/client/reports");
@@ -296,8 +357,9 @@ export function ClientDeliveryReports({
               ? `${needsReview} creator report${needsReview === 1 ? "" : "s"} waiting for your review.`
               : "Creator cost, order status, actual delivery and outcomes across your campaigns."
       }
+      className="bg-[linear-gradient(180deg,#eef2ff_0%,#f4f6fb_28%,#f8fafc_100%)]"
     >
-      <div className="overflow-x-auto rounded-2xl bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="overflow-x-auto rounded-2xl border border-white/80 bg-white/90 p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] backdrop-blur [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max gap-1">
           {SECTIONS.map((item) => {
             const Icon = item.icon;
@@ -316,7 +378,7 @@ export function ClientDeliveryReports({
                 className={cn(
                   "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition",
                   active
-                    ? "bg-slate-950 text-white"
+                    ? "bg-slate-950 text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
                 )}
               >
@@ -428,30 +490,49 @@ export function ClientDeliveryReports({
       ) : null}
 
       {(section === "campaign" || section === "bookings") && sectionReports.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {FILTERS.map((item) => {
-            const count =
-              item.id === "all"
-                ? sectionReports.length
-                : sectionReports.filter((r) => r.status === item.id).length;
-            if (item.id !== "all" && count === 0) return null;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setFilter(item.id)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                  filter === item.id
-                    ? "bg-slate-950 text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-100"
-                )}
-              >
-                {item.label}
-                <span className="ml-1.5 opacity-70">{count}</span>
-              </button>
-            );
-          })}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((item) => {
+              const count =
+                item.id === "all"
+                  ? sectionReports.length
+                  : sectionReports.filter((r) => r.status === item.id).length;
+              if (item.id !== "all" && count === 0) return null;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setFilter(item.id)}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition",
+                    filter === item.id
+                      ? "border-slate-950 bg-slate-950 text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                  )}
+                >
+                  {item.label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
+                      filter === item.id ? "bg-white/15" : "bg-slate-100 text-slate-500"
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <label className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search creator or campaign"
+              className="h-9 w-full rounded-full border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
+            />
+          </label>
         </div>
       ) : null}
 
@@ -480,8 +561,23 @@ export function ClientDeliveryReports({
       {(section === "campaign" || section === "bookings") &&
       sectionReports.length > 0 &&
       filtered.length === 0 ? (
-        <div className={cn(clientCardClass, "px-5 py-10 text-center text-sm text-slate-500")}>
-          No reports in this filter.
+        <div className={cn(clientCardClass, "px-5 py-12 text-center")}>
+          <p className="text-sm font-semibold text-slate-800">No matching reports</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Try another filter or clear your search.
+          </p>
+          {(query.trim() || filter !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setFilter("all");
+              }}
+              className="mt-3 text-sm font-semibold text-slate-900 hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : null}
 
@@ -515,18 +611,7 @@ export function ClientDeliveryReports({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 gap-3">
-                      {report.creator?.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={report.creator.imageUrl}
-                          alt=""
-                          className="h-11 w-11 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
-                          {(report.creator?.name || "C").charAt(0).toUpperCase()}
-                        </span>
-                      )}
+                      <CreatorAvatar creator={report.creator} />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-500">
                           {report.creator?.name || "Creator"}
@@ -600,7 +685,12 @@ function CampaignReportingTable({ reports }) {
   };
 
   return (
-    <section className={cn(clientCardClass, "overflow-hidden border-0 print:shadow-none")}>
+    <section
+      className={cn(
+        clientCardClass,
+        "overflow-hidden border-0 shadow-[0_8px_24px_rgba(15,23,42,0.04)] print:shadow-none"
+      )}
+    >
       <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold tracking-tight text-slate-950">
@@ -634,9 +724,9 @@ function CampaignReportingTable({ reports }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full text-left text-sm">
-          <thead>
+          <thead className="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur">
             <tr className="border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               <th className="whitespace-nowrap px-4 py-3 font-semibold sm:px-5">Creator</th>
               <th className="whitespace-nowrap px-4 py-3 font-semibold">Order / Status</th>
@@ -645,8 +735,11 @@ function CampaignReportingTable({ reports }) {
               <th className="whitespace-nowrap px-4 py-3 font-semibold">Reach</th>
               <th className="whitespace-nowrap px-4 py-3 font-semibold">Clicks</th>
               <th className="whitespace-nowrap px-4 py-3 font-semibold">Sales</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold sm:pr-5">
+              <th className="whitespace-nowrap px-4 py-3 font-semibold">
                 Attributed revenue
+              </th>
+              <th className="whitespace-nowrap px-4 py-3 font-semibold sm:pr-5">
+                <span className="sr-only">Open</span>
               </th>
             </tr>
           </thead>
@@ -663,60 +756,74 @@ function CampaignReportingTable({ reports }) {
                 metricValue(report, "attributedRevenue");
               const campaignTitle =
                 report.application?.campaign?.title || report.title || "Campaign";
+              const href = `/client/reports/${report.id}`;
 
               return (
-                <tr key={report.id} className="bg-white hover:bg-slate-50/80">
-                  <td className="px-4 py-3.5 sm:px-5">
-                    <Link
-                      href={`/client/reports/${report.id}`}
-                      className="block min-w-[10rem]"
-                    >
-                      <p className="font-semibold text-slate-950">
-                        {report.creator?.name || "Creator"}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">
-                        {campaignTitle}
-                      </p>
+                <tr
+                  key={report.id}
+                  className="group bg-white transition-colors hover:bg-[#faf9ff]"
+                >
+                  <td className="px-4 py-4 sm:px-5">
+                    <Link href={href} className="flex min-w-[12rem] items-center gap-3">
+                      <CreatorAvatar creator={report.creator} size="sm" />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-950 group-hover:text-slate-800">
+                          {report.creator?.name || "Creator"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {campaignTitle}
+                        </p>
+                      </div>
                     </Link>
                   </td>
-                  <td className="px-4 py-3.5">
-                    <Link href={`/client/reports/${report.id}`} className="block">
+                  <td className="px-4 py-4">
+                    <Link href={href} className="block">
                       <p className="font-semibold tabular-nums text-slate-950">
                         {campaignOrderLabel(report)}
                       </p>
                       <span
                         className={cn(
-                          "mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                          "mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
                           orderStatus.tone === "emerald" &&
-                            "bg-emerald-50 text-emerald-700",
+                            "bg-emerald-50 text-emerald-700 ring-emerald-100",
                           orderStatus.tone === "amber" &&
-                            "bg-amber-50 text-amber-800",
-                          orderStatus.tone === "rose" && "bg-rose-50 text-rose-700",
+                            "bg-amber-50 text-amber-800 ring-amber-100",
+                          orderStatus.tone === "rose" &&
+                            "bg-rose-50 text-rose-700 ring-rose-100",
                           orderStatus.tone === "slate" &&
-                            "bg-slate-100 text-slate-600"
+                            "bg-slate-100 text-slate-600 ring-slate-200"
                         )}
                       >
                         {orderStatus.label}
                       </span>
                     </Link>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 font-medium tabular-nums text-slate-950">
-                    {formatCedis(fee)}
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <MetricCell value={fee} money />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-700">
-                    {formatWhole(views)}
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <MetricCell value={views} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-700">
-                    {formatWhole(reach)}
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <MetricCell value={reach} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-700">
-                    {formatWhole(clicks)}
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <MetricCell value={clicks} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-700">
-                    {formatWhole(sales)}
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <MetricCell value={sales} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 font-medium tabular-nums text-slate-950 sm:pr-5">
-                    {formatCedis(revenue)}
+                  <td className="whitespace-nowrap px-4 py-4">
+                    <MetricCell value={revenue} money />
+                  </td>
+                  <td className="px-4 py-4 sm:pr-5">
+                    <Link
+                      href={href}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition group-hover:border-slate-300 group-hover:bg-white"
+                    >
+                      Open
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
                   </td>
                 </tr>
               );
@@ -725,19 +832,83 @@ function CampaignReportingTable({ reports }) {
         </table>
       </div>
 
-      <div className="border-t border-slate-100 bg-[#faf8ff] px-4 py-3 sm:px-5">
-        <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
-          <p className="leading-relaxed">
-            <span className="font-semibold text-slate-800">Reporting rules:</span>{" "}
-            distinguish agreed order value from confirmed payment; measure actual
-            views/reach from connected platforms or evidence; use tagged links,
-            promo codes or website analytics for attributed conversions; keep
-            estimates visibly separate. Other campaign and direct booking orders
-            are never counted in this campaign&apos;s totals.
-          </p>
-        </div>
-      </div>
+      <ul className="divide-y divide-slate-100 md:hidden">
+        {reports.map((report) => {
+          const orderStatus = campaignOrderStatus(report);
+          const fee = Number(report.application?.rate);
+          const views = metricValue(report, "views");
+          const revenue =
+            metricValue(report, "revenue") ||
+            metricValue(report, "attributedRevenue");
+          const campaignTitle =
+            report.application?.campaign?.title || report.title || "Campaign";
+          const href = `/client/reports/${report.id}`;
+
+          return (
+            <li key={report.id}>
+              <Link href={href} className="block space-y-3 px-4 py-4 active:bg-slate-50">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <CreatorAvatar creator={report.creator} size="sm" />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-950">
+                        {report.creator?.name || "Creator"}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-slate-500">
+                        {campaignTitle}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-950">
+                    {formatCedis(fee)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold tabular-nums text-slate-600">
+                    {campaignOrderLabel(report)}
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                      orderStatus.tone === "emerald" &&
+                        "bg-emerald-50 text-emerald-700 ring-emerald-100",
+                      orderStatus.tone === "amber" &&
+                        "bg-amber-50 text-amber-800 ring-amber-100",
+                      orderStatus.tone === "rose" &&
+                        "bg-rose-50 text-rose-700 ring-rose-100",
+                      orderStatus.tone === "slate" &&
+                        "bg-slate-100 text-slate-600 ring-slate-200"
+                    )}
+                  >
+                    {orderStatus.label}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-xl bg-slate-50 px-2.5 py-2">
+                    <p className="text-slate-400">Views</p>
+                    <p className="mt-0.5 font-semibold tabular-nums text-slate-800">
+                      {formatWhole(views)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-2.5 py-2">
+                    <p className="text-slate-400">Revenue</p>
+                    <p className="mt-0.5 font-semibold tabular-nums text-slate-800">
+                      {formatCedis(revenue)}
+                    </p>
+                  </div>
+                  <div className="flex items-end justify-end rounded-xl px-2.5 py-2">
+                    <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+                      Open
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
     </section>
   );
 }
@@ -746,17 +917,18 @@ function StatCard({ icon: Icon, label, value, hint, accent }) {
   return (
     <div
       className={cn(
-        clientCardClass,
-        "p-4",
+        "rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]",
         accent === "amber" && "ring-1 ring-amber-200",
         accent === "emerald" && "ring-1 ring-emerald-100"
       )}
     >
       <div className="flex items-center gap-2 text-slate-400">
-        <Icon className="h-4 w-4" />
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
         <span className="text-[11px] font-semibold uppercase tracking-wide">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">
+      <p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">
         {value}
       </p>
       {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}

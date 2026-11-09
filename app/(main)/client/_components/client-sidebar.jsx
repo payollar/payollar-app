@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import mark from "../../../icon.png";
 import {
   LayoutDashboard,
@@ -18,9 +17,6 @@ import {
   LogOut,
   Wallet,
   Megaphone,
-  Clapperboard,
-  ChevronDown,
-  Users,
   Package,
   Scale,
 } from "lucide-react";
@@ -35,16 +31,12 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
-import { cn } from "@/lib/utils";
 import {
   formatUnreadBadge,
   useUnreadMessages,
@@ -84,31 +76,6 @@ const menuItems = [
     icon: ClipboardList,
     href: "/client/reports",
     key: "reports",
-    children: [
-      {
-        title: "Campaign reports",
-        href: "/client/reports",
-        icon: Megaphone,
-        isActive: (pathname, params) =>
-          isReportsPath(pathname) &&
-          params.section !== "media" &&
-          params.section !== "bookings",
-      },
-      {
-        title: "Booking reports",
-        href: "/client/reports?section=bookings",
-        icon: Users,
-        isActive: (pathname, params) =>
-          pathname === "/client/reports" && params.section === "bookings",
-      },
-      {
-        title: "Media proof of airing",
-        href: "/client/reports?section=media",
-        icon: Clapperboard,
-        isActive: (pathname, params) =>
-          pathname === "/client/reports" && params.section === "media",
-      },
-    ],
   },
   { title: "Media bookings", icon: FolderOpen, href: "/client/media" },
   { title: "Payouts", icon: Wallet, href: "/client/payouts" },
@@ -117,29 +84,11 @@ const menuItems = [
 
 export function ClientSidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { setOpenMobile } = useSidebar();
   const unreadMessages = useUnreadMessages();
   const unreadLabel = formatUnreadBadge(unreadMessages);
   const actionableOrders = useActionableOrders();
   const ordersLabel = formatOrdersBadge(actionableOrders);
-  const params = {
-    section: searchParams?.get("section") || "",
-  };
-
-  const routeOpenKeys = {
-    reports: isReportsPath(pathname),
-  };
-
-  const [openKeys, setOpenKeys] = useState(() => ({
-    reports: Boolean(routeOpenKeys.reports),
-  }));
-
-  useEffect(() => {
-    setOpenKeys((prev) => ({
-      reports: prev.reports || routeOpenKeys.reports,
-    }));
-  }, [routeOpenKeys.reports]);
 
   const handleSignOut = async () => {
     try {
@@ -161,10 +110,6 @@ export function ClientSidebar() {
   };
 
   const closeMobile = () => setOpenMobile(false);
-
-  const toggleOpen = (key) => {
-    setOpenKeys((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
 
   return (
     <Sidebar
@@ -198,79 +143,16 @@ export function ClientSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               {menuItems.map((item) => {
-                const hasChildren = Array.isArray(item.children) && item.children.length > 0;
-                const childActive = hasChildren
-                  ? item.children.some((child) => child.isActive?.(pathname, params))
-                  : false;
                 const isOrders = item.key === "orders";
+                const isReports = item.key === "reports";
                 const isActive =
-                  childActive ||
                   (isOrders && isBookingsPath(pathname)) ||
+                  (isReports && isReportsPath(pathname)) ||
                   pathname === item.href ||
                   (item.href !== "/client" &&
-                    !hasChildren &&
                     !isOrders &&
+                    !isReports &&
                     pathname?.startsWith(item.href));
-                const expanded = hasChildren
-                  ? Boolean(openKeys[item.key] || routeOpenKeys[item.key])
-                  : false;
-
-                if (hasChildren) {
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        type="button"
-                        isActive={isActive}
-                        tooltip={item.title}
-                        onClick={() => toggleOpen(item.key)}
-                        className={
-                          isActive
-                            ? "rounded-lg !h-9 !bg-transparent text-[13px] font-medium !text-[#8eb7ff] hover:!bg-white/10 hover:!text-[#8eb7ff] data-[active=true]:!bg-transparent data-[active=true]:!text-[#8eb7ff]"
-                            : "rounded-lg !h-9 !bg-transparent text-[13px] !text-white/75 hover:!bg-white/10 hover:!text-white"
-                        }
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1 text-left">{item.title}</span>
-                        <ChevronDown
-                          className={cn(
-                            "h-4 w-4 shrink-0 opacity-70 transition group-data-[collapsible=icon]:hidden",
-                            expanded && "rotate-180"
-                          )}
-                        />
-                      </SidebarMenuButton>
-                      {expanded ? (
-                        <SidebarMenuSub className="!mx-3.5 !border-white/10">
-                          {item.children.map((child) => {
-                            const ChildIcon = child.icon;
-                            const subActive = Boolean(
-                              child.isActive?.(pathname, params)
-                            );
-                            return (
-                              <SidebarMenuSubItem key={child.href}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={subActive}
-                                  className={
-                                    subActive
-                                      ? "!bg-white/10 !text-[#8eb7ff] hover:!bg-white/15 hover:!text-[#8eb7ff]"
-                                      : "!text-white/65 hover:!bg-white/10 hover:!text-white"
-                                  }
-                                >
-                                  <Link href={child.href} onClick={closeMobile}>
-                                    {ChildIcon ? (
-                                      <ChildIcon className="h-3.5 w-3.5" />
-                                    ) : null}
-                                    <span>{child.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      ) : null}
-                    </SidebarMenuItem>
-                  );
-                }
 
                 const isMessages = item.href === "/messages";
                 return (
