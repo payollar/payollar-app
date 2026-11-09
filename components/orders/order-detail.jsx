@@ -136,6 +136,24 @@ function initials(name) {
   );
 }
 
+function ConversationAvatar({ imageUrl, name, fallback }) {
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt=""
+        className="h-8 w-8 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
+      {fallback || initials(name)}
+    </span>
+  );
+}
+
 function deadlineHint(endTime) {
   const end = new Date(endTime).getTime();
   const diff = end - Date.now();
@@ -803,24 +821,70 @@ export function OrderDetail({ order, basePath }) {
               {order.messages.length === 0 ? (
                 <p className="py-10 text-center text-sm text-slate-400">No messages on this booking yet.</p>
               ) : (
-                order.messages.map((message) => (
-                  <div key={message.id} className="flex gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
-                      {message.mine ? "Y" : initials(order.other.name)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {message.mine ? "You" : order.other.name}
+                order.messages.map((message) => {
+                  const isPayment = /^Payment confirmed/i.test(
+                    String(message.body || "")
+                  );
+                  if (isPayment) {
+                    const amountMatch = String(message.body).match(
+                      /GH₵\s*([\d,]+(?:\.\d+)?)/i
+                    );
+                    return (
+                      <div
+                        key={message.id}
+                        className="rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50 to-white px-3 py-3 text-center"
+                      >
+                        <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Payment confirmed
                         </p>
-                        <p className="shrink-0 text-[11px] text-slate-400">
-                          {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                        {amountMatch ? (
+                          <p className="mt-1 text-base font-semibold tabular-nums text-slate-950">
+                            GH₵ {amountMatch[1]}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {formatDistanceToNow(new Date(message.createdAt), {
+                            addSuffix: true,
+                          })}
                         </p>
                       </div>
-                      <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{message.body}</p>
+                    );
+                  }
+                  const senderImage =
+                    message.sender?.imageUrl ||
+                    (message.mine
+                      ? order.me?.imageUrl
+                      : order.other?.imageUrl) ||
+                    "";
+                  const senderName = message.mine
+                    ? order.me?.name || "You"
+                    : message.sender?.name || order.other?.name || "User";
+                  return (
+                    <div key={message.id} className="flex gap-2.5">
+                      <ConversationAvatar
+                        imageUrl={senderImage}
+                        name={senderName}
+                        fallback={message.mine ? "Y" : undefined}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {message.mine ? "You" : order.other.name}
+                          </p>
+                          <p className="shrink-0 text-[11px] text-slate-400">
+                            {formatDistanceToNow(new Date(message.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        </div>
+                        <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                          {message.body}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
             {cancelled ? null : (

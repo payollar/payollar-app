@@ -31,7 +31,9 @@ function previewMessageBody(message) {
     const report = decodeReportMessagePayload(message.body);
     return report?.title ? `Report · ${report.title}` : "Delivery report";
   }
-  return message.body || "";
+  const body = String(message.body || "");
+  if (/^Payment confirmed/i.test(body)) return "Payment confirmed";
+  return body;
 }
 
 function mapChat(conversation, userId, unreadByConversation) {

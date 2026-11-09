@@ -553,3 +553,82 @@ body:has([data-landing-page][data-theme="light"]) {
 .desc-marketing {
   @apply text-base md:text-lg text-muted-foreground text-balance text-center max-w-lg mx-auto;
 }
+
+/* Booking chat — payment confirmed system card */
+@keyframes payollar-pay-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes payollar-pay-check-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes payollar-pay-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+
+@keyframes payollar-pay-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+.payollar-payment-card {
+  animation: payollar-pay-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.payollar-payment-check {
+  animation: payollar-pay-check-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.payollar-payment-ring {
+  animation: payollar-pay-ring 0.9s ease-out 0.12s both;
+}
+
+.payollar-payment-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.55) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: payollar-pay-shimmer 1.4s ease-out 0.35s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payollar-payment-card,
+  .payollar-payment-check,
+  .payollar-payment-ring,
+  .payollar-payment-shimmer {
+    animation: none;
+  }
+}

@@ -605,6 +605,53 @@ export async function submitDeliveryReport(reportId, payload = {}) {
   return { report: serializeReport(updated) };
 }
 
+/** Client edits the deliverable checklist talent should complete. */
+export async function updateDeliveryReportChecklist(reportId, checklist = []) {
+  const user = await requireUser();
+  if (user.role !== "CLIENT" && user.role !== "MEDIA_AGENCY") {
+    throw new Error("Client account required");
+  }
+
+  const report = await db.deliveryReport.findUnique({ where: { id: reportId } });
+  if (!report || report.clientId !== user.id) throw new Error("Report not found");
+  if (report.status === "APPROVED") {
+    throw new Error("Approved reports are locked");
+  }
+  if (report.status === "SUBMITTED") {
+    throw new Error("Request changes before editing the checklist");
+  }
+
+  const existingById = new Map(
+    normalizeChecklist(report.checklist).map((item) => [item.id, item])
+  );
+  const next = normalizeChecklist(checklist).map((item, index) => {
+    const prev = existingById.get(item.id);
+    return {
+      id: item.id || `item_${index + 1}`,
+      label: item.label,
+      // Client edits labels/items; keep done state from the existing item when possible.
+      done: prev ? prev.done : Boolean(item.done),
+    };
+  });
+
+  if (next.length === 0) {
+    throw new Error("Add at least one checklist item");
+  }
+
+  const updated = await db.deliveryReport.update({
+    where: { id: reportId },
+    data: { checklist: next },
+    include: reportInclude,
+  });
+
+  revalidateReportPaths(reportId);
+  if (report.appointmentId) {
+    revalidatePath(`/client/bookings/${report.appointmentId}`);
+    revalidatePath(`/creator/bookings/${report.appointmentId}`);
+  }
+  return { report: serializeReport(updated) };
+}
+
 /** Client sets / updates engagement targets the creator should hit. */
 export async function updateDeliveryReportMetricTargets(reportId, targets = {}) {
   const user = await requireUser();

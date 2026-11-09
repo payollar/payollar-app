@@ -36,6 +36,18 @@ function moneyGhs(value) {
   })}`;
 }
 
+/** Detect legacy / system payment notice messages posted after Paystack fulfill. */
+function parsePaymentConfirmed(body) {
+  const text = String(body || "").trim();
+  if (!/^Payment confirmed/i.test(text)) return null;
+  const amountMatch = text.match(/GH₵\s*([\d,]+(?:\.\d+)?)/i);
+  const refMatch = text.match(/\(ref\s+([^)]+)\)/i);
+  return {
+    amountLabel: amountMatch ? `GH₵ ${amountMatch[1]}` : null,
+    reference: refMatch ? String(refMatch[1]).trim() : null,
+  };
+}
+
 function toValidDate(value) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
@@ -465,7 +477,28 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
 
       {thread && appointmentId ? (
         <aside className="hidden w-[280px] shrink-0 flex-col gap-3 xl:flex">
-          <SessionCard thread={thread} onPay={payForSession} />
+          <SessionCard
+            thread={thread}
+            onPay={payForSession}
+            onOpenInvoice={() => {
+              setBriefOpen(false);
+              setReportOpen(false);
+              setInvoiceOpen(true);
+            }}
+            onOpenBrief={() => {
+              setInvoiceOpen(false);
+              setReportOpen(false);
+              setBriefOpen(true);
+            }}
+            onOpenReport={() => {
+              setInvoiceOpen(false);
+              setBriefOpen(false);
+              setReportOpen(true);
+            }}
+            invoiceOpen={invoiceOpen}
+            briefOpen={briefOpen}
+            reportOpen={reportOpen}
+          />
         </aside>
       ) : null}
     </div>
@@ -548,6 +581,10 @@ function ThreadPane({
             const showDay = Boolean(day) && day !== lastDay;
             if (day) lastDay = day;
             const timeLabel = safeTimeLabel(message.createdAt);
+            const paymentNotice =
+              message.kind === "TEXT" || !message.kind
+                ? parsePaymentConfirmed(message.body)
+                : null;
             return (
               <div key={message.id}>
                 {showDay ? (
@@ -592,6 +629,13 @@ function ThreadPane({
                         canReview={!thread.isCreator && message.report.status === "SUBMITTED"}
                         reviewing={reviewingReportId === message.report.reportId}
                         onReview={onReviewReport}
+                      />
+                    </div>
+                  ) : paymentNotice ? (
+                    <div className="flex justify-center py-1">
+                      <PaymentConfirmedCard
+                        payment={paymentNotice}
+                        createdAt={message.createdAt}
                       />
                     </div>
                   ) : (
@@ -1204,6 +1248,45 @@ function BriefComposer({ initialBrief, sending, onCancel, onSave }) {
   );
 }
 
+function PaymentConfirmedCard({ payment, createdAt }) {
+  const timeLabel = safeTimeLabel(createdAt);
+  return (
+    <div className="payollar-payment-card w-full max-w-[300px] overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-b from-emerald-50 to-white shadow-[0_12px_28px_rgba(16,185,129,0.12)]">
+      <div className="relative overflow-hidden px-4 pb-4 pt-5 text-center">
+        <div className="payollar-payment-shimmer pointer-events-none absolute inset-0" aria-hidden />
+        <div className="relative mx-auto mb-3 flex h-12 w-12 items-center justify-center">
+          <span
+            className="payollar-payment-ring absolute inset-0 rounded-full bg-emerald-400/30"
+            aria-hidden
+          />
+          <span className="payollar-payment-check relative flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_8px_20px_rgba(16,185,129,0.35)]">
+            <CheckCircle2 className="h-6 w-6" strokeWidth={2.25} />
+          </span>
+        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          Payment confirmed
+        </p>
+        {payment?.amountLabel ? (
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums text-slate-950">
+            {payment.amountLabel}
+          </p>
+        ) : null}
+        <p className="mt-1 text-xs text-slate-500">Booking is paid and ready to move forward</p>
+        {payment?.reference ? (
+          <p className="mt-3 inline-flex max-w-full items-center rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-medium text-slate-500 ring-1 ring-emerald-100">
+            <span className="truncate">Ref · {payment.reference}</span>
+          </p>
+        ) : null}
+        {timeLabel ? (
+          <p className="mt-2 text-[10px] text-slate-400" suppressHydrationWarning>
+            {timeLabel}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function InvoiceMessageCard({ invoice, mine, canPay, paying, onPay, createdAt }) {
   const superseded = invoice.status === "SUPERSEDED";
   const paid = invoice.status === "PAID";
@@ -1442,9 +1525,68 @@ function InvoiceComposer({ defaultAmount, sending, onCancel, onSend }) {
   );
 }
 
-function SessionCard({ thread, onPay }) {
+function SessionCard({
+  thread,
+  onPay,
+  onOpenInvoice,
+  onOpenBrief,
+  onOpenReport,
+  invoiceOpen,
+  briefOpen,
+  reportOpen,
+}) {
   const href = profileHref(thread.other);
-  const brief = thread.appointment?.clientDescription?.trim();
+  const hasBrief = Boolean(thread.appointment?.clientDescription?.trim());
+  const canInvoice = Boolean(thread.canInvoice);
+  const canSetBrief = Boolean(thread.canSetBrief);
+  const canSendReport = Boolean(thread.canSendReport);
+  const tools = [];
+
+  if (canInvoice) {
+    tools.push({
+      id: "invoice",
+      icon: Receipt,
+      title: "Send invoice",
+      description: "Charge for this booking. The client can pay from chat.",
+      active: Boolean(invoiceOpen),
+      onClick: onOpenInvoice,
+    });
+  }
+  if (canSetBrief) {
+    tools.push({
+      id: "brief",
+      icon: FileText,
+      title: hasBrief ? "Update brief" : "Share brief",
+      description: "Tell talent what you want, expect, and when you need it.",
+      active: Boolean(briefOpen),
+      onClick: onOpenBrief,
+    });
+  }
+  if (canSendReport) {
+    tools.push({
+      id: "report",
+      icon: ClipboardList,
+      title: "Send delivery report",
+      description: "Submit checklist + proof for the client to review.",
+      active: Boolean(reportOpen),
+      onClick: onOpenReport,
+    });
+  }
+  if (thread.canPay) {
+    tools.push({
+      id: "pay",
+      icon: CheckCircle2,
+      title:
+        thread.pay?.amount != null
+          ? `Pay ${moneyGhs(thread.pay.amount)}`
+          : "Pay booking",
+      description: "Confirm payment with Paystack to lock in this booking.",
+      active: false,
+      onClick: () => onPay?.(),
+      primary: true,
+    });
+  }
+
   let sessionLabel = "";
   let untilLabel = "";
   try {
@@ -1456,61 +1598,123 @@ function SessionCard({ thread, onPay }) {
     sessionLabel = "";
     untilLabel = "";
   }
+
   return (
     <div className="rounded-[1.6rem] bg-white p-4">
       <div className="flex items-center gap-3">
         <Avatar person={thread.other} className="h-12 w-12" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-slate-950">
+            {thread.other?.name || "Booking"}
+          </p>
+          <p className="truncate text-xs text-slate-500">
+            {thread.other?.specialty || "Session"}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-[#f3eefe] px-2 py-0.5 text-[10px] font-semibold text-[#5b21b6]">
+          {statusLabel(thread.appointment?.status)}
+        </span>
+      </div>
+
+      <div className="mt-4 flex items-start gap-2 rounded-2xl bg-[#f7f8fb] px-3 py-2.5 text-sm">
+        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
         <div className="min-w-0">
-          <p className="truncate font-semibold text-slate-950">{thread.other?.name || "Booking"}</p>
-          <p className="truncate text-xs text-slate-500">{thread.other?.specialty || "Session"}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            Session
+          </p>
+          <p className="font-medium text-slate-900" suppressHydrationWarning>
+            {sessionLabel || "Time TBD"}
+          </p>
+          {untilLabel ? (
+            <p className="text-xs text-slate-500" suppressHydrationWarning>
+              until {untilLabel}
+            </p>
+          ) : null}
         </div>
       </div>
-      <dl className="mt-4 space-y-3 text-sm">
-        <div className="flex items-start gap-2 text-slate-600">
-          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
-          <div>
-            <dt className="text-xs text-slate-400">Session</dt>
-            <dd className="font-medium text-slate-900" suppressHydrationWarning>
-              {sessionLabel || "Time TBD"}
-            </dd>
-            {untilLabel ? (
-              <dd className="text-xs text-slate-500" suppressHydrationWarning>
-                until {untilLabel}
-              </dd>
-            ) : null}
-          </div>
+
+      {tools.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            Chat tools
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Same actions as the buttons under the message box — open them here anytime.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {tools.map((tool) => {
+              const Icon = tool.icon;
+              return (
+                <li key={tool.id}>
+                  <button
+                    type="button"
+                    onClick={tool.onClick}
+                    className={`flex w-full items-start gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+                      tool.primary
+                        ? "border-[#6d28d9] bg-[#6d28d9] text-white hover:bg-[#5b21b6]"
+                        : tool.active
+                          ? "border-[#6d28d9] bg-[#f3eefe]"
+                          : "border-slate-100 bg-[#fafafa] hover:border-[#d8b4fe] hover:bg-white"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                        tool.primary
+                          ? "bg-white/15 text-white"
+                          : tool.active
+                            ? "bg-[#6d28d9]/15 text-[#5b21b6]"
+                            : "bg-white text-slate-600 ring-1 ring-slate-200"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span
+                        className={`block text-sm font-semibold ${
+                          tool.primary ? "text-white" : "text-slate-950"
+                        }`}
+                      >
+                        {tool.title}
+                      </span>
+                      <span
+                        className={`mt-0.5 block text-[11px] leading-relaxed ${
+                          tool.primary ? "text-white/75" : "text-slate-500"
+                        }`}
+                      >
+                        {tool.description}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        <div>
-          <dt className="text-xs text-slate-400">Status</dt>
-          <dd className="mt-1 inline-flex rounded-full bg-[#f3eefe] px-2.5 py-1 text-xs font-semibold text-[#5b21b6]">
-            {statusLabel(thread.appointment?.status)}
-          </dd>
-        </div>
-        {brief ? (
-          <div>
-            <dt className="text-xs text-slate-400">Project brief</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{brief}</dd>
-          </div>
-        ) : null}
-      </dl>
-      <div className="mt-4 flex flex-col gap-2">
-        {href ? (
-          <Link href={href} className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 text-sm font-semibold text-slate-800 hover:border-[#6d28d9]">
-            View profile
-          </Link>
-        ) : null}
-        {thread.appointment.agreedAmount != null ? (
-          <div className="rounded-2xl bg-[#f7f8fb] px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">Agreed amount</p>
+      ) : (
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">
+          Use the message box to chat. Booking tools appear here when this session needs
+          an invoice, brief, or delivery report.
+        </p>
+      )}
+
+      <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
+        {thread.appointment?.agreedAmount != null ? (
+          <div className="flex items-center justify-between rounded-2xl bg-[#f7f8fb] px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">
+              Agreed amount
+            </p>
             <p className="text-sm font-semibold tabular-nums text-slate-950">
               {moneyGhs(thread.appointment.agreedAmount)}
             </p>
           </div>
         ) : null}
-        {thread.canPay ? (
-          <button type="button" onClick={() => onPay()} className="inline-flex h-10 items-center justify-center rounded-full bg-[#6d28d9] text-sm font-semibold text-white hover:bg-[#5b21b6]">
-            {thread.pay?.amount != null ? `Pay ${moneyGhs(thread.pay.amount)}` : "Pay with Paystack"}
-          </button>
+        {href ? (
+          <Link
+            href={href}
+            className="inline-flex h-10 w-full items-center justify-center rounded-full border border-slate-200 text-sm font-semibold text-slate-800 hover:border-[#6d28d9]"
+          >
+            View profile
+          </Link>
         ) : null}
       </div>
     </div>

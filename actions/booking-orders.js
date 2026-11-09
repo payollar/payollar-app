@@ -372,7 +372,13 @@ export async function getMyOrder(id) {
       },
       conversation: {
         include: {
-          messages: { orderBy: { createdAt: "asc" }, take: 80 },
+          messages: {
+            orderBy: { createdAt: "asc" },
+            take: 80,
+            include: {
+              sender: { select: { id: true, name: true, imageUrl: true } },
+            },
+          },
         },
       },
     },
@@ -431,6 +437,21 @@ export async function getMyOrder(id) {
       body: message.body,
       createdAt: message.createdAt.toISOString(),
       mine: message.senderId === user.id,
+      sender: {
+        id: message.sender?.id || message.senderId,
+        name: message.sender?.name || "",
+        imageUrl: message.sender?.imageUrl || "",
+      },
     })),
+    me: {
+      id: user.id,
+      name:
+        (user.role === "CREATOR" ? row.creator?.name : row.client?.name) ||
+        user.name ||
+        "You",
+      imageUrl:
+        (user.role === "CREATOR" ? row.creator?.imageUrl : row.client?.imageUrl) ||
+        "",
+    },
   };
 }

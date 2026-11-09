@@ -17,12 +17,15 @@ import {
   Link2,
   Loader2,
   MessageCircle,
+  Plus,
   RotateCcw,
   Target,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   reviewDeliveryReport,
+  updateDeliveryReportChecklist,
   updateDeliveryReportMetricTargets,
 } from "@/actions/delivery-reports";
 import { Button } from "@/components/ui/button";
@@ -62,10 +65,15 @@ export function ClientDeliveryReportDetail({ report: initial }) {
   const [targets, setTargets] = useState(() =>
     emptyMetricTargetsForm(initial.metrics?.targets)
   );
+  const [checklistDraft, setChecklistDraft] = useState(() =>
+    seedChecklistDraft(initial.checklist)
+  );
   const [pending, startTransition] = useTransition();
 
   const canReview = report.status === "SUBMITTED";
   const canEditTargets = report.status !== "APPROVED";
+  const canEditChecklist =
+    report.status === "DRAFT" || report.status === "REVISION_REQUESTED";
   const checklist = report.checklist || [];
   const progress = useMemo(() => checklistProgress(checklist), [checklist]);
   const status = reportStatusMeta(report.status);
@@ -89,8 +97,8 @@ export function ClientDeliveryReportDetail({ report: initial }) {
       PROOF_METRIC_FIELDS.some(([key]) => actuals[key] != null && actuals[key] !== ""));
   const waitingOnCreator =
     report.status === "DRAFT" || report.status === "REVISION_REQUESTED";
-  const showDeliverySections =
-    canReview || report.status === "APPROVED" || hasProof || progress.done > 0;
+  const showProofSection =
+    canReview || report.status === "APPROVED" || hasProof;
 
   const onSaveTargets = () => {
     startTransition(async () => {
@@ -110,6 +118,46 @@ export function ClientDeliveryReportDetail({ report: initial }) {
     });
   };
 
+  const onSaveChecklist = () => {
+    startTransition(async () => {
+      try {
+        const result = await updateDeliveryReportChecklist(
+          report.id,
+          checklistDraft
+        );
+        setReport(result.report);
+        setChecklistDraft(seedChecklistDraft(result.report.checklist));
+        toast.success("Checklist saved — talent will see these items");
+        router.refresh();
+      } catch (error) {
+        toast.error(error.message || "Could not save checklist");
+      }
+    });
+  };
+
+  const updateChecklistItem = (id, patch) => {
+    setChecklistDraft((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+    );
+  };
+
+  const addChecklistItem = () => {
+    if (checklistDraft.length >= 20) return;
+    setChecklistDraft((prev) => [
+      ...prev,
+      { id: `item_${Date.now()}_${prev.length + 1}`, label: "", done: false },
+    ]);
+  };
+
+  const removeChecklistItem = (id) => {
+    setChecklistDraft((prev) => {
+      if (prev.length <= 1) {
+        return [{ id: `item_${Date.now()}`, label: "", done: false }];
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
   const onReview = (decision) => {
     startTransition(async () => {
       try {
@@ -120,6 +168,7 @@ export function ClientDeliveryReportDetail({ report: initial }) {
         setReport(result.report);
         setFeedback(result.report.clientFeedback || "");
         setTargets(emptyMetricTargetsForm(result.report.metrics?.targets));
+        setChecklistDraft(seedChecklistDraft(result.report.checklist));
         toast.success(
           decision === "APPROVED" ? "Report approved" : "Revision requested"
         );
@@ -484,53 +533,134 @@ export function ClientDeliveryReportDetail({ report: initial }) {
             </section>
           ) : null}
 
-          {showDeliverySections ? (
-            <>
-              <section className={cn(clientCardClass, "space-y-3 p-4 sm:p-5")}>
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4 text-slate-400" />
-                  <h2 className="text-base font-semibold text-slate-950">Checklist</h2>
+          <section className={cn(clientCardClass, "space-y-3 p-4 sm:p-5")}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <ClipboardList className="mt-0.5 h-4 w-4 text-slate-400" />
+                <div>
+                  <h2 className="text-base font-semibold text-slate-950">
+                    Checklist
+                  </h2>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    {canEditChecklist
+                      ? "Edit what talent should complete. They mark items done when delivering."
+                      : "Talent’s progress against your checklist."}
+                  </p>
                 </div>
-                {checklist.length === 0 ? (
-                  <p className="text-sm text-slate-500">No checklist items yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {checklist.map((item) => (
-                      <li
-                        key={item.id}
-                        className={cn(
-                          "flex items-start gap-3 rounded-xl border px-3 py-3",
-                          item.done
-                            ? "border-emerald-100 bg-emerald-50/60"
-                            : "border-slate-100 bg-white"
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-                            item.done
-                              ? "bg-emerald-500 text-white"
-                              : "bg-slate-200 text-slate-400"
-                          )}
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="text-sm text-slate-800">{item.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+              </div>
+              {canEditChecklist ? (
+                <button
+                  type="button"
+                  onClick={addChecklistItem}
+                  disabled={checklistDraft.length >= 20 || pending}
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 disabled:opacity-40"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              ) : null}
+            </div>
 
-              <section className={cn(clientCardClass, "space-y-3 p-4 sm:p-5")}>
-                <h2 className="text-base font-semibold text-slate-950">Proof</h2>
-                <ProofBody
-                  proofFiles={proofFiles}
-                  proofEntries={proofEntries}
-                  proofNotes={report.proofNotes}
-                />
-              </section>
-            </>
+            {canEditChecklist ? (
+              <>
+                <ul className="space-y-2">
+                  {checklistDraft.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-start gap-2 rounded-xl border border-slate-100 bg-white px-2.5 py-2"
+                    >
+                      <span
+                        className={cn(
+                          "mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                          item.done
+                            ? "bg-emerald-500 text-white"
+                            : "bg-slate-200 text-slate-400"
+                        )}
+                        title={item.done ? "Marked done by talent" : "Not done yet"}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </span>
+                      <Input
+                        value={item.label}
+                        disabled={pending}
+                        placeholder="e.g. Post 3 Instagram reels"
+                        className="h-10 flex-1 rounded-xl"
+                        onChange={(e) =>
+                          updateChecklistItem(item.id, { label: e.target.value })
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeChecklistItem(item.id)}
+                        disabled={pending}
+                        className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="black"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={pending}
+                    onClick={onSaveChecklist}
+                  >
+                    {pending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save checklist"
+                    )}
+                  </Button>
+                  <p className="text-xs text-slate-400">
+                    {progress.done}/{progress.total} marked done by talent
+                  </p>
+                </div>
+              </>
+            ) : checklist.length === 0 ? (
+              <p className="text-sm text-slate-500">No checklist items yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {checklist.map((item) => (
+                  <li
+                    key={item.id}
+                    className={cn(
+                      "flex items-start gap-3 rounded-xl border px-3 py-3",
+                      item.done
+                        ? "border-emerald-100 bg-emerald-50/60"
+                        : "border-slate-100 bg-white"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                        item.done
+                          ? "bg-emerald-500 text-white"
+                          : "bg-slate-200 text-slate-400"
+                      )}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="text-sm text-slate-800">{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {showProofSection ? (
+            <section className={cn(clientCardClass, "space-y-3 p-4 sm:p-5")}>
+              <h2 className="text-base font-semibold text-slate-950">Proof</h2>
+              <ProofBody
+                proofFiles={proofFiles}
+                proofEntries={proofEntries}
+                proofNotes={report.proofNotes}
+              />
+            </section>
           ) : waitingOnCreator ? (
             <div
               className={cn(
@@ -539,17 +669,17 @@ export function ClientDeliveryReportDetail({ report: initial }) {
               )}
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                <ClipboardList className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-950">
                   {report.status === "REVISION_REQUESTED"
                     ? "Waiting for a revised submission"
-                    : "Delivery not submitted yet"}
+                    : "Proof not submitted yet"}
                 </p>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  Checklist and proof will show up here once{" "}
-                  {report.creator?.name || "talent"} submits.
+                  Links and files will show here once{" "}
+                  {report.creator?.name || "talent"} delivers.
                 </p>
               </div>
               {appointment?.id ? (
@@ -602,6 +732,19 @@ export function ClientDeliveryReportDetail({ report: initial }) {
       </div>
     </ClientPageShell>
   );
+}
+
+function seedChecklistDraft(checklist) {
+  const rows = Array.isArray(checklist)
+    ? checklist.map((item, index) => ({
+        id: String(item?.id || `item_${index + 1}`),
+        label: String(item?.label || ""),
+        done: Boolean(item?.done),
+      }))
+    : [];
+  return rows.length
+    ? rows
+    : [{ id: `item_${Date.now()}`, label: "", done: false }];
 }
 
 function ProofBody({ proofFiles, proofEntries, proofNotes }) {
