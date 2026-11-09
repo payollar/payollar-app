@@ -21,6 +21,7 @@ import { cancelAppointment, markAppointmentCompleted } from "@/actions/doctor";
 import {
   reviewBookingDeliveryReportInChat,
   sendBookingDeliveryReportInChat,
+  withdrawDeliveryReport,
 } from "@/actions/delivery-reports";
 import { checklistFromBrief } from "@/lib/booking-brief";
 
@@ -38,22 +39,36 @@ function reportStatus(order) {
 
 function progressIndex(order) {
   const status = reportStatus(order);
-  if (order.status === "COMPLETED" || status === "APPROVED") return 4;
-  if (order.status === "SCHEDULED" && status === "SUBMITTED") return 3;
-  if (order.status === "SCHEDULED") return 2;
+  // Only true completion is an approved deliverable (or legacy complete after approval).
+  if (status === "APPROVED") return 4;
+  if (order.status === "COMPLETED" && status === "APPROVED") return 4;
+  if (status === "SUBMITTED") return 3;
+  if (order.status === "CANCELLED") return 0;
+  // Paid / confirmed bookings stay on Deliverable until something is submitted.
+  if (order.status === "SCHEDULED" || order.status === "COMPLETED" || isPaidBooking(order)) {
+    return 2;
+  }
   return 0;
 }
 
 function statusCopy(order, index) {
   if (order.status === "CANCELLED") return { label: "Cancelled", className: "bg-rose-50 text-rose-600" };
-  if (order.status === "COMPLETED" || reportStatus(order) === "APPROVED") {
+  if (reportStatus(order) === "APPROVED") {
+    return { label: "Completed", className: "bg-emerald-50 text-emerald-700" };
+  }
+  if (order.status === "COMPLETED" && reportStatus(order) === "APPROVED") {
     return { label: "Completed", className: "bg-emerald-50 text-emerald-700" };
   }
   if (reportStatus(order) === "REVISION_REQUESTED") {
     return { label: "Changes requested", className: "bg-amber-50 text-amber-700" };
   }
+  if (index === 4) return { label: "Completed", className: "bg-emerald-50 text-emerald-700" };
   if (index === 3) return { label: "Awaiting review", className: "bg-amber-50 text-amber-700" };
-  if (index === 2) return { label: "Awaiting deliverable", className: "bg-slate-100 text-slate-700" };
+  if (index === 2) {
+    return order.role === "CREATOR"
+      ? { label: "Submit deliverable", className: "bg-violet-50 text-violet-700" }
+      : { label: "Awaiting deliverable", className: "bg-slate-100 text-slate-700" };
+  }
   if (index === 1) return { label: "Booked", className: "bg-slate-100 text-slate-700" };
   return { label: "Chat open", className: "bg-slate-100 text-slate-700" };
 }
@@ -117,11 +132,14 @@ function isPaidBooking(order) {
 
 function deliverableHeadline(order) {
   const report = order.deliveryReport;
-  if (order.status === "COMPLETED" || report?.status === "APPROVED") return "Completed";
+  if (report?.status === "APPROVED") return "Approved";
   if (report?.status === "SUBMITTED") return "Submitted for review";
   if (report?.status === "REVISION_REQUESTED") return "Needs changes";
-  if (order.status === "SCHEDULED" || isPaidBooking(order)) {
-    return order.role === "CREATOR" ? "Ready to submit" : "Awaiting deliverable";
+  if (report?.status === "DRAFT") {
+    return order.role === "CREATOR" ? "Draft in progress" : "Deliverable in progress";
+  }
+  if (isPaidBooking(order)) {
+    return order.role === "CREATOR" ? "Add your deliverable" : "Awaiting deliverable";
   }
   return "Waiting for payment";
 }
@@ -265,18 +283,24 @@ export function OrderDetail({ order, basePath }) {
     order.status !== "CANCELLED" &&
     order.status !== "COMPLETED";
   const report = order.deliveryReport || null;
+  const reportLocked = report?.status === "SUBMITTED" || report?.status === "APPROVED";
   const canSubmitDeliverable =
     order.role === "CREATOR" &&
-    order.status === "SCHEDULED" &&
-    (!report || report.status === "DRAFT" || report.status === "REVISION_REQUESTED");
+    !cancelled &&
+    isPaidBooking(order) &&
+    !reportLocked;
   const canReviewDeliverable =
     order.role === "CLIENT" &&
-    order.status === "SCHEDULED" &&
+    !cancelled &&
+    report?.status === "SUBMITTED";
+  const canWithdrawDeliverable =
+    order.role === "CREATOR" &&
+    !cancelled &&
     report?.status === "SUBMITTED";
   const canMarkComplete =
     order.role === "CREATOR" &&
     order.status === "SCHEDULED" &&
-    (report?.status === "APPROVED" || report?.status === "SUBMITTED");
+    report?.status === "APPROVED";
 
   const pay = async (invoiceId) => {
     setPaying(true);
@@ -353,9 +377,25 @@ export function OrderDetail({ order, basePath }) {
         return;
       }
       toast.success(result?.shared ? "Deliverable reshared" : "Deliverable submitted for review");
+      setSelectedStep(3);
       router.refresh();
     } catch (error) {
       toast.error(error?.message || "Could not submit the deliverable.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const withdrawDeliverable = async () => {
+    if (!report?.id || busy === "withdraw") return;
+    setBusy("withdraw");
+    try {
+      await withdrawDeliveryReport(report.id);
+      toast.success("Deliverable moved back to draft so you can edit it");
+      setSelectedStep(2);
+      router.refresh();
+    } catch (error) {
+      toast.error(error?.message || "Could not unlock that deliverable for editing.");
     } finally {
       setBusy("");
     }
@@ -374,6 +414,7 @@ export function OrderDetail({ order, basePath }) {
         return;
       }
       toast.success(decision === "APPROVED" ? "Deliverable approved" : "Revision requested");
+      setSelectedStep(decision === "APPROVED" ? 4 : 2);
       router.refresh();
     } catch (error) {
       toast.error(error?.message || "Could not review that deliverable.");
@@ -510,6 +551,61 @@ export function OrderDetail({ order, basePath }) {
                     </div>
                   ))}
                 </dl>
+
+                {selectedStep === 2 && canSubmitDeliverable ? (
+                  <div className="mt-4 rounded-2xl border border-[#e7e0ff] bg-[#fbfaff] p-4">
+                    <p className="mb-3 text-sm font-semibold text-slate-950">Add deliverable</p>
+                    <DeliverableComposer
+                      brief={order.brief}
+                      existing={report}
+                      sending={busy === "deliverable"}
+                      onSubmit={submitDeliverable}
+                    />
+                  </div>
+                ) : null}
+
+                {selectedStep === 2 && canWithdrawDeliverable ? (
+                  <div className="mt-4 space-y-3 rounded-2xl border border-slate-100 bg-[#f7f8fc] p-4">
+                    <DeliverableSummary report={report} role={order.role} />
+                    <button
+                      type="button"
+                      disabled={busy === "withdraw"}
+                      onClick={withdrawDeliverable}
+                      className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 disabled:opacity-50"
+                    >
+                      {busy === "withdraw" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Edit deliverable
+                    </button>
+                  </div>
+                ) : null}
+
+                {selectedStep === 3 && canReviewDeliverable ? (
+                  <div className="mt-4 rounded-2xl border border-[#e7e0ff] bg-[#fbfaff] p-4">
+                    <DeliverableReview
+                      report={report}
+                      reviewing={busy === "approve" || busy === "revise"}
+                      onReview={reviewDeliverable}
+                    />
+                  </div>
+                ) : null}
+
+                {selectedStep === 3 && canWithdrawDeliverable ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy === "withdraw"}
+                      onClick={withdrawDeliverable}
+                      className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 disabled:opacity-50"
+                    >
+                      {busy === "withdraw" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Edit & resubmit
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </>
           )}
@@ -604,17 +700,30 @@ export function OrderDetail({ order, basePath }) {
               </div>
             ) : null}
 
-            {(canSubmitDeliverable || canReviewDeliverable || report) && !cancelled ? (
+            {(canSubmitDeliverable || canReviewDeliverable || canWithdrawDeliverable || report) &&
+            !cancelled ? (
               <div className="mt-4 rounded-2xl border border-slate-100 bg-[#fbfaff] p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4 text-[#6d28d9]" />
-                  <h3 className="text-sm font-semibold text-slate-950">
-                    {canSubmitDeliverable
-                      ? "Submit deliverable"
-                      : canReviewDeliverable
-                        ? "Review deliverable"
-                        : "Deliverable"}
-                  </h3>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-[#6d28d9]" />
+                    <h3 className="text-sm font-semibold text-slate-950">
+                      {canSubmitDeliverable
+                        ? "Submit deliverable"
+                        : canReviewDeliverable
+                          ? "Review deliverable"
+                          : "Deliverable"}
+                    </h3>
+                  </div>
+                  {canWithdrawDeliverable ? (
+                    <button
+                      type="button"
+                      disabled={busy === "withdraw"}
+                      onClick={withdrawDeliverable}
+                      className="text-xs font-semibold text-[#6d28d9] hover:underline disabled:opacity-50"
+                    >
+                      {busy === "withdraw" ? "Unlocking…" : "Edit deliverable"}
+                    </button>
+                  ) : null}
                 </div>
 
                 {canSubmitDeliverable ? (

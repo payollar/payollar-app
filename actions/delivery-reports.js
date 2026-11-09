@@ -639,6 +639,16 @@ export async function sendBookingDeliveryReportInChat(appointmentId, payload = {
     if (appointment.status === "REQUESTED") {
       return { error: "Confirm the booking payment before sending a report." };
     }
+    // If the booking was closed early without an approved deliverable, reopen for submission.
+    if (
+      appointment.status === "COMPLETED" &&
+      appointment.deliveryReport?.status !== "APPROVED"
+    ) {
+      await db.appointment.update({
+        where: { id: appointmentId },
+        data: { status: "SCHEDULED" },
+      });
+    }
 
     const notes = String(payload.notes || "").trim().slice(0, 2000);
     const proofLink = String(payload.proofLink || "").trim();

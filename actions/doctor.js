@@ -350,8 +350,8 @@ export async function markAppointmentCompleted(formData) {
       where: { appointmentId },
       select: { status: true },
     });
-    if (deliveryReport?.status !== "APPROVED" && deliveryReport?.status !== "SUBMITTED") {
-      throw new Error("Submit the deliverable before marking this booking complete");
+    if (deliveryReport?.status !== "APPROVED") {
+      throw new Error("The client must approve the deliverable before this booking can be completed");
     }
 
     // Update the appointment status to COMPLETED
