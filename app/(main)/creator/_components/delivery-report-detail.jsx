@@ -368,9 +368,9 @@ export function CreatorDeliveryReportDetail({ report: initial }) {
           <p className="mt-1 text-sm text-slate-500">
             Upload files and add links the client can open (screenshots, PDFs, posts, Drive).
           </p>
-          {SHOW_PROOF_LINK_METRICS && hasMetricTargets(metricTargets) ? (
-            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
-              <span className="font-medium text-slate-950">Client targets: </span>
+          {hasMetricTargets(metricTargets) ? (
+            <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-sm text-sky-900">
+              <span className="font-medium text-sky-950">Client targets: </span>
               {targetsSummary}
             </div>
           ) : null}

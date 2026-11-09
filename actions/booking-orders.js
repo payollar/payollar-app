@@ -363,6 +363,7 @@ export async function getMyOrder(id) {
           proofLinks: true,
           proofFiles: true,
           proofNotes: true,
+          metrics: true,
           clientFeedback: true,
           submittedAt: true,
           reviewedAt: true,
@@ -414,6 +415,11 @@ export async function getMyOrder(id) {
                 .filter((file) => file.url)
             : [],
           proofNotes: row.deliveryReport.proofNotes || "",
+          metrics:
+            row.deliveryReport.metrics &&
+            typeof row.deliveryReport.metrics === "object"
+              ? row.deliveryReport.metrics
+              : null,
           clientFeedback: row.deliveryReport.clientFeedback || "",
           submittedAt: toIso(row.deliveryReport.submittedAt),
           reviewedAt: toIso(row.deliveryReport.reviewedAt),

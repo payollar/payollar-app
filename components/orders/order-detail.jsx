@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Plus,
   Send,
+  Target,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -28,6 +29,10 @@ import {
   withdrawDeliveryReport,
 } from "@/actions/delivery-reports";
 import { checklistFromBrief } from "@/lib/booking-brief";
+import {
+  formatMetricTargetsSummary,
+  hasMetricTargets,
+} from "@/lib/delivery-report-ui";
 
 function parseUploadFiles(res) {
   const rows = Array.isArray(res) ? res : res ? [res] : [];
@@ -937,6 +942,17 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
           Client feedback: {existing.clientFeedback}
         </p>
       ) : null}
+      {hasMetricTargets(existing?.metrics?.targets) ? (
+        <div className="rounded-xl border border-sky-100 bg-sky-50/80 px-3 py-2.5">
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+            <Target className="h-3.5 w-3.5" />
+            Client metric targets
+          </p>
+          <p className="mt-1 text-xs text-sky-900">
+            {formatMetricTargetsSummary(existing.metrics.targets)}
+          </p>
+        </div>
+      ) : null}
       <div>
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -1193,6 +1209,7 @@ function DeliverableSummary({ report, role = "CLIENT" }) {
   const total = Array.isArray(report.checklist) ? report.checklist.length : 0;
   const reportHref =
     role === "CREATOR" ? `/creator/reports/${report.id}` : `/client/reports/${report.id}`;
+  const targetsSummary = formatMetricTargetsSummary(report.metrics?.targets);
   return (
     <div className="space-y-2 text-sm text-slate-700">
       <p className="font-medium text-slate-950">{report.title || "Delivery report"}</p>
@@ -1200,6 +1217,15 @@ function DeliverableSummary({ report, role = "CLIENT" }) {
         Status: {String(report.status || "").replaceAll("_", " ").toLowerCase()}
         {total ? ` · Checklist ${done}/${total}` : ""}
       </p>
+      {targetsSummary ? (
+        <p className="inline-flex items-start gap-1.5 rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-800">
+          <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            <span className="font-semibold">Targets: </span>
+            {targetsSummary}
+          </span>
+        </p>
+      ) : null}
       {report.proofNotes ? (
         <p className="whitespace-pre-wrap rounded-xl bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
           {report.proofNotes}

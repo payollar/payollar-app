@@ -223,8 +223,9 @@ export function ClientDeliveryReportDetail({ report: initial }) {
         <div>
           <h2 className="text-base font-semibold text-slate-950">Metric targets</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Set the engagement goals you expect. The creator fills in actual results when
-            submitting proof.
+            {appointment?.id
+              ? "Set the engagement goals for this booking. Talent sees these targets when they deliver."
+              : "Set the engagement goals you expect. The creator fills in actual results when submitting proof."}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">

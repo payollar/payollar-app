@@ -341,24 +341,32 @@ export async function startDeliveryReportFromApplication(applicationId) {
 /**
  * Start (or return existing) delivery report for a booking/appointment.
  */
-export async function startDeliveryReportFromAppointment(appointmentId) {
+/**
+ * Ensure a booking delivery report exists so the client can set metric targets
+ * and the creator can deliver against them (campaign-report style).
+ */
+export async function ensureBookingDeliveryReport(appointmentId) {
   const user = await requireUser();
-  if (user.role !== "CREATOR") throw new Error("Creator account required");
-  if (!appointmentId) throw new Error("Appointment id required");
+  if (!appointmentId) throw new Error("Booking id required");
 
   const appointment = await db.appointment.findUnique({
     where: { id: appointmentId },
     include: {
       deliveryReport: { select: { id: true } },
       client: { select: { id: true, name: true } },
+      creator: { select: { id: true, name: true } },
     },
   });
 
-  if (!appointment || appointment.creatorId !== user.id) {
-    throw new Error("Booking not found");
-  }
+  if (!appointment) throw new Error("Booking not found");
+  const isClient = appointment.clientId === user.id;
+  const isCreator = appointment.creatorId === user.id;
+  if (!isClient && !isCreator) throw new Error("Booking not found");
   if (appointment.status === "CANCELLED") {
     throw new Error("Cannot report on a cancelled booking");
+  }
+  if (appointment.status === "REQUESTED") {
+    throw new Error("Confirm payment before setting booking report targets");
   }
   if (appointment.deliveryReport?.id) {
     return { reportId: appointment.deliveryReport.id, existing: true };
@@ -368,13 +376,16 @@ export async function startDeliveryReportFromAppointment(appointmentId) {
     checklistLabelsFromBrief(appointment.clientDescription),
     { social: false }
   );
+  const title = isCreator
+    ? `Booking with ${appointment.client?.name || "client"}`
+    : `Booking · ${appointment.creator?.name || "Talent"}`;
 
   const report = await db.deliveryReport.create({
     data: {
       appointmentId: appointment.id,
-      creatorId: user.id,
+      creatorId: appointment.creatorId,
       clientId: appointment.clientId,
-      title: `Booking with ${appointment.client?.name || "client"}`,
+      title,
       checklist,
       proofLinks: [],
       proofFiles: [],
@@ -394,7 +405,80 @@ export async function startDeliveryReportFromAppointment(appointmentId) {
   });
 
   revalidateReportPaths(report.id);
+  revalidatePath(`/client/bookings/${appointment.id}`);
+  revalidatePath(`/creator/bookings/${appointment.id}`);
+  revalidatePath("/client/reports");
+  revalidatePath("/creator/reports");
   return { reportId: report.id, existing: false };
+}
+
+/** Creator alias — same ensure used after payment for booking deliverables. */
+export async function startDeliveryReportFromAppointment(appointmentId) {
+  const user = await requireUser();
+  if (user.role !== "CREATOR") throw new Error("Creator account required");
+  return ensureBookingDeliveryReport(appointmentId);
+}
+
+/** After payment, create draft booking reports so clients can set targets. */
+export async function ensureClientBookingReports() {
+  const user = await requireUser();
+  if (user.role !== "CLIENT" && user.role !== "MEDIA_AGENCY") {
+    throw new Error("Client account required");
+  }
+
+  const open = await db.appointment.findMany({
+    where: {
+      clientId: user.id,
+      status: "SCHEDULED",
+      deliveryReport: { is: null },
+    },
+    select: {
+      id: true,
+      clientDescription: true,
+      creatorId: true,
+      clientId: true,
+      creator: { select: { name: true } },
+    },
+    take: 50,
+  });
+
+  let created = 0;
+  for (const appointment of open) {
+    const checklist = buildChecklistFromDeliverables(
+      checklistLabelsFromBrief(appointment.clientDescription),
+      { social: false }
+    );
+    await db.deliveryReport.create({
+      data: {
+        appointmentId: appointment.id,
+        creatorId: appointment.creatorId,
+        clientId: appointment.clientId,
+        title: `Booking · ${appointment.creator?.name || "Talent"}`,
+        checklist,
+        proofLinks: [],
+        proofFiles: [],
+        metrics: {
+          platform: null,
+          postUrl: null,
+          views: null,
+          likes: null,
+          comments: null,
+          shares: null,
+          reach: null,
+          source: "manual",
+          targets: null,
+          entries: [],
+        },
+      },
+    });
+    created += 1;
+  }
+
+  if (created > 0) {
+    revalidatePath("/client/reports");
+    revalidatePath("/creator/reports");
+  }
+  return { created };
 }
 
 function mergeMetricsPreservingTargets(payloadMetrics, existingMetrics) {
