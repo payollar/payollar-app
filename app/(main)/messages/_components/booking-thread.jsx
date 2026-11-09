@@ -6,6 +6,8 @@ import { format, isToday } from "date-fns";
 import {
   ArrowLeft,
   Calendar,
+  CheckCircle2,
+  ClipboardList,
   FileText,
   Loader2,
   MessageCircle,
@@ -23,6 +25,10 @@ import {
   sendBookingInvoice,
   sendBookingMessage,
 } from "@/actions/booking-chat";
+import {
+  reviewBookingDeliveryReportInChat,
+  sendBookingDeliveryReportInChat,
+} from "@/actions/delivery-reports";
 import { parseBriefFields } from "@/lib/booking-brief";
 
 function moneyGhs(value) {
@@ -78,8 +84,11 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   const [sending, setSending] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [sendingBrief, setSendingBrief] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [reviewingReportId, setReviewingReportId] = useState(null);
   const [payingInvoiceId, setPayingInvoiceId] = useState(null);
   const [query, setQuery] = useState("");
   const endRef = useRef(null);
@@ -89,6 +98,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
     setDraft("");
     setInvoiceOpen(false);
     setBriefOpen(false);
+    setReportOpen(false);
   }, [initialThread, appointmentId]);
 
   useEffect(() => {
@@ -191,6 +201,48 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
       toast.error(error?.message || "Could not save your brief.");
     } finally {
       setSendingBrief(false);
+    }
+  };
+
+  const onSendReport = async (payload) => {
+    if (!appointmentId || sendingReport) return;
+    setSendingReport(true);
+    try {
+      const result = await sendBookingDeliveryReportInChat(appointmentId, payload);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result?.shared ? "Report shared in chat" : "Report sent in chat");
+      setReportOpen(false);
+      const next = await getBookingThread(appointmentId);
+      if (next && !next.error) setThread(next);
+    } catch (error) {
+      toast.error(error?.message || "Could not send the report.");
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
+  const onReviewReport = async (reportId, decision, feedback = "") => {
+    if (!appointmentId || !reportId || reviewingReportId) return;
+    setReviewingReportId(reportId);
+    try {
+      const result = await reviewBookingDeliveryReportInChat(appointmentId, reportId, {
+        decision,
+        feedback,
+      });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(decision === "APPROVED" ? "Report approved" : "Revision requested");
+      const next = await getBookingThread(appointmentId);
+      if (next && !next.error) setThread(next);
+    } catch (error) {
+      toast.error(error?.message || "Could not review that report.");
+    } finally {
+      setReviewingReportId(null);
     }
   };
 
@@ -309,6 +361,12 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
             setBriefOpen={setBriefOpen}
             sendingBrief={sendingBrief}
             onSaveBrief={onSaveBrief}
+            reportOpen={reportOpen}
+            setReportOpen={setReportOpen}
+            sendingReport={sendingReport}
+            onSendReport={onSendReport}
+            reviewingReportId={reviewingReportId}
+            onReviewReport={onReviewReport}
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -345,6 +403,12 @@ function ThreadPane({
   setBriefOpen,
   sendingBrief,
   onSaveBrief,
+  reportOpen,
+  setReportOpen,
+  sendingReport,
+  onSendReport,
+  reviewingReportId,
+  onReviewReport,
 }) {
   const href = profileHref(thread.other);
   let lastDay = "";
@@ -353,6 +417,7 @@ function ThreadPane({
     thread.appointment?.status !== "CANCELLED" &&
     thread.appointment?.status !== "COMPLETED";
   const canSetBrief = Boolean(thread.canSetBrief);
+  const canSendReport = Boolean(thread.canSendReport);
 
   return (
     <>
@@ -423,6 +488,18 @@ function ThreadPane({
                       isCreator={thread.isCreator}
                     />
                   </div>
+                ) : message.kind === "REPORT" && message.report ? (
+                  <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                    {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                    <ReportMessageCard
+                      report={message.report}
+                      mine={message.mine}
+                      createdAt={message.createdAt}
+                      canReview={!thread.isCreator && message.report.status === "SUBMITTED"}
+                      reviewing={reviewingReportId === message.report.reportId}
+                      onReview={onReviewReport}
+                    />
+                  </div>
                 ) : (
                   <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
                     {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
@@ -478,6 +555,16 @@ function ThreadPane({
         />
       ) : null}
 
+      {reportOpen && canSendReport ? (
+        <ReportComposer
+          checklist={thread.reportChecklist || []}
+          reportStatus={thread.deliveryReport?.status || null}
+          sending={sendingReport}
+          onCancel={() => setReportOpen(false)}
+          onSend={onSendReport}
+        />
+      ) : null}
+
       {thread.canSend ? (
         <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-slate-100 bg-white p-3">
           {thread.canInvoice ? (
@@ -485,6 +572,7 @@ function ThreadPane({
               type="button"
               onClick={() => {
                 setBriefOpen(false);
+                setReportOpen(false);
                 setInvoiceOpen((open) => !open);
               }}
               aria-label="Create invoice"
@@ -498,11 +586,31 @@ function ThreadPane({
               <Receipt className="h-4 w-4" />
             </button>
           ) : null}
+          {canSendReport ? (
+            <button
+              type="button"
+              onClick={() => {
+                setInvoiceOpen(false);
+                setBriefOpen(false);
+                setReportOpen((open) => !open);
+              }}
+              aria-label="Send delivery report"
+              title="Send delivery report"
+              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
+                reportOpen
+                  ? "border-[#6d28d9] bg-[#f3eefe] text-[#5b21b6]"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-[#6d28d9] hover:text-[#6d28d9]"
+              }`}
+            >
+              <ClipboardList className="h-4 w-4" />
+            </button>
+          ) : null}
           {canSetBrief ? (
             <button
               type="button"
               onClick={() => {
                 setInvoiceOpen(false);
+                setReportOpen(false);
                 setBriefOpen((open) => !open);
               }}
               aria-label="Share what you want from this booking"
@@ -536,6 +644,269 @@ function ThreadPane({
         <p className="border-t border-slate-100 px-4 py-3 text-sm text-slate-500">This booking was cancelled, so new messages are closed.</p>
       )}
     </>
+  );
+}
+
+function reportStatusMeta(status) {
+  if (status === "APPROVED") {
+    return { label: "Approved", className: "bg-emerald-50 text-emerald-700" };
+  }
+  if (status === "REVISION_REQUESTED") {
+    return { label: "Needs changes", className: "bg-amber-50 text-amber-700" };
+  }
+  if (status === "SUBMITTED") {
+    return { label: "Needs review", className: "bg-sky-50 text-sky-700" };
+  }
+  return { label: status || "Report", className: "bg-slate-100 text-slate-600" };
+}
+
+function ReportMessageCard({ report, mine, createdAt, canReview, reviewing, onReview }) {
+  const [feedback, setFeedback] = useState("");
+  const [askRevision, setAskRevision] = useState(false);
+  const status = reportStatusMeta(report.status);
+
+  return (
+    <div
+      className={`w-full max-w-[340px] overflow-hidden rounded-2xl border shadow-sm ${
+        mine ? "border-[#d6d3f5] bg-white" : "border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-[#f8f7ff] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#6d28d9]/10 text-[#6d28d9]">
+            <ClipboardList className="h-3.5 w-3.5" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold text-slate-900">{report.title}</p>
+            <p className="text-[10px] text-slate-400">
+              {format(new Date(createdAt), "h:mm a")}
+            </p>
+          </div>
+        </div>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>
+          {status.label}
+        </span>
+      </div>
+      <div className="space-y-2 px-3 py-3">
+        <p className="text-xs text-slate-500">
+          Checklist {report.checklistDone}/{report.checklistTotal} complete
+        </p>
+        {report.notes ? (
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
+            {report.notes}
+          </p>
+        ) : null}
+        {report.proofLinks?.length ? (
+          <ul className="space-y-1">
+            {report.proofLinks.map((link) => (
+              <li key={link}>
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-xs font-medium text-[#6d28d9] hover:underline"
+                >
+                  {link}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {report.feedback ? (
+          <p className="rounded-xl bg-slate-50 px-2.5 py-2 text-xs text-slate-600">
+            Feedback: {report.feedback}
+          </p>
+        ) : null}
+
+        {canReview ? (
+          <div className="space-y-2 border-t border-slate-100 pt-2">
+            {askRevision ? (
+              <>
+                <textarea
+                  value={feedback}
+                  onChange={(event) => setFeedback(event.target.value)}
+                  rows={2}
+                  placeholder="What needs to change?"
+                  className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#6d28d9]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={reviewing || !feedback.trim()}
+                    onClick={() => onReview(report.reportId, "REVISION_REQUESTED", feedback)}
+                    className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-amber-600 text-xs font-semibold text-white disabled:opacity-40"
+                  >
+                    {reviewing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Request revision"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAskRevision(false)}
+                    className="rounded-full px-3 text-xs font-semibold text-slate-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={reviewing}
+                  onClick={() => onReview(report.reportId, "APPROVED")}
+                  className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-full bg-emerald-600 text-xs font-semibold text-white disabled:opacity-40"
+                >
+                  {reviewing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Approve
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={reviewing}
+                  onClick={() => setAskRevision(true)}
+                  className="inline-flex h-9 flex-1 items-center justify-center rounded-full border border-slate-200 text-xs font-semibold text-slate-700 disabled:opacity-40"
+                >
+                  Revise
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ReportComposer({ checklist, reportStatus, sending, onCancel, onSend }) {
+  const [notes, setNotes] = useState("");
+  const [proofLink, setProofLink] = useState("");
+  const [items, setItems] = useState(() =>
+    (checklist || []).map((item) => ({ ...item, done: Boolean(item.done) }))
+  );
+
+  useEffect(() => {
+    setItems((checklist || []).map((item) => ({ ...item, done: Boolean(item.done) })));
+  }, [checklist]);
+
+  const allDone = items.length > 0 && items.every((item) => item.done);
+  const canSubmit = Boolean(proofLink.trim()) && (reportStatus === "APPROVED" || allDone);
+
+  const toggleItem = (id) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, done: !item.done } : item))
+    );
+  };
+
+  const submit = (event) => {
+    event.preventDefault();
+    if (!canSubmit || sending) return;
+    onSend({
+      notes,
+      proofLink,
+      checklist: items,
+    });
+  };
+
+  return (
+    <form onSubmit={submit} className="border-t border-slate-100 bg-[#fbfaff] px-3 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Send delivery report</p>
+          <p className="text-xs text-slate-500">
+            Posts into this chat for the client to review.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Close report"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {reportStatus === "APPROVED" ? (
+        <p className="mb-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+          This report is already approved. Sending will reshare it in chat.
+        </p>
+      ) : (
+        <div className="mb-3 space-y-2">
+          <p className="text-xs font-semibold text-slate-600">Checklist from client brief</p>
+          <ul className="max-h-40 space-y-1.5 overflow-y-auto">
+            {items.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => toggleItem(item.id)}
+                  className={`flex w-full items-start gap-2 rounded-xl border px-2.5 py-2 text-left text-xs ${
+                    item.done
+                      ? "border-emerald-100 bg-emerald-50/70 text-emerald-900"
+                      : "border-slate-200 bg-white text-slate-700"
+                  }`}
+                >
+                  <CheckCircle2
+                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                      item.done ? "text-emerald-600" : "text-slate-300"
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <label className="block text-xs text-slate-500">
+        Proof link
+        <input
+          value={proofLink}
+          onChange={(event) => setProofLink(event.target.value)}
+          placeholder="https://…"
+          className="mt-1 h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+        />
+      </label>
+      <label className="mt-2 block text-xs text-slate-500">
+        Notes for the client
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={2}
+          maxLength={1000}
+          placeholder="What you delivered and where to find it"
+          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+        />
+      </label>
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={sending || !canSubmit}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[#6d28d9] px-4 text-xs font-semibold text-white disabled:opacity-40"
+        >
+          {sending ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Sending…
+            </>
+          ) : (
+            "Send in chat"
+          )}
+        </button>
+      </div>
+    </form>
   );
 }
 

@@ -9,6 +9,8 @@ import {
   isSocialCampaignCategory,
 } from "@/lib/social-metrics";
 import { checklistLabelsFromBrief } from "@/lib/booking-brief";
+import { encodeReportMessagePayload } from "@/lib/booking-report-message";
+import { ensureBookingConversation } from "@/lib/booking-chat";
 
 function revalidateReportPaths(reportId) {
   revalidatePath("/creator/reports");
@@ -17,10 +19,31 @@ function revalidateReportPaths(reportId) {
   revalidatePath("/creator/bookings");
   revalidatePath("/client/campaigns");
   revalidatePath("/client/bookings");
+  revalidatePath("/messages");
   if (reportId) {
     revalidatePath(`/creator/reports/${reportId}`);
     revalidatePath(`/client/reports/${reportId}`);
   }
+}
+
+async function postReportChatCard({ appointmentId, senderId, report }) {
+  if (!appointmentId || !senderId || !report?.id) return;
+  const conversation = await ensureBookingConversation(appointmentId);
+  if (!conversation) return;
+
+  await db.bookingMessage.create({
+    data: {
+      conversationId: conversation.id,
+      senderId,
+      body: encodeReportMessagePayload(report).slice(0, 4000),
+      kind: "REPORT",
+    },
+  });
+  await db.bookingConversation.update({
+    where: { id: conversation.id },
+    data: { updatedAt: new Date() },
+  });
+  revalidatePath(`/messages/${appointmentId}`);
 }
 
 function serializeReport(report) {
@@ -570,4 +593,146 @@ export async function enrichDeliveryReportPostUrl(url) {
   if (user.role !== "CREATOR") throw new Error("Creator account required");
   const meta = await extractSocialPostMeta(url);
   return { meta };
+}
+
+/**
+ * Creator submits a booking delivery report and posts it into the chat thread.
+ */
+export async function sendBookingDeliveryReportInChat(appointmentId, payload = {}) {
+  try {
+    const user = await requireUser();
+    if (user.role !== "CREATOR") {
+      return { error: "Only the talent can send a delivery report in this chat." };
+    }
+    if (!appointmentId) return { error: "Booking not found." };
+
+    const appointment = await db.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        deliveryReport: true,
+        client: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!appointment || appointment.creatorId !== user.id) {
+      return { error: "Booking not found." };
+    }
+    if (appointment.status === "CANCELLED") {
+      return { error: "This booking is cancelled." };
+    }
+    if (appointment.status === "REQUESTED") {
+      return { error: "Confirm the booking payment before sending a report." };
+    }
+
+    const notes = String(payload.notes || "").trim().slice(0, 2000);
+    const proofLink = String(payload.proofLink || "").trim();
+    if (!proofLink && !(Array.isArray(payload.proofLinks) && payload.proofLinks.length)) {
+      return { error: "Add a proof link before sending the report." };
+    }
+
+    let reportId = appointment.deliveryReport?.id || null;
+    if (!reportId) {
+      const started = await startDeliveryReportFromAppointment(appointmentId);
+      reportId = started.reportId;
+    }
+
+    const existing = await db.deliveryReport.findUnique({
+      where: { id: reportId },
+    });
+    if (!existing || existing.creatorId !== user.id) {
+      return { error: "Report not found." };
+    }
+    if (existing.status === "APPROVED") {
+      // Re-share the approved report card in chat
+      await postReportChatCard({
+        appointmentId,
+        senderId: user.id,
+        report: existing,
+      });
+      return { success: true, reportId: existing.id, shared: true };
+    }
+
+    const sourceChecklist = Array.isArray(payload.checklist)
+      ? payload.checklist
+      : existing.checklist;
+    const checklist = normalizeChecklist(sourceChecklist).map((item) => ({
+      ...item,
+      done: true,
+    }));
+    if (checklist.length === 0) {
+      return { error: "Add at least one checklist item." };
+    }
+
+    const proofLinks = normalizeProofLinks(
+      payload.proofLinks?.length ? payload.proofLinks : [proofLink]
+    );
+    if (proofLinks.length === 0) {
+      return { error: "Add a valid proof link before sending the report." };
+    }
+
+    const submitted = await submitDeliveryReport(reportId, {
+      checklist,
+      proofLinks,
+      proofNotes: notes || existing.proofNotes,
+      proofFiles: existing.proofFiles,
+      metrics: existing.metrics,
+    });
+
+    await postReportChatCard({
+      appointmentId,
+      senderId: user.id,
+      report: submitted.report,
+    });
+
+    return { success: true, reportId: submitted.report.id };
+  } catch (error) {
+    console.error("sendBookingDeliveryReportInChat failed:", error);
+    return { error: error?.message || "Could not send the delivery report." };
+  }
+}
+
+/**
+ * Client reviews a booking report from chat and posts the decision back into the thread.
+ */
+export async function reviewBookingDeliveryReportInChat(
+  appointmentId,
+  reportId,
+  { decision, feedback } = {}
+) {
+  try {
+    const user = await requireUser();
+    if (user.role !== "CLIENT" && user.role !== "MEDIA_AGENCY") {
+      return { error: "Only the client can review this report." };
+    }
+
+    const report = await db.deliveryReport.findUnique({
+      where: { id: reportId },
+      select: {
+        id: true,
+        clientId: true,
+        appointmentId: true,
+        status: true,
+      },
+    });
+    if (!report || report.clientId !== user.id) {
+      return { error: "Report not found." };
+    }
+    if (appointmentId && report.appointmentId && report.appointmentId !== appointmentId) {
+      return { error: "That report does not belong to this booking." };
+    }
+
+    const reviewed = await reviewDeliveryReport(reportId, { decision, feedback });
+    if (reviewed?.report?.appointmentId) {
+      await postReportChatCard({
+        appointmentId: reviewed.report.appointmentId,
+        senderId: user.id,
+        report: reviewed.report,
+      });
+    }
+
+    return { success: true, report: reviewed.report };
+  } catch (error) {
+    console.error("reviewBookingDeliveryReportInChat failed:", error);
+    return { error: error?.message || "Could not review that report." };
+  }
 }

@@ -5,6 +5,9 @@ import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { ensureBookingConversation } from "@/lib/booking-chat";
 import { formatClientBriefMessage } from "@/lib/booking-brief";
+import { decodeReportMessagePayload } from "@/lib/booking-report-message";
+import { checklistLabelsFromBrief } from "@/lib/booking-brief";
+import { buildChecklistFromDeliverables } from "@/lib/social-metrics";
 
 const personSelect = {
   id: true,
@@ -19,6 +22,17 @@ function toIso(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function previewMessageBody(message) {
+  if (!message) return "";
+  if (message.kind === "INVOICE") return "Invoice";
+  if (message.kind === "BRIEF") return "Expectations brief";
+  if (message.kind === "REPORT") {
+    const report = decodeReportMessagePayload(message.body);
+    return report?.title ? `Report · ${report.title}` : "Delivery report";
+  }
+  return message.body || "";
+}
+
 function mapChat(conversation, userId, unreadByConversation) {
   const other = conversation.clientId === userId ? conversation.creator : conversation.client;
   const last = conversation.messages[0] || null;
@@ -29,7 +43,7 @@ function mapChat(conversation, userId, unreadByConversation) {
     other,
     lastMessage: last
       ? {
-          body: last.body,
+          body: previewMessageBody(last),
           kind: last.kind || "TEXT",
           createdAt: toIso(last.createdAt),
           mine: last.senderId === userId,
@@ -199,6 +213,22 @@ export async function getBookingThread(appointmentId) {
       .map((message) => message.invoice)
       .find((invoice) => invoice && invoice.status === "SENT");
 
+    const deliveryReport = await db.deliveryReport.findUnique({
+      where: { appointmentId: full.appointmentId },
+      select: {
+        id: true,
+        status: true,
+        title: true,
+        checklist: true,
+        proofNotes: true,
+      },
+    });
+
+    const reportChecklistSeed = buildChecklistFromDeliverables(
+      checklistLabelsFromBrief(full.appointment.clientDescription),
+      { social: false }
+    );
+
     return {
       appointmentId: full.appointmentId,
       appointment: {
@@ -224,6 +254,20 @@ export async function getBookingThread(appointmentId) {
         full.clientId === userId &&
         full.appointment.status !== "CANCELLED" &&
         full.appointment.status !== "COMPLETED",
+      canSendReport:
+        full.creatorId === userId &&
+        (full.appointment.status === "SCHEDULED" ||
+          full.appointment.status === "COMPLETED"),
+      deliveryReport: deliveryReport
+        ? {
+            id: deliveryReport.id,
+            status: deliveryReport.status,
+            title: deliveryReport.title,
+          }
+        : null,
+      reportChecklist: Array.isArray(deliveryReport?.checklist)
+        ? deliveryReport.checklist
+        : reportChecklistSeed,
       pay: {
         doctorId: full.creatorId,
         startTime: toIso(full.appointment.startTime),
@@ -239,6 +283,10 @@ export async function getBookingThread(appointmentId) {
         createdAt: toIso(message.createdAt),
         mine: message.senderId === userId,
         invoice: mapInvoice(message.invoice),
+        report:
+          message.kind === "REPORT"
+            ? decodeReportMessagePayload(message.body)
+            : null,
       })),
     };
   } catch (error) {
