@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { startLogisticsFromApplication } from "@/actions/logistics";
-import { LOGISTICS_DEMO_HIRES, LOGISTICS_DEMO_SHIPMENTS } from "@/lib/logistics-demo";
+import {
+  getAcceptedHiresForLogistics,
+  getClientLogisticsShipments,
+  startLogisticsFromApplication,
+} from "@/actions/logistics";
 import { LogisticsMasterDetail } from "../../_components/logistics-console";
 import { ClientPageShell } from "./client-page-shell";
 
@@ -29,24 +32,45 @@ const FILTERS = [
 ];
 
 export function ClientLogisticsList({
-  shipments = [],
-  acceptedHires = [],
+  shipments: initialShipments = [],
+  acceptedHires: initialHires = [],
 }) {
   const router = useRouter();
+  const [shipments, setShipments] = useState(initialShipments);
+  const [acceptedHires, setAcceptedHires] = useState(initialHires);
   const [startingId, setStartingId] = useState(null);
   const [pending, startTransition] = useTransition();
-  const hasRealData = shipments.length > 0 || acceptedHires.length > 0;
-  const usingPreview = !hasRealData;
-  const rows = usingPreview ? LOGISTICS_DEMO_SHIPMENTS : shipments;
-  const hires = usingPreview
-    ? LOGISTICS_DEMO_HIRES
-    : acceptedHires.filter((hire) => !hire.shipmentId).slice(0, 3);
+
+  useEffect(() => {
+    setShipments(initialShipments);
+    setAcceptedHires(initialHires);
+  }, [initialShipments, initialHires]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const [shipmentsData, hiresData] = await Promise.all([
+          getClientLogisticsShipments(),
+          getAcceptedHiresForLogistics(),
+        ]);
+        if (!active) return;
+        setShipments(shipmentsData?.shipments || []);
+        setAcceptedHires(hiresData?.acceptedHires || []);
+      } catch {
+        // Keep the last good snapshot on screen.
+      }
+    };
+    const timer = setInterval(refresh, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const hires = acceptedHires.filter((hire) => !hire.shipmentId).slice(0, 5);
 
   const startHire = (applicationId) => {
-    if (usingPreview) {
-      toast.message("Accept a campaign hire to start logistics");
-      return;
-    }
     setStartingId(applicationId);
     startTransition(async () => {
       try {
@@ -55,8 +79,11 @@ export function ClientLogisticsList({
           toast.error("Could not start logistics");
           return;
         }
-        toast.success(result.existing ? "Opening logistics record" : "Logistics record created");
+        toast.success(
+          result.existing ? "Opening logistics record" : "Logistics record created"
+        );
         router.push(`/client/logistics/${result.shipmentId}`);
+        router.refresh();
       } catch (error) {
         toast.error(error.message || "Could not start logistics");
       } finally {
@@ -69,15 +96,15 @@ export function ClientLogisticsList({
     <ClientPageShell
       eyebrow="Product logistics"
       title="Tracking kits"
-      description="Record dispatch, receipt, issues, and returns."
+      description="Record dispatch, receipt, issues, and returns. Updates live as both sides act."
     >
       <LogisticsMasterDetail
-        shipments={rows}
+        shipments={shipments}
         perspective="client"
         basePath="/client/logistics"
         filters={FILTERS}
         emptyTitle="No kits yet"
-        emptyBody="Accept a campaign hire, then start a shipment."
+        emptyBody="Accept a campaign hire, then start a shipment from here."
         toolbar={
           <div>
             <p className="text-sm font-semibold text-slate-950">Your kits</p>
@@ -89,6 +116,9 @@ export function ClientLogisticsList({
         listFooter={
           hires.length > 0 ? (
             <div className="space-y-2">
+              <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Ready to ship
+              </p>
               {hires.map((hire) => (
                 <div
                   key={hire.applicationId}
@@ -102,27 +132,21 @@ export function ClientLogisticsList({
                       {hire.campaignTitle}
                     </p>
                   </div>
-                  {hire.shipmentId ? (
-                    <Button asChild size="sm" variant="outline" className="rounded-full">
-                      <Link href={`/client/logistics/${hire.shipmentId}`}>Open</Link>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="black"
-                      className="rounded-full"
-                      disabled={pending && startingId === hire.applicationId}
-                      onClick={() => startHire(hire.applicationId)}
-                    >
-                      {pending && startingId === hire.applicationId ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5" />
-                      )}
-                      Add kit
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="black"
+                    className="rounded-full"
+                    disabled={pending && startingId === hire.applicationId}
+                    onClick={() => startHire(hire.applicationId)}
+                  >
+                    {pending && startingId === hire.applicationId ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    Add kit
+                  </Button>
                 </div>
               ))}
             </div>

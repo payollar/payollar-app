@@ -48,7 +48,11 @@ export function ClientExpectationsPanel({
           : null,
         fields.notes
           ? {
-              label: isClient ? "Other details" : "Other details",
+              label: /^Product offer:/i.test(String(fields.notes))
+                ? "Product offer"
+                : isClient
+                  ? "Other details"
+                  : "Other details",
               value: fields.notes,
             }
           : null,

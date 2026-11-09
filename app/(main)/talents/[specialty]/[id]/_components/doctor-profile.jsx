@@ -842,6 +842,7 @@ export function DoctorProfile({ doctor, availableDays }) {
                     onBack={() => setSelectedSlot(null)}
                     onComplete={() => router.push("/appointments")}
                     initialSessionNote={bookingServiceNote}
+                    products={products}
                   />
                 ) : (
                   <SlotPicker days={availableDays} onSelectSlot={setSelectedSlot} />
