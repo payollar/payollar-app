@@ -946,10 +946,13 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
         <div className="rounded-xl border border-sky-100 bg-sky-50/80 px-3 py-2.5">
           <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
             <Target className="h-3.5 w-3.5" />
-            Client metric targets
+            Client goals (optional to report numbers)
           </p>
           <p className="mt-1 text-xs text-sky-900">
             {formatMetricTargetsSummary(existing.metrics.targets)}
+          </p>
+          <p className="mt-1 text-[11px] text-sky-700/80">
+            Aim for these if you can — submit checklist + proof to complete delivery.
           </p>
         </div>
       ) : null}

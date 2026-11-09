@@ -212,7 +212,7 @@ export function ClientDeliveryReports({
           : section === "bookings"
             ? needsReview > 0
               ? `${needsReview} booking report${needsReview === 1 ? "" : "s"} waiting for your review.`
-              : "Set metric targets for each booking, then review talent delivery against them."
+              : "Set targets as goals for talent, then review checklist and proof when they deliver."
             : needsReview > 0
               ? `${needsReview} campaign report${needsReview === 1 ? "" : "s"} waiting for your review.`
               : "Review creator checklists, proof links, and social performance."
@@ -304,41 +304,66 @@ export function ClientDeliveryReports({
             />
           </div>
 
-          <div className={cn(clientCardClass, "p-4 sm:p-5")}>
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {section === "bookings" ? "Booking engagement" : "Portfolio engagement"}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {section === "bookings"
-                    ? "Set targets on each booking report — talent sees them and reports results against them"
-                    : "Totals across all campaign delivery reports"}
-                  {stats.views + stats.likes + stats.comments === 0
-                    ? " · results appear once creators submit metrics"
-                    : ""}
-                </p>
+          {section === "bookings" ? (
+            <div className={cn(clientCardClass, "p-4 sm:p-5")}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-700">
+                    <Target className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Booking targets
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Set goals on each report so talent knows what to aim for. Delivery is
+                      checklist + proof — metrics results are optional if they share them.
+                    </p>
+                  </div>
+                </div>
+                {stats.targetsSet > 0 ? (
+                  <p className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                    <Target className="h-3.5 w-3.5" />
+                    {stats.targetsSet} report{stats.targetsSet === 1 ? "" : "s"} with targets
+                  </p>
+                ) : (
+                  <p className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                    <Target className="h-3.5 w-3.5" />
+                    Open a report to set targets
+                  </p>
+                )}
               </div>
-              {stats.targetsSet > 0 ? (
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                  <Target className="h-3.5 w-3.5" />
-                  {stats.targetsSet} report{stats.targetsSet === 1 ? "" : "s"} with targets
-                </p>
-              ) : section === "bookings" ? (
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                  <Target className="h-3.5 w-3.5" />
-                  Open a report to set targets
-                </p>
-              ) : null}
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <MetricChip icon={Eye} label="Views" value={stats.views} />
-              <MetricChip icon={Heart} label="Likes" value={stats.likes} />
-              <MetricChip icon={MessageCircle} label="Comments" value={stats.comments} />
-              <MetricChip icon={Link2} label="Shares" value={stats.shares} />
-              <MetricChip icon={Target} label="Reach" value={stats.reach} />
+          ) : (
+            <div className={cn(clientCardClass, "p-4 sm:p-5")}>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Portfolio engagement
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Totals across all campaign delivery reports
+                    {stats.views + stats.likes + stats.comments === 0
+                      ? " · results appear once creators submit metrics"
+                      : ""}
+                  </p>
+                </div>
+                {stats.targetsSet > 0 ? (
+                  <p className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                    <Target className="h-3.5 w-3.5" />
+                    {stats.targetsSet} report{stats.targetsSet === 1 ? "" : "s"} with targets
+                  </p>
+                ) : null}
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <MetricChip icon={Eye} label="Views" value={stats.views} />
+                <MetricChip icon={Heart} label="Likes" value={stats.likes} />
+                <MetricChip icon={MessageCircle} label="Comments" value={stats.comments} />
+                <MetricChip icon={Link2} label="Shares" value={stats.shares} />
+                <MetricChip icon={Target} label="Reach" value={stats.reach} />
+              </div>
             </div>
-          </div>
+          )}
         </section>
       ) : null}
 
