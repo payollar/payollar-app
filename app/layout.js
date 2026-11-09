@@ -6,6 +6,7 @@ import ConditionalHeader from "@/components/conditional-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FloatingChat } from "@/components/FloatingChat";
 import { MainWrapper } from "@/components/main-wrapper";
+import { ChunkLoadRecovery } from "@/components/chunk-load-recovery";
 
 const inter = localFont({
   src: "./fonts/inter-latin.woff2",
@@ -38,9 +39,41 @@ export const metadata = {
   },
 };
 
+const CHUNK_RECOVERY_BOOTSTRAP = `
+(function () {
+  try {
+    var KEY = "payollar:chunk-reload-at";
+    function bad(msg) {
+      msg = String(msg || "");
+      return /ChunkLoadError|Loading chunk [\\w-]+ failed|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(msg);
+    }
+    function reload() {
+      try {
+        var last = Number(sessionStorage.getItem(KEY) || 0);
+        if (last && Date.now() - last < 15000) return;
+        sessionStorage.setItem(KEY, String(Date.now()));
+      } catch (e) {
+        return;
+      }
+      location.reload();
+    }
+    window.addEventListener("error", function (e) {
+      if (bad(e && e.message) || bad(e && e.error && e.error.message) || bad(e && e.error && e.error.name)) reload();
+    });
+    window.addEventListener("unhandledrejection", function (e) {
+      var r = e && e.reason;
+      if (bad(r) || bad(r && r.message) || bad(r && r.name)) reload();
+    });
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: CHUNK_RECOVERY_BOOTSTRAP }} />
+      </head>
       <body
         className={`${inter.className} ${inter.variable} ${dmSans.variable} ${caveat.variable} antialiased`}
       >
@@ -50,6 +83,7 @@ export default function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
+          <ChunkLoadRecovery />
           <div className="flex flex-col min-h-screen">
             <ConditionalHeader />
 

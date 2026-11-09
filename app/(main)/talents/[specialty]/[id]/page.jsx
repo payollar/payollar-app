@@ -3,6 +3,11 @@ import { recordCreatorProfileView } from "@/actions/profile-views";
 import { DoctorProfile } from "./_components/doctor-profile";
 import { redirect } from "next/navigation";
 
+function toClientProps(value) {
+  // Ensure Prisma / Date values are plain JSON for the client component tree.
+  return JSON.parse(JSON.stringify(value));
+}
+
 export default async function CreatorProfilePage({ params }) {
   const { id } = await params;
 
@@ -14,19 +19,21 @@ export default async function CreatorProfilePage({ params }) {
       getAvailableTimeSlots(id).catch(() => ({ days: [] })),
     ]);
 
-    const doctor = doctorData.status === "fulfilled" ? doctorData.value.doctor : null;
-    const availableDays = slotsData.status === "fulfilled" ? slotsData.value.days || [] : [];
+    const doctor =
+      doctorData.status === "fulfilled" ? doctorData.value?.doctor : null;
+    const availableDays =
+      slotsData.status === "fulfilled" ? slotsData.value?.days || [] : [];
 
     if (!doctor) {
       redirect("/talents");
     }
 
-    await recordCreatorProfileView(doctor.id);
+    await recordCreatorProfileView(doctor.id).catch(() => null);
 
     return (
       <DoctorProfile
-        doctor={doctor}
-        availableDays={availableDays}
+        doctor={toClientProps(doctor)}
+        availableDays={toClientProps(availableDays)}
       />
     );
   } catch (error) {

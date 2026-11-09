@@ -346,11 +346,11 @@ export function DoctorProfile({ doctor, availableDays }) {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const reviewsStorageKey = doctor?.id ? `creator-reviews:${doctor.id}` : null;
-  const services = doctor.services || [];
-  const portfolios = doctor.portfolios || [];
-  const products = doctor.digitalProducts || [];
-  const skillLabels = getDisplaySkillLabels(doctor.skills);
-  const links = (doctor.portfolioUrls || []).filter(Boolean);
+  const services = doctor?.services || [];
+  const portfolios = doctor?.portfolios || [];
+  const products = doctor?.digitalProducts || [];
+  const skillLabels = getDisplaySkillLabels(doctor?.skills);
+  const links = (doctor?.portfolioUrls || []).filter(Boolean);
   const videoLinks = links.map(mediaFromUrl).filter(Boolean);
   const otherLinks = links.filter((url) => !mediaFromUrl(url));
   const visibleVideos = tab === "portfolio" ? videoLinks : videoLinks.slice(0, 2);
@@ -489,6 +489,14 @@ export function DoctorProfile({ doctor, availableDays }) {
   const visiblePortfolio = tab === "portfolio" ? portfolios : portfolios.slice(0, 4);
   const visibleReviews = tab === "reviews" ? reviews : reviews.slice(0, 3);
   const highlights = skillLabels.slice(0, 4);
+
+  if (!doctor?.id) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-slate-600">
+        This creator profile could not be loaded.
+      </div>
+    );
+  }
 
   return (
     <div className="-mt-[5.25rem] bg-[#f5f6fb] pb-20 text-slate-900 md:-mt-28">
