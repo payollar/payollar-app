@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
+  ChevronRight,
   ClipboardList,
   FileText,
   Loader2,
@@ -1251,34 +1252,36 @@ function BriefComposer({ initialBrief, sending, onCancel, onSave }) {
 function PaymentConfirmedCard({ payment, createdAt }) {
   const timeLabel = safeTimeLabel(createdAt);
   return (
-    <div className="payollar-payment-card w-full max-w-[300px] overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-b from-emerald-50 to-white shadow-[0_12px_28px_rgba(16,185,129,0.12)]">
-      <div className="relative overflow-hidden px-4 pb-4 pt-5 text-center">
+    <div className="payollar-payment-card w-full max-w-[220px] overflow-hidden rounded-xl border border-emerald-200/80 bg-gradient-to-b from-emerald-50 to-white shadow-[0_8px_18px_rgba(16,185,129,0.1)]">
+      <div className="relative overflow-hidden px-3 py-3 text-center">
         <div className="payollar-payment-shimmer pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative mx-auto mb-3 flex h-12 w-12 items-center justify-center">
+        <div className="relative mx-auto mb-1.5 flex h-8 w-8 items-center justify-center">
           <span
             className="payollar-payment-ring absolute inset-0 rounded-full bg-emerald-400/30"
             aria-hidden
           />
-          <span className="payollar-payment-check relative flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_8px_20px_rgba(16,185,129,0.35)]">
-            <CheckCircle2 className="h-6 w-6" strokeWidth={2.25} />
+          <span className="payollar-payment-check relative flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
+            <CheckCircle2 className="h-4 w-4" strokeWidth={2.25} />
           </span>
         </div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
           Payment confirmed
         </p>
         {payment?.amountLabel ? (
-          <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums text-slate-950">
+          <p className="mt-1 text-lg font-semibold tracking-tight tabular-nums text-slate-950">
             {payment.amountLabel}
           </p>
         ) : null}
-        <p className="mt-1 text-xs text-slate-500">Booking is paid and ready to move forward</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-slate-500">
+          Booking paid · ready to continue
+        </p>
         {payment?.reference ? (
-          <p className="mt-3 inline-flex max-w-full items-center rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-medium text-slate-500 ring-1 ring-emerald-100">
+          <p className="mt-1.5 inline-flex max-w-full items-center rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-medium text-slate-500 ring-1 ring-emerald-100">
             <span className="truncate">Ref · {payment.reference}</span>
           </p>
         ) : null}
         {timeLabel ? (
-          <p className="mt-2 text-[10px] text-slate-400" suppressHydrationWarning>
+          <p className="mt-1 text-[9px] text-slate-400" suppressHydrationWarning>
             {timeLabel}
           </p>
         ) : null}
@@ -1638,9 +1641,6 @@ function SessionCard({
           <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             Chat tools
           </p>
-          <p className="mt-1 text-xs text-slate-500">
-            Same actions as the buttons under the message box — open them here anytime.
-          </p>
           <ul className="mt-3 space-y-2">
             {tools.map((tool) => {
               const Icon = tool.icon;
@@ -1649,7 +1649,7 @@ function SessionCard({
                   <button
                     type="button"
                     onClick={tool.onClick}
-                    className={`flex w-full items-start gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+                    className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
                       tool.primary
                         ? "border-[#6d28d9] bg-[#6d28d9] text-white hover:bg-[#5b21b6]"
                         : tool.active
@@ -1658,7 +1658,7 @@ function SessionCard({
                     }`}
                   >
                     <span
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                         tool.primary
                           ? "bg-white/15 text-white"
                           : tool.active
@@ -1668,7 +1668,7 @@ function SessionCard({
                     >
                       <Icon className="h-3.5 w-3.5" />
                     </span>
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span
                         className={`block text-sm font-semibold ${
                           tool.primary ? "text-white" : "text-slate-950"
@@ -1684,6 +1684,12 @@ function SessionCard({
                         {tool.description}
                       </span>
                     </span>
+                    <ChevronRight
+                      className={`h-4 w-4 shrink-0 ${
+                        tool.primary ? "text-white/70" : "text-slate-400"
+                      }`}
+                      aria-hidden
+                    />
                   </button>
                 </li>
               );

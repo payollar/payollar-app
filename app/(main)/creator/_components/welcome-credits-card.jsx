@@ -100,74 +100,78 @@ export function SidebarWelcomeCreditsPromo() {
     });
   };
 
+  const blurb = claimed
+    ? `GH₵${reward} claimed · unlocks after first booking`
+    : expired
+      ? `GH₵${reward} welcome offer expired`
+      : `Claim GH₵${reward} free credits`;
+
   return (
     <BorderBeam
-      size="md"
+      size="sm"
       theme="dark"
       colorVariant="ocean"
-      strength={0.9}
-      borderRadius={16}
+      strength={0.75}
+      borderRadius={14}
       duration={7}
       className="w-full"
     >
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0a1630] via-[#071022] to-[#05080f] p-4">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-[#0055ff]/25 blur-2xl"
-        />
-        <div className="relative flex items-start gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#0055ff]/20 text-[#8eb7ff]">
-            <Gift className="h-4 w-4" />
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#0a1630] via-[#071022] to-[#05080f] px-3 py-2.5">
+        <div className="relative flex items-center gap-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0055ff]/20 text-[#8eb7ff]">
+            <Gift className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">Credits</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/70">
-              {claimed
-                ? `GH₵${reward} claimed. Unlocks for payout after your first booking.`
-                : expired
-                  ? `GH₵${reward} welcome offer has expired.`
-                  : `Claim GH₵${reward} free credits. Payout unlocks after your first booking.`}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-xs font-semibold text-white">Credits</p>
+              {!claimed && timerReady && !expired ? (
+                <p className="shrink-0 font-mono text-[10px] font-semibold tabular-nums text-[#8eb7ff]">
+                  {formatRemaining(remainingMs)}
+                </p>
+              ) : null}
+            </div>
+            <p className="mt-0.5 truncate text-[11px] leading-snug text-white/65">
+              {blurb}
             </p>
-            {!claimed && timerReady && !expired ? (
-              <p className="mt-2 font-mono text-xs font-semibold tabular-nums text-[#8eb7ff]">
-                {formatRemaining(remainingMs)} left
-              </p>
-            ) : null}
           </div>
         </div>
-        <div className="relative mt-3 inline-flex">
-          {claimed ? (
-            <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.9}>
+        {!claimed && !expired ? (
+          <div className="relative mt-2">
+            {pending ? (
               <button
                 type="button"
                 disabled
-                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#0055ff] px-3.5 text-xs font-semibold text-white opacity-90"
+                className="inline-flex h-7 w-full items-center justify-center gap-1.5 rounded-full bg-[#0055ff]/60 px-3 text-[11px] font-semibold text-white"
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Claiming…
+              </button>
+            ) : (
+              <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.85}>
+                <button
+                  type="button"
+                  onClick={onClaim}
+                  className="inline-flex h-7 w-full items-center justify-center rounded-full bg-[#0055ff] px-3 text-[11px] font-semibold text-white transition hover:bg-[#0046d4]"
+                >
+                  Claim credits
+                </button>
+              </MetalFx>
+            )}
+          </div>
+        ) : claimed ? (
+          <div className="relative mt-2">
+            <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.85}>
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-7 w-full items-center justify-center gap-1.5 rounded-full bg-[#0055ff] px-3 text-[11px] font-semibold text-white opacity-90"
+              >
+                <CheckCircle2 className="h-3 w-3" />
                 Claimed
               </button>
             </MetalFx>
-          ) : expired ? null : pending ? (
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#0055ff]/60 px-3.5 text-xs font-semibold text-white"
-            >
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Claiming…
-            </button>
-          ) : (
-            <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.9}>
-              <button
-                type="button"
-                onClick={onClaim}
-                className="inline-flex h-8 items-center rounded-full bg-[#0055ff] px-3.5 text-xs font-semibold text-white transition hover:bg-[#0046d4]"
-              >
-                Claim credits
-              </button>
-            </MetalFx>
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
     </BorderBeam>
   );
