@@ -241,6 +241,46 @@ async function viewer() {
   return user;
 }
 
+/**
+ * Count paid bookings that need attention on the Orders page.
+ * Creator: submit / revise deliverable.
+ * Client: review a submitted deliverable.
+ */
+export async function getActionableOrdersCount() {
+  const user = await viewer();
+  if (!user) return 0;
+
+  try {
+    if (user.role === "CREATOR") {
+      return await db.appointment.count({
+        where: {
+          creatorId: user.id,
+          status: "SCHEDULED",
+          OR: [
+            { deliveryReport: { is: null } },
+            {
+              deliveryReport: {
+                is: { status: { in: ["DRAFT", "REVISION_REQUESTED"] } },
+              },
+            },
+          ],
+        },
+      });
+    }
+
+    return await db.appointment.count({
+      where: {
+        clientId: user.id,
+        status: "SCHEDULED",
+        deliveryReport: { is: { status: "SUBMITTED" } },
+      },
+    });
+  } catch (error) {
+    console.error("getActionableOrdersCount failed:", error);
+    return 0;
+  }
+}
+
 export async function listMyOrders() {
   const user = await viewer();
   if (!user) return [];
@@ -321,6 +361,7 @@ export async function getMyOrder(id) {
           title: true,
           checklist: true,
           proofLinks: true,
+          proofFiles: true,
           proofNotes: true,
           clientFeedback: true,
           submittedAt: true,
@@ -360,6 +401,17 @@ export async function getMyOrder(id) {
           checklist,
           proofLinks: Array.isArray(row.deliveryReport.proofLinks)
             ? row.deliveryReport.proofLinks
+            : [],
+          proofFiles: Array.isArray(row.deliveryReport.proofFiles)
+            ? row.deliveryReport.proofFiles
+                .map((file) => ({
+                  url: String(file?.url || "").trim(),
+                  name: String(file?.name || "file").slice(0, 200),
+                  type: file?.type ? String(file.type) : null,
+                  size: Number.isFinite(Number(file?.size)) ? Number(file.size) : null,
+                  key: file?.key ? String(file.key) : null,
+                }))
+                .filter((file) => file.url)
             : [],
           proofNotes: row.deliveryReport.proofNotes || "",
           clientFeedback: row.deliveryReport.clientFeedback || "",

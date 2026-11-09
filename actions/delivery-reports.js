@@ -652,8 +652,12 @@ export async function sendBookingDeliveryReportInChat(appointmentId, payload = {
 
     const notes = String(payload.notes || "").trim().slice(0, 2000);
     const proofLink = String(payload.proofLink || "").trim();
-    if (!proofLink && !(Array.isArray(payload.proofLinks) && payload.proofLinks.length)) {
-      return { error: "Add a proof link before sending the report." };
+    const incomingFiles = normalizeProofFiles(payload.proofFiles);
+    const hasProofLink =
+      Boolean(proofLink) ||
+      (Array.isArray(payload.proofLinks) && payload.proofLinks.length > 0);
+    if (!hasProofLink && incomingFiles.length === 0) {
+      return { error: "Add a proof link or upload at least one file." };
     }
 
     let reportId = appointment.deliveryReport?.id || null;
@@ -690,17 +694,25 @@ export async function sendBookingDeliveryReportInChat(appointmentId, payload = {
     }
 
     const proofLinks = normalizeProofLinks(
-      payload.proofLinks?.length ? payload.proofLinks : [proofLink]
+      payload.proofLinks?.length
+        ? payload.proofLinks
+        : proofLink
+          ? [proofLink]
+          : existing.proofLinks || []
     );
-    if (proofLinks.length === 0) {
-      return { error: "Add a valid proof link before sending the report." };
+    const proofFiles =
+      incomingFiles.length > 0
+        ? incomingFiles
+        : normalizeProofFiles(existing.proofFiles);
+    if (proofLinks.length === 0 && proofFiles.length === 0) {
+      return { error: "Add a proof link or upload at least one file." };
     }
 
     const submitted = await submitDeliveryReport(reportId, {
       checklist,
       proofLinks,
       proofNotes: notes || existing.proofNotes,
-      proofFiles: existing.proofFiles,
+      proofFiles,
       metrics: existing.metrics,
     });
 

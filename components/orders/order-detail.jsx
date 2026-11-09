@@ -14,8 +14,11 @@ import {
   Loader2,
   MessageCircle,
   Send,
+  Trash2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { UploadButton } from "@uploadthing/react";
 import { sendBookingMessage } from "@/actions/booking-chat";
 import { cancelAppointment, markAppointmentCompleted } from "@/actions/doctor";
 import {
@@ -24,6 +27,34 @@ import {
   withdrawDeliveryReport,
 } from "@/actions/delivery-reports";
 import { checklistFromBrief } from "@/lib/booking-brief";
+
+function parseUploadFiles(res) {
+  const rows = Array.isArray(res) ? res : res ? [res] : [];
+  return rows
+    .map((file) => {
+      const url =
+        file?.url ||
+        file?.serverData?.url ||
+        (file?.key ? `https://utfs.io/f/${file.key}` : null);
+      if (!url) return null;
+      return {
+        url,
+        name: file?.name || file?.serverData?.name || "file",
+        type: file?.type || file?.serverData?.type || null,
+        size: file?.size ?? file?.serverData?.size ?? null,
+        key: file?.key || file?.serverData?.key || null,
+      };
+    })
+    .filter(Boolean);
+}
+
+function formatBytes(size) {
+  const n = Number(size);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const STEPS = [
   { key: "opened", label: "Opened" },
@@ -894,16 +925,21 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
   }, [brief, existing]);
   const [items, setItems] = useState(seed);
   const [proofLink, setProofLink] = useState(existing?.proofLinks?.[0] || "");
+  const [proofFiles, setProofFiles] = useState(() =>
+    Array.isArray(existing?.proofFiles) ? existing.proofFiles : []
+  );
   const [notes, setNotes] = useState(existing?.proofNotes || "");
 
   useEffect(() => {
     setItems(seed);
     setProofLink(existing?.proofLinks?.[0] || "");
+    setProofFiles(Array.isArray(existing?.proofFiles) ? existing.proofFiles : []);
     setNotes(existing?.proofNotes || "");
   }, [seed, existing]);
 
   const allDone = items.length > 0 && items.every((item) => item.done);
-  const canSubmit = Boolean(proofLink.trim()) && allDone;
+  const hasProof = Boolean(proofLink.trim()) || proofFiles.length > 0;
+  const canSubmit = hasProof && allDone;
 
   return (
     <form
@@ -912,6 +948,7 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
         if (!canSubmit || sending) return;
         onSubmit({
           proofLink,
+          proofFiles,
           notes,
           checklist: items,
         });
@@ -952,8 +989,105 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
           ))}
         </ul>
       </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-slate-600">Upload files</p>
+        {proofFiles.length > 0 ? (
+          <ul className="space-y-2">
+            {proofFiles.map((file) => {
+              const isImage = String(file.type || "").startsWith("image/");
+              const sizeLabel = formatBytes(file.size);
+              return (
+                <li
+                  key={file.url}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                >
+                  {isImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={file.url}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+                      <FileText className="h-4 w-4" />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <a
+                      href={file.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block truncate text-sm font-medium text-slate-950 hover:underline"
+                    >
+                      {file.name || "File"}
+                    </a>
+                    <p className="text-[11px] text-slate-400">
+                      {[file.type, sizeLabel].filter(Boolean).join(" · ") || "Uploaded file"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProofFiles((prev) => prev.filter((row) => row.url !== file.url))
+                    }
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                    aria-label="Remove file"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-xs text-slate-400">No files uploaded yet.</p>
+        )}
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
+            <Upload className="h-3.5 w-3.5" />
+            Images, PDF, or video · up to 16MB (video 64MB)
+          </div>
+          <UploadButton
+            endpoint="deliveryProof"
+            appearance={{
+              container: "w-auto items-start",
+              button:
+                "h-9 rounded-full bg-slate-950 px-4 text-xs font-semibold text-white ut-ready:bg-slate-950 ut-uploading:bg-slate-700",
+              allowedContent: "text-[11px] text-slate-400",
+            }}
+            onClientUploadComplete={(res) => {
+              const uploaded = parseUploadFiles(res);
+              if (!uploaded.length) {
+                toast.error("Upload finished but file URL was missing");
+                return;
+              }
+              setProofFiles((prev) => {
+                const seen = new Set(prev.map((file) => file.url));
+                const next = [...prev];
+                for (const file of uploaded) {
+                  if (!seen.has(file.url)) {
+                    seen.add(file.url);
+                    next.push(file);
+                  }
+                }
+                return next.slice(0, 12);
+              });
+              toast.success(
+                uploaded.length === 1 ? "File uploaded" : `${uploaded.length} files uploaded`
+              );
+            }}
+            onUploadError={(err) => {
+              console.error(err);
+              toast.error(err?.message || "Could not upload that file.");
+            }}
+          />
+        </div>
+      </div>
+
       <label className="block text-xs text-slate-500">
-        Proof link
+        Proof link <span className="text-slate-400">(optional if you uploaded files)</span>
         <input
           value={proofLink}
           onChange={(event) => setProofLink(event.target.value)}
@@ -1078,6 +1212,46 @@ function DeliverableSummary({ report, role = "CLIENT" }) {
               </a>
             </li>
           ))}
+        </ul>
+      ) : null}
+      {report.proofFiles?.length ? (
+        <ul className="space-y-2">
+          {report.proofFiles.map((file) => {
+            const isImage = String(file.type || "").startsWith("image/");
+            const sizeLabel = formatBytes(file.size);
+            return (
+              <li
+                key={file.url}
+                className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2"
+              >
+                {isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={file.url}
+                    alt=""
+                    className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+                    <FileText className="h-3.5 w-3.5" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-xs font-medium text-slate-950 hover:underline"
+                  >
+                    {file.name || "File"}
+                  </a>
+                  <p className="text-[10px] text-slate-400">
+                    {[file.type, sizeLabel].filter(Boolean).join(" · ") || "Uploaded file"}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {report.clientFeedback ? (
