@@ -42,6 +42,10 @@ import {
   formatUnreadBadge,
   useUnreadMessages,
 } from "@/hooks/use-unread-messages";
+import {
+  formatOrdersBadge,
+  useActionableOrders,
+} from "@/hooks/use-actionable-orders";
 
 const menuItems = [
   {
@@ -121,6 +125,8 @@ export function CreatorSidebar() {
   const { setOpenMobile } = useSidebar();
   const unreadMessages = useUnreadMessages();
   const unreadLabel = formatUnreadBadge(unreadMessages);
+  const actionableOrders = useActionableOrders();
+  const ordersLabel = formatOrdersBadge(actionableOrders);
 
   const handleSignOut = async () => {
     try {
@@ -177,15 +183,19 @@ export function CreatorSidebar() {
                 const isActive = pathname === item.href || 
                   (item.href !== "/creator" && pathname?.startsWith(item.href));
                 const isMessages = item.href === "/messages";
+                const isOrders = item.href === "/creator/bookings";
+                const badgeLabel = isMessages
+                  ? unreadLabel
+                  : isOrders
+                    ? ordersLabel
+                    : null;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={
-                        isMessages && unreadLabel
-                          ? `${item.title} (${unreadLabel})`
-                          : item.title
+                        badgeLabel ? `${item.title} (${badgeLabel})` : item.title
                       }
                       className={
                         isActive
@@ -198,9 +208,9 @@ export function CreatorSidebar() {
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {isMessages && unreadLabel ? (
+                    {badgeLabel ? (
                       <SidebarMenuBadge className="!bg-[#0055ff] !text-white peer-hover/menu-button:!text-white peer-data-[active=true]/menu-button:!text-white group-data-[collapsible=icon]:!flex">
-                        {unreadLabel}
+                        {badgeLabel}
                       </SidebarMenuBadge>
                     ) : null}
                   </SidebarMenuItem>

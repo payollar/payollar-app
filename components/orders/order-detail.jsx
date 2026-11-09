@@ -13,6 +13,7 @@ import {
   FileText,
   Loader2,
   MessageCircle,
+  Plus,
   Send,
   Trash2,
   Upload,
@@ -582,61 +583,6 @@ export function OrderDetail({ order, basePath }) {
                     </div>
                   ))}
                 </dl>
-
-                {selectedStep === 2 && canSubmitDeliverable ? (
-                  <div className="mt-4 rounded-2xl border border-[#e7e0ff] bg-[#fbfaff] p-4">
-                    <p className="mb-3 text-sm font-semibold text-slate-950">Add deliverable</p>
-                    <DeliverableComposer
-                      brief={order.brief}
-                      existing={report}
-                      sending={busy === "deliverable"}
-                      onSubmit={submitDeliverable}
-                    />
-                  </div>
-                ) : null}
-
-                {selectedStep === 2 && canWithdrawDeliverable ? (
-                  <div className="mt-4 space-y-3 rounded-2xl border border-slate-100 bg-[#f7f8fc] p-4">
-                    <DeliverableSummary report={report} role={order.role} />
-                    <button
-                      type="button"
-                      disabled={busy === "withdraw"}
-                      onClick={withdrawDeliverable}
-                      className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 disabled:opacity-50"
-                    >
-                      {busy === "withdraw" ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      Edit deliverable
-                    </button>
-                  </div>
-                ) : null}
-
-                {selectedStep === 3 && canReviewDeliverable ? (
-                  <div className="mt-4 rounded-2xl border border-[#e7e0ff] bg-[#fbfaff] p-4">
-                    <DeliverableReview
-                      report={report}
-                      reviewing={busy === "approve" || busy === "revise"}
-                      onReview={reviewDeliverable}
-                    />
-                  </div>
-                ) : null}
-
-                {selectedStep === 3 && canWithdrawDeliverable ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={busy === "withdraw"}
-                      onClick={withdrawDeliverable}
-                      className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 disabled:opacity-50"
-                    >
-                      {busy === "withdraw" ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      Edit & resubmit
-                    </button>
-                  </div>
-                ) : null}
               </div>
             </>
           )}
@@ -919,9 +865,16 @@ export function OrderDetail({ order, basePath }) {
 function DeliverableComposer({ brief, existing, sending, onSubmit }) {
   const seed = useMemo(() => {
     if (Array.isArray(existing?.checklist) && existing.checklist.length) {
-      return existing.checklist.map((item) => ({ ...item, done: Boolean(item.done) }));
+      return existing.checklist.map((item, index) => ({
+        id: String(item?.id || `item_${index + 1}`),
+        label: String(item?.label || ""),
+        done: Boolean(item.done),
+      }));
     }
-    return checklistFromBrief(brief);
+    const fromBrief = checklistFromBrief(brief);
+    return fromBrief.length
+      ? fromBrief
+      : [{ id: `item_${Date.now()}`, label: "", done: false }];
   }, [brief, existing]);
   const [items, setItems] = useState(seed);
   const [proofLink, setProofLink] = useState(existing?.proofLinks?.[0] || "");
@@ -937,9 +890,33 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
     setNotes(existing?.proofNotes || "");
   }, [seed, existing]);
 
-  const allDone = items.length > 0 && items.every((item) => item.done);
+  const filledItems = items
+    .map((item) => ({ ...item, label: String(item.label || "").trim() }))
+    .filter((item) => item.label);
+  const allDone = filledItems.length > 0 && filledItems.every((item) => item.done);
   const hasProof = Boolean(proofLink.trim()) || proofFiles.length > 0;
   const canSubmit = hasProof && allDone;
+
+  const updateItem = (id, patch) => {
+    setItems((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const addItem = () => {
+    if (items.length >= 12) return;
+    setItems((prev) => [
+      ...prev,
+      { id: `item_${Date.now()}_${prev.length + 1}`, label: "", done: false },
+    ]);
+  };
+
+  const removeItem = (id) => {
+    setItems((prev) => {
+      if (prev.length <= 1) {
+        return [{ id: `item_${Date.now()}`, label: "", done: false }];
+      }
+      return prev.filter((row) => row.id !== id);
+    });
+  };
 
   return (
     <form
@@ -950,7 +927,7 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
           proofLink,
           proofFiles,
           notes,
-          checklist: items,
+          checklist: filledItems.map((item) => ({ ...item, done: true })),
         });
       }}
       className="space-y-3"
@@ -961,29 +938,59 @@ function DeliverableComposer({ brief, existing, sending, onSubmit }) {
         </p>
       ) : null}
       <div>
-        <p className="text-xs font-semibold text-slate-600">Checklist from brief</p>
-        <ul className="mt-2 max-h-44 space-y-1.5 overflow-y-auto">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-slate-600">What you delivered</p>
+            <p className="text-[11px] text-slate-400">
+              Edit the brief checklist or write your own completed work items.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={addItem}
+            disabled={items.length >= 12}
+            className="inline-flex h-8 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 disabled:opacity-40"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add
+          </button>
+        </div>
+        <ul className="mt-2 max-h-56 space-y-1.5 overflow-y-auto">
           {items.map((item) => (
-            <li key={item.id}>
+            <li
+              key={item.id}
+              className={`flex items-start gap-2 rounded-xl border px-2.5 py-2 ${
+                item.done
+                  ? "border-emerald-100 bg-emerald-50/70"
+                  : "border-slate-200 bg-white"
+              }`}
+            >
               <button
                 type="button"
-                onClick={() =>
-                  setItems((prev) =>
-                    prev.map((row) => (row.id === item.id ? { ...row, done: !row.done } : row))
-                  )
-                }
-                className={`flex w-full items-start gap-2 rounded-xl border px-2.5 py-2 text-left text-xs ${
-                  item.done
-                    ? "border-emerald-100 bg-emerald-50/70 text-emerald-900"
-                    : "border-slate-200 bg-white text-slate-700"
-                }`}
+                onClick={() => updateItem(item.id, { done: !item.done })}
+                className="mt-1.5 shrink-0"
+                aria-label={item.done ? "Mark as not done" : "Mark as done"}
               >
                 <CheckCircle2
-                  className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                  className={`h-4 w-4 ${
                     item.done ? "text-emerald-600" : "text-slate-300"
                   }`}
                 />
-                <span>{item.label}</span>
+              </button>
+              <input
+                value={item.label}
+                onChange={(event) => updateItem(item.id, { label: event.target.value })}
+                placeholder="Describe what you completed…"
+                maxLength={200}
+                className="min-w-0 flex-1 bg-transparent py-1 text-xs text-slate-800 outline-none placeholder:text-slate-400"
+              />
+              <button
+                type="button"
+                onClick={() => removeItem(item.id)}
+                className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                aria-label="Remove item"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             </li>
           ))}

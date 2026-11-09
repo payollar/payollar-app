@@ -50,6 +50,10 @@ import {
   formatUnreadBadge,
   useUnreadMessages,
 } from "@/hooks/use-unread-messages";
+import {
+  formatOrdersBadge,
+  useActionableOrders,
+} from "@/hooks/use-actionable-orders";
 
 function isBookingsPath(pathname) {
   return (
@@ -149,6 +153,8 @@ export function ClientSidebar() {
   const { setOpenMobile } = useSidebar();
   const unreadMessages = useUnreadMessages();
   const unreadLabel = formatUnreadBadge(unreadMessages);
+  const actionableOrders = useActionableOrders();
+  const ordersLabel = formatOrdersBadge(actionableOrders);
   const params = {
     section: searchParams?.get("section") || "",
     category: searchParams?.get("category") || "",
@@ -243,12 +249,16 @@ export function ClientSidebar() {
                   : false;
 
                 if (hasChildren) {
+                  const isOrdersGroup = item.key === "orders";
+                  const ordersBadge = isOrdersGroup ? ordersLabel : null;
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         type="button"
                         isActive={isActive}
-                        tooltip={item.title}
+                        tooltip={
+                          ordersBadge ? `${item.title} (${ordersBadge})` : item.title
+                        }
                         onClick={() => toggleOpen(item.key)}
                         className={
                           isActive
@@ -265,6 +275,11 @@ export function ClientSidebar() {
                           )}
                         />
                       </SidebarMenuButton>
+                      {ordersBadge ? (
+                        <SidebarMenuBadge className="!bg-[#0055ff] !text-white peer-hover/menu-button:!text-white peer-data-[active=true]/menu-button:!text-white group-data-[collapsible=icon]:!flex">
+                          {ordersBadge}
+                        </SidebarMenuBadge>
+                      ) : null}
                       {expanded ? (
                         <SidebarMenuSub className="!mx-3.5 !border-white/10">
                           {item.children.map((child) => {
