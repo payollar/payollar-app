@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertTriangle,
+  Calendar,
   Eye,
   Loader2,
   Mail,
@@ -65,6 +66,50 @@ function StatCard({ label, value, hint }) {
   );
 }
 
+function PersonCard({ user, label }) {
+  if (!user) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          {label}
+        </p>
+        <p className="mt-2 text-sm text-slate-500">Not specified</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <div className="mt-2 flex items-center gap-2.5">
+        {user.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.imageUrl}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+            {String(user.name || user.email || "?").charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-950">
+            {user.name || "Unnamed user"}
+          </p>
+          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">
+            <Mail className="h-3 w-3 shrink-0 text-slate-400" />
+            <span className="truncate">{user.email}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PersonLine({ user, label }) {
   if (!user) {
     return (
@@ -75,15 +120,29 @@ function PersonLine({ user, label }) {
   }
 
   return (
-    <div className="min-w-0">
-      <p className="truncate text-sm font-semibold text-slate-950">
-        {user.name || "Unnamed user"}
-      </p>
-      <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-slate-500">
-        <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span className="truncate">{user.email}</span>
-      </p>
-      {label ? <p className="mt-0.5 text-[11px] text-slate-400">{label}</p> : null}
+    <div className="flex min-w-0 items-center gap-2.5">
+      {user.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={user.imageUrl}
+          alt=""
+          className="h-8 w-8 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">
+          {String(user.name || user.email || "?").charAt(0).toUpperCase()}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-slate-950">
+          {user.name || "Unnamed user"}
+        </p>
+        <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-slate-500">
+          <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="truncate">{user.email}</span>
+        </p>
+        {label ? <p className="mt-0.5 text-[11px] text-slate-400">{label}</p> : null}
+      </div>
     </div>
   );
 }
@@ -152,10 +211,15 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
     setChatLoading(true);
     try {
       const detail = await getAdminDisputeDetail(dispute.id);
-      if (detail?.chat) setChat(detail.chat);
+      if (detail?.error) {
+        toast.error(detail.error);
+        return;
+      }
       if (detail?.dispute) setSelected(detail.dispute);
+      setChat(detail?.chat || null);
     } catch (error) {
       console.error("Failed to load dispute chat:", error);
+      toast.error(error?.message || "Could not load booking chat");
     } finally {
       setChatLoading(false);
     }
@@ -349,19 +413,10 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
             setChat(null);
           }}
         >
-          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto border-slate-200 bg-white text-slate-900">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold text-slate-950 sm:text-xl">
-                {selected.subject}
-              </DialogTitle>
-              <DialogDescription className="text-sm text-slate-500">
-                Review the booking chat, then update status and resolution notes.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-5 py-2 xl:grid-cols-2">
-              <div className="space-y-5">
-                <div className="flex flex-wrap gap-2">
+          <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto border-slate-200 bg-white p-0 text-slate-900 sm:max-w-3xl">
+            <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+              <DialogHeader className="space-y-2 text-left">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
                     className={cn(
@@ -369,7 +424,7 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
                       STATUS_STYLES[selected.status]
                     )}
                   >
-                    {selected.status.replace("_", " ")}
+                    {String(selected.status).replaceAll("_", " ")}
                   </Badge>
                   <Badge
                     variant="outline"
@@ -378,7 +433,7 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
                       PRIORITY_STYLES[selected.priority]
                     )}
                   >
-                    {selected.priority}
+                    {selected.priority} priority
                   </Badge>
                   <Badge
                     variant="outline"
@@ -387,26 +442,94 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
                     {selected.type}
                   </Badge>
                 </div>
+                <DialogTitle className="text-xl font-semibold tracking-tight text-slate-950">
+                  {selected.subject}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-slate-500">
+                  Review the case, update status, and leave resolution notes for
+                  both parties.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-line">
+            <div className="space-y-5 px-5 py-5 sm:px-6">
+              <section className="rounded-2xl border border-slate-200 bg-[#f7f8fb] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Complaint
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-800">
                   {selected.description}
-                </div>
+                </p>
+                <p className="mt-3 text-xs text-slate-400">
+                  Filed{" "}
+                  {format(
+                    new Date(selected.createdAt),
+                    "MMM d, yyyy 'at' h:mm a"
+                  )}
+                </p>
+              </section>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Reporter</p>
-                    <div className="mt-2">
-                      <PersonLine user={selected.reporter} />
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-xs text-slate-500">Against</p>
-                    <div className="mt-2">
-                      <PersonLine user={selected.againstUser} />
-                    </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <PersonCard user={selected.reporter} label="Reporter" />
+                <PersonCard user={selected.againstUser} label="Against" />
+              </div>
+
+              {selected.appointment ? (
+                <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-700">
+                    <Calendar className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      Linked booking
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium text-slate-950">
+                      {selected.appointment.status}
+                      {selected.appointment.startTime
+                        ? ` · ${format(
+                            new Date(selected.appointment.startTime),
+                            "MMM d, yyyy · h:mm a"
+                          )}`
+                        : ""}
+                    </p>
+                    {selected.appointment.agreedAmount != null ? (
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Agreed GH₵{" "}
+                        {Number(selected.appointment.agreedAmount).toLocaleString(
+                          "en-GH",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
+              ) : null}
 
+              {chatLoading ? (
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading booking chat…
+                </div>
+              ) : chat?.messages?.length ? (
+                <DisputeChatTranscript chat={chat} />
+              ) : selected.appointmentId || selected.appointment?.id ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                  Linked booking has no chat messages yet.
+                </div>
+              ) : null}
+
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">
+                    Admin decision
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Status and notes are visible to the people on this case.
+                  </p>
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -441,7 +564,6 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
                     </Select>
                   </div>
                 </div>
-
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Resolution notes
@@ -450,34 +572,26 @@ export function DisputesDashboard({ initialDisputes = [], initialStats = {} }) {
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     rows={4}
-                    placeholder="Summarize the outcome or next steps..."
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-950/10"
+                    placeholder="Summarize the outcome or next steps for both parties..."
+                    className="w-full rounded-2xl border border-slate-200 bg-[#f7f8fb] px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-950/10"
                   />
                 </div>
-              </div>
-
-              <div>
-                {chatLoading ? (
-                  <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading booking chat...
-                  </div>
-                ) : (
-                  <DisputeChatTranscript chat={chat} />
-                )}
-              </div>
+              </section>
             </div>
 
             {loading ? (
-              <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="mx-5 h-1 overflow-hidden rounded-full bg-slate-100 sm:mx-6">
                 <div className="h-full w-1/2 animate-pulse rounded-full bg-slate-950" />
               </div>
             ) : null}
 
-            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+            <DialogFooter className="gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-between sm:px-6">
               <Button
                 variant="outline"
-                onClick={() => setSelected(null)}
+                onClick={() => {
+                  setSelected(null);
+                  setChat(null);
+                }}
                 disabled={loading}
                 className="h-10 w-full rounded-full border-slate-200 text-slate-700 sm:w-auto"
               >

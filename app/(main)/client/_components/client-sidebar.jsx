@@ -349,7 +349,7 @@ export function ClientSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="shrink-0 gap-2 border-t border-white/5 p-2.5 text-white">
-        <div className="group-data-[collapsible=icon]:hidden [@media(max-height:760px)]:hidden">
+        <div className="group-data-[collapsible=icon]:hidden">
           <BorderBeam
             size="sm"
             theme="dark"

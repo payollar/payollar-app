@@ -111,9 +111,7 @@ export function DisputesWorkspace({
             Disputes
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {role === "CREATOR"
-              ? "Raise and track booking disputes. Admins can review the chat with your client."
-              : "Raise and track booking disputes. Admins can review the chat with your creator."}
+            Raise and track booking disputes. Our team reviews each case and updates you here.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -138,7 +136,7 @@ export function DisputesWorkspace({
         <div className="border-b border-slate-100 px-4 py-4 md:px-5">
           <h2 className="text-base font-semibold text-slate-950">Your cases</h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Open a case to view status, resolution notes, and the booking chat.
+            Open a case to view status and resolution notes.
           </p>
         </div>
 

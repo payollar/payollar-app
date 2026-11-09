@@ -21,7 +21,6 @@ export default async function ClientDisputeDetailPage({ params }) {
   return (
     <DisputeDetailView
       dispute={result.dispute}
-      chat={result.chat}
       backHref="/client/disputes"
     />
   );

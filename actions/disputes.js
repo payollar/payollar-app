@@ -48,6 +48,12 @@ function mapMessage(message, viewerId) {
   };
 }
 
+function toPlainAmount(value) {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function loadBookingChat(appointmentId, viewerId = null) {
   if (!appointmentId) return null;
 
@@ -80,32 +86,59 @@ async function loadBookingChat(appointmentId, viewerId = null) {
 
   return {
     appointmentId: conversation.appointmentId,
-    appointment: {
-      ...conversation.appointment,
-      startTime: conversation.appointment.startTime?.toISOString?.(),
-      endTime: conversation.appointment.endTime?.toISOString?.(),
-    },
+    appointment: conversation.appointment
+      ? {
+          id: conversation.appointment.id,
+          status: conversation.appointment.status,
+          source: conversation.appointment.source,
+          agreedAmount: toPlainAmount(conversation.appointment.agreedAmount),
+          startTime: conversation.appointment.startTime?.toISOString?.() || null,
+          endTime: conversation.appointment.endTime?.toISOString?.() || null,
+        }
+      : null,
     client: conversation.client,
     creator: conversation.creator,
-    messages: conversation.messages.map((message) =>
+    messages: (conversation.messages || []).map((message) =>
       mapMessage(message, viewerId)
     ),
   };
 }
 
 function serializeDispute(dispute) {
+  const appointment = dispute.appointment
+    ? {
+        id: dispute.appointment.id,
+        status: dispute.appointment.status,
+        source: dispute.appointment.source || null,
+        agreedAmount: toPlainAmount(dispute.appointment.agreedAmount),
+        startTime: dispute.appointment.startTime?.toISOString?.() || null,
+        endTime: dispute.appointment.endTime?.toISOString?.() || null,
+        client: dispute.appointment.client || null,
+        creator: dispute.appointment.creator || null,
+      }
+    : null;
+
   return {
-    ...dispute,
+    id: dispute.id,
+    reporterId: dispute.reporterId,
+    againstUserId: dispute.againstUserId,
+    resolvedById: dispute.resolvedById,
+    appointmentId: dispute.appointmentId,
+    campaignId: dispute.campaignId,
+    type: dispute.type,
+    priority: dispute.priority,
+    status: dispute.status,
+    subject: dispute.subject,
+    description: dispute.description,
+    resolution: dispute.resolution,
     createdAt: dispute.createdAt?.toISOString?.() || dispute.createdAt,
     updatedAt: dispute.updatedAt?.toISOString?.() || dispute.updatedAt,
     resolvedAt: dispute.resolvedAt?.toISOString?.() || dispute.resolvedAt,
-    appointment: dispute.appointment
-      ? {
-          ...dispute.appointment,
-          startTime: dispute.appointment.startTime?.toISOString?.(),
-          endTime: dispute.appointment.endTime?.toISOString?.(),
-        }
-      : null,
+    reporter: dispute.reporter || null,
+    againstUser: dispute.againstUser || null,
+    resolvedBy: dispute.resolvedBy || null,
+    appointment,
+    isReporter: Boolean(dispute.isReporter),
   };
 }
 
@@ -277,7 +310,8 @@ export async function getMyDisputes() {
 }
 
 /**
- * Dispute detail + booking chat for a participant.
+ * Dispute detail for a participant.
+ * Booking chat transcripts are admin-only (see getAdminDispute).
  */
 export async function getMyDispute(disputeId) {
   const user = await requireUser();
@@ -309,14 +343,11 @@ export async function getMyDispute(disputeId) {
     return { error: "Unauthorized" };
   }
 
-  const chat = await loadBookingChat(dispute.appointmentId, user.id);
-
   return {
     dispute: serializeDispute({
       ...dispute,
       isReporter: dispute.reporterId === user.id,
     }),
-    chat,
   };
 }
 
@@ -350,10 +381,18 @@ export async function getAdminDisputeDetail(disputeId) {
 
   if (!dispute) return { error: "Dispute not found" };
 
-  const chat = await loadBookingChat(dispute.appointmentId, null);
+  let chat = null;
+  try {
+    chat = await loadBookingChat(dispute.appointmentId, null);
+  } catch (error) {
+    console.error("Failed to load booking chat for dispute:", disputeId, error);
+  }
 
-  return {
-    dispute: serializeDispute(dispute),
-    chat,
-  };
+  // Plain JSON only — avoids Next server-action serialization failures.
+  return JSON.parse(
+    JSON.stringify({
+      dispute: serializeDispute(dispute),
+      chat,
+    })
+  );
 }

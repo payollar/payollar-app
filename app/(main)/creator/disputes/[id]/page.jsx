@@ -24,7 +24,6 @@ export default async function CreatorDisputeDetailPage({ params }) {
   return (
     <DisputeDetailView
       dispute={result.dispute}
-      chat={result.chat}
       backHref="/creator/disputes"
     />
   );

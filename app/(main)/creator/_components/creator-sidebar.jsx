@@ -221,8 +221,7 @@ export function CreatorSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="shrink-0 gap-2 border-t border-white/5 p-2.5 text-white">
-        {/* Compact promo; hide on short laptop viewports so Help/Logout + more nav stay visible */}
-        <div className="group-data-[collapsible=icon]:hidden [@media(max-height:760px)]:hidden">
+        <div className="group-data-[collapsible=icon]:hidden">
           <SidebarWelcomeCreditsPromo />
         </div>
         <SidebarMenu className="gap-0.5">

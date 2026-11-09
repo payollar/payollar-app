@@ -19,7 +19,8 @@ const STATUS_STYLES = {
 
 export function DisputeDetailView({
   dispute,
-  chat,
+  chat = null,
+  showBookingChat = false,
   backHref = "/creator/disputes",
 }) {
   if (!dispute) {
@@ -78,7 +79,12 @@ export function DisputeDetailView({
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <div
+        className={cn(
+          "grid gap-4",
+          showBookingChat && "xl:grid-cols-[1.1fr_0.9fr]"
+        )}
+      >
         <section className={cn(DASHBOARD_CARD_CLASS, "p-5")}>
           <h2 className="text-sm font-semibold text-slate-950">Case details</h2>
           <p className="mt-3 whitespace-pre-line text-sm text-slate-700">
@@ -126,7 +132,7 @@ export function DisputeDetailView({
           ) : null}
         </section>
 
-        <DisputeChatTranscript chat={chat} />
+        {showBookingChat ? <DisputeChatTranscript chat={chat} /> : null}
       </div>
     </div>
   );
