@@ -346,14 +346,12 @@ export async function markAppointmentCompleted(formData) {
       throw new Error("Only scheduled appointments can be marked as completed");
     }
 
-    // Check if current time is after the appointment end time
-    const now = new Date();
-    const appointmentEndTime = new Date(appointment.endTime);
-
-    if (now < appointmentEndTime) {
-      throw new Error(
-        "Cannot mark appointment as completed before the scheduled end time"
-      );
+    const deliveryReport = await db.deliveryReport.findUnique({
+      where: { appointmentId },
+      select: { status: true },
+    });
+    if (deliveryReport?.status !== "APPROVED" && deliveryReport?.status !== "SUBMITTED") {
+      throw new Error("Submit the deliverable before marking this booking complete");
     }
 
     // Update the appointment status to COMPLETED

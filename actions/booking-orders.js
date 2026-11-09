@@ -314,6 +314,20 @@ export async function getMyOrder(id) {
           createdAt: true,
         },
       },
+      deliveryReport: {
+        select: {
+          id: true,
+          status: true,
+          title: true,
+          checklist: true,
+          proofLinks: true,
+          proofNotes: true,
+          clientFeedback: true,
+          submittedAt: true,
+          reviewedAt: true,
+          updatedAt: true,
+        },
+      },
       conversation: {
         include: {
           messages: { orderBy: { createdAt: "asc" }, take: 80 },
@@ -324,10 +338,36 @@ export async function getMyOrder(id) {
 
   if (!row) return null;
 
+  const checklist = Array.isArray(row.deliveryReport?.checklist)
+    ? row.deliveryReport.checklist
+        .map((item, index) => ({
+          id: String(item?.id || `item_${index + 1}`),
+          label: String(item?.label || "").trim(),
+          done: Boolean(item?.done),
+        }))
+        .filter((item) => item.label)
+    : [];
+
   return {
     ...shape(row, user.id),
     role: user.role,
     invoices: (row.invoices || []).map(mapInvoice),
+    deliveryReport: row.deliveryReport
+      ? {
+          id: row.deliveryReport.id,
+          status: row.deliveryReport.status,
+          title: row.deliveryReport.title || "Delivery report",
+          checklist,
+          proofLinks: Array.isArray(row.deliveryReport.proofLinks)
+            ? row.deliveryReport.proofLinks
+            : [],
+          proofNotes: row.deliveryReport.proofNotes || "",
+          clientFeedback: row.deliveryReport.clientFeedback || "",
+          submittedAt: toIso(row.deliveryReport.submittedAt),
+          reviewedAt: toIso(row.deliveryReport.reviewedAt),
+          updatedAt: toIso(row.deliveryReport.updatedAt),
+        }
+      : null,
     messages: (row.conversation?.messages || []).map((message) => ({
       id: message.id,
       body: message.body,

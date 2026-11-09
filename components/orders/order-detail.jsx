@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   ArrowLeft,
-  Calendar,
   Check,
+  CheckCircle2,
+  ClipboardList,
   Clock3,
   FileText,
   Loader2,
@@ -17,31 +18,42 @@ import {
 import { toast } from "sonner";
 import { sendBookingMessage } from "@/actions/booking-chat";
 import { cancelAppointment, markAppointmentCompleted } from "@/actions/doctor";
+import {
+  reviewBookingDeliveryReportInChat,
+  sendBookingDeliveryReportInChat,
+} from "@/actions/delivery-reports";
+import { checklistFromBrief } from "@/lib/booking-brief";
 
 const STEPS = [
   { key: "opened", label: "Opened" },
   { key: "booked", label: "Booked" },
-  { key: "session", label: "Session" },
+  { key: "deliverable", label: "Deliverable" },
   { key: "wrap", label: "Wrap-up" },
   { key: "done", label: "Completed" },
 ];
 
+function reportStatus(order) {
+  return order.deliveryReport?.status || null;
+}
+
 function progressIndex(order) {
-  const now = Date.now();
-  const start = new Date(order.startTime).getTime();
-  const end = new Date(order.endTime).getTime();
-  if (order.status === "COMPLETED") return 4;
-  if (order.status === "SCHEDULED" && now >= end) return 3;
-  if (order.status === "SCHEDULED" && now >= start) return 2;
-  if (order.status === "SCHEDULED") return 1;
+  const status = reportStatus(order);
+  if (order.status === "COMPLETED" || status === "APPROVED") return 4;
+  if (order.status === "SCHEDULED" && status === "SUBMITTED") return 3;
+  if (order.status === "SCHEDULED") return 2;
   return 0;
 }
 
 function statusCopy(order, index) {
   if (order.status === "CANCELLED") return { label: "Cancelled", className: "bg-rose-50 text-rose-600" };
-  if (order.status === "COMPLETED") return { label: "Completed", className: "bg-emerald-50 text-emerald-700" };
-  if (index === 3) return { label: "Ready to complete", className: "bg-amber-50 text-amber-700" };
-  if (index === 2) return { label: "In session", className: "bg-slate-100 text-slate-700" };
+  if (order.status === "COMPLETED" || reportStatus(order) === "APPROVED") {
+    return { label: "Completed", className: "bg-emerald-50 text-emerald-700" };
+  }
+  if (reportStatus(order) === "REVISION_REQUESTED") {
+    return { label: "Changes requested", className: "bg-amber-50 text-amber-700" };
+  }
+  if (index === 3) return { label: "Awaiting review", className: "bg-amber-50 text-amber-700" };
+  if (index === 2) return { label: "Awaiting deliverable", className: "bg-slate-100 text-slate-700" };
   if (index === 1) return { label: "Booked", className: "bg-slate-100 text-slate-700" };
   return { label: "Chat open", className: "bg-slate-100 text-slate-700" };
 }
@@ -49,9 +61,15 @@ function statusCopy(order, index) {
 function stepWhen(order, step, index) {
   if (step > index || order.status === "CANCELLED") return "";
   if (step === 0) return format(new Date(order.createdAt), "MMM d");
-  if (step === 2) return format(new Date(order.startTime), "MMM d");
-  if (step === 3) return format(new Date(order.endTime), "MMM d");
-  if (step === 4) return format(new Date(order.updatedAt), "MMM d");
+  if (step === 1 && index >= 1) return format(new Date(order.updatedAt || order.createdAt), "MMM d");
+  if (step === 2 && index >= 2) return format(new Date(order.updatedAt || order.startTime), "MMM d");
+  if (step === 3 && order.deliveryReport?.submittedAt) {
+    return format(new Date(order.deliveryReport.submittedAt), "MMM d");
+  }
+  if (step === 4) {
+    const when = order.deliveryReport?.reviewedAt || order.updatedAt;
+    return when ? format(new Date(when), "MMM d") : "";
+  }
   return "";
 }
 
@@ -69,7 +87,7 @@ function initials(name) {
 function deadlineHint(endTime) {
   const end = new Date(endTime).getTime();
   const diff = end - Date.now();
-  if (diff <= 0) return "Session time has passed";
+  if (diff <= 0) return "Due date has passed";
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
   if (days === 1) return "1 day left";
   return `${days} days left`;
@@ -82,6 +100,12 @@ function moneyGhs(value) {
   })}`;
 }
 
+function briefPreview(brief) {
+  const text = String(brief || "").trim();
+  if (!text) return "Booking request";
+  return text.length > 72 ? `${text.slice(0, 72)}…` : text;
+}
+
 export function OrderDetail({ order, basePath }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
@@ -92,17 +116,26 @@ export function OrderDetail({ order, basePath }) {
   const index = progressIndex(order);
   const status = statusCopy(order, index);
   const reference = order.id.replace(/-/g, "").slice(0, 8).toUpperCase();
-  const minutes = Math.max(
-    1,
-    Math.round((new Date(order.endTime).getTime() - new Date(order.startTime).getTime()) / 60000)
-  );
-  const title = order.brief || order.other.specialty || "Session";
+  const title = briefPreview(order.brief) || order.other.specialty || "Booking";
   const openInvoice = order.invoice?.status === "SENT" ? order.invoice : null;
   const canPayInvoice =
     order.role === "CLIENT" &&
     Boolean(openInvoice) &&
     order.status !== "CANCELLED" &&
     order.status !== "COMPLETED";
+  const report = order.deliveryReport || null;
+  const canSubmitDeliverable =
+    order.role === "CREATOR" &&
+    order.status === "SCHEDULED" &&
+    (!report || report.status === "DRAFT" || report.status === "REVISION_REQUESTED");
+  const canReviewDeliverable =
+    order.role === "CLIENT" &&
+    order.status === "SCHEDULED" &&
+    report?.status === "SUBMITTED";
+  const canMarkComplete =
+    order.role === "CREATOR" &&
+    order.status === "SCHEDULED" &&
+    (report?.status === "APPROVED" || report?.status === "SUBMITTED");
 
   const pay = async (invoiceId) => {
     setPaying(true);
@@ -145,7 +178,7 @@ export function OrderDetail({ order, basePath }) {
         toast.error(result.error);
         return;
       }
-      toast.success(name === "complete" ? "Session marked completed." : "Booking cancelled.");
+      toast.success(name === "complete" ? "Booking marked completed." : "Booking cancelled.");
       router.refresh();
     } catch (error) {
       toast.error(error.message || "That did not go through.");
@@ -170,12 +203,57 @@ export function OrderDetail({ order, basePath }) {
     }
   };
 
+  const submitDeliverable = async (payload) => {
+    setBusy("deliverable");
+    try {
+      const result = await sendBookingDeliveryReportInChat(order.id, payload);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result?.shared ? "Deliverable reshared" : "Deliverable submitted for review");
+      router.refresh();
+    } catch (error) {
+      toast.error(error?.message || "Could not submit the deliverable.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const reviewDeliverable = async (decision, feedback = "") => {
+    if (!report?.id) return;
+    setBusy(decision === "APPROVED" ? "approve" : "revise");
+    try {
+      const result = await reviewBookingDeliveryReportInChat(order.id, report.id, {
+        decision,
+        feedback,
+      });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(decision === "APPROVED" ? "Deliverable approved" : "Revision requested");
+      router.refresh();
+    } catch (error) {
+      toast.error(error?.message || "Could not review that deliverable.");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const timeline = [
     { at: order.createdAt, text: "Booking opened" },
     order.status === "SCHEDULED" || order.status === "COMPLETED"
-      ? { at: order.startTime, text: "Session time" }
+      ? { at: order.updatedAt || order.startTime, text: "Booking confirmed" }
       : null,
-    order.status === "COMPLETED" ? { at: order.updatedAt, text: "Marked completed" } : null,
+    report?.submittedAt ? { at: report.submittedAt, text: "Deliverable submitted" } : null,
+    report?.status === "REVISION_REQUESTED" && report?.reviewedAt
+      ? { at: report.reviewedAt, text: "Revision requested" }
+      : null,
+    report?.status === "APPROVED" && report?.reviewedAt
+      ? { at: report.reviewedAt, text: "Deliverable approved" }
+      : null,
+    order.status === "COMPLETED" ? { at: order.updatedAt, text: "Booking completed" } : null,
     order.status === "CANCELLED" ? { at: order.updatedAt, text: "Booking cancelled" } : null,
   ].filter(Boolean);
 
@@ -245,10 +323,10 @@ export function OrderDetail({ order, basePath }) {
 
           <div className="grid gap-3 rounded-[22px] bg-[#f3f0ff] p-3 md:grid-cols-3">
             <Tile
-              icon={Calendar}
-              label="Session"
-              value={format(new Date(order.startTime), "EEE, d MMM yyyy")}
-              hint={`${format(new Date(order.startTime), "h:mm a")} – ${format(new Date(order.endTime), "h:mm a")}`}
+              icon={ClipboardList}
+              label="Stage"
+              value={STEPS[index]?.label || status.label}
+              hint={status.label}
             />
             <Tile
               icon={Clock3}
@@ -256,24 +334,38 @@ export function OrderDetail({ order, basePath }) {
               value={format(new Date(order.endTime), "d MMM yyyy")}
               hint={deadlineHint(order.endTime)}
             />
-            <Tile icon={FileText} label="Request" value={title} hint={`${minutes} min session`} />
+            <Tile icon={FileText} label="Brief" value={title} hint="From client expectations" />
           </div>
 
           <section className="rounded-[22px] border border-slate-100 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
             <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
               <div className="flex min-h-[190px] flex-col justify-between rounded-2xl bg-[#16181f] p-4 text-white">
-                <p className="text-xs font-medium uppercase tracking-wide text-white/50">Session</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-white/50">Deliverable</p>
                 <div>
-                  <p className="text-lg font-semibold">{format(new Date(order.startTime), "h:mm a")}</p>
-                  <p className="mt-1 text-sm text-white/70">{format(new Date(order.startTime), "EEEE, d MMMM")}</p>
-                  <p className="mt-1 text-xs text-white/50">{minutes} minutes with {order.other.name}</p>
+                  <p className="text-lg font-semibold">
+                    {report?.status === "APPROVED"
+                      ? "Approved"
+                      : report?.status === "SUBMITTED"
+                        ? "Submitted"
+                        : report?.status === "REVISION_REQUESTED"
+                          ? "Needs changes"
+                          : order.status === "SCHEDULED"
+                            ? "Ready to submit"
+                            : "Waiting for payment"}
+                  </p>
+                  <p className="mt-1 text-sm text-white/70">
+                    {order.role === "CREATOR"
+                      ? "Share proof of what you delivered for this booking."
+                      : "Talent submits the agreed deliverable here for your review."}
+                  </p>
+                  <p className="mt-1 text-xs text-white/50">with {order.other.name}</p>
                 </div>
                 <p className="text-xs text-white/50">{status.label}</p>
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Booking message</p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                  {order.brief || "No brief was added for this session."}
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Booking brief</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  {order.brief || "No brief was added for this booking."}
                 </p>
                 {order.notes ? (
                   <p className="mt-3 rounded-xl bg-[#f7f8fc] px-3 py-2 text-sm leading-relaxed text-slate-600">
@@ -325,8 +417,44 @@ export function OrderDetail({ order, basePath }) {
               </div>
             ) : null}
 
+            {(canSubmitDeliverable || canReviewDeliverable || report) && !cancelled ? (
+              <div className="mt-4 rounded-2xl border border-slate-100 bg-[#fbfaff] p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-[#6d28d9]" />
+                  <h3 className="text-sm font-semibold text-slate-950">
+                    {canSubmitDeliverable
+                      ? "Submit deliverable"
+                      : canReviewDeliverable
+                        ? "Review deliverable"
+                        : "Deliverable"}
+                  </h3>
+                </div>
+
+                {canSubmitDeliverable ? (
+                  <DeliverableComposer
+                    brief={order.brief}
+                    existing={report}
+                    sending={busy === "deliverable"}
+                    onSubmit={submitDeliverable}
+                  />
+                ) : null}
+
+                {canReviewDeliverable ? (
+                  <DeliverableReview
+                    report={report}
+                    reviewing={busy === "approve" || busy === "revise"}
+                    onReview={reviewDeliverable}
+                  />
+                ) : null}
+
+                {!canSubmitDeliverable && !canReviewDeliverable && report ? (
+                  <DeliverableSummary report={report} role={order.role} />
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="mt-4 flex flex-wrap gap-2">
-              {order.role === "CREATOR" && order.status === "SCHEDULED" && Date.now() >= new Date(order.endTime).getTime() ? (
+              {canMarkComplete ? (
                 <button
                   type="button"
                   disabled={busy === "complete"}
@@ -344,7 +472,7 @@ export function OrderDetail({ order, basePath }) {
                   onClick={() => pay()}
                   className="h-11 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  Pay for session
+                  Pay for booking
                 </button>
               ) : null}
               <Link
@@ -411,7 +539,7 @@ export function OrderDetail({ order, basePath }) {
                           {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                         </p>
                       </div>
-                      <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{message.body}</p>
+                      <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{message.body}</p>
                     </div>
                   </div>
                 ))
@@ -443,7 +571,7 @@ export function OrderDetail({ order, basePath }) {
             <dl className="mt-3 space-y-2 text-sm">
               <Row label="With" value={order.other.name} />
               <Row label="Status" value={status.label} />
-              <Row label="Length" value={`${minutes} min`} />
+              <Row label="Deadline" value={format(new Date(order.endTime), "d MMM yyyy")} />
               {order.invoice ? (
                 <Row
                   label="Invoice"
@@ -457,6 +585,215 @@ export function OrderDetail({ order, basePath }) {
           </section>
         </aside>
       </div>
+    </div>
+  );
+}
+
+function DeliverableComposer({ brief, existing, sending, onSubmit }) {
+  const seed = useMemo(() => {
+    if (Array.isArray(existing?.checklist) && existing.checklist.length) {
+      return existing.checklist.map((item) => ({ ...item, done: Boolean(item.done) }));
+    }
+    return checklistFromBrief(brief);
+  }, [brief, existing]);
+  const [items, setItems] = useState(seed);
+  const [proofLink, setProofLink] = useState(existing?.proofLinks?.[0] || "");
+  const [notes, setNotes] = useState(existing?.proofNotes || "");
+
+  useEffect(() => {
+    setItems(seed);
+    setProofLink(existing?.proofLinks?.[0] || "");
+    setNotes(existing?.proofNotes || "");
+  }, [seed, existing]);
+
+  const allDone = items.length > 0 && items.every((item) => item.done);
+  const canSubmit = Boolean(proofLink.trim()) && allDone;
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!canSubmit || sending) return;
+        onSubmit({
+          proofLink,
+          notes,
+          checklist: items,
+        });
+      }}
+      className="space-y-3"
+    >
+      {existing?.status === "REVISION_REQUESTED" && existing?.clientFeedback ? (
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Client feedback: {existing.clientFeedback}
+        </p>
+      ) : null}
+      <div>
+        <p className="text-xs font-semibold text-slate-600">Checklist from brief</p>
+        <ul className="mt-2 max-h-44 space-y-1.5 overflow-y-auto">
+          {items.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  setItems((prev) =>
+                    prev.map((row) => (row.id === item.id ? { ...row, done: !row.done } : row))
+                  )
+                }
+                className={`flex w-full items-start gap-2 rounded-xl border px-2.5 py-2 text-left text-xs ${
+                  item.done
+                    ? "border-emerald-100 bg-emerald-50/70 text-emerald-900"
+                    : "border-slate-200 bg-white text-slate-700"
+                }`}
+              >
+                <CheckCircle2
+                  className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                    item.done ? "text-emerald-600" : "text-slate-300"
+                  }`}
+                />
+                <span>{item.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <label className="block text-xs text-slate-500">
+        Proof link
+        <input
+          value={proofLink}
+          onChange={(event) => setProofLink(event.target.value)}
+          placeholder="https://…"
+          className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+        />
+      </label>
+      <label className="block text-xs text-slate-500">
+        Notes for the client
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={3}
+          maxLength={1000}
+          placeholder="What you delivered and where to find it"
+          className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#6d28d9]"
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={sending || !canSubmit}
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white disabled:opacity-40"
+      >
+        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        Submit for review
+      </button>
+    </form>
+  );
+}
+
+function DeliverableReview({ report, reviewing, onReview }) {
+  const [askRevision, setAskRevision] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  return (
+    <div className="space-y-3">
+      <DeliverableSummary report={report} role="CLIENT" />
+      {askRevision ? (
+        <div className="space-y-2">
+          <textarea
+            value={feedback}
+            onChange={(event) => setFeedback(event.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="What needs to change?"
+            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#6d28d9]"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={reviewing || !feedback.trim()}
+              onClick={() => onReview("REVISION_REQUESTED", feedback)}
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {reviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Request changes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAskRevision(false)}
+              className="h-10 rounded-full px-4 text-sm font-semibold text-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={reviewing}
+            onClick={() => onReview("APPROVED")}
+            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-600 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            {reviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            Approve
+          </button>
+          <button
+            type="button"
+            disabled={reviewing}
+            onClick={() => setAskRevision(true)}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-40"
+          >
+            Request changes
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeliverableSummary({ report, role = "CLIENT" }) {
+  if (!report) return null;
+  const done = Array.isArray(report.checklist)
+    ? report.checklist.filter((item) => item.done).length
+    : 0;
+  const total = Array.isArray(report.checklist) ? report.checklist.length : 0;
+  const reportHref =
+    role === "CREATOR" ? `/creator/reports/${report.id}` : `/client/reports/${report.id}`;
+  return (
+    <div className="space-y-2 text-sm text-slate-700">
+      <p className="font-medium text-slate-950">{report.title || "Delivery report"}</p>
+      <p className="text-xs text-slate-500">
+        Status: {String(report.status || "").replaceAll("_", " ").toLowerCase()}
+        {total ? ` · Checklist ${done}/${total}` : ""}
+      </p>
+      {report.proofNotes ? (
+        <p className="whitespace-pre-wrap rounded-xl bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
+          {report.proofNotes}
+        </p>
+      ) : null}
+      {report.proofLinks?.length ? (
+        <ul className="space-y-1">
+          {report.proofLinks.map((link) => (
+            <li key={link}>
+              <a
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-xs font-medium text-[#6d28d9] hover:underline"
+              >
+                {link}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {report.clientFeedback ? (
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Feedback: {report.clientFeedback}
+        </p>
+      ) : null}
+      {report.id ? (
+        <Link href={reportHref} className="text-xs font-semibold text-[#6d28d9] hover:underline">
+          Open full report
+        </Link>
+      ) : null}
     </div>
   );
 }

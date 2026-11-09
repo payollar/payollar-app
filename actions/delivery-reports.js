@@ -583,6 +583,22 @@ export async function reviewDeliveryReport(reportId, { decision, feedback } = {}
     include: reportInclude,
   });
 
+  // Booking talent flow: approving the deliverable closes the order.
+  if (decision === "APPROVED" && updated.appointmentId) {
+    await db.appointment.updateMany({
+      where: {
+        id: updated.appointmentId,
+        status: "SCHEDULED",
+      },
+      data: { status: "COMPLETED" },
+    });
+    revalidatePath("/client/bookings");
+    revalidatePath("/creator/bookings");
+    revalidatePath(`/client/bookings/${updated.appointmentId}`);
+    revalidatePath(`/creator/bookings/${updated.appointmentId}`);
+    revalidatePath(`/messages/${updated.appointmentId}`);
+  }
+
   revalidateReportPaths(reportId);
   return { report: serializeReport(updated) };
 }
