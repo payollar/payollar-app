@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   acknowledgeLogisticsReturn,
+  getLogisticsShipment,
   recordDispatch,
   requestLogisticsReturn,
   updateLogisticsDisposition,
@@ -39,7 +40,7 @@ import {
 import { logisticsDispositionMeta } from "@/lib/logistics-ui";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
-export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
+export function ClientLogisticsDetail({ shipment: initial }) {
   const router = useRouter();
   const [shipment, setShipment] = useState(initial);
   const [courier, setCourier] = useState(initial.courier || "");
@@ -56,6 +57,38 @@ export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
   );
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setShipment(initial);
+    setCourier(initial.courier || "");
+    setRiderNumber(initial.riderNumber || "");
+    setTrackingRef(initial.trackingRef || "");
+    setDispatchNotes(initial.dispatchNotes || "");
+    setDisposition(initial.disposition === "RETURNABLE" ? "RETURNABLE" : "GIFT");
+  }, [initial]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const data = await getLogisticsShipment(shipment.id);
+        if (!active || !data?.shipment) return;
+        setShipment(data.shipment);
+        if (!pending) {
+          setDisposition(
+            data.shipment.disposition === "RETURNABLE" ? "RETURNABLE" : "GIFT"
+          );
+        }
+      } catch {
+        // Keep last good state.
+      }
+    };
+    const timer = setInterval(refresh, 4000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [shipment.id, pending]);
+
   const canEditDispatch = ["DRAFT", "DISPATCHED"].includes(shipment.status);
   const isReturnable = disposition === "RETURNABLE";
   const canRequestReturn =
@@ -63,15 +96,7 @@ export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
     ["RECEIVED_OK", "PROBLEM", "DISPATCHED"].includes(shipment.status);
   const dispositionMeta = logisticsDispositionMeta(disposition);
 
-  const run = (fn, successMessage, demoPatch) => {
-    if (isDemo) {
-      if (demoPatch) {
-        setShipment((prev) => ({ ...prev, ...demoPatch }));
-        if (demoPatch.disposition) setDisposition(demoPatch.disposition);
-      }
-      toast.success(successMessage);
-      return;
-    }
+  const run = (fn, successMessage) => {
     startTransition(async () => {
       try {
         const result = await fn();
@@ -131,10 +156,6 @@ export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
                 disabled={pending}
                 onChange={(next) => {
                   setDisposition(next);
-                  if (isDemo) {
-                    setShipment((prev) => ({ ...prev, disposition: next }));
-                    return;
-                  }
                   startTransition(async () => {
                     try {
                       const result = await updateLogisticsDisposition(
@@ -211,16 +232,7 @@ export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
                         dispatchNotes,
                         disposition,
                       }),
-                    shipment.dispatchedAt ? "Dispatch updated" : "Dispatch recorded",
-                    {
-                      courier,
-                      riderNumber,
-                      trackingRef,
-                      dispatchNotes,
-                      disposition,
-                      status: "DISPATCHED",
-                      dispatchedAt: shipment.dispatchedAt || new Date().toISOString(),
-                    }
+                    shipment.dispatchedAt ? "Dispatch updated" : "Dispatch recorded"
                   )
                 }
               >
@@ -315,12 +327,7 @@ export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
                     onClick={() =>
                       run(
                         () => requestLogisticsReturn(shipment.id, { returnNotes }),
-                        "Return requested",
-                        {
-                          status: "RETURN_REQUESTED",
-                          returnNotes,
-                          returnRequestedAt: new Date().toISOString(),
-                        }
+                        "Return requested"
                       )
                     }
                   >
@@ -351,12 +358,7 @@ export function ClientLogisticsDetail({ shipment: initial, isDemo = false }) {
                   run(
                     () =>
                       acknowledgeLogisticsReturn(shipment.id, { returnAckNotes }),
-                    "Return acknowledged",
-                    {
-                      status: "RETURN_ACKED",
-                      returnAckNotes,
-                      returnAckedAt: new Date().toISOString(),
-                    }
+                    "Return acknowledged"
                   )
                 }
               >

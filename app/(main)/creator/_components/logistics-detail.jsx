@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   confirmReceived,
+  getLogisticsShipment,
   reportLogisticsProblem,
   requestLogisticsReturn,
 } from "@/actions/logistics";
@@ -37,7 +38,7 @@ import {
 import { logisticsDispositionMeta } from "@/lib/logistics-ui";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
-export function CreatorLogisticsDetail({ shipment: initial, isDemo = false }) {
+export function CreatorLogisticsDetail({ shipment: initial }) {
   const router = useRouter();
   const [shipment, setShipment] = useState(initial);
   const [receiveNotes, setReceiveNotes] = useState("");
@@ -49,6 +50,28 @@ export function CreatorLogisticsDetail({ shipment: initial, isDemo = false }) {
   );
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setShipment(initial);
+  }, [initial]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const data = await getLogisticsShipment(shipment.id);
+        if (!active || !data?.shipment) return;
+        setShipment(data.shipment);
+      } catch {
+        // Keep last good state.
+      }
+    };
+    const timer = setInterval(refresh, 4000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [shipment.id]);
+
   const canConfirm = shipment.status === "DISPATCHED";
   const isReturnable = shipment.disposition === "RETURNABLE";
   const dispositionMeta = logisticsDispositionMeta(shipment.disposition);
@@ -57,12 +80,7 @@ export function CreatorLogisticsDetail({ shipment: initial, isDemo = false }) {
     shipment.application?.campaign?.brand ||
     "Brand";
 
-  const run = (fn, successMessage, demoPatch) => {
-    if (isDemo) {
-      if (demoPatch) setShipment((prev) => ({ ...prev, ...demoPatch }));
-      toast.success(successMessage);
-      return;
-    }
+  const run = (fn, successMessage) => {
     startTransition(async () => {
       try {
         const result = await fn();
@@ -141,13 +159,7 @@ export function CreatorLogisticsDetail({ shipment: initial, isDemo = false }) {
                   onClick={() =>
                     run(
                       () => confirmReceived(shipment.id, { receiveNotes }),
-                      "Marked as received safely",
-                      {
-                        status: "RECEIVED_OK",
-                        receiveNotes,
-                        receivedAt: new Date().toISOString(),
-                        problemNotes: "",
-                      }
+                      "Marked as received safely"
                     )
                   }
                 >
@@ -190,12 +202,7 @@ export function CreatorLogisticsDetail({ shipment: initial, isDemo = false }) {
                       run(
                         () =>
                           reportLogisticsProblem(shipment.id, { problemNotes }),
-                        "Problem reported",
-                        {
-                          status: "PROBLEM",
-                          problemNotes,
-                          receivedAt: new Date().toISOString(),
-                        }
+                        "Problem reported"
                       )
                     }
                   >
@@ -247,12 +254,7 @@ export function CreatorLogisticsDetail({ shipment: initial, isDemo = false }) {
                       run(
                         () =>
                           requestLogisticsReturn(shipment.id, { returnNotes }),
-                        "Return requested",
-                        {
-                          status: "RETURN_REQUESTED",
-                          returnNotes,
-                          returnRequestedAt: new Date().toISOString(),
-                        }
+                        "Return requested"
                       )
                     }
                   >

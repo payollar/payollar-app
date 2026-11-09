@@ -1,6 +1,7 @@
 "use client";
 
-import { LOGISTICS_DEMO_SHIPMENTS } from "@/lib/logistics-demo";
+import { useEffect, useState } from "react";
+import { getCreatorLogisticsShipments } from "@/actions/logistics";
 import { LogisticsMasterDetail } from "../../_components/logistics-console";
 import { CreatorPageShell } from "./creator-page-shell";
 
@@ -21,17 +22,39 @@ const FILTERS = [
   },
 ];
 
-export function CreatorLogisticsList({ shipments = [] }) {
-  const rows = shipments.length > 0 ? shipments : LOGISTICS_DEMO_SHIPMENTS;
+export function CreatorLogisticsList({ shipments: initialShipments = [] }) {
+  const [shipments, setShipments] = useState(initialShipments);
+
+  useEffect(() => {
+    setShipments(initialShipments);
+  }, [initialShipments]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const data = await getCreatorLogisticsShipments();
+        if (!active) return;
+        setShipments(data?.shipments || []);
+      } catch {
+        // Keep the last good snapshot on screen.
+      }
+    };
+    const timer = setInterval(refresh, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   return (
     <CreatorPageShell
       eyebrow="Product logistics"
       title="Tracking kits"
-      description="Confirm receipt and keep a shared proof record with the brand."
+      description="Confirm receipt and keep a shared proof record with the brand. Updates live."
     >
       <LogisticsMasterDetail
-        shipments={rows}
+        shipments={shipments}
         perspective="creator"
         basePath="/creator/logistics"
         filters={FILTERS}
