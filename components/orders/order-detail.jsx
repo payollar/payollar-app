@@ -106,6 +106,138 @@ function briefPreview(brief) {
   return text.length > 72 ? `${text.slice(0, 72)}…` : text;
 }
 
+function isPaidBooking(order) {
+  if (order.status === "SCHEDULED" || order.status === "COMPLETED") return true;
+  if (order.invoice?.status === "PAID") return true;
+  if (Array.isArray(order.invoices) && order.invoices.some((invoice) => invoice.status === "PAID")) {
+    return true;
+  }
+  return false;
+}
+
+function deliverableHeadline(order) {
+  const report = order.deliveryReport;
+  if (order.status === "COMPLETED" || report?.status === "APPROVED") return "Completed";
+  if (report?.status === "SUBMITTED") return "Submitted for review";
+  if (report?.status === "REVISION_REQUESTED") return "Needs changes";
+  if (order.status === "SCHEDULED" || isPaidBooking(order)) {
+    return order.role === "CREATOR" ? "Ready to submit" : "Awaiting deliverable";
+  }
+  return "Waiting for payment";
+}
+
+function stepDetails(order, step) {
+  const paid = isPaidBooking(order);
+  const report = order.deliveryReport;
+  const paidInvoice =
+    (Array.isArray(order.invoices) ? order.invoices : []).find((invoice) => invoice.status === "PAID") ||
+    (order.invoice?.status === "PAID" ? order.invoice : null);
+
+  switch (step) {
+    case 0:
+      return {
+        title: "Opened",
+        body: "This booking chat was opened so you could align on scope, price, and expectations.",
+        meta: [
+          { label: "Opened", value: format(new Date(order.createdAt), "MMM d, yyyy · h:mm a") },
+          { label: "Brief", value: order.brief ? "Shared" : "Not added yet" },
+        ],
+      };
+    case 1:
+      return {
+        title: "Booked",
+        body: paid
+          ? "Payment was confirmed and the booking is locked in for delivery."
+          : "Once payment is made, this step becomes Booked and work can begin.",
+        meta: [
+          {
+            label: "Payment",
+            value: paidInvoice
+              ? `Paid · ${moneyGhs(paidInvoice.amount)}`
+              : paid
+                ? "Confirmed"
+                : "Not paid yet",
+          },
+          {
+            label: "Confirmed",
+            value:
+              paid || order.status === "SCHEDULED" || order.status === "COMPLETED"
+                ? format(new Date(order.updatedAt || order.createdAt), "MMM d, yyyy · h:mm a")
+                : "Pending",
+          },
+        ],
+      };
+    case 2:
+      return {
+        title: "Deliverable",
+        body:
+          order.role === "CREATOR"
+            ? "Submit proof of the agreed work here (checklist + link + notes)."
+            : "The talent submits the agreed deliverable here for your review.",
+        meta: [
+          {
+            label: "Status",
+            value: report?.status
+              ? String(report.status).replaceAll("_", " ").toLowerCase()
+              : paid
+                ? "Waiting for submit"
+                : "Locked until payment",
+          },
+          {
+            label: "Deadline",
+            value: format(new Date(order.endTime), "MMM d, yyyy"),
+          },
+        ],
+      };
+    case 3:
+      return {
+        title: "Wrap-up",
+        body: "After the deliverable is submitted, the client reviews it and can approve or request changes.",
+        meta: [
+          {
+            label: "Submitted",
+            value: report?.submittedAt
+              ? format(new Date(report.submittedAt), "MMM d, yyyy · h:mm a")
+              : "Not submitted yet",
+          },
+          {
+            label: "Review",
+            value:
+              report?.status === "APPROVED"
+                ? "Approved"
+                : report?.status === "REVISION_REQUESTED"
+                  ? "Changes requested"
+                  : report?.status === "SUBMITTED"
+                    ? "Awaiting client review"
+                    : "Not started",
+          },
+        ],
+      };
+    case 4:
+    default:
+      return {
+        title: "Completed",
+        body: "The booking is closed after the deliverable is approved (or marked complete).",
+        meta: [
+          {
+            label: "Status",
+            value:
+              order.status === "COMPLETED" || report?.status === "APPROVED"
+                ? "Completed"
+                : "Not completed yet",
+          },
+          {
+            label: "Closed",
+            value:
+              order.status === "COMPLETED" || report?.reviewedAt
+                ? format(new Date(report?.reviewedAt || order.updatedAt), "MMM d, yyyy · h:mm a")
+                : "Pending",
+          },
+        ],
+      };
+  }
+}
+
 export function OrderDetail({ order, basePath }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
@@ -114,10 +246,19 @@ export function OrderDetail({ order, basePath }) {
   const [paying, setPaying] = useState(false);
   const cancelled = order.status === "CANCELLED";
   const index = progressIndex(order);
+  const [selectedStep, setSelectedStep] = useState(index);
   const status = statusCopy(order, index);
   const reference = order.id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const title = briefPreview(order.brief) || order.other.specialty || "Booking";
   const openInvoice = order.invoice?.status === "SENT" ? order.invoice : null;
+  const paid = isPaidBooking(order);
+  const selectedDetails = stepDetails(order, selectedStep);
+  const fullyComplete =
+    index === 4 && (order.status === "COMPLETED" || reportStatus(order) === "APPROVED");
+
+  useEffect(() => {
+    setSelectedStep(index);
+  }, [index, order.id]);
   const canPayInvoice =
     order.role === "CLIENT" &&
     Boolean(openInvoice) &&
@@ -294,31 +435,83 @@ export function OrderDetail({ order, basePath }) {
           {cancelled ? (
             <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">This booking was cancelled.</p>
           ) : (
-            <ol className="relative grid grid-cols-5 px-1 pt-2">
-              <span className="absolute left-[10%] right-[10%] top-[18px] h-px bg-slate-200" aria-hidden />
-              {STEPS.map((step, stepNumber) => {
-                const done = stepNumber < index;
-                const current = stepNumber === index;
-                const when = stepWhen(order, stepNumber, index);
-                return (
-                  <li key={step.key} className="relative flex flex-col items-center text-center">
-                    <span
-                      className={`z-[1] flex h-9 w-9 items-center justify-center rounded-full border text-xs font-semibold ${
-                        done || current
-                          ? "border-slate-950 bg-slate-950 text-white"
-                          : "border-slate-200 bg-white text-slate-400"
-                      }`}
-                    >
-                      {done ? <Check className="h-4 w-4" /> : stepNumber + 1}
+            <>
+              <ol className="relative grid grid-cols-5 px-1 pt-2">
+                <span className="absolute left-[10%] right-[10%] top-[18px] h-px bg-slate-200" aria-hidden />
+                {STEPS.map((step, stepNumber) => {
+                  const done = stepNumber < index || (fullyComplete && stepNumber === index);
+                  const current = stepNumber === index && !fullyComplete;
+                  const selected = selectedStep === stepNumber;
+                  const reachable = stepNumber <= index;
+                  const when = stepWhen(order, stepNumber, index);
+                  return (
+                    <li key={step.key} className="relative flex flex-col items-center text-center">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStep(stepNumber)}
+                        className="group relative z-[1] flex flex-col items-center rounded-xl px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6d28d9]/40"
+                        aria-pressed={selected}
+                      >
+                        <span
+                          className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs font-semibold transition ${
+                            selected
+                              ? "border-[#6d28d9] bg-[#6d28d9] text-white"
+                              : done || current
+                                ? "border-slate-950 bg-slate-950 text-white"
+                                : "border-slate-200 bg-white text-slate-400 group-hover:border-slate-400"
+                          }`}
+                        >
+                          {done ? <Check className="h-4 w-4" /> : stepNumber + 1}
+                        </span>
+                        <span
+                          className={`mt-2 text-xs font-medium sm:text-sm ${
+                            selected || current || done ? "text-slate-950" : "text-slate-400"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+                        <span className="mt-0.5 text-[11px] text-slate-400">
+                          {when || (reachable ? "" : "Upcoming")}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+
+              <div className="rounded-[22px] border border-slate-100 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Step details</p>
+                    <h2 className="mt-1 text-base font-semibold text-slate-950">{selectedDetails.title}</h2>
+                  </div>
+                  {selectedStep > index ? (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                      Upcoming
                     </span>
-                    <span className={`mt-2 text-xs font-medium sm:text-sm ${current || done ? "text-slate-950" : "text-slate-400"}`}>
-                      {step.label}
+                  ) : selectedStep < index || fullyComplete ? (
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                      Done
                     </span>
-                    <span className="mt-0.5 text-[11px] text-slate-400">{when}</span>
-                  </li>
-                );
-              })}
-            </ol>
+                  ) : (
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                      Current
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{selectedDetails.body}</p>
+                <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {selectedDetails.meta.map((item) => (
+                    <div key={item.label} className="rounded-xl bg-[#f7f8fc] px-3 py-2">
+                      <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                        {item.label}
+                      </dt>
+                      <dd className="mt-0.5 text-sm font-medium text-slate-900">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </>
           )}
 
           <div className="grid gap-3 rounded-[22px] bg-[#f3f0ff] p-3 md:grid-cols-3">
@@ -342,21 +535,15 @@ export function OrderDetail({ order, basePath }) {
               <div className="flex min-h-[190px] flex-col justify-between rounded-2xl bg-[#16181f] p-4 text-white">
                 <p className="text-xs font-medium uppercase tracking-wide text-white/50">Deliverable</p>
                 <div>
-                  <p className="text-lg font-semibold">
-                    {report?.status === "APPROVED"
-                      ? "Approved"
-                      : report?.status === "SUBMITTED"
-                        ? "Submitted"
-                        : report?.status === "REVISION_REQUESTED"
-                          ? "Needs changes"
-                          : order.status === "SCHEDULED"
-                            ? "Ready to submit"
-                            : "Waiting for payment"}
-                  </p>
+                  <p className="text-lg font-semibold">{deliverableHeadline(order)}</p>
                   <p className="mt-1 text-sm text-white/70">
-                    {order.role === "CREATOR"
-                      ? "Share proof of what you delivered for this booking."
-                      : "Talent submits the agreed deliverable here for your review."}
+                    {order.status === "COMPLETED" || report?.status === "APPROVED"
+                      ? "This booking is closed. You can still message for follow-up."
+                      : order.role === "CREATOR"
+                        ? "Share proof of what you delivered for this booking."
+                        : paid
+                          ? "Talent submits the agreed deliverable here for your review."
+                          : "Payment unlocks the deliverable step for this booking."}
                   </p>
                   <p className="mt-1 text-xs text-white/50">with {order.other.name}</p>
                 </div>
