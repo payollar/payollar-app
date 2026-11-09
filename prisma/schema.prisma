@@ -212,10 +212,11 @@ model Appointment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  conversation   BookingConversation?
-  invoices       BookingInvoice[]
-  deliveryReport DeliveryReport?
-  disputes       Dispute[]
+  conversation      BookingConversation?
+  invoices          BookingInvoice[]
+  deliveryReport    DeliveryReport?
+  disputes          Dispute[]
+  logisticsShipment LogisticsShipment?
 
   @@index([status, startTime])
   @@index([creatorId, startTime])
@@ -479,8 +480,12 @@ enum LogisticsDisposition {
 /// Self-managed product kit logistics between brand and creator (proof only).
 model LogisticsShipment {
   id            String                  @id @default(uuid())
-  applicationId String                  @unique
-  application   CampaignApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// Campaign hire kits (optional when linked to a talent booking instead).
+  applicationId String?                 @unique
+  application   CampaignApplication?    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// Direct talent booking kits (optional when linked to a campaign hire instead).
+  appointmentId String?                 @unique
+  appointment   Appointment?            @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   clientId      String
   client        User                    @relation("ClientLogisticsShipments", fields: [clientId], references: [id], onDelete: Cascade)
   creatorId     String

@@ -7,9 +7,10 @@ import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  getAcceptedHiresForLogistics,
+  getLogisticsStartSources,
   getClientLogisticsShipments,
   startLogisticsFromApplication,
+  startLogisticsFromAppointment,
 } from "@/actions/logistics";
 import { LogisticsMasterDetail } from "../../_components/logistics-console";
 import { ClientPageShell } from "./client-page-shell";
@@ -31,32 +32,47 @@ const FILTERS = [
   },
 ];
 
+function sourceKey(source) {
+  return source.appointmentId
+    ? `booking:${source.appointmentId}`
+    : `hire:${source.applicationId}`;
+}
+
 export function ClientLogisticsList({
   shipments: initialShipments = [],
+  sources: initialSources = [],
   acceptedHires: initialHires = [],
 }) {
   const router = useRouter();
   const [shipments, setShipments] = useState(initialShipments);
-  const [acceptedHires, setAcceptedHires] = useState(initialHires);
+  const [sources, setSources] = useState(
+    initialSources.length
+      ? initialSources
+      : (initialHires || []).filter((hire) => !hire.shipmentId)
+  );
   const [startingId, setStartingId] = useState(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     setShipments(initialShipments);
-    setAcceptedHires(initialHires);
-  }, [initialShipments, initialHires]);
+    setSources(
+      initialSources.length
+        ? initialSources
+        : (initialHires || []).filter((hire) => !hire.shipmentId)
+    );
+  }, [initialShipments, initialSources, initialHires]);
 
   useEffect(() => {
     let active = true;
     const refresh = async () => {
       try {
-        const [shipmentsData, hiresData] = await Promise.all([
+        const [shipmentsData, sourcesData] = await Promise.all([
           getClientLogisticsShipments(),
-          getAcceptedHiresForLogistics(),
+          getLogisticsStartSources(),
         ]);
         if (!active) return;
         setShipments(shipmentsData?.shipments || []);
-        setAcceptedHires(hiresData?.acceptedHires || []);
+        setSources(sourcesData?.sources || []);
       } catch {
         // Keep the last good snapshot on screen.
       }
@@ -68,19 +84,23 @@ export function ClientLogisticsList({
     };
   }, []);
 
-  const hires = acceptedHires.filter((hire) => !hire.shipmentId).slice(0, 5);
+  const readySources = sources.filter((row) => !row.shipmentId).slice(0, 8);
 
-  const startHire = (applicationId) => {
-    setStartingId(applicationId);
+  const startSource = (source) => {
+    const key = sourceKey(source);
+    setStartingId(key);
     startTransition(async () => {
       try {
-        const result = await startLogisticsFromApplication(applicationId);
+        const result =
+          source.kind === "TALENT_BOOKING" || source.appointmentId
+            ? await startLogisticsFromAppointment(source.appointmentId)
+            : await startLogisticsFromApplication(source.applicationId);
         if (!result?.shipmentId) {
           toast.error("Could not start logistics");
           return;
         }
         toast.success(
-          result.existing ? "Opening logistics record" : "Logistics record created"
+          result.existing ? "Opening logistics record" : "Kit created for this booking"
         );
         router.push(`/client/logistics/${result.shipmentId}`);
         router.refresh();
@@ -96,7 +116,7 @@ export function ClientLogisticsList({
     <ClientPageShell
       eyebrow="Product logistics"
       title="Tracking kits"
-      description="Record dispatch, receipt, issues, and returns. Updates live as both sides act."
+      description="Send kits for talent bookings or campaign hires. Record dispatch, receipt, issues, and returns."
     >
       <LogisticsMasterDetail
         shipments={shipments}
@@ -104,7 +124,7 @@ export function ClientLogisticsList({
         basePath="/client/logistics"
         filters={FILTERS}
         emptyTitle="No kits yet"
-        emptyBody="Accept a campaign hire, then start a shipment from here."
+        emptyBody="Start a kit from a talent booking or an accepted campaign hire."
         toolbar={
           <div>
             <p className="text-sm font-semibold text-slate-950">Your kits</p>
@@ -114,49 +134,61 @@ export function ClientLogisticsList({
           </div>
         }
         listFooter={
-          hires.length > 0 ? (
+          readySources.length > 0 ? (
             <div className="space-y-2">
               <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 Ready to ship
               </p>
-              {hires.map((hire) => (
-                <div
-                  key={hire.applicationId}
-                  className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-slate-900">
-                      {hire.creatorName}
-                    </p>
-                    <p className="truncate text-[11px] text-slate-500">
-                      {hire.campaignTitle}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="black"
-                    className="rounded-full"
-                    disabled={pending && startingId === hire.applicationId}
-                    onClick={() => startHire(hire.applicationId)}
+              {readySources.map((source) => {
+                const key = sourceKey(source);
+                const isBooking =
+                  source.kind === "TALENT_BOOKING" || Boolean(source.appointmentId);
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
                   >
-                    {pending && startingId === hire.applicationId ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Plus className="h-3.5 w-3.5" />
-                    )}
-                    Add kit
-                  </Button>
-                </div>
-              ))}
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-slate-900">
+                        {source.creatorName}
+                      </p>
+                      <p className="truncate text-[11px] text-slate-500">
+                        {source.subtitle ||
+                          source.campaignTitle ||
+                          (isBooking ? "Talent booking" : "Campaign hire")}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="black"
+                      className="rounded-full"
+                      disabled={pending && startingId === key}
+                      onClick={() => startSource(source)}
+                    >
+                      {pending && startingId === key ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                      Add kit
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <Button asChild variant="black" className="w-full rounded-full">
-              <Link href="/client/campaigns">
-                <Plus className="h-4 w-4" />
-                Start from a campaign hire
-              </Link>
-            </Button>
+            <div className="space-y-2">
+              <Button asChild variant="black" className="w-full rounded-full">
+                <Link href="/talents">
+                  <Plus className="h-4 w-4" />
+                  Start from a talent booking
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full rounded-full">
+                <Link href="/client/campaigns">Or from a campaign hire</Link>
+              </Button>
+            </div>
           )
         }
       />

@@ -312,7 +312,7 @@ export function LogisticsPeekPanel({
             <LogisticsRouteRail shipment={shipment} perspective={perspective} />
             <dl className="grid gap-3 sm:grid-cols-2">
               <PeekField
-                label={perspective === "creator" ? "Brand" : "Creator"}
+                label={perspective === "creator" ? "From" : "Creator"}
                 value={
                   perspective === "creator"
                     ? shipment.application?.campaign?.brand ||
@@ -322,8 +322,18 @@ export function LogisticsPeekPanel({
                 }
               />
               <PeekField
-                label="Campaign"
-                value={shipment.application?.campaign?.title || "—"}
+                label={
+                  shipment.appointmentId || shipment.sourceKind === "TALENT_BOOKING"
+                    ? "Booking"
+                    : "Campaign"
+                }
+                value={
+                  shipment.appointmentId || shipment.sourceKind === "TALENT_BOOKING"
+                    ? shipment.appointment?.creator?.specialty
+                      ? `Talent · ${shipment.appointment.creator.specialty}`
+                      : "Talent booking"
+                    : shipment.application?.campaign?.title || "—"
+                }
               />
               <PeekField
                 label="Product type"
@@ -430,6 +440,8 @@ export function LogisticsMasterDetail({
           row.client?.name,
           row.application?.campaign?.title,
           row.application?.campaign?.brand,
+          row.appointment?.creator?.specialty,
+          row.sourceKind === "TALENT_BOOKING" ? "talent booking" : "",
         ]
           .filter(Boolean)
           .join(" ")

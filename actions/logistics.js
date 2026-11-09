@@ -16,6 +16,7 @@ function revalidateLogistics(id) {
     revalidatePath(`/creator/logistics/${id}`);
   }
   revalidatePath("/client/campaigns");
+  revalidatePath("/client/appointments");
   revalidatePath("/creator/applications");
 }
 
@@ -37,7 +38,13 @@ function shapeShipment(row) {
   if (!row) return null;
   return {
     id: row.id,
-    applicationId: row.applicationId,
+    applicationId: row.applicationId || null,
+    appointmentId: row.appointmentId || null,
+    sourceKind: row.appointmentId
+      ? "TALENT_BOOKING"
+      : row.applicationId
+        ? "CAMPAIGN_HIRE"
+        : "OTHER",
     clientId: row.clientId,
     creatorId: row.creatorId,
     title: row.title,
@@ -76,6 +83,21 @@ function shapeShipment(row) {
             : null,
         }
       : null,
+    appointment: row.appointment
+      ? {
+          id: row.appointment.id,
+          status: row.appointment.status,
+          source: row.appointment.source,
+          startTime: row.appointment.startTime?.toISOString?.() || null,
+          creator: row.appointment.creator
+            ? {
+                id: row.appointment.creator.id,
+                name: row.appointment.creator.name,
+                specialty: row.appointment.creator.specialty,
+              }
+            : null,
+        }
+      : null,
   };
 }
 
@@ -90,6 +112,15 @@ const includeShape = {
       campaign: {
         select: { id: true, title: true, brand: true },
       },
+    },
+  },
+  appointment: {
+    select: {
+      id: true,
+      status: true,
+      source: true,
+      startTime: true,
+      creator: { select: { id: true, name: true, specialty: true } },
     },
   },
 };
@@ -135,12 +166,74 @@ export async function getAcceptedHiresForLogistics() {
 
   return {
     acceptedHires: apps.map((app) => ({
+      kind: "CAMPAIGN_HIRE",
       applicationId: app.id,
+      appointmentId: null,
       creatorName: app.talent?.name || app.name || "Creator",
+      subtitle: app.campaign?.title || "Campaign",
       campaignTitle: app.campaign?.title || "Campaign",
       brand: app.campaign?.brand || "",
       shipmentId: app.logisticsShipment?.id || null,
     })),
+  };
+}
+
+/** Talent bookings the client can start a kit for. */
+export async function getBookingsForLogistics() {
+  const user = await requireUser();
+  if (user.role !== "CLIENT" && user.role !== "MEDIA_AGENCY") {
+    throw new Error("Only clients can view bookings");
+  }
+
+  const appointments = await db.appointment.findMany({
+    where: {
+      clientId: user.id,
+      status: { in: ["REQUESTED", "SCHEDULED", "COMPLETED"] },
+      source: "TALENT",
+      logisticsShipment: null,
+    },
+    include: {
+      creator: { select: { id: true, name: true, specialty: true } },
+      logisticsShipment: { select: { id: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 40,
+  });
+
+  return {
+    bookings: appointments.map((appt) => ({
+      kind: "TALENT_BOOKING",
+      appointmentId: appt.id,
+      applicationId: null,
+      creatorName: appt.creator?.name || "Creator",
+      subtitle: appt.creator?.specialty
+        ? `${appt.creator.specialty} · talent booking`
+        : "Talent booking",
+      specialty: appt.creator?.specialty || "",
+      startTime: appt.startTime?.toISOString?.() || null,
+      shipmentId: appt.logisticsShipment?.id || null,
+    })),
+  };
+}
+
+/** Campaign hires + talent bookings ready for a kit. */
+export async function getLogisticsStartSources() {
+  const [hiresData, bookingsData] = await Promise.all([
+    getAcceptedHiresForLogistics(),
+    getBookingsForLogistics(),
+  ]);
+
+  const sources = [
+    ...(bookingsData.bookings || []),
+    ...(hiresData.acceptedHires || []),
+  ]
+    .filter((row) => !row.shipmentId)
+    .slice(0, 12);
+
+  return {
+    sources,
+    acceptedHires: hiresData.acceptedHires || [],
+    bookings: bookingsData.bookings || [],
   };
 }
 
@@ -228,7 +321,7 @@ export async function startLogisticsFromApplication(applicationId) {
   }
 
   const title = [
-    application.campaign?.brand || "Brand",
+    application.talent?.name || application.name || "Creator",
     application.campaign?.title || "Campaign",
     "Product kit",
   ].join(" · ");
@@ -253,6 +346,67 @@ export async function startLogisticsFromApplication(applicationId) {
   });
 
   revalidateLogistics(created.id);
+  return { success: true, shipmentId: created.id, existing: false };
+}
+
+export async function startLogisticsFromAppointment(appointmentId) {
+  const user = await requireUser();
+  if (user.role !== "CLIENT" && user.role !== "MEDIA_AGENCY") {
+    throw new Error("Only clients can start logistics");
+  }
+  if (!appointmentId) throw new Error("Booking is required");
+
+  const appointment = await db.appointment.findFirst({
+    where: {
+      id: appointmentId,
+      clientId: user.id,
+      status: { in: ["REQUESTED", "SCHEDULED", "COMPLETED"] },
+    },
+    include: {
+      creator: { select: { id: true, name: true, specialty: true } },
+    },
+  });
+
+  if (!appointment) {
+    throw new Error("Booking not found");
+  }
+
+  const existing = await db.logisticsShipment.findUnique({
+    where: { appointmentId: appointment.id },
+    select: { id: true },
+  });
+  if (existing) {
+    return { success: true, shipmentId: existing.id, existing: true };
+  }
+
+  const title = [
+    appointment.creator?.name || "Creator",
+    appointment.creator?.specialty || "Talent booking",
+    "Product kit",
+  ].join(" · ");
+
+  const created = await db.logisticsShipment.create({
+    data: {
+      appointmentId: appointment.id,
+      clientId: user.id,
+      creatorId: appointment.creatorId,
+      title,
+      status: "DRAFT",
+      mode: "SELF_MANAGED",
+      disposition: "GIFT",
+      events: appendEvent([], {
+        actorId: user.id,
+        actorRole: "CLIENT",
+        type: "CREATED",
+        message: "Client opened a kit for this talent booking",
+      }),
+    },
+    select: { id: true },
+  });
+
+  revalidateLogistics(created.id);
+  revalidatePath("/client/appointments");
+  revalidatePath("/messages");
   return { success: true, shipmentId: created.id, existing: false };
 }
 

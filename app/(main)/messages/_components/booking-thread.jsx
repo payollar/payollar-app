@@ -3,6 +3,7 @@
 import { Component, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { format, isToday } from "date-fns";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
@@ -12,6 +13,7 @@ import {
   FileText,
   Loader2,
   MessageCircle,
+  Package,
   Plus,
   Receipt,
   Search,
@@ -26,6 +28,7 @@ import {
   sendBookingInvoice,
   sendBookingMessage,
 } from "@/actions/booking-chat";
+import { startLogisticsFromAppointment } from "@/actions/logistics";
 import { parseBriefFields } from "@/lib/booking-brief";
 
 function moneyGhs(value) {
@@ -1538,12 +1541,41 @@ function SessionCard({
   briefOpen,
   reportOpen,
 }) {
+  const router = useRouter();
+  const [kitBusy, setKitBusy] = useState(false);
   const href = profileHref(thread.other);
   const hasBrief = Boolean(thread.appointment?.clientDescription?.trim());
   const canInvoice = Boolean(thread.canInvoice);
   const canSetBrief = Boolean(thread.canSetBrief);
   const canSendReport = Boolean(thread.canSendReport);
+  const canStartKit = Boolean(thread.canStartKit);
   const tools = [];
+
+  const openOrCreateKit = async () => {
+    if (thread.logisticsShipmentId) {
+      router.push(`/client/logistics/${thread.logisticsShipmentId}`);
+      return;
+    }
+    const appointmentId = thread.appointment?.id || thread.appointmentId;
+    if (!appointmentId) {
+      toast.error("Booking not found");
+      return;
+    }
+    setKitBusy(true);
+    try {
+      const result = await startLogisticsFromAppointment(appointmentId);
+      if (!result?.shipmentId) {
+        toast.error("Could not open kit tracking");
+        return;
+      }
+      toast.success(result.existing ? "Opening kit" : "Kit created for this booking");
+      router.push(`/client/logistics/${result.shipmentId}`);
+    } catch (error) {
+      toast.error(error?.message || "Could not open kit tracking");
+    } finally {
+      setKitBusy(false);
+    }
+  };
 
   if (canInvoice) {
     tools.push({
@@ -1563,6 +1595,19 @@ function SessionCard({
       description: "Tell talent what you want, expect, and when you need it.",
       active: Boolean(briefOpen),
       onClick: onOpenBrief,
+    });
+  }
+  if (canStartKit) {
+    tools.push({
+      id: "kit",
+      icon: Package,
+      title: thread.logisticsShipmentId ? "Track kit" : "Send a kit",
+      description: thread.logisticsShipmentId
+        ? "Open logistics for the package you’re sending this creator."
+        : "Start product logistics to ship a physical package for this booking.",
+      active: false,
+      onClick: openOrCreateKit,
+      busy: kitBusy,
     });
   }
   if (canSendReport) {
@@ -1649,7 +1694,8 @@ function SessionCard({
                   <button
                     type="button"
                     onClick={tool.onClick}
-                    className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+                    disabled={Boolean(tool.busy)}
+                    className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition disabled:opacity-60 ${
                       tool.primary
                         ? "border-[#6d28d9] bg-[#6d28d9] text-white hover:bg-[#5b21b6]"
                         : tool.active
@@ -1666,7 +1712,11 @@ function SessionCard({
                             : "bg-white text-slate-600 ring-1 ring-slate-200"
                       }`}
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      {tool.busy ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Icon className="h-3.5 w-3.5" />
+                      )}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span

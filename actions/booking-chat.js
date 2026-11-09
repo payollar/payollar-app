@@ -232,6 +232,17 @@ export async function getBookingThread(appointmentId) {
       console.error("deliveryReport lookup failed:", reportError);
     }
 
+    let logisticsShipmentId = null;
+    try {
+      const kit = await db.logisticsShipment.findUnique({
+        where: { appointmentId: full.appointmentId },
+        select: { id: true },
+      });
+      logisticsShipmentId = kit?.id || null;
+    } catch (kitError) {
+      console.error("logisticsShipment lookup failed:", kitError);
+    }
+
     let reportChecklistSeed = [];
     try {
       reportChecklistSeed = checklistFromBrief(full.appointment.clientDescription);
@@ -283,6 +294,10 @@ export async function getBookingThread(appointmentId) {
         full.clientId === userId &&
         full.appointment.status !== "CANCELLED" &&
         full.appointment.status !== "COMPLETED",
+      canStartKit:
+        full.clientId === userId &&
+        full.appointment.status !== "CANCELLED",
+      logisticsShipmentId,
       canSendReport:
         full.creatorId === userId &&
         (full.appointment.status === "SCHEDULED" ||

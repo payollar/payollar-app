@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/actions/onboarding";
 import {
-  getAcceptedHiresForLogistics,
+  getLogisticsStartSources,
   getClientLogisticsShipments,
 } from "@/actions/logistics";
 import { ClientLogisticsList } from "../_components/logistics-list";
@@ -15,15 +15,20 @@ export default async function ClientLogisticsPage() {
     redirect("/onboarding");
   }
 
-  const [shipmentsData, hiresData] = await Promise.all([
+  const [shipmentsData, sourcesData] = await Promise.all([
     getClientLogisticsShipments().catch(() => ({ shipments: [] })),
-    getAcceptedHiresForLogistics().catch(() => ({ acceptedHires: [] })),
+    getLogisticsStartSources().catch(() => ({
+      sources: [],
+      acceptedHires: [],
+      bookings: [],
+    })),
   ]);
 
   return (
     <ClientLogisticsList
       shipments={shipmentsData.shipments || []}
-      acceptedHires={hiresData.acceptedHires || []}
+      sources={sourcesData.sources || []}
+      acceptedHires={sourcesData.acceptedHires || []}
     />
   );
 }

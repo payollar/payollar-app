@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Package, Check } from "lucide-react";
+import { MessageCircle, Package } from "lucide-react";
 import { startBookingChat } from "@/actions/booking-chat";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,38 +13,30 @@ import { Loader2, Clock, ArrowLeft, Calendar, CreditCard, FileText } from "lucid
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-function formatCedis(value) {
-  return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-/** Build booking description including optional product-offer request. */
+/** Build booking description including optional physical-package request. */
 export function buildBookingDescription({
   projectBrief = "",
-  includeProductOffer = false,
-  selectedProducts = [],
+  includePhysicalPackage = false,
+  packageDetails = "",
 }) {
   const brief = String(projectBrief || "").trim();
-  if (!includeProductOffer) return brief.slice(0, 2000);
+  if (!includePhysicalPackage) return brief.slice(0, 2000);
 
+  const details = String(packageDetails || "").trim();
   const lines = [
-    "Product offer: Yes — include creator products for this service",
+    "Physical package: Yes — client will send a physical package for the creator to use on this project",
   ];
-  if (selectedProducts.length > 0) {
-    lines.push("Products to use:");
-    for (const product of selectedProducts.slice(0, 8)) {
-      const price =
-        product.price != null ? ` (${formatCedis(product.price)})` : "";
-      lines.push(`• ${product.title}${price}`);
-    }
+  if (details) {
+    lines.push("Package details:");
+    lines.push(details);
   } else {
-    lines.push("Products to use: to be discussed with the creator");
+    lines.push(
+      "Package details: to be confirmed in chat (what’s being sent, when, and shipping needs)"
+    );
   }
 
-  const offerBlock = lines.join("\n");
-  const combined = brief ? `${brief}\n\n${offerBlock}` : offerBlock;
+  const packageBlock = lines.join("\n");
+  const combined = brief ? `${brief}\n\n${packageBlock}` : packageBlock;
   return combined.slice(0, 2000);
 }
 
@@ -55,52 +47,24 @@ export function AppointmentForm({
   onComplete: _onComplete,
   /** Prefill when visitor started booking from a specific service card */
   initialSessionNote,
-  /** Active digital products from this creator */
-  products = [],
 }) {
   const router = useRouter();
   const [projectBrief, setProjectBrief] = useState(initialSessionNote ?? "");
-  const [includeProductOffer, setIncludeProductOffer] = useState(false);
-  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [includePhysicalPackage, setIncludePhysicalPackage] = useState(false);
+  const [packageDetails, setPackageDetails] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const availableProducts = useMemo(
-    () =>
-      (Array.isArray(products) ? products : []).filter(
-        (product) => product?.id && product?.title
-      ),
-    [products]
-  );
 
   useEffect(() => {
     setProjectBrief(initialSessionNote ?? "");
-    setIncludeProductOffer(false);
-    setSelectedProductIds([]);
+    setIncludePhysicalPackage(false);
+    setPackageDetails("");
   }, [slot?.startTime, initialSessionNote]);
-
-  const selectedProducts = useMemo(
-    () =>
-      availableProducts.filter((product) =>
-        selectedProductIds.includes(product.id)
-      ),
-    [availableProducts, selectedProductIds]
-  );
 
   const description = buildBookingDescription({
     projectBrief,
-    includeProductOffer,
-    selectedProducts,
+    includePhysicalPackage,
+    packageDetails,
   });
-
-  const toggleProduct = (productId) => {
-    setSelectedProductIds((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : prev.length >= 8
-          ? prev
-          : [...prev, productId]
-    );
-  };
 
   const goToSignIn = (message) => {
     const next = `${window.location.pathname}${window.location.search}`;
@@ -259,11 +223,11 @@ export function AppointmentForm({
       <section
         className={cn(
           "rounded-2xl border p-4 transition",
-          includeProductOffer
+          includePhysicalPackage
             ? "border-[#ddd6fe] bg-[#faf8ff]"
             : "border-slate-200 bg-white"
         )}
-        aria-labelledby="product-offer-heading"
+        aria-labelledby="physical-package-heading"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -272,83 +236,46 @@ export function AppointmentForm({
             </span>
             <div>
               <h3
-                id="product-offer-heading"
+                id="physical-package-heading"
                 className="text-sm font-semibold text-slate-950"
               >
-                Include product offer
+                Send a physical package
               </h3>
               <p className="mt-0.5 text-sm leading-relaxed text-slate-500">
-                Ask to use this creator’s digital products as part of the
-                service (beats, presets, templates, and more).
+                You’ll ship a physical product or package to this creator for
+                them to use on the project (samples, merch, props, gear, and
+                more).
               </p>
             </div>
           </div>
           <Switch
-            checked={includeProductOffer}
-            onCheckedChange={setIncludeProductOffer}
-            aria-label="Include product offer"
+            checked={includePhysicalPackage}
+            onCheckedChange={setIncludePhysicalPackage}
+            aria-label="Send a physical package"
             className="mt-1 shrink-0"
           />
         </div>
 
-        {includeProductOffer ? (
-          <div className="mt-4 space-y-3">
-            {availableProducts.length > 0 ? (
-              <>
-                <p className="text-xs font-medium text-slate-600">
-                  Select products to include ({selectedProductIds.length} selected)
-                </p>
-                <ul className="grid gap-2 sm:grid-cols-2">
-                  {availableProducts.map((product) => {
-                    const selected = selectedProductIds.includes(product.id);
-                    return (
-                      <li key={product.id}>
-                        <button
-                          type="button"
-                          onClick={() => toggleProduct(product.id)}
-                          className={cn(
-                            "flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition",
-                            selected
-                              ? "border-[#6d28d9] bg-white shadow-sm"
-                              : "border-slate-200 bg-white/80 hover:border-[#c4b5fd]"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
-                              selected
-                                ? "border-[#6d28d9] bg-[#6d28d9] text-white"
-                                : "border-slate-300 bg-white text-transparent"
-                            )}
-                          >
-                            <Check className="h-3 w-3" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-slate-950">
-                              {product.title}
-                            </span>
-                            <span className="mt-0.5 block text-xs tabular-nums text-slate-500">
-                              {formatCedis(product.price)}
-                              {product.category ? ` · ${product.category}` : ""}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="text-[11px] text-slate-400">
-                  Selected products are added to your booking brief so the
-                  creator can confirm pricing and delivery.
-                </p>
-              </>
-            ) : (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-white/70 px-3 py-3 text-sm text-slate-500">
-                This creator hasn’t listed products yet. Your request to include
-                a product offer will still be shared so you can discuss it in
-                chat.
-              </p>
-            )}
+        {includePhysicalPackage ? (
+          <div className="mt-4 space-y-2">
+            <Label
+              htmlFor="package-details"
+              className="text-xs font-medium text-slate-600"
+            >
+              What’s in the package?
+            </Label>
+            <Textarea
+              id="package-details"
+              placeholder="e.g. 2 product samples + branded packaging for an unboxing video. Ready to ship next week — need your delivery address."
+              value={packageDetails}
+              onChange={(e) => setPackageDetails(e.target.value)}
+              maxLength={800}
+              className="min-h-[100px] resize-y rounded-xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+            />
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              This is added to the booking brief. After booking, you can arrange
+              shipping in Logistics once the creator shares their address.
+            </p>
           </div>
         ) : null}
       </section>
