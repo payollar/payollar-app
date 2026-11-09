@@ -204,7 +204,7 @@ export default function SmartRateCardPage() {
       description="Create flexible, table-based rate cards for your media services."
       actions={
         !showCreateForm ? (
-          <Button variant="marketing" className="rounded-full" onClick={() => setShowCreateForm(true)}>
+          <Button variant="black" className="rounded-full" onClick={() => setShowCreateForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New rate card
           </Button>
@@ -401,8 +401,10 @@ export default function SmartRateCardPage() {
                   {rateCards.map((rateCard) => (
                     <div
                       key={rateCard.id}
-                      className={`p-4 cursor-pointer hover:bg-muted transition-colors ${
-                        selectedRateCardId === rateCard.id ? "bg-muted border-l-2 border-primary" : ""
+                      className={`cursor-pointer p-4 transition-colors hover:bg-slate-50 ${
+                        selectedRateCardId === rateCard.id
+                          ? "border-l-2 border-slate-950 bg-slate-50"
+                          : ""
                       }`}
                       onClick={() => setSelectedRateCardId(rateCard.id)}
                     >

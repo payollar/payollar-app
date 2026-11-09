@@ -53,28 +53,13 @@ export default async function MediaAgencyRateCardPage() {
     }
   };
 
-  const getMediaTypeColor = (type) => {
-    switch (type) {
-      case "TV":
-        return "text-blue-500";
-      case "RADIO":
-        return "text-purple-500";
-      case "BILLBOARD":
-        return "text-orange-500";
-      case "DIGITAL":
-        return "text-green-500";
-      default:
-        return "text-gray-500";
-    }
-  };
-
   return (
     <MediaAgencyPageShell
       eyebrow="Listings"
       title="Custom packages"
       description="Configure custom package options and manage packages for your media listings."
       actions={
-        <Button variant="marketing" className="rounded-full" asChild>
+        <Button variant="black" className="rounded-full" asChild>
           <a href="#add-listing">
             <Plus className="mr-2 h-4 w-4" />
             Add listing
@@ -111,106 +96,130 @@ export default async function MediaAgencyRateCardPage() {
         </CardHeader>
         <CardContent>
           {mediaAgency.listings.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No listings yet</p>
-              <p className="text-sm">Create your first media listing above</p>
+            <div className="py-12 text-center">
+              <Package className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+              <p className="text-lg font-semibold text-slate-950">No listings yet</p>
+              <p className="mt-1 text-sm text-slate-500">Create your first media listing above</p>
             </div>
           ) : (
             <div className="space-y-4">
               {mediaAgency.listings.map((listing) => {
                 const Icon = getMediaTypeIcon(listing.listingType);
-                const iconColor = getMediaTypeColor(listing.listingType);
                 return (
                   <div
                     key={listing.id}
-                    className="space-y-4 rounded-xl border border-border/50 bg-background/40 p-6"
+                    className="space-y-4 rounded-2xl border border-slate-100 bg-[#f7f8fc] p-5 sm:p-6"
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-lg bg-muted ${iconColor}`}>
-                          <Icon className="h-6 w-6" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                          <Icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold">{listing.name}</h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-semibold text-slate-950">{listing.name}</h3>
                             <Badge
-                              variant={
-                                listing.status === "ACTIVE" ? "default" :
-                                listing.status === "DRAFT" ? "secondary" :
-                                "outline"
+                              variant="outline"
+                              className={
+                                listing.status === "ACTIVE"
+                                  ? "rounded-full border-emerald-200 bg-emerald-50 text-emerald-800"
+                                  : listing.status === "DRAFT"
+                                    ? "rounded-full border-amber-200 bg-amber-50 text-amber-800"
+                                    : "rounded-full border-slate-200 bg-white text-slate-700"
                               }
                             >
                               {listing.status}
                             </Badge>
                           </div>
-                          {listing.network && (
-                            <p className="text-sm text-muted-foreground">{listing.network}</p>
-                          )}
-                          <p className="text-sm text-muted-foreground mt-1">
+                          {listing.network ? (
+                            <p className="text-sm text-slate-500">{listing.network}</p>
+                          ) : null}
+                          <p className="mt-1 text-sm text-slate-400">
                             {listing.location}
-                            {listing.frequency && ` • ${listing.frequency}`}
+                            {listing.frequency ? ` · ${listing.frequency}` : ""}
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-2" />
+                        <Button variant="outline" size="sm" className="rounded-full border-slate-200">
+                          <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </Button>
-                        <Button variant="outline" size="sm" className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full border-rose-200 text-rose-700 hover:bg-rose-50"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </Button>
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-4 pt-4 border-t">
-                      {listing.priceRange && (
+                    <div className="grid gap-4 border-t border-slate-200/70 pt-4 md:grid-cols-3">
+                      {listing.priceRange ? (
                         <div>
-                          <p className="text-sm font-medium mb-1">Price Range</p>
-                          <p className="text-lg font-semibold">{listing.priceRange}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Price range
+                          </p>
+                          <p className="mt-1 text-lg font-semibold text-slate-950">{listing.priceRange}</p>
                         </div>
-                      )}
-                      {listing.reach && (
+                      ) : null}
+                      {listing.reach ? (
                         <div>
-                          <p className="text-sm font-medium mb-1">Reach</p>
-                          <p className="text-sm text-muted-foreground">{listing.reach}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Reach
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">{listing.reach}</p>
                         </div>
-                      )}
-                      {listing.rating && listing.rating > 0 && (
+                      ) : null}
+                      {listing.rating && listing.rating > 0 ? (
                         <div>
-                          <p className="text-sm font-medium mb-1">Rating</p>
-                          <p className="text-sm text-muted-foreground">{listing.rating.toFixed(1)} ⭐</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Rating
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">{listing.rating.toFixed(1)} ⭐</p>
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
-                    {listing.timeSlots.length > 0 && (
-                      <div className="pt-4 border-t">
-                        <p className="text-sm font-medium mb-2">Available Time Slots</p>
+                    {listing.timeSlots.length > 0 ? (
+                      <div className="border-t border-slate-200/70 pt-4">
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                          Available time slots
+                        </p>
                         <div className="flex flex-wrap gap-2">
                           {listing.timeSlots.map((slot, index) => (
-                            <Badge key={index} variant="outline">
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="rounded-full border-slate-200 bg-white text-slate-700"
+                            >
                               {slot}
                             </Badge>
                           ))}
                         </div>
                       </div>
-                    )}
+                    ) : null}
 
-                    {listing.demographics.length > 0 && (
-                      <div className="pt-4 border-t">
-                        <p className="text-sm font-medium mb-2">Target Demographics</p>
+                    {listing.demographics.length > 0 ? (
+                      <div className="border-t border-slate-200/70 pt-4">
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                          Target demographics
+                        </p>
                         <div className="flex flex-wrap gap-2">
                           {listing.demographics.map((demo, index) => (
-                            <Badge key={index} variant="secondary">
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="rounded-full border-slate-200 bg-white text-slate-700"
+                            >
                               {demo}
                             </Badge>
                           ))}
                         </div>
                       </div>
-                    )}
+                    ) : null}
 
                     <ListingPackagesSection listing={listing} />
                     <ListingTimeClassesSection listing={listing} />

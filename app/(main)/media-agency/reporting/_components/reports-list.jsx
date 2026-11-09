@@ -54,7 +54,7 @@ function ReportCard({ report }) {
         className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
         aria-expanded={open}
       >
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#0055ff] shadow-sm ring-1 ring-slate-100">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-950 shadow-sm ring-1 ring-slate-100">
           <FileText className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ function ReportCard({ report }) {
               </span>
             ) : null}
             {report.bookingId ? (
-              <span className="inline-flex items-center gap-1 text-[#0055ff]">
+              <span className="inline-flex items-center gap-1 text-slate-950">
                 <Link2 className="h-3.5 w-3.5" />
                 Linked to booking
               </span>
@@ -153,7 +153,7 @@ export function ReportsList({ reports = [], onCreateClick }) {
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>
             <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
-              <BarChart3 className="h-4 w-4 text-[#0055ff]" />
+              <BarChart3 className="h-4 w-4 text-slate-950" />
               Recent reports
             </h3>
             <p className="mt-0.5 text-sm text-slate-500">
@@ -177,7 +177,7 @@ export function ReportsList({ reports = [], onCreateClick }) {
                 <Button
                   type="button"
                   onClick={onCreateClick}
-                  className="mt-4 h-10 rounded-full bg-[#0055ff] px-5 text-sm font-semibold text-white hover:bg-[#003ecc]"
+                  className="mt-4 h-10 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800"
                 >
                   <Plus className="mr-1.5 h-4 w-4" />
                   Create report

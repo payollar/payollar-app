@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, User, Medal, FileText, ExternalLink } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import {
+  Check,
+  X,
+  Medal,
+  FileText,
+  ExternalLink,
+  Clock3,
+  Mail,
+  Eye,
+  ShieldCheck,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,30 +26,68 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { updateDoctorStatus } from "@/actions/admin";
 import useFetch from "@/hooks/use-fetch";
-import { useEffect } from "react";
-import { BarLoader } from "react-spinners";
+import { cn } from "@/lib/utils";
+
+const PANEL =
+  "rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+
+function formatExperience(experience) {
+  if (experience === null || experience === undefined || experience === "") {
+    return "Experience not listed";
+  }
+  const years = Number(experience);
+  if (Number.isNaN(years)) return "Experience not listed";
+  return `${years} ${years === 1 ? "year" : "years"} experience`;
+}
+
+function TalentAvatar({ doctor, size = "md" }) {
+  const sizeClass = size === "lg" ? "h-20 w-20 sm:h-24 sm:w-24" : "h-12 w-12";
+  const textClass = size === "lg" ? "text-2xl sm:text-3xl" : "text-sm";
+
+  return (
+    <div
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100",
+        sizeClass
+      )}
+    >
+      {doctor.imageUrl ? (
+        <Image
+          src={doctor.imageUrl}
+          alt={doctor.name || "Talent"}
+          fill
+          className="object-cover"
+          sizes={size === "lg" ? "96px" : "48px"}
+          unoptimized={doctor.imageUrl?.startsWith("http")}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-slate-950 text-white">
+          <span className={cn("font-semibold", textClass)}>
+            {(doctor.name || doctor.email || "T").charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PendingDoctors({ doctors }) {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
-  // Custom hook for approve/reject server action
   const {
     loading,
     data,
     fn: submitStatusUpdate,
   } = useFetch(updateDoctorStatus);
 
-  // Open doctor details dialog
   const handleViewDetails = (doctor) => {
     setSelectedDoctor(doctor);
   };
 
-  // Close doctor details dialog
   const handleCloseDialog = () => {
     setSelectedDoctor(null);
   };
 
-  // Handle approve or reject doctor
   const handleUpdateStatus = async (doctorId, status) => {
     if (loading) return;
 
@@ -59,218 +99,250 @@ export function PendingDoctors({ doctors }) {
   };
 
   useEffect(() => {
-    if (data && data?.success) {
+    if (data?.success) {
       handleCloseDialog();
     }
   }, [data]);
 
   return (
-    <div>
-      <Card className="bg-muted/20 border-emerald-900/20">
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl font-bold text-white">
-            Pending Talent Verifications
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            Review and approve talents applications
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="-m-3 min-h-full min-w-0 space-y-4 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:space-y-5 md:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-950 md:text-xl">
+            Verifications
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Review talent applications and approve or reject credentials.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+          <Clock3 className="h-4 w-4 text-amber-600" />
+          <span className="font-semibold tabular-nums text-slate-950">
+            {doctors.length}
+          </span>
+          <span>pending</span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <section className={cn(PANEL, "p-4")}>
+          <p className="text-xs font-medium text-slate-500">In queue</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+            {doctors.length}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">Awaiting review</p>
+        </section>
+        <section className={cn(PANEL, "p-4")}>
+          <p className="text-xs font-medium text-slate-500">With credentials</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+            {doctors.filter((d) => Boolean(d.credentialUrl)).length}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">Portfolio / docs linked</p>
+        </section>
+        <section className={cn(PANEL, "p-4")}>
+          <p className="text-xs font-medium text-slate-500">Oldest request</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+            {doctors.length
+              ? format(
+                  new Date(
+                    Math.min(...doctors.map((d) => new Date(d.createdAt).getTime()))
+                  ),
+                  "MMM d"
+                )
+              : "—"}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">Submitted date</p>
+        </section>
+      </div>
+
+      <section className={cn(PANEL, "overflow-hidden")}>
+        <div className="border-b border-slate-100 px-4 py-4 md:px-5">
+          <h2 className="text-base font-semibold text-slate-950">
+            Pending talent verifications
+          </h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Open an application to review specialty, experience, and credentials.
+          </p>
+        </div>
+
+        <div className="p-3 md:p-4">
           {doctors.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No pending verification requests at this time.
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-16 text-center">
+              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-950 text-white">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-semibold text-slate-950">
+                Queue is clear
+              </p>
+              <p className="mt-1 max-w-sm text-sm text-slate-500">
+                No pending verification requests at this time. New talent
+                applications will show up here for review.
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {doctors.map((doctor) => (
-                <Card
+                <article
                   key={doctor.id}
-                  className="bg-background border-emerald-900/20 hover:border-emerald-700/30 transition-all"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50/70"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
-                          {doctor.imageUrl ? (
-                            <Image
-                              src={doctor.imageUrl}
-                              alt={doctor.name || "Profile"}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                              <span className="text-lg text-emerald-400 font-bold">
-                                {(doctor.name || "U").charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-white">
-                            {doctor.name}
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <TalentAvatar doctor={doctor} />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="truncate text-sm font-semibold text-slate-950">
+                            {doctor.name || "Unnamed talent"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {doctor.specialty} • {doctor.experience} years
-                            experience
-                          </p>
+                          <Badge
+                            variant="outline"
+                            className="rounded-full border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700"
+                          >
+                            Pending
+                          </Badge>
                         </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-end md:self-auto">
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-900/20 border-amber-900/30 text-amber-400 w-fit"
-                        >
-                          Pending
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(doctor)}
-                          className="border-emerald-900/30 hover:bg-muted/80 w-full sm:w-auto"
-                        >
-                          View Details
-                        </Button>
+                        <p className="mt-0.5 truncate text-sm text-slate-500">
+                          {doctor.specialty || "Specialty not listed"}
+                          {" · "}
+                          {formatExperience(doctor.experience)}
+                        </p>
+                        <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-slate-500">
+                          <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate">{doctor.email}</span>
+                        </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <p className="mr-auto text-xs text-slate-400 sm:mr-2">
+                        Applied {format(new Date(doctor.createdAt), "MMM d, yyyy")}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(doctor)}
+                        className="h-9 rounded-full border-slate-200 px-3 text-slate-700 hover:bg-slate-100"
+                      >
+                        <Eye className="mr-1.5 h-4 w-4" />
+                        Review
+                      </Button>
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Doctor Details Dialog */}
-      {selectedDoctor && (
+      {selectedDoctor ? (
         <Dialog open={!!selectedDoctor} onOpenChange={handleCloseDialog}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-slate-200 bg-white text-slate-900">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-white">
-                Talents Verification Details
+              <DialogTitle className="text-lg font-semibold text-slate-950 sm:text-xl">
+                Talent verification
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm text-slate-500">
                 Review the creator&apos;s information carefully before making a
-                decision
+                decision.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 sm:space-y-6 py-4">
-              {/* Profile Image and Basic Info */}
-              <div className="flex flex-col items-center sm:items-start gap-4 pb-4 border-b border-emerald-900/20">
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-muted/20 border-4 border-emerald-900/30">
-                  {selectedDoctor.imageUrl ? (
-                    <Image
-                      src={selectedDoctor.imageUrl}
-                      alt={selectedDoctor.name || "Profile"}
-                      fill
-                      className="object-cover"
-                      sizes="96px"
-                      unoptimized={selectedDoctor.imageUrl?.startsWith('http')}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                      <span className="text-2xl sm:text-3xl text-emerald-400 font-bold">
-                        {(selectedDoctor.name || "U").charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="text-center sm:text-left">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1">
-                    {selectedDoctor.name}
+            <div className="space-y-5 py-2">
+              <div className="flex flex-col items-center gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-start">
+                <TalentAvatar doctor={selectedDoctor} size="lg" />
+                <div className="min-w-0 text-center sm:text-left">
+                  <h3 className="text-lg font-semibold text-slate-950 sm:text-xl">
+                    {selectedDoctor.name || "Unnamed talent"}
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground break-all">
+                  <p className="mt-1 break-all text-sm text-slate-500">
                     {selectedDoctor.email}
                   </p>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700"
+                    >
+                      Pending
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600"
+                    >
+                      Applied {format(new Date(selectedDoctor.createdAt), "PPP")}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-1">
-                  <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">
-                    Application Date
-                  </h4>
-                  <p className="text-sm sm:text-base font-medium text-white">
-                    {format(new Date(selectedDoctor.createdAt), "PPP")}
-                  </p>
-                </div>
-              </div>
-
-              <Separator className="bg-emerald-900/20" />
-
-              {/* Professional Details */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Medal className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
-                  <h3 className="text-sm sm:text-base text-white font-medium">
-                    Professional Information
+                  <Medal className="h-4 w-4 text-slate-700" />
+                  <h3 className="text-sm font-semibold text-slate-950">
+                    Professional information
                   </h3>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-4 sm:gap-x-6">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      Specialty
-                    </h4>
-                    <p className="text-white">{selectedDoctor.specialty}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      Years of Experience
-                    </h4>
-                    <p className="text-white">
-                      {selectedDoctor.experience} years
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Specialty</p>
+                    <p className="mt-1 text-sm font-medium text-slate-950">
+                      {selectedDoctor.specialty || "Not listed"}
                     </p>
                   </div>
-
-                  <div className="space-y-1 col-span-2">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      Credentials
-                    </h4>
-                    <div className="flex items-center">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Experience</p>
+                    <p className="mt-1 text-sm font-medium text-slate-950">
+                      {formatExperience(selectedDoctor.experience)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
+                    <p className="text-xs text-slate-500">Credentials</p>
+                    {selectedDoctor.credentialUrl ? (
                       <a
                         href={selectedDoctor.credentialUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-emerald-400 hover:text-emerald-300 flex items-center"
+                        className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-950"
                       >
-                        View Credentials
-                        <ExternalLink className="h-4 w-4 ml-1" />
+                        View credentials
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
-                    </div>
+                    ) : (
+                      <p className="mt-1 text-sm font-medium text-slate-500">
+                        No credentials linked
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <Separator className="bg-emerald-900/20" />
-
-              {/* Description */}
-              <div className="space-y-2">
+              <div className="space-y-3 border-t border-slate-100 pt-4">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-emerald-400" />
-                  <h3 className="text-white font-medium">
-                    Service Description
+                  <FileText className="h-4 w-4 text-slate-700" />
+                  <h3 className="text-sm font-semibold text-slate-950">
+                    Service description
                   </h3>
                 </div>
-                <p className="text-muted-foreground whitespace-pre-line">
-                  {selectedDoctor.description}
+                <p className="whitespace-pre-line rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  {selectedDoctor.description || "No description provided."}
                 </p>
               </div>
             </div>
 
-            {loading && <BarLoader width={"100%"} color="#36d7b7" />}
+            {loading ? (
+              <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-slate-950" />
+              </div>
+            ) : null}
 
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
               <Button
-                variant="destructive"
+                variant="outline"
                 onClick={() =>
                   handleUpdateStatus(selectedDoctor.id, "REJECTED")
                 }
                 disabled={loading}
-                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                className="h-10 w-full rounded-full border-rose-200 text-rose-700 hover:bg-rose-50 sm:w-auto"
               >
                 <X className="mr-2 h-4 w-4" />
                 Reject
@@ -280,7 +352,7 @@ export function PendingDoctors({ doctors }) {
                   handleUpdateStatus(selectedDoctor.id, "VERIFIED")
                 }
                 disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
+                className="h-10 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:w-auto"
               >
                 <Check className="mr-2 h-4 w-4" />
                 Approve
@@ -288,7 +360,7 @@ export function PendingDoctors({ doctors }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      )}
+      ) : null}
     </div>
   );
 }

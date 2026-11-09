@@ -19,6 +19,8 @@ import {
   LogOut,
   Wallet,
   Package,
+  Trophy,
+  Scale,
 } from "lucide-react";
 import {
   Sidebar,
@@ -78,6 +80,11 @@ const menuItems = [
     href: "/creator/reports",
   },
   {
+    title: "Disputes",
+    icon: Scale,
+    href: "/creator/disputes",
+  },
+  {
     title: "Messages",
     icon: MessageCircle,
     href: "/messages",
@@ -86,6 +93,11 @@ const menuItems = [
     title: "Analytics",
     icon: BarChart3,
     href: "/creator/analytics",
+  },
+  {
+    title: "Leaderboard",
+    icon: Trophy,
+    href: "/creator/leaderboard",
   },
   {
     title: "Earnings",

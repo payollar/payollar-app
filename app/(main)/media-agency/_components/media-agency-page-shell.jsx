@@ -28,7 +28,7 @@ export function MediaAgencyPageShell({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-1">
               {eyebrow ? (
-                <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-950">
                   {eyebrow}
                 </p>
               ) : null}

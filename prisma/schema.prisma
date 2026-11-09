@@ -73,6 +73,9 @@ model User {
   clientDeliveryReports  DeliveryReport[]    @relation("ClientDeliveryReports")
   clientLogisticsShipments  LogisticsShipment[] @relation("ClientLogisticsShipments")
   creatorLogisticsShipments LogisticsShipment[] @relation("CreatorLogisticsShipments")
+  disputesFiled             Dispute[]           @relation("DisputesFiled")
+  disputesAgainst           Dispute[]           @relation("DisputesAgainst")
+  disputesResolved          Dispute[]           @relation("DisputesResolved")
 }
 
 model ProfileView {
@@ -212,6 +215,7 @@ model Appointment {
   conversation   BookingConversation?
   invoices       BookingInvoice[]
   deliveryReport DeliveryReport?
+  disputes       Dispute[]
 
   @@index([status, startTime])
   @@index([creatorId, startTime])
@@ -1074,4 +1078,55 @@ model McpRefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+enum DisputeType {
+  BOOKING
+  CAMPAIGN
+  PAYOUT
+  MARKETPLACE
+  MEDIA
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
+enum DisputePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Dispute {
+  id            String          @id @default(uuid())
+  reporterId    String
+  reporter      User            @relation("DisputesFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  againstUserId String?
+  againstUser   User?           @relation("DisputesAgainst", fields: [againstUserId], references: [id], onDelete: SetNull)
+  resolvedById  String?
+  resolvedBy    User?           @relation("DisputesResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+  appointmentId String?
+  appointment   Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  campaignId    String?
+  type          DisputeType     @default(OTHER)
+  priority      DisputePriority @default(MEDIUM)
+  status        DisputeStatus   @default(OPEN)
+  subject       String
+  description   String          @db.Text
+  resolution    String?         @db.Text
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  resolvedAt    DateTime?
+
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+  @@index([againstUserId, createdAt])
+  @@index([priority, status])
+  @@index([appointmentId])
 }

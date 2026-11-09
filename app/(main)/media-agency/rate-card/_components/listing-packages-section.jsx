@@ -94,11 +94,11 @@ export function ListingPackagesSection({ listing }) {
           {packages.map((pkg) => (
             <div
               key={pkg.id}
-              className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             >
               <div>
-                <span className="font-medium">{pkg.name}</span>
-                <span className="text-muted-foreground ml-2">
+                <span className="font-medium text-slate-950">{pkg.name}</span>
+                <span className="ml-2 text-slate-500">
                   ₵{Number(pkg.price).toLocaleString()}
                   {pkg.duration && ` • ${pkg.duration}`}
                   {pkg.spots != null && ` • ${pkg.spots} spots`}
@@ -120,7 +120,7 @@ export function ListingPackagesSection({ listing }) {
       )}
 
       {isAdding && (
-        <Card className="bg-muted/20">
+        <Card className="rounded-2xl border border-slate-200 bg-white">
           <CardHeader className="py-3">
             <CardTitle className="text-sm">New Package</CardTitle>
           </CardHeader>

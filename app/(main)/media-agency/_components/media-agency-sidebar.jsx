@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { BorderBeam } from "border-beam";
+import { MetalFx } from "metal-fx";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/media-agency" },
@@ -83,7 +85,7 @@ export function MediaAgencySidebar() {
       <SidebarHeader className="px-3 pb-2 pt-4 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2">
         <Link
           href="/"
-          className="flex items-center rounded-xl outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#0055ff]/50"
+          className="flex items-center rounded-xl outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-slate-950/50"
         >
           <Image
             src="/icons/Payollar-logo.png"
@@ -137,18 +139,38 @@ export function MediaAgencySidebar() {
       </SidebarContent>
 
       <SidebarFooter className="gap-3 p-3 text-white">
-        <div className="rounded-2xl bg-white/10 p-4 group-data-[collapsible=icon]:hidden">
-          <p className="text-sm font-semibold text-white">Rate cards</p>
-          <p className="mt-1 text-xs leading-relaxed text-white/70">
-            Publish packages and smart tables clients can book from.
-          </p>
-          <Link
-            href="/media-agency/smart-rate-card"
-            onClick={() => setOpenMobile(false)}
-            className="mt-3 inline-flex rounded-full bg-[#0055ff] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#0046d4]"
+        <div className="group-data-[collapsible=icon]:hidden">
+          <BorderBeam
+            size="md"
+            theme="dark"
+            colorVariant="mono"
+            strength={0.9}
+            borderRadius={16}
+            duration={7}
+            className="w-full"
           >
-            Open rate cards
-          </Link>
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a1a1e] via-[#121215] to-[#0a0a0c] p-4">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl"
+              />
+              <p className="relative text-sm font-semibold text-white">Rate cards</p>
+              <p className="relative mt-1 text-xs leading-relaxed text-white/70">
+                Publish packages and smart tables clients can book from.
+              </p>
+              <div className="relative mt-3 inline-flex">
+                <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.9}>
+                  <Link
+                    href="/media-agency/smart-rate-card"
+                    onClick={() => setOpenMobile(false)}
+                    className="inline-flex h-8 items-center rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition hover:bg-black"
+                  >
+                    Open rate cards
+                  </Link>
+                </MetalFx>
+              </div>
+            </div>
+          </BorderBeam>
         </div>
         <SidebarMenu>
           <SidebarMenuItem>

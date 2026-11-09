@@ -73,7 +73,7 @@ export function ListingTimeClassesSection({ listing }) {
             <Clock className="h-4 w-4" />
             Time classes & rates ({timeClasses.length})
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="mt-0.5 text-xs text-slate-500">
             Used by the Custom Package Builder on your media page
           </p>
         </div>
@@ -95,11 +95,11 @@ export function ListingTimeClassesSection({ listing }) {
           {timeClasses.map((tc) => (
             <div
               key={tc.id}
-              className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             >
               <div>
-                <span className="font-medium">{tc.label}</span>
-                <span className="text-muted-foreground ml-2">{tc.timeRange}</span>
+                <span className="font-medium text-slate-950">{tc.label}</span>
+                <span className="ml-2 text-slate-500">{tc.timeRange}</span>
                 <span className="ml-2 font-medium">
                   ₵{Number(tc.ratePer30Sec).toLocaleString()} / 30 sec
                 </span>
@@ -119,7 +119,7 @@ export function ListingTimeClassesSection({ listing }) {
       )}
 
       {isAdding && (
-        <Card className="bg-muted/20">
+        <Card className="rounded-2xl border border-slate-200 bg-white">
           <CardHeader className="py-3">
             <CardTitle className="text-sm">New time class</CardTitle>
           </CardHeader>

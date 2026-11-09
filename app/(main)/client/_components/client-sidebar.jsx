@@ -23,6 +23,7 @@ import {
   Users,
   ListOrdered,
   Package,
+  Scale,
 } from "lucide-react";
 import {
   Sidebar,
@@ -98,6 +99,7 @@ const menuItems = [
     ],
   },
   { title: "Messages", icon: MessageCircle, href: "/messages" },
+  { title: "Disputes", icon: Scale, href: "/client/disputes" },
   { title: "Campaigns", icon: BarChart3, href: "/client/campaigns" },
   { title: "Product logistics", icon: Package, href: "/client/logistics" },
   {

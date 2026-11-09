@@ -2,13 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,10 +28,86 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  Filter,
   X,
+  Clock3,
 } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+const PANEL =
+  "rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+
+function StatCard({ label, value, icon: Icon }) {
+  return (
+    <section className={cn(PANEL, "p-4 md:p-5")}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">
+            {value}
+          </p>
+        </div>
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-white">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function UserAvatar({ user, size = "md", imageErrors, onImageError }) {
+  const sizeClass = size === "lg" ? "h-20 w-20 sm:h-24 sm:w-24" : "h-10 w-10";
+  const textClass = size === "lg" ? "text-2xl sm:text-3xl" : "text-sm";
+  const hasImage =
+    user.imageUrl && user.imageUrl.trim() !== "" && !imageErrors.has(user.id);
+
+  return (
+    <div
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100",
+        sizeClass
+      )}
+    >
+      {hasImage ? (
+        <Image
+          src={user.imageUrl}
+          alt={user.name || user.email || "User"}
+          fill
+          className="object-cover"
+          sizes={size === "lg" ? "96px" : "40px"}
+          unoptimized={user.imageUrl?.startsWith("http")}
+          onError={() => onImageError(user.id)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-slate-950 text-white">
+          <span className={cn("font-semibold", textClass)}>
+            {(user.name || user.email || "U").charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActivityLines({ user, compact = false }) {
+  if (user.role === "CREATOR") {
+    return (
+      <div className={cn("text-slate-600", compact ? "space-y-0.5 text-xs" : "space-y-1 text-sm")}>
+        <p>Appointments: {user._count?.creatorAppointments || 0}</p>
+        <p>Products: {user._count?.digitalProducts || 0}</p>
+      </div>
+    );
+  }
+  if (user.role === "CLIENT") {
+    return (
+      <div className={cn("text-slate-600", compact ? "space-y-0.5 text-xs" : "space-y-1 text-sm")}>
+        <p>Appointments: {user._count?.clientAppointments || 0}</p>
+        <p>Campaigns: {user._count?.campaigns || 0}</p>
+      </div>
+    );
+  }
+  return <span className="text-xs text-slate-400">No activity</span>;
+}
 
 export function UsersDashboard({ initialUsers, initialStats, initialPagination }) {
   const [users, setUsers] = useState(initialUsers || []);
@@ -91,290 +160,223 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
     fetchUsers(newPage, searchTerm, roleFilter, verificationFilter);
   };
 
+  const handleImageError = (id) => {
+    setImageErrors((prev) => new Set(prev).add(id));
+  };
+
   const getRoleBadge = (role) => {
     const variants = {
-      ADMIN: "bg-purple-900/20 border-purple-900/30 text-purple-400",
-      CREATOR: "bg-blue-900/20 border-blue-900/30 text-blue-400",
-      CLIENT: "bg-emerald-900/20 border-emerald-900/30 text-emerald-400",
-      UNASSIGNED: "bg-gray-900/20 border-gray-900/30 text-gray-400",
+      ADMIN: "border-violet-200 bg-violet-50 text-violet-700",
+      CREATOR: "border-sky-200 bg-sky-50 text-sky-700",
+      CLIENT: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      UNASSIGNED: "border-slate-200 bg-slate-50 text-slate-600",
     };
     return variants[role] || variants.UNASSIGNED;
   };
 
   const getVerificationBadge = (status) => {
     const variants = {
-      VERIFIED: "bg-emerald-900/20 border-emerald-900/30 text-emerald-400",
-      PENDING: "bg-amber-900/20 border-amber-900/30 text-amber-400",
-      REJECTED: "bg-red-900/20 border-red-900/30 text-red-400",
+      VERIFIED: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      PENDING: "border-amber-200 bg-amber-50 text-amber-700",
+      REJECTED: "border-rose-200 bg-rose-50 text-rose-700",
     };
-    return status ? variants[status] : "bg-gray-900/20 border-gray-900/30 text-gray-400";
+    return status ? variants[status] : "border-slate-200 bg-slate-50 text-slate-500";
   };
 
+  const hasActiveFilters =
+    roleFilter !== "ALL" || verificationFilter !== "ALL" || searchTerm;
+
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card className="bg-muted/20 border-emerald-900/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold text-white">{stats.totalUsers || 0}</p>
-              </div>
-              <User className="h-8 w-8 text-emerald-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/20 border-blue-900/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Creators</p>
-                <p className="text-2xl font-bold text-white">{stats.creators || 0}</p>
-              </div>
-              <Shield className="h-8 w-8 text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/20 border-emerald-900/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Clients</p>
-                <p className="text-2xl font-bold text-white">{stats.clients || 0}</p>
-              </div>
-              <User className="h-8 w-8 text-emerald-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/20 border-amber-900/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Verification</p>
-                <p className="text-2xl font-bold text-white">{stats.pendingCreators || 0}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-amber-400" />
-            </div>
-          </CardContent>
-        </Card>
+    <div className="-m-3 min-h-full min-w-0 space-y-4 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:space-y-5 md:p-5">
+      <div>
+        <h1 className="text-lg font-semibold text-slate-950 md:text-xl">Users</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Manage accounts, roles, and verification across the platform.
+        </p>
       </div>
 
-      {/* Main Users Table */}
-        <Card className="bg-muted/20 border-emerald-900/20">
-          <CardHeader>
-            <div className="flex flex-col gap-4">
-              <div>
-                <CardTitle className="text-lg md:text-xl font-bold text-white">
-                  All Users
-                </CardTitle>
-                <CardDescription className="text-xs md:text-sm">
-                  Manage and view all platform users
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative w-full">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users..."
-                    className="pl-8 bg-background border-emerald-900/20 text-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Total users" value={stats.totalUsers || 0} icon={User} />
+        <StatCard label="Creators" value={stats.creators || 0} icon={Shield} />
+        <StatCard label="Clients" value={stats.clients || 0} icon={User} />
+        <StatCard
+          label="Pending verification"
+          value={stats.pendingCreators || 0}
+          icon={Clock3}
+        />
+      </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Filters:</span>
+      <section className={cn(PANEL, "overflow-hidden")}>
+        <div className="border-b border-slate-100 px-4 py-4 md:px-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">All users</h2>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Search, filter, and inspect every account.
+              </p>
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full sm:w-[140px] bg-background border-emerald-900/20 text-sm">
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Roles</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="CREATOR">Creator</SelectItem>
-                <SelectItem value="CLIENT">Client</SelectItem>
-                <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={verificationFilter} onValueChange={setVerificationFilter}>
-              <SelectTrigger className="w-full sm:w-[160px] bg-background border-emerald-900/20 text-sm">
-                <SelectValue placeholder="Verification" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Status</SelectItem>
-                <SelectItem value="VERIFIED">Verified</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            {(roleFilter !== "ALL" || verificationFilter !== "ALL" || searchTerm) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setRoleFilter("ALL");
-                  setVerificationFilter("ALL");
-                  setSearchTerm("");
-                }}
-                className="text-muted-foreground hover:text-white"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
-            )}
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:min-w-[420px]">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  placeholder="Search by name or email..."
+                  className="h-10 rounded-full border-slate-200 bg-white pl-9 text-sm text-slate-900 placeholder:text-slate-400"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="h-10 w-full rounded-full border-slate-200 bg-white text-sm text-slate-700 sm:w-[140px]">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All roles</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="CREATOR">Creator</SelectItem>
+                  <SelectItem value="CLIENT">Client</SelectItem>
+                  <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+                <SelectTrigger className="h-10 w-full rounded-full border-slate-200 bg-white text-sm text-slate-700 sm:w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All status</SelectItem>
+                  <SelectItem value="VERIFIED">Verified</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              {hasActiveFilters ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setRoleFilter("ALL");
+                    setVerificationFilter("ALL");
+                    setSearchTerm("");
+                  }}
+                  className="h-10 rounded-full px-3 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <X className="mr-1 h-4 w-4" />
+                  Clear
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent>
+        <div className="p-2 md:p-3">
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading users...
-            </div>
+            <div className="py-16 text-center text-sm text-slate-500">Loading users...</div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="py-16 text-center text-sm text-slate-500">
               No users found matching your criteria.
             </div>
           ) : (
             <>
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full">
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[880px]">
                   <thead>
-                    <tr className="border-b border-emerald-900/20">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        User
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Email
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Role
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Status
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Joined
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Activity
-                      </th>
-                      <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
-                        Actions
-                      </th>
+                    <tr className="border-b border-slate-100 text-left">
+                      {[
+                        "User",
+                        "Email",
+                        "Role",
+                        "Status",
+                        "Joined",
+                        "Activity",
+                        "Actions",
+                      ].map((heading) => (
+                        <th
+                          key={heading}
+                          className={cn(
+                            "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400",
+                            heading === "Actions" && "text-right"
+                          )}
+                        >
+                          {heading}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((user) => (
                       <tr
                         key={user.id}
-                        className="border-b border-emerald-900/10 hover:bg-muted/10 transition-colors"
+                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80"
                       >
-                        <td className="py-3 px-4">
+                        <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
-                              {user.imageUrl && user.imageUrl.trim() !== "" && !imageErrors.has(user.id) ? (
-                                <Image
-                                  src={user.imageUrl}
-                                  alt={user.name || user.email || "User"}
-                                  fill
-                                  className="object-cover"
-                                  sizes="48px"
-                                  unoptimized={user.imageUrl?.startsWith('http')}
-                                  onError={() => {
-                                    setImageErrors(prev => new Set(prev).add(user.id));
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                                  <span className="text-base text-emerald-400 font-bold">
-                                    {(user.name || user.email || "U").charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-white">
+                            <UserAvatar
+                              user={user}
+                              imageErrors={imageErrors}
+                              onImageError={handleImageError}
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-950">
                                 {user.name || "No name"}
                               </p>
-                              {user.specialty && (
-                                <p className="text-xs text-muted-foreground">
+                              {user.specialty ? (
+                                <p className="truncate text-xs text-slate-500">
                                   {user.specialty}
                                 </p>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">
+                        <td className="px-4 py-3.5">
+                          <div className="flex max-w-[220px] items-center gap-2">
+                            <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            <span className="truncate text-sm text-slate-600">
                               {user.email}
                             </span>
                           </div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="px-4 py-3.5">
                           <Badge
                             variant="outline"
-                            className={getRoleBadge(user.role)}
+                            className={cn(
+                              "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                              getRoleBadge(user.role)
+                            )}
                           >
                             {user.role}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="px-4 py-3.5">
                           {user.verificationStatus ? (
                             <Badge
                               variant="outline"
-                              className={getVerificationBadge(user.verificationStatus)}
+                              className={cn(
+                                "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                                getVerificationBadge(user.verificationStatus)
+                              )}
                             >
                               {user.verificationStatus}
                             </Badge>
                           ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
+                            <span className="text-sm text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">
-                              {format(new Date(user.createdAt), "MMM d, yyyy")}
-                            </span>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                            {format(new Date(user.createdAt), "MMM d, yyyy")}
                           </div>
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="text-sm text-muted-foreground">
-                            {user.role === "CREATOR" && (
-                              <div className="space-y-1">
-                                <p>Appointments: {user._count?.creatorAppointments || 0}</p>
-                                <p>Products: {user._count?.digitalProducts || 0}</p>
-                              </div>
-                            )}
-                            {user.role === "CLIENT" && (
-                              <div className="space-y-1">
-                                <p>Appointments: {user._count?.clientAppointments || 0}</p>
-                                <p>Campaigns: {user._count?.campaigns || 0}</p>
-                              </div>
-                            )}
-                            {user.role === "UNASSIGNED" && (
-                              <span className="text-xs">No activity</span>
-                            )}
-                          </div>
+                        <td className="px-4 py-3.5">
+                          <ActivityLines user={user} />
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="px-4 py-3.5 text-right">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedUser(user)}
-                            className="text-emerald-400 hover:text-emerald-300"
+                            className="h-8 rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-slate-950"
                           >
-                            <Eye className="h-4 w-4 mr-1" />
+                            <Eye className="mr-1.5 h-4 w-4" />
                             View
                           </Button>
                         </td>
@@ -384,121 +386,94 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                 </table>
               </div>
 
-              {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="space-y-3 md:hidden">
                 {users.map((user) => (
-                  <Card
+                  <article
                     key={user.id}
-                    className="bg-background border-emerald-900/20 hover:border-emerald-700/30 transition-all"
+                    className="rounded-2xl border border-slate-200 bg-white p-4"
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
-                          {user.imageUrl && user.imageUrl.trim() !== "" && !imageErrors.has(user.id) ? (
-                            <Image
-                              src={user.imageUrl}
-                              alt={user.name || user.email || "User"}
-                              fill
-                              className="object-cover"
-                              sizes="48px"
-                              unoptimized={user.imageUrl?.startsWith('http')}
-                              onError={() => {
-                                setImageErrors(prev => new Set(prev).add(user.id));
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                              <span className="text-base text-emerald-400 font-bold">
-                                {(user.name || user.email || "U").charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white truncate">
-                            {user.name || "No name"}
-                          </p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                            <span className="text-xs text-muted-foreground truncate">
-                              {user.email}
-                            </span>
-                          </div>
-                          {user.specialty && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {user.specialty}
-                            </p>
-                          )}
-                        </div>
+                    <div className="flex items-start gap-3">
+                      <UserAvatar
+                        user={user}
+                        imageErrors={imageErrors}
+                        onImageError={handleImageError}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-950">
+                          {user.name || "No name"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {user.email}
+                        </p>
+                        {user.specialty ? (
+                          <p className="mt-1 text-xs text-slate-500">{user.specialty}</p>
+                        ) : null}
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                          getRoleBadge(user.role)
+                        )}
+                      >
+                        {user.role}
+                      </Badge>
+                      {user.verificationStatus ? (
                         <Badge
                           variant="outline"
-                          className={`text-xs ${getRoleBadge(user.role)}`}
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                            getVerificationBadge(user.verificationStatus)
+                          )}
                         >
-                          {user.role}
+                          {user.verificationStatus}
                         </Badge>
-                        {user.verificationStatus && (
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${getVerificationBadge(user.verificationStatus)}`}
-                          >
-                            {user.verificationStatus}
-                          </Badge>
-                        )}
+                      ) : null}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {format(new Date(user.createdAt), "MMM d, yyyy")}
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(user.createdAt), "MMM d, yyyy")}</span>
-                        </div>
-                        {user.role === "CREATOR" && (
-                          <div className="text-right">
-                            <p>Appts: {user._count?.creatorAppointments || 0}</p>
-                            <p>Products: {user._count?.digitalProducts || 0}</p>
-                          </div>
-                        )}
-                        {user.role === "CLIENT" && (
-                          <div className="text-right">
-                            <p>Appts: {user._count?.clientAppointments || 0}</p>
-                            <p>Campaigns: {user._count?.campaigns || 0}</p>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedUser(user)}
-                        className="w-full text-emerald-400 hover:text-emerald-300"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      <ActivityLines user={user} compact />
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedUser(user)}
+                      className="mt-3 h-9 w-full rounded-full border-slate-200 text-slate-700 hover:bg-slate-50"
+                    >
+                      <Eye className="mr-1.5 h-4 w-4" />
+                      View details
+                    </Button>
+                  </article>
                 ))}
               </div>
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-emerald-900/20">
-                  <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-                    Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
+              {pagination.totalPages > 1 ? (
+                <div className="mt-3 flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-2 pt-4 sm:flex-row">
+                  <p className="text-center text-xs text-slate-500 sm:text-left sm:text-sm">
+                    Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                     {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
                     {pagination.total} users
-                  </div>
+                  </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1 || loading}
-                      className="border-emerald-900/30 text-xs sm:text-sm"
+                      className="h-9 rounded-full border-slate-200 text-slate-700"
                     >
-                      <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <ChevronLeft className="h-4 w-4" />
                       <span className="hidden sm:inline">Previous</span>
                     </Button>
-                    <span className="text-xs sm:text-sm text-muted-foreground px-2">
+                    <span className="px-2 text-xs text-slate-500 sm:text-sm">
                       Page {pagination.page} of {pagination.totalPages}
                     </span>
                     <Button
@@ -506,128 +481,121 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                       size="sm"
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage >= pagination.totalPages || loading}
-                      className="border-emerald-900/30 text-xs sm:text-sm"
+                      className="h-9 rounded-full border-slate-200 text-slate-700"
                     >
                       <span className="hidden sm:inline">Next</span>
-                      <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              )}
+              ) : null}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* User Details Dialog */}
-      {selectedUser && (
+      {selectedUser ? (
         <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
+          <DialogContent className="mx-2 max-h-[90vh] max-w-3xl overflow-y-auto border-slate-200 bg-white text-slate-900 sm:mx-auto">
             <DialogHeader>
-              <div className="flex flex-col items-center sm:items-start gap-3 sm:gap-4 pb-4 border-b border-emerald-900/20">
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-muted/20 border-4 border-emerald-900/30">
-                  {selectedUser.imageUrl && selectedUser.imageUrl.trim() !== "" && !imageErrors.has(selectedUser.id) ? (
-                    <Image
-                      src={selectedUser.imageUrl}
-                      alt={selectedUser.name || selectedUser.email || "User"}
-                      fill
-                      className="object-cover"
-                      sizes="96px"
-                      unoptimized={selectedUser.imageUrl?.startsWith('http')}
-                      onError={() => {
-                        setImageErrors(prev => new Set(prev).add(selectedUser.id));
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/20 to-purple-900/20">
-                      <span className="text-2xl sm:text-3xl text-emerald-400 font-bold">
-                        {(selectedUser.name || selectedUser.email || "U").charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="text-center sm:text-left">
-                  <DialogTitle className="text-lg sm:text-2xl">{selectedUser.name || "No name"}</DialogTitle>
-                  <DialogDescription className="text-xs sm:text-base mt-2 break-all">
+              <div className="flex flex-col items-center gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:gap-4">
+                <UserAvatar
+                  user={selectedUser}
+                  size="lg"
+                  imageErrors={imageErrors}
+                  onImageError={handleImageError}
+                />
+                <div className="min-w-0 text-center sm:text-left">
+                  <DialogTitle className="text-lg font-semibold text-slate-950 sm:text-2xl">
+                    {selectedUser.name || "No name"}
+                  </DialogTitle>
+                  <DialogDescription className="mt-1 break-all text-sm text-slate-500">
                     {selectedUser.email}
                   </DialogDescription>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                        getRoleBadge(selectedUser.role)
+                      )}
+                    >
+                      {selectedUser.role}
+                    </Badge>
+                    {selectedUser.verificationStatus ? (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                          getVerificationBadge(selectedUser.verificationStatus)
+                        )}
+                      >
+                        {selectedUser.verificationStatus}
+                      </Badge>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </DialogHeader>
 
-            <div className="space-y-4 sm:space-y-6 py-4">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-6 py-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Role</h4>
-                  <Badge variant="outline" className={getRoleBadge(selectedUser.role)}>
-                    {selectedUser.role}
-                  </Badge>
-                </div>
-                {selectedUser.verificationStatus && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                      Verification Status
-                    </h4>
-                    <Badge
-                      variant="outline"
-                      className={getVerificationBadge(selectedUser.verificationStatus)}
-                    >
-                      {selectedUser.verificationStatus}
-                    </Badge>
-                  </div>
-                )}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Joined</h4>
-                  <p className="text-white">
+                  <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Joined
+                  </h4>
+                  <p className="text-sm font-medium text-slate-950">
                     {format(new Date(selectedUser.createdAt), "PPP")}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Email Verified
+                  <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Email verified
                   </h4>
-                  <p className="text-white">
+                  <p className="text-sm font-medium text-slate-950">
                     {selectedUser.emailVerified ? "Yes" : "No"}
                   </p>
                 </div>
               </div>
 
-              {/* Creator-specific info */}
-              {selectedUser.role === "CREATOR" && (
-                <div className="space-y-4 pt-4 border-t border-emerald-900/20">
-                  <h3 className="text-sm sm:text-base font-semibold text-white">Creator Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    {selectedUser.specialty && (
+              {selectedUser.role === "CREATOR" ? (
+                <div className="space-y-4 border-t border-slate-100 pt-4">
+                  <h3 className="text-sm font-semibold text-slate-950">Creator information</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {selectedUser.specialty ? (
                       <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
                           Specialty
                         </h4>
-                        <p className="text-white">{selectedUser.specialty}</p>
+                        <p className="text-sm font-medium text-slate-950">
+                          {selectedUser.specialty}
+                        </p>
                       </div>
-                    )}
-                    {selectedUser.experience !== null && (
+                    ) : null}
+                    {selectedUser.experience !== null && selectedUser.experience !== undefined ? (
                       <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
                           Experience
                         </h4>
-                        <p className="text-white">{selectedUser.experience} years</p>
+                        <p className="text-sm font-medium text-slate-950">
+                          {selectedUser.experience} years
+                        </p>
                       </div>
-                    )}
-                    {selectedUser.description && (
+                    ) : null}
+                    {selectedUser.description ? (
                       <div className="sm:col-span-2">
-                        <h4 className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
+                        <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
                           Description
                         </h4>
-                        <p className="text-xs sm:text-sm text-white whitespace-pre-line break-words">
+                        <p className="whitespace-pre-line break-words text-sm text-slate-700">
                           {selectedUser.description}
                         </p>
                       </div>
-                    )}
-                    {selectedUser.portfolioUrls && selectedUser.portfolioUrls.length > 0 && (
+                    ) : null}
+                    {selectedUser.portfolioUrls?.length > 0 ? (
                       <div className="sm:col-span-2">
-                        <h4 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2">
-                          Portfolio Links
+                        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Portfolio links
                         </h4>
                         <div className="space-y-1">
                           {selectedUser.portfolioUrls.map((url, idx) => (
@@ -636,67 +604,58 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-emerald-400 hover:text-emerald-300 text-xs sm:text-sm block break-all"
+                              className="block break-all text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-950"
                             >
                               {url}
                             </a>
                           ))}
                         </div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* Activity Stats */}
-              <div className="space-y-4 pt-4 border-t border-emerald-900/20">
-                <h3 className="text-sm sm:text-base font-semibold text-white">Activity Statistics</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                      Appointments
-                    </h4>
-                    <p className="text-2xl font-bold text-white">
+              <div className="space-y-4 border-t border-slate-100 pt-4">
+                <h3 className="text-sm font-semibold text-slate-950">Activity</h3>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">Appointments</p>
+                    <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
                       {(selectedUser._count?.creatorAppointments || 0) +
                         (selectedUser._count?.clientAppointments || 0)}
                     </p>
                   </div>
-                  {selectedUser.role === "CREATOR" && (
+                  {selectedUser.role === "CREATOR" ? (
                     <>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                          Products
-                        </h4>
-                        <p className="text-2xl font-bold text-white">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-xs text-slate-500">Products</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
                           {selectedUser._count?.digitalProducts || 0}
                         </p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                          Credits
-                        </h4>
-                        <p className="text-2xl font-bold text-white">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-xs text-slate-500">Credits</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
                           {selectedUser.credits || 0}
                         </p>
                       </div>
                     </>
-                  )}
-                  {selectedUser.role === "CLIENT" && (
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                        Campaigns
-                      </h4>
-                      <p className="text-2xl font-bold text-white">
+                  ) : null}
+                  {selectedUser.role === "CLIENT" ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">Campaigns</p>
+                      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
                         {selectedUser._count?.campaigns || 0}
                       </p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
           </DialogContent>
         </Dialog>
-      )}
+      ) : null}
     </div>
   );
 }

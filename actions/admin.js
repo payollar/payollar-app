@@ -645,6 +645,82 @@ export async function getAdminAnalytics() {
       _avg: { credits: true },
     });
 
+    // Campaign applications
+    const [pendingApplications, acceptedApplications, applicationsByStatus] = await Promise.all([
+      db.campaignApplication.count({ where: { status: "PENDING" } }),
+      db.campaignApplication.count({ where: { status: "ACCEPTED" } }),
+      db.campaignApplication.groupBy({ by: ["status"], _count: true }),
+    ]);
+
+    // Logistics
+    const [logisticsTotal, logisticsProblem, logisticsReturn, logisticsByStatus] = await Promise.all([
+      db.logisticsShipment.count(),
+      db.logisticsShipment.count({
+        where: { status: { in: ["PROBLEM", "RETURN_REQUESTED"] } },
+      }),
+      db.logisticsShipment.count({ where: { status: "RETURN_REQUESTED" } }),
+      db.logisticsShipment.groupBy({ by: ["status"], _count: true }),
+    ]);
+
+    // Media negotiations
+    const [negotiationsTotal, negotiationsOpen, negotiationsByStatus] = await Promise.all([
+      db.mediaNegotiation.count(),
+      db.mediaNegotiation.count({
+        where: { status: { in: ["OPEN", "DISCOUNT_REQUESTED", "COUNTERED"] } },
+      }),
+      db.mediaNegotiation.groupBy({ by: ["status"], _count: true }),
+    ]);
+
+    // Media bookings (listing + rate card)
+    const [
+      mediaBookingsPending,
+      mediaBookingsConfirmed,
+      rateCardBookingsPending,
+      rateCardBookingsConfirmed,
+      publishedRateCards,
+      totalRateCards,
+    ] = await Promise.all([
+      db.mediaBooking.count({ where: { status: "PENDING" } }),
+      db.mediaBooking.count({ where: { status: "CONFIRMED" } }),
+      db.rateCardBookingItem.count({ where: { status: "PENDING" } }),
+      db.rateCardBookingItem.count({ where: { status: "CONFIRMED" } }),
+      db.rateCard.count({ where: { isPublished: true } }),
+      db.rateCard.count(),
+    ]);
+
+    // Delivery reports + transmission certificates
+    const [deliverySubmitted, deliveryByStatus, transmissionCertificates] = await Promise.all([
+      db.deliveryReport.count({ where: { status: "SUBMITTED" } }),
+      db.deliveryReport.groupBy({ by: ["status"], _count: true }),
+      db.transmissionCertificate.count(),
+    ]);
+
+    // Marketplace sales
+    const [salesCompleted, salesPending, salesRefunded, salesRevenue] = await Promise.all([
+      db.digitalProductSale.count({ where: { status: "COMPLETED" } }),
+      db.digitalProductSale.count({ where: { status: "PENDING" } }),
+      db.digitalProductSale.count({ where: { status: "REFUNDED" } }),
+      db.digitalProductSale.aggregate({
+        where: { status: "COMPLETED" },
+        _sum: { amount: true, platformFee: true, creatorEarnings: true },
+      }),
+    ]);
+
+    // Verification queues
+    const [pendingCreators, pendingAgencies] = await Promise.all([
+      db.user.count({
+        where: { role: "CREATOR", verificationStatus: "PENDING" },
+      }),
+      db.mediaAgency.count({ where: { verificationStatus: "PENDING" } }),
+    ]);
+
+    const [openDisputes, disputesUnderReview, disputesResolved] =
+      await Promise.all([
+        db.dispute.count({ where: { status: "OPEN" } }),
+        db.dispute.count({ where: { status: "UNDER_REVIEW" } }),
+        db.dispute.count({ where: { status: "RESOLVED" } }),
+      ]);
+
     // Recent activity (last 7 days)
     const recentUsers = await db.user.count({
       where: {
@@ -717,15 +793,200 @@ export async function getAdminAnalytics() {
       mediaAgencies: {
         total: totalAgencies,
         verified: verifiedAgencies,
+        pending: pendingAgencies,
         listings: totalListings,
       },
       credits: {
         total: creditsStats._sum.credits || 0,
         average: Math.round(creditsStats._avg.credits || 0),
       },
+      applications: {
+        pending: pendingApplications,
+        accepted: acceptedApplications,
+        byStatus: applicationsByStatus,
+      },
+      logistics: {
+        total: logisticsTotal,
+        attention: logisticsProblem,
+        returns: logisticsReturn,
+        byStatus: logisticsByStatus,
+      },
+      negotiations: {
+        total: negotiationsTotal,
+        open: negotiationsOpen,
+        byStatus: negotiationsByStatus,
+      },
+      mediaBookings: {
+        pending: mediaBookingsPending + rateCardBookingsPending,
+        confirmed: mediaBookingsConfirmed + rateCardBookingsConfirmed,
+        listingPending: mediaBookingsPending,
+        rateCardPending: rateCardBookingsPending,
+        publishedRateCards,
+        totalRateCards,
+      },
+      delivery: {
+        submitted: deliverySubmitted,
+        byStatus: deliveryByStatus,
+        transmissionCertificates,
+      },
+      marketplace: {
+        completed: salesCompleted,
+        pending: salesPending,
+        refunded: salesRefunded,
+        revenue: salesRevenue._sum.amount || 0,
+        platformFees: salesRevenue._sum.platformFee || 0,
+        creatorEarnings: salesRevenue._sum.creatorEarnings || 0,
+      },
+      verification: {
+        pendingCreators,
+        pendingAgencies,
+      },
+      operations: {
+        attention:
+          pendingCreators +
+          pendingAgencies +
+          pendingPayouts +
+          deliverySubmitted +
+          negotiationsOpen +
+          logisticsProblem +
+          pendingApplications +
+          mediaBookingsPending +
+          rateCardBookingsPending +
+          openDisputes,
+      },
+      disputes: {
+        open: openDisputes,
+        underReview: disputesUnderReview,
+        resolved: disputesResolved,
+        total: openDisputes + disputesUnderReview + disputesResolved,
+      },
     };
   } catch (error) {
     console.error("Failed to fetch admin analytics:", error);
     throw new Error("Failed to fetch analytics");
+  }
+}
+
+const disputeUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  imageUrl: true,
+  specialty: true,
+};
+
+/**
+ * Lists disputes for admin review
+ */
+export async function getDisputes({ status = "ALL" } = {}) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const where =
+      status && status !== "ALL"
+        ? { status }
+        : undefined;
+
+    const disputes = await db.dispute.findMany({
+      where,
+      include: {
+        reporter: { select: disputeUserSelect },
+        againstUser: { select: disputeUserSelect },
+        resolvedBy: {
+          select: { id: true, name: true, email: true },
+        },
+        appointment: {
+          select: {
+            id: true,
+            status: true,
+            startTime: true,
+            source: true,
+          },
+        },
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    });
+
+    const [open, underReview, resolved, rejected, closed] = await Promise.all([
+      db.dispute.count({ where: { status: "OPEN" } }),
+      db.dispute.count({ where: { status: "UNDER_REVIEW" } }),
+      db.dispute.count({ where: { status: "RESOLVED" } }),
+      db.dispute.count({ where: { status: "REJECTED" } }),
+      db.dispute.count({ where: { status: "CLOSED" } }),
+    ]);
+
+    return {
+      disputes,
+      stats: {
+        open,
+        underReview,
+        resolved,
+        rejected,
+        closed,
+        total: open + underReview + resolved + rejected + closed,
+        attention: open + underReview,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch disputes:", error);
+    throw new Error("Failed to fetch disputes");
+  }
+}
+
+/**
+ * Updates dispute status / resolution notes
+ */
+export async function updateDisputeStatus(formData) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const disputeId = formData.get("disputeId");
+  const status = formData.get("status");
+  const resolution = formData.get("resolution") || null;
+  const priority = formData.get("priority");
+
+  const allowedStatuses = [
+    "OPEN",
+    "UNDER_REVIEW",
+    "RESOLVED",
+    "REJECTED",
+    "CLOSED",
+  ];
+  const allowedPriorities = ["LOW", "MEDIUM", "HIGH"];
+
+  if (!disputeId || !allowedStatuses.includes(status)) {
+    throw new Error("Invalid input");
+  }
+
+  if (priority && !allowedPriorities.includes(priority)) {
+    throw new Error("Invalid priority");
+  }
+
+  try {
+    const authResult = await getAuthUserId();
+    const terminal = ["RESOLVED", "REJECTED", "CLOSED"].includes(status);
+
+    const dispute = await db.dispute.update({
+      where: { id: disputeId },
+      data: {
+        status,
+        ...(priority ? { priority } : {}),
+        resolution: resolution || undefined,
+        resolvedAt: terminal ? new Date() : null,
+        resolvedById: terminal ? authResult?.userId || null : null,
+      },
+      include: {
+        reporter: { select: disputeUserSelect },
+        againstUser: { select: disputeUserSelect },
+      },
+    });
+
+    revalidatePath("/admin");
+    return { success: true, dispute };
+  } catch (error) {
+    console.error("Failed to update dispute:", error);
+    throw new Error("Failed to update dispute");
   }
 }

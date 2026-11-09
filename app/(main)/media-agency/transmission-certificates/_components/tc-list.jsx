@@ -43,7 +43,7 @@ function CertificateCard({ cert }) {
     <div className="rounded-2xl border border-slate-100 bg-[#f7f8fc]/80 p-4 transition hover:border-slate-200 hover:bg-white">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 flex-1 gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0055ff] shadow-sm ring-1 ring-slate-100">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-slate-950 shadow-sm ring-1 ring-slate-100">
             {isPdf ? (
               <FileText className="h-5 w-5" />
             ) : (
@@ -184,7 +184,7 @@ export function TransmissionCertificatesList({
                 <Button
                   type="button"
                   onClick={onUploadClick}
-                  className="mt-4 h-10 rounded-full bg-[#0055ff] px-5 text-sm font-semibold text-white hover:bg-[#003ecc]"
+                  className="mt-4 h-10 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800"
                 >
                   <Plus className="mr-1.5 h-4 w-4" />
                   Upload certificate

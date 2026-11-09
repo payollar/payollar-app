@@ -55,25 +55,25 @@ export default async function MediaAgencyTermsPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold mb-2">{activeTC.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-4">
+                  <p className="mb-4 line-clamp-4 text-sm text-slate-500">
                     {activeTC.content}
                   </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>Version {activeTC.version}</span>
                     <span>Updated {new Date(activeTC.updatedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full rounded-full border-slate-200" asChild>
                   <Link href={`/media-agency/terms/${activeTC.id}`} target="_blank">
-                    View Full Document
+                    View full document
                   </Link>
                 </Button>
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No active terms and conditions</p>
-                <p className="text-sm">Create one to get started</p>
+              <div className="py-8 text-center">
+                <FileText className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+                <p className="font-medium text-slate-950">No active terms and conditions</p>
+                <p className="mt-1 text-sm text-slate-500">Create one to get started</p>
               </div>
             )}
           </CardContent>
@@ -112,23 +112,28 @@ export default async function MediaAgencyTermsPage() {
               {mediaAgency.termsAndConditions.map((tc) => (
                 <div
                   key={tc.id}
-                  className="flex items-center justify-between rounded-xl border border-border/50 bg-background/40 p-4"
+                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-[#f7f8fc] p-4"
                 >
                   <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
+                      <FileText className="h-4 w-4" />
+                    </span>
                     <div>
-                      <h4 className="font-medium">{tc.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Version {tc.version} • {new Date(tc.createdAt).toLocaleDateString()}
+                      <h4 className="font-medium text-slate-950">{tc.title}</h4>
+                      <p className="text-sm text-slate-500">
+                        Version {tc.version} · {new Date(tc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  {tc.isActive && (
-                    <Badge variant="default" className="flex items-center gap-1">
+                  {tc.isActive ? (
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1 rounded-full border-emerald-200 bg-emerald-50 text-emerald-800"
+                    >
                       <Check className="h-3 w-3" />
                       Active
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
               ))}
             </div>

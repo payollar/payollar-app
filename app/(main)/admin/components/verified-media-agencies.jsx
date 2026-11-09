@@ -2,15 +2,24 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Mail, Phone, Globe, MapPin, Radio, Tv, Megaphone, Smartphone, Users, Video, Eye, User } from "lucide-react";
+import {
+  Building2,
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  Radio,
+  Tv,
+  Megaphone,
+  Smartphone,
+  Users,
+  Video,
+  Eye,
+  User,
+  BadgeCheck,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +28,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+const PANEL =
+  "rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
 
 const MEDIA_TYPE_ICONS = {
   TV: Tv,
@@ -29,291 +42,363 @@ const MEDIA_TYPE_ICONS = {
   VIDEO_CLIPPING: Video,
 };
 
-export function VerifiedMediaAgencies({ agencies }) {
-  const [selectedAgency, setSelectedAgency] = useState(null);
-
-  const handleViewDetails = (agency) => {
-    setSelectedAgency(agency);
-  };
+function AgencyAvatar({ agency }) {
+  if (agency.logoUrl) {
+    return (
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+        <Image
+          src={agency.logoUrl}
+          alt={agency.agencyName}
+          fill
+          className="object-cover"
+          sizes="48px"
+          unoptimized={agency.logoUrl?.startsWith("http")}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <Card className="bg-muted/20 border-emerald-900/20">
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl font-bold text-white">
-            Verified Media Agencies
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            All approved media agencies and their listings
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {agencies.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No verified media agencies yet.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {agencies.map((agency) => (
-                <Card key={agency.id} className="border-emerald-900/30">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="flex flex-col gap-2">
-                          {agency.logoUrl && (
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-emerald-900/30 flex-shrink-0">
-                              <Image
-                                src={agency.logoUrl}
-                                alt={agency.agencyName}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          {agency.user?.imageUrl && (
-                            <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted/20 border-2 border-emerald-900/30 flex-shrink-0">
-                              <Image
-                                src={agency.user.imageUrl}
-                                alt={agency.user.name || "User Profile"}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-lg">{agency.agencyName}</h3>
-                            <Badge className="bg-emerald-600">Verified</Badge>
-                          </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            {agency.user && (
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4" />
-                                <span>{agency.user.name || agency.user.email}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4" />
-                              <span>{agency.email}</span>
-                            </div>
-                            {agency.phone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="w-4 h-4" />
-                                <span>{agency.phone}</span>
-                              </div>
-                            )}
-                            {(agency.city || agency.region) && (
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4" />
-                                <span>{[agency.city, agency.region].filter(Boolean).join(", ")}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-3 flex gap-4 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Listings: </span>
-                              <span className="font-medium">{agency._count?.listings || agency.listings?.length || 0}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Bookings: </span>
-                              <span className="font-medium">{agency._count?.bookings || 0}</span>
-                            </div>
-                          </div>
-                          {agency.listings && agency.listings.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-sm font-medium mb-2">Active Listings:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {agency.listings.map((listing) => {
-                                  const Icon = MEDIA_TYPE_ICONS[listing.listingType] || Building2;
-                                  return (
-                                    <Badge key={listing.id} variant="outline" className="flex items-center gap-1">
-                                      <Icon className="w-3 h-3" />
-                                      {listing.name}
-                                    </Badge>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Verified: {format(new Date(agency.updatedAt), "PPp")}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => handleViewDetails(agency)}
-                          className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 text-sm"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Details
-                        </button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Details Dialog */}
-      <Dialog open={!!selectedAgency} onOpenChange={() => setSelectedAgency(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
-          {selectedAgency && (
-            <>
-              <DialogHeader>
-                <div className="flex flex-col items-center sm:items-start gap-3 sm:gap-4 pb-4 border-b border-emerald-900/20">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {selectedAgency.logoUrl && (
-                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border-4 border-emerald-900/30">
-                        <Image
-                          src={selectedAgency.logoUrl}
-                          alt={selectedAgency.agencyName}
-                          fill
-                          className="object-cover"
-                          sizes="96px"
-                          unoptimized={selectedAgency.logoUrl?.startsWith('http')}
-                        />
-                      </div>
-                    )}
-                    {selectedAgency.user?.imageUrl && (
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-muted/20 border-4 border-emerald-900/30">
-                        <Image
-                          src={selectedAgency.user.imageUrl}
-                          alt={selectedAgency.user.name || "User Profile"}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
-                          unoptimized={selectedAgency.user.imageUrl?.startsWith('http')}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center sm:text-left">
-                    <DialogTitle className="text-lg sm:text-2xl">{selectedAgency.agencyName}</DialogTitle>
-                    <DialogDescription className="text-xs sm:text-sm">
-                      {selectedAgency.user && (
-                        <span className="block mt-1 break-all">{selectedAgency.user.name || selectedAgency.user.email}</span>
-                      )}
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                {/* Agency Information */}
-                <div>
-                  <h3 className="font-semibold mb-3">Agency Information</h3>
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Contact Person</p>
-                      <p className="font-medium">{selectedAgency.contactName}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Email</p>
-                      <p className="font-medium">{selectedAgency.email}</p>
-                    </div>
-                    {selectedAgency.phone && (
-                      <div>
-                        <p className="text-muted-foreground">Phone</p>
-                        <p className="font-medium">{selectedAgency.phone}</p>
-                      </div>
-                    )}
-                    {selectedAgency.website && (
-                      <div className="sm:col-span-2">
-                        <p className="text-muted-foreground">Website</p>
-                        <a
-                          href={selectedAgency.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-emerald-400 hover:underline break-all"
-                        >
-                          {selectedAgency.website}
-                        </a>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground">Location</p>
-                      <p className="font-medium break-words">
-                        {[selectedAgency.city, selectedAgency.region, selectedAgency.country]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </p>
-                    </div>
-                  </div>
-                  {selectedAgency.description && (
-                    <div className="mt-4">
-                      <p className="text-muted-foreground mb-2 text-xs sm:text-sm">Description</p>
-                      <p className="text-xs sm:text-sm break-words">{selectedAgency.description}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Media Listings */}
-                {selectedAgency.listings && selectedAgency.listings.length > 0 && (
-                  <div>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">
-                      Active Media Listings ({selectedAgency.listings.length})
-                    </h3>
-                    <div className="space-y-3 sm:space-y-4">
-                      {selectedAgency.listings.map((listing) => {
-                        const Icon = MEDIA_TYPE_ICONS[listing.listingType] || Building2;
-                        return (
-                          <Card key={listing.id} className="border-emerald-900/30">
-                            <CardContent className="p-3 sm:p-4">
-                              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                                {listing.imageUrl && (
-                                  <div className="relative w-full sm:w-16 h-32 sm:h-16 rounded-lg overflow-hidden border-2 border-emerald-900/30 flex-shrink-0">
-                                    <Image
-                                      src={listing.imageUrl}
-                                      alt={listing.name}
-                                      fill
-                                      className="object-cover"
-                                      sizes="64px"
-                                      unoptimized={listing.imageUrl?.startsWith('http')}
-                                    />
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 flex-shrink-0" />
-                                    <h4 className="font-semibold text-sm sm:text-base truncate">{listing.name}</h4>
-                                    <Badge variant="outline" className="text-xs">{listing.listingType}</Badge>
-                                    <Badge className="bg-emerald-600 text-xs">{listing.status}</Badge>
-                                  </div>
-                                  <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
-                                    {listing.network && (
-                                      <p><span className="font-medium">Network:</span> {listing.network}</p>
-                                    )}
-                                    <p><span className="font-medium">Location:</span> {listing.location}</p>
-                                    {listing.frequency && (
-                                      <p><span className="font-medium">Frequency:</span> {listing.frequency}</p>
-                                    )}
-                                    {listing.reach && (
-                                      <p><span className="font-medium">Reach:</span> {listing.reach}</p>
-                                    )}
-                                    {listing.priceRange && (
-                                      <p><span className="font-medium">Price Range:</span> {listing.priceRange}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+      <Building2 className="h-5 w-5" />
     </div>
   );
 }
 
+function InfoRow({ icon: Icon, children }) {
+  if (!children) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+      <span className="truncate">{children}</span>
+    </div>
+  );
+}
+
+export function VerifiedMediaAgencies({ agencies }) {
+  const [selectedAgency, setSelectedAgency] = useState(null);
+
+  return (
+    <section className={cn(PANEL, "overflow-hidden")}>
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between md:px-5">
+        <div>
+          <h2 className="text-base font-semibold text-slate-950">
+            Verified agencies
+          </h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Approved media agencies and their active listings.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-600">
+          <BadgeCheck className="h-4 w-4 text-emerald-600" />
+          <span className="font-semibold tabular-nums text-slate-950">
+            {agencies.length}
+          </span>
+          <span>verified</span>
+        </div>
+      </div>
+
+      <div className="p-3 md:p-4">
+        {agencies.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-14 text-center">
+            <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-950 text-white">
+              <BadgeCheck className="h-5 w-5" />
+            </span>
+            <p className="text-sm font-semibold text-slate-950">
+              No verified agencies yet
+            </p>
+            <p className="mt-1 max-w-sm text-sm text-slate-500">
+              Approved agencies will appear here with their listings and booking
+              activity.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {agencies.map((agency) => {
+              const listingCount =
+                agency._count?.listings || agency.listings?.length || 0;
+              const bookingCount = agency._count?.bookings || 0;
+
+              return (
+                <article
+                  key={agency.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50/70"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <AgencyAvatar agency={agency} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="truncate text-sm font-semibold text-slate-950">
+                            {agency.agencyName}
+                          </h3>
+                          <Badge
+                            variant="outline"
+                            className="rounded-full border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700"
+                          >
+                            Verified
+                          </Badge>
+                        </div>
+
+                        <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                          {agency.user ? (
+                            <InfoRow icon={User}>
+                              {agency.user.name || agency.user.email}
+                            </InfoRow>
+                          ) : null}
+                          <InfoRow icon={Mail}>{agency.email}</InfoRow>
+                          <InfoRow icon={Phone}>{agency.phone}</InfoRow>
+                          <InfoRow icon={MapPin}>
+                            {[agency.city, agency.region].filter(Boolean).join(", ")}
+                          </InfoRow>
+                          {agency.website ? (
+                            <div className="flex min-w-0 items-center gap-2 text-sm">
+                              <Globe className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                              <a
+                                href={agency.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="truncate font-medium text-slate-950 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-950"
+                              >
+                                {agency.website}
+                              </a>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            Listings:{" "}
+                            <span className="font-semibold text-slate-950">
+                              {listingCount}
+                            </span>
+                          </span>
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            Bookings:{" "}
+                            <span className="font-semibold text-slate-950">
+                              {bookingCount}
+                            </span>
+                          </span>
+                        </div>
+
+                        {agency.listings?.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {agency.listings.map((listing) => {
+                              const Icon =
+                                MEDIA_TYPE_ICONS[listing.listingType] ||
+                                Building2;
+                              return (
+                                <Badge
+                                  key={listing.id}
+                                  variant="outline"
+                                  className="rounded-full border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700"
+                                >
+                                  <Icon className="mr-1 h-3 w-3" />
+                                  {listing.name}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+
+                        <p className="mt-3 text-xs text-slate-400">
+                          Verified {format(new Date(agency.updatedAt), "PPp")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedAgency(agency)}
+                      className="h-9 shrink-0 rounded-full border-slate-200 px-3 text-slate-700 hover:bg-slate-100"
+                    >
+                      <Eye className="mr-1.5 h-4 w-4" />
+                      Details
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <Dialog
+        open={!!selectedAgency}
+        onOpenChange={() => setSelectedAgency(null)}
+      >
+        <DialogContent className="mx-2 max-h-[90vh] max-w-3xl overflow-y-auto border-slate-200 bg-white text-slate-900 sm:mx-auto">
+          {selectedAgency ? (
+            <>
+              <DialogHeader>
+                <div className="flex flex-col items-center gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:gap-4">
+                  {selectedAgency.logoUrl ? (
+                    <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-slate-200 sm:h-24 sm:w-24">
+                      <Image
+                        src={selectedAgency.logoUrl}
+                        alt={selectedAgency.agencyName}
+                        fill
+                        className="object-cover"
+                        sizes="96px"
+                        unoptimized={selectedAgency.logoUrl?.startsWith("http")}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-950 text-white sm:h-24 sm:w-24">
+                      <Building2 className="h-7 w-7" />
+                    </div>
+                  )}
+                  <div className="min-w-0 text-center sm:text-left">
+                    <DialogTitle className="text-lg font-semibold text-slate-950 sm:text-2xl">
+                      {selectedAgency.agencyName}
+                    </DialogTitle>
+                    <DialogDescription className="mt-1 text-sm text-slate-500">
+                      {selectedAgency.user?.name ||
+                        selectedAgency.user?.email ||
+                        selectedAgency.email}
+                    </DialogDescription>
+                    <Badge
+                      variant="outline"
+                      className="mt-3 rounded-full border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700"
+                    >
+                      Verified
+                    </Badge>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-5 py-2">
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold text-slate-950">
+                    Agency information
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      { label: "Contact person", value: selectedAgency.contactName },
+                      { label: "Email", value: selectedAgency.email },
+                      { label: "Phone", value: selectedAgency.phone },
+                      {
+                        label: "Location",
+                        value: [
+                          selectedAgency.city,
+                          selectedAgency.region,
+                          selectedAgency.country,
+                        ]
+                          .filter(Boolean)
+                          .join(", "),
+                      },
+                    ]
+                      .filter((item) => item.value)
+                      .map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <p className="text-xs text-slate-500">{item.label}</p>
+                          <p className="mt-1 break-words text-sm font-medium text-slate-950">
+                            {item.value}
+                          </p>
+                        </div>
+                      ))}
+                    {selectedAgency.website ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
+                        <p className="text-xs text-slate-500">Website</p>
+                        <a
+                          href={selectedAgency.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-block break-all text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-2"
+                        >
+                          {selectedAgency.website}
+                        </a>
+                      </div>
+                    ) : null}
+                  </div>
+                  {selectedAgency.description ? (
+                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs text-slate-500">Description</p>
+                      <p className="mt-1 whitespace-pre-line text-sm text-slate-700">
+                        {selectedAgency.description}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+
+                {selectedAgency.listings?.length > 0 ? (
+                  <div className="space-y-3 border-t border-slate-100 pt-4">
+                    <h3 className="text-sm font-semibold text-slate-950">
+                      Active media listings ({selectedAgency.listings.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {selectedAgency.listings.map((listing) => {
+                        const Icon =
+                          MEDIA_TYPE_ICONS[listing.listingType] || Building2;
+                        return (
+                          <div
+                            key={listing.id}
+                            className="rounded-2xl border border-slate-200 bg-white p-3"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                              {listing.imageUrl ? (
+                                <div className="relative h-28 w-full overflow-hidden rounded-xl border border-slate-200 sm:h-16 sm:w-16">
+                                  <Image
+                                    src={listing.imageUrl}
+                                    alt={listing.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="64px"
+                                    unoptimized={listing.imageUrl?.startsWith("http")}
+                                  />
+                                </div>
+                              ) : null}
+                              <div className="min-w-0 flex-1">
+                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                  <Icon className="h-4 w-4 text-slate-700" />
+                                  <h4 className="text-sm font-semibold text-slate-950">
+                                    {listing.name}
+                                  </h4>
+                                  <Badge
+                                    variant="outline"
+                                    className="rounded-full border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600"
+                                  >
+                                    {listing.listingType}
+                                  </Badge>
+                                  {listing.status ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="rounded-full border-emerald-200 bg-emerald-50 text-[11px] font-semibold text-emerald-700"
+                                    >
+                                      {listing.status}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <div className="space-y-1 text-sm text-slate-600">
+                                  {listing.network ? (
+                                    <p>Network: {listing.network}</p>
+                                  ) : null}
+                                  <p>Location: {listing.location}</p>
+                                  {listing.frequency ? (
+                                    <p>Frequency: {listing.frequency}</p>
+                                  ) : null}
+                                  {listing.reach ? <p>Reach: {listing.reach}</p> : null}
+                                  {listing.priceRange ? (
+                                    <p>Price range: {listing.priceRange}</p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}

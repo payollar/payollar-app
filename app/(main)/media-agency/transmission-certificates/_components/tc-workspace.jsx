@@ -43,7 +43,7 @@ export function TransmissionCertificatesWorkspace({
             "h-10 rounded-full px-5 text-sm font-semibold shadow-none",
             open
               ? "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-              : "bg-[#0055ff] text-white hover:bg-[#003ecc]"
+              : "bg-slate-950 text-white hover:bg-slate-800"
           )}
         >
           {open ? (

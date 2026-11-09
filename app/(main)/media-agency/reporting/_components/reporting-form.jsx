@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const inputClass =
-  "h-10 rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:bg-white focus-visible:ring-[#0055ff]/15";
+  "h-10 rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:bg-white focus-visible:ring-slate-950/15";
 
 const REPORT_TYPES = [
   { value: "BOOKING_SUMMARY", label: "Booking summary" },
@@ -226,7 +226,7 @@ export function ReportingForm({
             onChange={(e) => setContent(e.target.value)}
             placeholder="Impressions, delivery notes, key results…"
             rows={3}
-            className="min-h-[5.5rem] resize-y rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:bg-white focus-visible:ring-[#0055ff]/15"
+            className="min-h-[5.5rem] resize-y rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:bg-white focus-visible:ring-slate-950/15"
           />
         </Field>
       </div>
@@ -250,7 +250,7 @@ export function ReportingForm({
         <Button
           type="submit"
           disabled={isLoading}
-          className="h-10 rounded-full bg-[#0055ff] px-6 text-sm font-semibold text-white hover:bg-[#003ecc]"
+          className="h-10 rounded-full bg-slate-950 px-6 text-sm font-semibold text-white hover:bg-slate-800"
         >
           {isLoading ? (
             <>

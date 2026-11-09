@@ -3,7 +3,6 @@ import { getSessionCookie } from "better-auth/cookies";
 
 const isProtectedRoute = (pathname) => {
   const protectedPaths = [
-    "/",
     "/talents",
     "/onboarding",
     "/creator",
@@ -17,8 +16,8 @@ const isProtectedRoute = (pathname) => {
     "/media",
     "/products",
   ];
-  
-  return protectedPaths.some(path => pathname.startsWith(path));
+
+  return protectedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 };
 
 const isPublicRoute = (pathname) => {
@@ -58,12 +57,18 @@ function nextWithPathname(req) {
 export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
 
-  // Marketing page: visible signed in or out, without the auth-page redirect.
+  // Marketing pages: visible signed in or out, without the auth-page redirect.
   if (
+    pathname === "/" ||
     pathname === "/clip" ||
     pathname.startsWith("/clip/") ||
     pathname === "/academy" ||
-    pathname.startsWith("/academy/")
+    pathname.startsWith("/academy/") ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/pricing" ||
+    pathname === "/help" ||
+    pathname === "/contact-support"
   ) {
     return nextWithPathname(req);
   }

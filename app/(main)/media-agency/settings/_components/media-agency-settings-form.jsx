@@ -29,7 +29,7 @@ import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn, uploadThingResultToUrl } from "@/lib/utils";
 
 const inputClass =
-  "h-11 rounded-xl border-slate-200 bg-white text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:ring-[#0055ff]/15";
+  "h-11 rounded-xl border-slate-200 bg-white text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:ring-slate-950/15";
 
 const STATUS = {
   VERIFIED: {
@@ -133,7 +133,7 @@ export function MediaAgencySettingsForm({ agency }) {
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#e8f0ff] text-2xl font-semibold text-[#0055ff]">
+                  <div className="flex h-full w-full items-center justify-center bg-[#e8f0ff] text-2xl font-semibold text-slate-950">
                     {initial}
                   </div>
                 )}
@@ -181,7 +181,7 @@ export function MediaAgencySettingsForm({ agency }) {
                       href={form.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="truncate font-medium text-[#0055ff] hover:underline"
+                      className="truncate font-medium text-slate-950 hover:underline"
                     >
                       {form.website.replace(/^https?:\/\//, "")}
                     </a>
@@ -259,7 +259,7 @@ export function MediaAgencySettingsForm({ agency }) {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="h-10 rounded-full bg-[#0055ff] px-5 text-sm font-semibold text-white hover:bg-[#003ecc]"
+              className="h-10 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800"
             >
               {isSaving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -286,7 +286,7 @@ export function MediaAgencySettingsForm({ agency }) {
                       unoptimized
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-[#0055ff]">
+                    <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-slate-950">
                       {initial}
                     </div>
                   )}
@@ -305,7 +305,7 @@ export function MediaAgencySettingsForm({ agency }) {
                   }}
                   appearance={{
                     button:
-                      "ut-ready:bg-[#0055ff] ut-uploading:cursor-not-allowed rounded-full bg-[#0055ff] px-4 text-xs font-semibold text-white after:bg-[#003ecc]",
+                      "ut-ready:bg-slate-950 ut-uploading:cursor-not-allowed rounded-full bg-slate-950 px-4 text-xs font-semibold text-white after:bg-slate-800",
                     allowedContent: "text-xs text-slate-400",
                   }}
                 />
@@ -421,7 +421,7 @@ export function MediaAgencySettingsForm({ agency }) {
                   value={form.description}
                   onChange={setField("description")}
                   rows={4}
-                  className="min-h-[7rem] resize-y rounded-xl border-slate-200 bg-white text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:ring-[#0055ff]/15"
+                  className="min-h-[7rem] resize-y rounded-xl border-slate-200 bg-white text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:ring-slate-950/15"
                   placeholder="Tell clients what markets and channels you cover…"
                 />
               </Field>
@@ -432,7 +432,7 @@ export function MediaAgencySettingsForm({ agency }) {
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="h-10 rounded-full bg-[#0055ff] px-5 text-sm font-semibold text-white hover:bg-[#003ecc]"
+                className="h-10 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800"
               >
                 {isSaving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

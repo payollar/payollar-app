@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const inputClass =
-  "h-10 rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:bg-white focus-visible:ring-[#0055ff]/15";
+  "h-10 rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:bg-white focus-visible:ring-slate-950/15";
 
 function Field({ id, label, children, hint, className, required }) {
   return (
@@ -259,7 +259,7 @@ export function TransmissionCertificateForm({
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Anything the client should know…"
             rows={2}
-            className="min-h-[4.5rem] resize-y rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-[#0055ff]/40 focus-visible:bg-white focus-visible:ring-[#0055ff]/15"
+            className="min-h-[4.5rem] resize-y rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:bg-white focus-visible:ring-slate-950/15"
             disabled={isLoading}
           />
         </Field>
@@ -273,7 +273,7 @@ export function TransmissionCertificateForm({
           <div className="rounded-2xl border border-dashed border-slate-200 bg-[#f7f8fc] p-4">
             {!uploadedFileData ? (
               <div className="flex flex-col items-center py-3 text-center">
-                <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0055ff] shadow-sm ring-1 ring-slate-100">
+                <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-sm ring-1 ring-slate-100">
                   <Upload className="h-4 w-4" />
                 </span>
                 <p className="text-sm font-medium text-slate-800">
@@ -327,7 +327,7 @@ export function TransmissionCertificateForm({
                   }}
                   appearance={{
                     button:
-                      "ut-ready:bg-[#0055ff] ut-uploading:cursor-not-allowed h-9 rounded-full bg-[#0055ff] px-4 text-xs font-semibold text-white after:bg-[#003ecc]",
+                      "ut-ready:bg-slate-950 ut-uploading:cursor-not-allowed h-9 rounded-full bg-slate-950 px-4 text-xs font-semibold text-white after:bg-slate-800",
                     allowedContent: "hidden",
                   }}
                 />
@@ -395,7 +395,7 @@ export function TransmissionCertificateForm({
         <Button
           type="submit"
           disabled={isLoading}
-          className="h-10 rounded-full bg-[#0055ff] px-6 text-sm font-semibold text-white hover:bg-[#003ecc]"
+          className="h-10 rounded-full bg-slate-950 px-6 text-sm font-semibold text-white hover:bg-slate-800"
         >
           {isLoading ? (
             <>

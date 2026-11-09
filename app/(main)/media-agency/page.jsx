@@ -56,7 +56,7 @@ export default async function MediaAgencyDashboard() {
           </p>
           <Link
             href="/media-agency/settings"
-            className="mt-6 inline-flex h-10 items-center rounded-full bg-[#0055ff] px-4 text-sm font-semibold text-white hover:bg-[#003ecc]"
+            className="mt-6 inline-flex h-10 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
           >
             Go to settings
           </Link>

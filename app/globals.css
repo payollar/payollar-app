@@ -42,6 +42,9 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-rank-1: var(--rank-1);
+  --color-rank-2: var(--rank-2);
+  --color-rank-3: var(--rank-3);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -102,6 +105,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --rank-1: oklch(0.83 0.17 92);
+  --rank-2: oklch(0.71 0.02 250);
+  --rank-3: oklch(0.64 0.14 66);
 }
 
 .dark {
@@ -138,6 +144,9 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
+  --rank-1: oklch(0.86 0.16 92);
+  --rank-2: oklch(0.78 0.02 250);
+  --rank-3: oklch(0.75 0.12 66);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
@@ -246,16 +255,18 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
   display: flex !important;
 }
 
-/* Creator, client, and media-agency dashboards: one rounded shell. The rail stays inside it. */
+/* Creator, client, media-agency, and admin dashboards: one rounded shell. The rail stays inside it. */
 [data-creator-dashboard-nav],
 [data-client-dashboard-nav],
-[data-media-agency-dashboard-nav] {
+[data-media-agency-dashboard-nav],
+[data-admin-dashboard-nav] {
   height: 100% !important;
 }
 
 [data-creator-dashboard-nav] [data-slot="sidebar-wrapper"],
 [data-client-dashboard-nav] [data-slot="sidebar-wrapper"],
-[data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"] {
+[data-media-agency-dashboard-nav] [data-slot="sidebar-wrapper"],
+[data-admin-dashboard-nav] [data-slot="sidebar-wrapper"] {
   height: 100% !important;
   min-height: 100% !important;
   max-width: none !important;
@@ -264,7 +275,8 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 
 [data-creator-dashboard-nav] [data-slot="sidebar"],
 [data-client-dashboard-nav] [data-slot="sidebar"],
-[data-media-agency-dashboard-nav] [data-slot="sidebar"] {
+[data-media-agency-dashboard-nav] [data-slot="sidebar"],
+[data-admin-dashboard-nav] [data-slot="sidebar"] {
   position: relative !important;
   height: 100% !important;
   max-width: none !important;
@@ -272,14 +284,16 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 
 [data-creator-dashboard-nav] [data-slot="sidebar-gap"],
 [data-client-dashboard-nav] [data-slot="sidebar-gap"],
-[data-media-agency-dashboard-nav] [data-slot="sidebar-gap"] {
+[data-media-agency-dashboard-nav] [data-slot="sidebar-gap"],
+[data-admin-dashboard-nav] [data-slot="sidebar-gap"] {
   height: 100% !important;
   max-width: none !important;
 }
 
 [data-creator-dashboard-nav] [data-slot="sidebar-container"],
 [data-client-dashboard-nav] [data-slot="sidebar-container"],
-[data-media-agency-dashboard-nav] [data-slot="sidebar-container"] {
+[data-media-agency-dashboard-nav] [data-slot="sidebar-container"],
+[data-admin-dashboard-nav] [data-slot="sidebar-container"] {
   position: absolute !important;
   inset: 0 auto 0 0 !important;
   top: 0 !important;
@@ -297,7 +311,8 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 /* The global inset-header rule forces a bar open. Keep it only for the phone menu. */
 [data-creator-dashboard-nav] [data-slot="sidebar-inset"] header,
 [data-client-dashboard-nav] [data-slot="sidebar-inset"] header,
-[data-media-agency-dashboard-nav] [data-slot="sidebar-inset"] header {
+[data-media-agency-dashboard-nav] [data-slot="sidebar-inset"] header,
+[data-admin-dashboard-nav] [data-slot="sidebar-inset"] header {
   display: none !important;
   height: 0 !important;
   min-height: 0 !important;
@@ -307,7 +322,8 @@ body:has([data-auth-page]) header[data-dashboard-header="true"] {
 @media (max-width: 767px) {
   [data-creator-dashboard-nav] [data-slot="sidebar-inset"] header,
   [data-client-dashboard-nav] [data-slot="sidebar-inset"] header,
-  [data-media-agency-dashboard-nav] [data-slot="sidebar-inset"] header {
+  [data-media-agency-dashboard-nav] [data-slot="sidebar-inset"] header,
+  [data-admin-dashboard-nav] [data-slot="sidebar-inset"] header {
     display: flex !important;
     height: 3rem !important;
     min-height: 3rem !important;
