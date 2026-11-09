@@ -4,6 +4,12 @@ import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 import { verifyAdmin } from "@/actions/admin";
+import {
+  NOTIFICATION_TYPES,
+  disputeHrefForUser,
+  notifyAdmins,
+  notifyUser,
+} from "@/lib/notifications";
 
 const userSelect = {
   id: true,
@@ -262,6 +268,25 @@ export async function createDispute(formData) {
       reporter: { select: userSelect },
       againstUser: { select: userSelect },
     },
+  });
+
+  await notifyUser({
+    userId: againstUserId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.DISPUTE_FILED,
+    title: "Dispute opened on a booking",
+    body: subject,
+    href: disputeHrefForUser(againstUserId, dispute),
+    meta: { disputeId: dispute.id, appointmentId },
+  });
+
+  await notifyAdmins({
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.DISPUTE_FILED,
+    title: "New booking dispute",
+    body: `${user.name || "A user"} filed: ${subject}`,
+    href: "/admin",
+    meta: { disputeId: dispute.id, appointmentId },
   });
 
   revalidatePath("/creator/disputes");

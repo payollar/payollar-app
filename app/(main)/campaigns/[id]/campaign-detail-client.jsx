@@ -153,9 +153,9 @@ function objectiveData(campaign) {
   return {
     title: "How to apply",
     items: [
-      "Review the brief and apply with your best-fit pitch",
-      "Share portfolio or social links the brand can open",
-      "Confirm you can meet the deadline and location needs",
+      "Review the brief and confirm you can deliver",
+      "Apply with your saved Payollar profile — no retyping bio or portfolio",
+      "Add your fee, availability, and an optional note for the brand",
     ],
   };
 }
@@ -196,7 +196,7 @@ function faqItems(campaign) {
     },
     {
       q: "What should my application include?",
-      a: "Your profile details, portfolio or social links, relevant experience, and your proposed rate if you have one.",
+      a: "Your saved Payollar profile is shared automatically. You only add a proposed fee, availability, and an optional note.",
     },
     {
       q: "When is the deadline?",
@@ -759,8 +759,8 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                     {closed
                       ? "This brief is no longer accepting applications"
                       : canUseProfile
-                        ? "Use your creator profile to apply faster"
-                        : "Submit your pitch to the brand"}
+                        ? "Your profile is shared automatically"
+                        : "Complete your profile, then apply in one step"}
                   </p>
                 </div>
               </div>
@@ -768,7 +768,8 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             <div className="space-y-3 p-5">
               {!closed ? (
                 <p className="text-sm leading-relaxed text-slate-600">
-                  Share why you&apos;re a fit. Brands review applications directly on Payollar.
+                  Add your fee and availability. Your bio, skills, and portfolio
+                  from your creator profile go to the brand with the application.
                 </p>
               ) : (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">

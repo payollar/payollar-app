@@ -9,6 +9,7 @@ import {
   formatClientBriefMessage,
 } from "@/lib/booking-brief";
 import { decodeReportMessagePayload } from "@/lib/booking-report-message";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
 
 const personSelect = {
   id: true,
@@ -405,6 +406,23 @@ export async function startBookingChat({ doctorId, startTime, endTime, descripti
     }
 
     await ensureBookingConversation(appointment.id);
+
+    if (!existing) {
+      const clientUser = await db.user.findUnique({
+        where: { id: client.id },
+        select: { name: true },
+      });
+      await notifyUser({
+        userId: creator.id,
+        actorId: client.id,
+        type: NOTIFICATION_TYPES.BOOKING_STARTED,
+        title: "New booking chat",
+        body: `${clientUser?.name || "A client"} started a booking conversation with you.`,
+        href: `/messages/${appointment.id}`,
+        meta: { appointmentId: appointment.id },
+      });
+    }
+
     revalidatePath("/messages");
     revalidatePath("/client/bookings");
     revalidatePath("/creator/bookings");
@@ -551,6 +569,22 @@ export async function startCampaignApplicationChat(applicationId) {
       });
     }
 
+    if (isNew || messageCount === 0) {
+      await notifyUser({
+        userId: application.talentId,
+        actorId: owner.id,
+        type: NOTIFICATION_TYPES.BOOKING_STARTED,
+        title: "Campaign hire chat",
+        body: `${owner.name || "A brand"} opened a chat about “${application.campaign.title}”.`,
+        href: `/messages/${appointmentId}`,
+        meta: {
+          appointmentId,
+          applicationId: application.id,
+          campaignId: application.campaign.id,
+        },
+      });
+    }
+
     revalidatePath("/messages");
     revalidatePath(`/messages/${appointmentId}`);
     revalidatePath("/client/bookings");
@@ -591,6 +625,24 @@ export async function sendBookingMessage(appointmentId, body) {
     await db.bookingConversation.update({
       where: { id: conversation.id },
       data: { updatedAt: new Date() },
+    });
+
+    const recipientId =
+      conversation.clientId === userId
+        ? conversation.creatorId
+        : conversation.clientId;
+    const sender = await db.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    await notifyUser({
+      userId: recipientId,
+      actorId: userId,
+      type: NOTIFICATION_TYPES.BOOKING_MESSAGE,
+      title: `Message from ${sender?.name || "your booking chat"}`,
+      body: text.slice(0, 140),
+      href: `/messages/${appointmentId}`,
+      meta: { appointmentId },
     });
 
     revalidatePath("/messages");
@@ -652,6 +704,16 @@ export async function saveClientProjectBrief(appointmentId, payload = {}) {
         where: { id: conversation.id },
         data: { updatedAt: new Date() },
       });
+    });
+
+    await notifyUser({
+      userId: conversation.creatorId,
+      actorId: userId,
+      type: NOTIFICATION_TYPES.BOOKING_BRIEF,
+      title: wasSet ? "Booking brief updated" : "New booking brief",
+      body: "The client shared what they want for this session.",
+      href: `/messages/${appointmentId}`,
+      meta: { appointmentId },
     });
 
     revalidatePath("/messages");
@@ -756,6 +818,19 @@ export async function sendBookingInvoice(appointmentId, payload = {}) {
       });
 
       return invoice;
+    });
+
+    await notifyUser({
+      userId: conversation.clientId,
+      actorId: userId,
+      type: NOTIFICATION_TYPES.BOOKING_INVOICE,
+      title: "New booking invoice",
+      body: `GH₵ ${Number(result.amount).toLocaleString("en-GH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} — open chat to review and pay.`,
+      href: `/messages/${appointmentId}`,
+      meta: { appointmentId, invoiceId: result.id },
     });
 
     revalidatePath("/messages");

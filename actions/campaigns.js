@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
 
 const CAMPAIGN_OWNER_ROLES = ["CLIENT", "MEDIA_AGENCY"];
 
@@ -622,10 +623,35 @@ export async function applyToCampaign(formData) {
   }
 
   try {
+    const campaignId = String(formData.get("campaignId") || "").trim();
+    const rateRaw = formData.get("rate");
+    const availability = String(formData.get("availability") || "").trim();
+    const note = String(
+      formData.get("note") || formData.get("additionalInfo") || ""
+    ).trim();
+
+    if (!campaignId) {
+      throw new Error("Campaign is required");
+    }
+
+    const profile = await getCreatorApplicationProfile();
+    if (!profile?.ready) {
+      throw new Error(
+        "Complete your creator profile before applying. Brands receive your saved profile with the application."
+      );
+    }
+
     const talent = await db.user.findUnique({
       where: {
         id: authResult.userId,
         role: "CREATOR",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        verificationStatus: true,
+        mobileMoneyNumber: true,
       },
     });
 
@@ -637,27 +663,23 @@ export async function applyToCampaign(formData) {
       throw new Error("You must be verified to apply to campaigns");
     }
 
-    const campaignId = formData.get("campaignId");
-    const name = formData.get("name");
-    const email = formData.get("email");
-    const phone = formData.get("phone");
-    const location = formData.get("location");
-    const portfolio = formData.get("portfolio");
-    const experience = formData.get("experience");
-    const rate = formData.get("rate");
-    const availability = formData.get("availability");
-    const additionalInfo = formData.get("additionalInfo");
+    const name = String(profile.defaults?.name || talent.name || "").trim();
+    const email = String(profile.defaults?.email || talent.email || "").trim();
+    const phone = String(
+      profile.defaults?.phone || talent.mobileMoneyNumber || ""
+    ).trim();
+    const portfolio = String(profile.defaults?.portfolio || "").trim();
+    const experience = String(profile.defaults?.experience || "").trim();
+    const skillsNote = String(profile.defaults?.additionalInfo || "").trim();
 
-    // Validate required fields
-    if (!campaignId || !name || !email || !experience) {
-      throw new Error("Campaign ID, name, email, and experience are required");
+    if (!name || !email || !experience) {
+      throw new Error(
+        "Your profile is missing name, email, or experience details. Update your creator profile and try again."
+      );
     }
 
-    // Check if campaign exists and is active
     const campaign = await db.campaign.findUnique({
-      where: {
-        id: campaignId,
-      },
+      where: { id: campaignId },
     });
 
     if (!campaign) {
@@ -668,7 +690,6 @@ export async function applyToCampaign(formData) {
       throw new Error("This campaign is not currently accepting applications");
     }
 
-    // Check if already applied
     const existingApplication = await db.campaignApplication.findUnique({
       where: {
         campaignId_talentId: {
@@ -682,22 +703,54 @@ export async function applyToCampaign(formData) {
       throw new Error("You have already applied to this campaign");
     }
 
-    // Create application
+    const parsedRate =
+      rateRaw !== null && rateRaw !== undefined && String(rateRaw).trim() !== ""
+        ? parseFloat(String(rateRaw))
+        : profile.defaults?.rate
+          ? parseFloat(String(profile.defaults.rate))
+          : null;
+    const rate =
+      parsedRate != null && Number.isFinite(parsedRate) ? parsedRate : null;
+
+    const additionalInfo = [skillsNote, note ? `Campaign note: ${note}` : null]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 4000);
+
+    // Snapshot the creator's saved profile for the brand — only fee / availability / note come from the form.
     const application = await db.campaignApplication.create({
       data: {
         campaignId: campaignId,
         talentId: talent.id,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone?.trim() || null,
-        location: location?.trim() || null,
-        portfolio: portfolio?.trim() || null,
-        experience: experience.trim(),
-        rate: rate ? parseFloat(rate) : null,
-        availability: availability?.trim() || null,
-        additionalInfo: additionalInfo?.trim() || null,
+        name,
+        email,
+        phone: phone || null,
+        location: null,
+        portfolio: portfolio || null,
+        experience,
+        rate,
+        availability: availability || null,
+        additionalInfo: additionalInfo || null,
         status: "PENDING",
       },
+    });
+
+    const owner = await db.user.findUnique({
+      where: { id: campaign.clientId },
+      select: { id: true, role: true },
+    });
+    const applicationsHref =
+      owner?.role === "MEDIA_AGENCY"
+        ? `/media-agency/campaigns/${campaignId}/applications`
+        : `/client/campaigns/${campaignId}/applications`;
+    await notifyUser({
+      userId: campaign.clientId,
+      actorId: talent.id,
+      type: NOTIFICATION_TYPES.CAMPAIGN_APPLICATION,
+      title: "New campaign application",
+      body: `${name} applied to “${campaign.title || "your campaign"}”.`,
+      href: applicationsHref,
+      meta: { campaignId, applicationId: application.id },
     });
 
     revalidatePath("/campaigns");
@@ -763,6 +816,28 @@ export async function updateApplicationStatus(formData) {
         status: status,
       },
     });
+
+    if (["ACCEPTED", "REJECTED", "REDRAWN"].includes(status)) {
+      const statusLabel =
+        status === "ACCEPTED"
+          ? "accepted"
+          : status === "REJECTED"
+            ? "declined"
+            : "released";
+      await notifyUser({
+        userId: application.talentId,
+        actorId: owner.id,
+        type: NOTIFICATION_TYPES.APPLICATION_STATUS,
+        title: `Application ${statusLabel}`,
+        body: `Your application was ${statusLabel}.`,
+        href: "/creator/applications",
+        meta: {
+          applicationId,
+          campaignId: application.campaignId,
+          status,
+        },
+      });
+    }
 
     revalidateCampaignPaths();
     revalidatePath(`/client/campaigns/${application.campaignId}/applications`);
@@ -867,6 +942,22 @@ export async function redrawCampaignApplication(applicationId, note = "") {
       revalidatePath("/messages");
       revalidatePath(`/messages/${openBooking.id}`);
     }
+
+    await notifyUser({
+      userId: application.talentId,
+      actorId: owner.id,
+      type: NOTIFICATION_TYPES.APPLICATION_STATUS,
+      title: "Hire redrawn",
+      body: reason
+        ? `Your hire for “${application.campaign.title}” was released. ${reason}`
+        : `Your hire for “${application.campaign.title}” was released.`,
+      href: "/creator/applications",
+      meta: {
+        applicationId,
+        campaignId: application.campaignId,
+        status: "REDRAWN",
+      },
+    });
 
     revalidateCampaignPaths();
     revalidatePath(`/client/campaigns/${application.campaignId}/applications`);

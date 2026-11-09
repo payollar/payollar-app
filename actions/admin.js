@@ -4,6 +4,11 @@ import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 import { sendVerificationStatusEmail } from "@/lib/email";
+import {
+  NOTIFICATION_TYPES,
+  disputeHrefForUser,
+  notifyUser,
+} from "@/lib/notifications";
 
 /**
  * Verifies if current user has admin role
@@ -105,6 +110,21 @@ export async function updateDoctorStatus(formData) {
       data: {
         verificationStatus: status,
       },
+    });
+
+    await notifyUser({
+      userId: doctorId,
+      type: NOTIFICATION_TYPES.VERIFICATION_STATUS,
+      title:
+        status === "VERIFIED"
+          ? "You're verified on Payollar"
+          : "Verification was not approved",
+      body:
+        status === "VERIFIED"
+          ? "Your creator profile is live — you can take bookings and apply to campaigns."
+          : "Your verification was rejected. Update your profile and try again.",
+      href: status === "VERIFIED" ? "/creator" : "/creator/verification",
+      meta: { status },
     });
 
     // Send verification status email
@@ -1162,7 +1182,32 @@ export async function updateDisputeStatus(formData) {
       },
     });
 
+    const statusLabel = String(status).toLowerCase().replace(/_/g, " ");
+    const body = resolution
+      ? String(resolution).slice(0, 160)
+      : `Admin marked this dispute as ${statusLabel}.`;
+    await notifyUser({
+      userId: dispute.reporterId,
+      actorId: authResult?.userId || null,
+      type: NOTIFICATION_TYPES.DISPUTE_UPDATED,
+      title: `Dispute ${statusLabel}`,
+      body,
+      href: disputeHrefForUser(dispute.reporterId, dispute),
+      meta: { disputeId: dispute.id, status },
+    });
+    await notifyUser({
+      userId: dispute.againstUserId,
+      actorId: authResult?.userId || null,
+      type: NOTIFICATION_TYPES.DISPUTE_UPDATED,
+      title: `Dispute ${statusLabel}`,
+      body,
+      href: disputeHrefForUser(dispute.againstUserId, dispute),
+      meta: { disputeId: dispute.id, status },
+    });
+
     revalidatePath("/admin");
+    revalidatePath("/client/disputes");
+    revalidatePath("/creator/disputes");
     return { success: true, dispute };
   } catch (error) {
     console.error("Failed to update dispute:", error);

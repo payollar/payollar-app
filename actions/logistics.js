@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { parseLogisticsEvents } from "@/lib/logistics-ui";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
 
 const person = { id: true, name: true, imageUrl: true, specialty: true };
 
@@ -345,6 +346,16 @@ export async function startLogisticsFromApplication(applicationId) {
     select: { id: true },
   });
 
+  await notifyUser({
+    userId: application.talentId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_KIT,
+    title: "New product kit",
+    body: `${user.name || "A brand"} started a kit for ${application.campaign?.title || "your campaign hire"}.`,
+    href: `/creator/logistics/${created.id}`,
+    meta: { shipmentId: created.id, applicationId: application.id },
+  });
+
   revalidateLogistics(created.id);
   return { success: true, shipmentId: created.id, existing: false };
 }
@@ -402,6 +413,16 @@ export async function startLogisticsFromAppointment(appointmentId) {
       }),
     },
     select: { id: true },
+  });
+
+  await notifyUser({
+    userId: appointment.creatorId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_KIT,
+    title: "New product kit",
+    body: `${user.name || "A client"} started a kit for your booking.`,
+    href: `/creator/logistics/${created.id}`,
+    meta: { shipmentId: created.id, appointmentId: appointment.id },
   });
 
   revalidateLogistics(created.id);
@@ -475,6 +496,16 @@ export async function recordDispatch(shipmentId, payload = {}) {
     select: { id: true },
   });
 
+  await notifyUser({
+    userId: row.creatorId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_DISPATCHED,
+    title: "Kit dispatched",
+    body: `A package is on the way via ${refLabel}.`,
+    href: `/creator/logistics/${updated.id}`,
+    meta: { shipmentId: updated.id },
+  });
+
   revalidateLogistics(updated.id);
   return { success: true, shipment: await loadShipment(updated.id) };
 }
@@ -507,6 +538,16 @@ export async function confirmReceived(shipmentId, payload = {}) {
       }),
     },
     select: { id: true },
+  });
+
+  await notifyUser({
+    userId: row.clientId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_RECEIVED,
+    title: "Kit received",
+    body: `${user.name || "Creator"} confirmed the package arrived safely.`,
+    href: `/client/logistics/${updated.id}`,
+    meta: { shipmentId: updated.id },
   });
 
   revalidateLogistics(updated.id);
@@ -542,6 +583,16 @@ export async function reportLogisticsProblem(shipmentId, payload = {}) {
       }),
     },
     select: { id: true },
+  });
+
+  await notifyUser({
+    userId: row.clientId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_PROBLEM,
+    title: "Kit delivery issue",
+    body: problemNotes.slice(0, 160),
+    href: `/client/logistics/${updated.id}`,
+    meta: { shipmentId: updated.id },
   });
 
   revalidateLogistics(updated.id);
@@ -625,6 +676,23 @@ export async function requestLogisticsReturn(shipmentId, payload = {}) {
     select: { id: true },
   });
 
+  const recipientId =
+    actorRole === "CLIENT" ? row.creatorId : row.clientId;
+  await notifyUser({
+    userId: recipientId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_RETURN,
+    title: "Kit return requested",
+    body: returnNotes
+      ? returnNotes.slice(0, 160)
+      : "A return was requested on a kit.",
+    href:
+      recipientId === row.clientId
+        ? `/client/logistics/${updated.id}`
+        : `/creator/logistics/${updated.id}`,
+    meta: { shipmentId: updated.id },
+  });
+
   revalidateLogistics(updated.id);
   return { success: true, shipment: await loadShipment(updated.id) };
 }
@@ -658,6 +726,16 @@ export async function acknowledgeLogisticsReturn(shipmentId, payload = {}) {
       }),
     },
     select: { id: true },
+  });
+
+  await notifyUser({
+    userId: row.creatorId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.LOGISTICS_RETURN,
+    title: "Return acknowledged",
+    body: "The brand acknowledged the kit return.",
+    href: `/creator/logistics/${updated.id}`,
+    meta: { shipmentId: updated.id },
   });
 
   revalidateLogistics(updated.id);

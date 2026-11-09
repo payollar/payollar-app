@@ -76,6 +76,23 @@ model User {
   disputesFiled             Dispute[]           @relation("DisputesFiled")
   disputesAgainst           Dispute[]           @relation("DisputesAgainst")
   disputesResolved          Dispute[]           @relation("DisputesResolved")
+  notifications             Notification[]
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String?   @db.Text
+  href      String?
+  meta      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt, createdAt])
 }
 
 model ProfileView {

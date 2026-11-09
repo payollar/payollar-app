@@ -11,6 +11,7 @@ import {
 import { checklistLabelsFromBrief } from "@/lib/booking-brief";
 import { encodeReportMessagePayload } from "@/lib/booking-report-message";
 import { ensureBookingConversation } from "@/lib/booking-chat";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
 
 function revalidateReportPaths(reportId) {
   revalidatePath("/creator/reports");
@@ -601,6 +602,16 @@ export async function submitDeliveryReport(reportId, payload = {}) {
     include: reportInclude,
   });
 
+  await notifyUser({
+    userId: updated.clientId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.DELIVERY_SUBMITTED,
+    title: "Delivery report submitted",
+    body: `${user.name || "Creator"} submitted “${updated.title || "Delivery report"}” for review.`,
+    href: `/client/reports/${updated.id}`,
+    meta: { reportId: updated.id, appointmentId: updated.appointmentId },
+  });
+
   revalidateReportPaths(reportId);
   return { report: serializeReport(updated) };
 }
@@ -679,6 +690,16 @@ export async function updateDeliveryReportMetricTargets(reportId, targets = {}) 
     include: reportInclude,
   });
 
+  await notifyUser({
+    userId: updated.creatorId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.DELIVERY_TARGETS,
+    title: "Metric targets updated",
+    body: `${user.name || "Client"} set performance targets on “${updated.title || "your report"}”.`,
+    href: `/creator/reports/${updated.id}`,
+    meta: { reportId: updated.id },
+  });
+
   revalidateReportPaths(reportId);
   return { report: serializeReport(updated) };
 }
@@ -729,6 +750,22 @@ export async function reviewDeliveryReport(reportId, { decision, feedback } = {}
     revalidatePath(`/creator/bookings/${updated.appointmentId}`);
     revalidatePath(`/messages/${updated.appointmentId}`);
   }
+
+  await notifyUser({
+    userId: updated.creatorId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.DELIVERY_REVIEWED,
+    title:
+      decision === "APPROVED"
+        ? "Delivery report approved"
+        : "Revision requested on delivery report",
+    body:
+      decision === "APPROVED"
+        ? "The client approved your delivery report."
+        : note || "The client asked for changes on your delivery report.",
+    href: `/creator/reports/${updated.id}`,
+    meta: { reportId: updated.id, decision },
+  });
 
   revalidateReportPaths(reportId);
   return { report: serializeReport(updated) };

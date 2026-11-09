@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
 
 const PLATFORM_FEE_PERCENTAGE = 0.01; // 1% platform fee
 
@@ -436,6 +437,21 @@ export async function purchaseDigitalProduct(formData) {
           increment: 1,
         },
       },
+    });
+
+    await notifyUser({
+      userId: product.creator.id,
+      actorId: buyer.id,
+      type: NOTIFICATION_TYPES.PRODUCT_SALE,
+      title: "Digital product sold",
+      body: `${buyer.name || "A client"} bought “${product.title}” · GH₵ ${Number(
+        product.price || 0
+      ).toLocaleString("en-GH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}.`,
+      href: "/creator/products",
+      meta: { productId: product.id, saleId: sale.id },
     });
 
     revalidatePath("/creator");

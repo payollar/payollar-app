@@ -1,4 +1,5 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,9 +38,14 @@ export function DashboardShell({ sidebar, children, panelAttr, railTone = "dark"
                   isLightRail ? "md:border-slate-950" : "md:border-white/70"
                 )}
               >
-                <header className="flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 px-3 md:hidden">
-                  <SidebarTrigger className="size-9 shrink-0 text-slate-700 hover:bg-slate-100 hover:text-slate-950" />
-                  <span className="text-sm font-semibold text-slate-950">Menu</span>
+                <header className="flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 px-3 md:px-4">
+                  <SidebarTrigger className="size-9 shrink-0 text-slate-700 hover:bg-slate-100 hover:text-slate-950 md:hidden" />
+                  <span className="text-sm font-semibold text-slate-950 md:hidden">
+                    Menu
+                  </span>
+                  <div className="ml-auto flex items-center gap-1">
+                    <NotificationBell />
+                  </div>
                 </header>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-[#f4f6fb] px-3 py-3 md:px-6 md:py-5">
                   {children}

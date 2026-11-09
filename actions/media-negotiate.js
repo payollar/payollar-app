@@ -3,6 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
+
+async function resolveMediaCounterpartUserId(negotiation, perspective) {
+  if (perspective === "CLIENT") {
+    const agency = await db.mediaAgency.findUnique({
+      where: { id: negotiation.agencyId },
+      select: { userId: true },
+    });
+    return agency?.userId || null;
+  }
+  return negotiation.clientUserId || null;
+}
 
 function money(value) {
   return `GH₵ ${Number(value || 0).toLocaleString("en-GH", {
@@ -325,6 +337,23 @@ export async function sendMediaNegotiationMessage(negotiationId, body) {
     data: { updatedAt: new Date() },
   });
 
+  const counterpartId = await resolveMediaCounterpartUserId(
+    data.negotiation,
+    data.perspective
+  );
+  await notifyUser({
+    userId: counterpartId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.MEDIA_MESSAGE,
+    title: "New media negotiation message",
+    body: text.slice(0, 140),
+    href:
+      data.perspective === "CLIENT"
+        ? `/media-agency/negotiations/${negotiationId}`
+        : `/client/media/negotiate/${negotiationId}`,
+    meta: { negotiationId },
+  });
+
   revalidateNegotiation(negotiationId);
   return getMediaNegotiation(negotiationId);
 }
@@ -487,6 +516,20 @@ export async function acceptMediaNegotiation(negotiationId, { amount } = {}) {
     }
   });
 
+  const counterpartId = await resolveMediaCounterpartUserId(n, data.perspective);
+  await notifyUser({
+    userId: counterpartId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.MEDIA_STATUS,
+    title: "Media deal accepted",
+    body: `Agreed total: ${money(agreed)} for “${n.title || "media booking"}”.`,
+    href:
+      data.perspective === "CLIENT"
+        ? `/media-agency/negotiations/${negotiationId}`
+        : `/client/media/negotiate/${negotiationId}`,
+    meta: { negotiationId, amount: agreed },
+  });
+
   revalidateNegotiation(negotiationId, n.sourceType, n.sourceId);
   return getMediaNegotiation(negotiationId);
 }
@@ -553,6 +596,16 @@ export async function approveMediaDiscount(negotiationId, { discountPct, note } 
     }
   });
 
+  await notifyUser({
+    userId: n.clientUserId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.MEDIA_STATUS,
+    title: "Media discount approved",
+    body: `Station approved ${pct}% off · ${money(agreed)}.`,
+    href: `/client/media/negotiate/${negotiationId}`,
+    meta: { negotiationId, amount: agreed, discountPct: pct },
+  });
+
   revalidateNegotiation(negotiationId, n.sourceType, n.sourceId);
   return getMediaNegotiation(negotiationId);
 }
@@ -587,6 +640,16 @@ export async function rejectMediaNegotiation(negotiationId, { note } = {}) {
       data: { status: "REJECTED" },
     }),
   ]);
+
+  await notifyUser({
+    userId: data.negotiation.clientUserId,
+    actorId: user.id,
+    type: NOTIFICATION_TYPES.MEDIA_STATUS,
+    title: "Media negotiation declined",
+    body: noteText || "Station declined the request. List quote still stands.",
+    href: `/client/media/negotiate/${negotiationId}`,
+    meta: { negotiationId },
+  });
 
   revalidateNegotiation(negotiationId);
   return getMediaNegotiation(negotiationId);
