@@ -186,7 +186,11 @@ const reportInclude = {
   creator: { select: { id: true, name: true, imageUrl: true, email: true } },
   client: { select: { id: true, name: true, imageUrl: true, email: true } },
   application: {
-    include: {
+    select: {
+      id: true,
+      status: true,
+      name: true,
+      rate: true,
       campaign: {
         select: {
           id: true,
@@ -211,6 +215,7 @@ const reportInclude = {
       endTime: true,
       notes: true,
       clientDescription: true,
+      agreedAmount: true,
     },
   },
 };

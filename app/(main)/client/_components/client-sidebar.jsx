@@ -21,7 +21,6 @@ import {
   Clapperboard,
   ChevronDown,
   Users,
-  ListOrdered,
   Package,
   Scale,
 } from "lucide-react";
@@ -75,37 +74,6 @@ const menuItems = [
     icon: Calendar,
     href: "/client/bookings",
     key: "orders",
-    children: [
-      {
-        title: "All orders",
-        href: "/client/bookings",
-        icon: ListOrdered,
-        isActive: (pathname, params) =>
-          isBookingsPath(pathname) &&
-          !["CAMPAIGN", "MEDIA", "TALENT"].includes(params.category || ""),
-      },
-      {
-        title: "Campaign orders",
-        href: "/client/bookings?category=CAMPAIGN",
-        icon: Megaphone,
-        isActive: (pathname, params) =>
-          isBookingsPath(pathname) && params.category === "CAMPAIGN",
-      },
-      {
-        title: "Media orders",
-        href: "/client/bookings?category=MEDIA",
-        icon: Clapperboard,
-        isActive: (pathname, params) =>
-          isBookingsPath(pathname) && params.category === "MEDIA",
-      },
-      {
-        title: "Talent orders",
-        href: "/client/bookings?category=TALENT",
-        icon: Users,
-        isActive: (pathname, params) =>
-          isBookingsPath(pathname) && params.category === "TALENT",
-      },
-    ],
   },
   { title: "Messages", icon: MessageCircle, href: "/messages" },
   { title: "Disputes", icon: Scale, href: "/client/disputes" },
@@ -157,25 +125,21 @@ export function ClientSidebar() {
   const ordersLabel = formatOrdersBadge(actionableOrders);
   const params = {
     section: searchParams?.get("section") || "",
-    category: searchParams?.get("category") || "",
   };
 
   const routeOpenKeys = {
-    orders: isBookingsPath(pathname),
     reports: isReportsPath(pathname),
   };
 
   const [openKeys, setOpenKeys] = useState(() => ({
-    orders: Boolean(routeOpenKeys.orders),
     reports: Boolean(routeOpenKeys.reports),
   }));
 
   useEffect(() => {
     setOpenKeys((prev) => ({
-      orders: prev.orders || routeOpenKeys.orders,
       reports: prev.reports || routeOpenKeys.reports,
     }));
-  }, [routeOpenKeys.orders, routeOpenKeys.reports]);
+  }, [routeOpenKeys.reports]);
 
   const handleSignOut = async () => {
     try {
@@ -238,27 +202,26 @@ export function ClientSidebar() {
                 const childActive = hasChildren
                   ? item.children.some((child) => child.isActive?.(pathname, params))
                   : false;
+                const isOrders = item.key === "orders";
                 const isActive =
                   childActive ||
+                  (isOrders && isBookingsPath(pathname)) ||
                   pathname === item.href ||
                   (item.href !== "/client" &&
                     !hasChildren &&
+                    !isOrders &&
                     pathname?.startsWith(item.href));
                 const expanded = hasChildren
                   ? Boolean(openKeys[item.key] || routeOpenKeys[item.key])
                   : false;
 
                 if (hasChildren) {
-                  const isOrdersGroup = item.key === "orders";
-                  const ordersBadge = isOrdersGroup ? ordersLabel : null;
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         type="button"
                         isActive={isActive}
-                        tooltip={
-                          ordersBadge ? `${item.title} (${ordersBadge})` : item.title
-                        }
+                        tooltip={item.title}
                         onClick={() => toggleOpen(item.key)}
                         className={
                           isActive
@@ -275,11 +238,6 @@ export function ClientSidebar() {
                           )}
                         />
                       </SidebarMenuButton>
-                      {ordersBadge ? (
-                        <SidebarMenuBadge className="!bg-[#0055ff] !text-white peer-hover/menu-button:!text-white peer-data-[active=true]/menu-button:!text-white group-data-[collapsible=icon]:!flex">
-                          {ordersBadge}
-                        </SidebarMenuBadge>
-                      ) : null}
                       {expanded ? (
                         <SidebarMenuSub className="!mx-3.5 !border-white/10">
                           {item.children.map((child) => {
@@ -321,9 +279,11 @@ export function ClientSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={
-                        isMessages && unreadLabel
-                          ? `${item.title} (${unreadLabel})`
-                          : item.title
+                        isOrders && ordersLabel
+                          ? `${item.title} (${ordersLabel})`
+                          : isMessages && unreadLabel
+                            ? `${item.title} (${unreadLabel})`
+                            : item.title
                       }
                       className={
                         isActive
@@ -336,6 +296,11 @@ export function ClientSidebar() {
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {isOrders && ordersLabel ? (
+                      <SidebarMenuBadge className="!bg-[#0055ff] !text-white peer-hover/menu-button:!text-white peer-data-[active=true]/menu-button:!text-white group-data-[collapsible=icon]:!flex">
+                        {ordersLabel}
+                      </SidebarMenuBadge>
+                    ) : null}
                     {isMessages && unreadLabel ? (
                       <SidebarMenuBadge className="!bg-[#0055ff] !text-white peer-hover/menu-button:!text-white peer-data-[active=true]/menu-button:!text-white group-data-[collapsible=icon]:!flex">
                         {unreadLabel}

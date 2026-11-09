@@ -38,7 +38,7 @@ export function DashboardShell({ sidebar, children, panelAttr, railTone = "dark"
                   isLightRail ? "md:border-slate-950" : "md:border-white/70"
                 )}
               >
-                <header className="flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 px-3 md:px-4">
+                <header className="relative z-40 flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 md:px-4">
                   <SidebarTrigger className="size-9 shrink-0 text-slate-700 hover:bg-slate-100 hover:text-slate-950 md:hidden" />
                   <span className="text-sm font-semibold text-slate-950 md:hidden">
                     Menu

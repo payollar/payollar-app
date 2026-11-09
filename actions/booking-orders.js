@@ -39,11 +39,17 @@ function resolveAppointmentCategory(row) {
   return "TALENT";
 }
 
+function campaignTitleFromBrief(brief) {
+  const match = String(brief || "").match(/^Campaign application:\s*(.+)$/im);
+  return match?.[1]?.trim() || null;
+}
+
 function shape(row, userId) {
   const other = row.creatorId === userId ? row.client : row.creator;
   const invoices = Array.isArray(row.invoices) ? row.invoices : [];
   const invoice = mapInvoice(latestOpenInvoice(invoices));
   const category = resolveAppointmentCategory(row);
+  const campaignTitle = campaignTitleFromBrief(row.clientDescription);
   return {
     id: row.id,
     category,
@@ -56,9 +62,16 @@ function shape(row, userId) {
     updatedAt: row.updatedAt.toISOString(),
     brief: row.clientDescription?.trim() || "",
     notes: row.notes?.trim() || "",
+    campaignTitle,
     agreedAmount: row.agreedAmount != null ? Number(row.agreedAmount) : null,
     invoice,
     hasOpenInvoice: Boolean(invoice && invoice.status === "SENT"),
+    paymentRecorded: Boolean(
+      (invoice && invoice.status === "PAID") ||
+        (row.agreedAmount != null &&
+          !invoices.some((item) => item.status === "SENT") &&
+          ["SCHEDULED", "COMPLETED"].includes(row.status))
+    ),
     other: {
       id: other?.id || "",
       name: other?.name || "Payollar user",
@@ -116,6 +129,7 @@ function shapeMediaBooking(booking) {
     updatedAt: toIso(booking.updatedAt) || start,
     brief: [booking.packageName, typeLabel].filter(Boolean).join(" · "),
     notes: booking.notes?.trim() || "",
+    campaignTitle: listingName,
     agreedAmount: Number.isFinite(amount) ? amount : null,
     invoice: Number.isFinite(amount) && amount > 0
       ? {
@@ -129,7 +143,8 @@ function shapeMediaBooking(booking) {
           createdAt: toIso(booking.createdAt) || start,
         }
       : null,
-    hasOpenInvoice: false,
+    hasOpenInvoice: booking.status === "PENDING",
+    paymentRecorded: booking.status !== "PENDING",
     other: {
       id: booking.agency?.id || booking.listing?.id || "",
       name: agencyName,
