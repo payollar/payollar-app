@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -13,25 +12,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadButton } from "@uploadthing/react";
-import { ImageIcon, Loader2, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 import { updateService } from "@/actions/services";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { cn, uploadThingResultToUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { SERVICE_CATEGORIES } from "@/lib/service-categories";
 
-const SERVICE_CATEGORIES = [
-  "Consultation",
-  "Performance",
-  "Content Creation",
-  "Music Production",
-  "Video Production",
-  "Photography",
-  "Writing",
-  "Design",
-  "Coaching",
-  "Tutoring",
-  "Other",
+const CHARGE_OPTIONS = [
+  { value: "PER_HOUR", label: "Per hour" },
+  { value: "PER_SESSION", label: "Per session" },
+  { value: "FIXED", label: "Fixed price" },
 ];
 
 const fieldClass =
@@ -50,7 +49,6 @@ export function EditServiceModal({ open, onOpenChange, service }) {
     category: "",
     isActive: true,
   });
-  const [imageUrl, setImageUrl] = useState(null);
 
   useEffect(() => {
     if (service) {
@@ -63,7 +61,6 @@ export function EditServiceModal({ open, onOpenChange, service }) {
         category: service.category || "",
         isActive: service.isActive ?? true,
       });
-      setImageUrl(service.imageUrl || null);
     }
   }, [service]);
 
@@ -96,7 +93,6 @@ export function EditServiceModal({ open, onOpenChange, service }) {
       submitFormData.append("duration", formData.duration || "");
       submitFormData.append("category", formData.category || "");
       submitFormData.append("isActive", formData.isActive.toString());
-      submitFormData.append("imageUrl", imageUrl || "");
 
       const result = await updateService(submitFormData);
 
@@ -149,27 +145,27 @@ export function EditServiceModal({ open, onOpenChange, service }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">Category</Label>
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((cat) => {
-                    const selected = formData.category === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => handleInputChange("category", selected ? "" : cat)}
-                        className={cn(
-                          "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                          selected
-                            ? "border-[#0055ff] bg-[#0055ff] text-white"
-                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-                        )}
-                      >
+                <Label htmlFor="edit-category" className="text-slate-700">
+                  Category
+                </Label>
+                <Select
+                  value={formData.category || undefined}
+                  onValueChange={(value) => handleInputChange("category", value)}
+                >
+                  <SelectTrigger
+                    id="edit-category"
+                    className={cn(fieldClass, "w-full justify-between shadow-none")}
+                  >
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
                         {cat}
-                      </button>
-                    );
-                  })}
-                </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-description" className="text-slate-700">Description</Label>
@@ -181,61 +177,6 @@ export function EditServiceModal({ open, onOpenChange, service }) {
                   className="min-h-28 resize-none rounded-xl border border-slate-300 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
                   placeholder="What the client gets, and how long it usually takes."
                 />
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">Cover</p>
-              <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 sm:flex-row sm:items-center">
-                <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl bg-white sm:w-40">
-                  {imageUrl ? (
-                    <Image src={imageUrl} alt="" fill className="object-cover" sizes="160px" />
-                  ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-1 text-slate-400">
-                      <ImageIcon className="h-5 w-5" />
-                      <span className="text-xs">No cover yet</span>
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 space-y-2">
-                  <p className="text-sm text-slate-500">
-                    Optional. Your profile photo still shows on the card.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <UploadButton
-                      endpoint="serviceImage"
-                      appearance={{
-                        container: "w-auto items-start",
-                        button: "h-10 rounded-xl bg-slate-950 px-4 text-sm font-medium text-white",
-                        allowedContent: "text-xs text-slate-400",
-                      }}
-                      onClientUploadComplete={(res) => {
-                        const url = uploadThingResultToUrl(res);
-                        if (url) {
-                          setImageUrl(url);
-                          toast.success("Image uploaded");
-                        } else {
-                          toast.error("Upload completed but URL was not found");
-                        }
-                      }}
-                      onUploadError={(err) => {
-                        console.error(err);
-                        toast.error(err?.message || "Upload failed");
-                      }}
-                    />
-                    {imageUrl ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-10 rounded-xl border-slate-300"
-                        onClick={() => setImageUrl(null)}
-                      >
-                        <X className="mr-1 h-4 w-4" />
-                        Remove
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -261,31 +202,27 @@ export function EditServiceModal({ open, onOpenChange, service }) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">Charge</Label>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {[
-                    { value: "PER_HOUR", label: "Per hour" },
-                    { value: "PER_SESSION", label: "Per session" },
-                    { value: "FIXED", label: "Fixed price" },
-                  ].map((option) => {
-                    const selected = formData.rateType === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => handleInputChange("rateType", option.value)}
-                        className={cn(
-                          "h-11 rounded-xl border text-sm font-medium transition-colors",
-                          selected
-                            ? "border-[#0055ff] bg-[#0055ff]/[0.06] text-[#0055ff]"
-                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-                        )}
-                      >
+                <Label htmlFor="edit-rateType" className="text-slate-700">
+                  Charge
+                </Label>
+                <Select
+                  value={formData.rateType}
+                  onValueChange={(value) => handleInputChange("rateType", value)}
+                >
+                  <SelectTrigger
+                    id="edit-rateType"
+                    className={cn(fieldClass, "w-full justify-between shadow-none")}
+                  >
+                    <SelectValue placeholder="How you charge" />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
+                    {CHARGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {formData.rateType === "PER_SESSION" ? (
                 <div className="space-y-2">
@@ -305,29 +242,24 @@ export function EditServiceModal({ open, onOpenChange, service }) {
 
             <section className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-wider text-[#0055ff]">Visibility</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  { value: true, title: "Active", detail: "Clients can see and book this service." },
-                  { value: false, title: "Hidden", detail: "Keep it off your public profile for now." },
-                ].map((option) => {
-                  const selected = formData.isActive === option.value;
-                  return (
-                    <button
-                      key={option.title}
-                      type="button"
-                      onClick={() => handleInputChange("isActive", option.value)}
-                      className={cn(
-                        "rounded-2xl border px-4 py-3 text-left transition-colors",
-                        selected
-                          ? "border-[#0055ff] bg-[#0055ff]/[0.06]"
-                          : "border-slate-300 bg-white hover:border-slate-400"
-                      )}
-                    >
-                      <span className="block text-sm font-medium text-slate-950">{option.title}</span>
-                      <span className="mt-0.5 block text-xs text-slate-500">{option.detail}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-950">
+                    {formData.isActive ? "Active" : "Hidden"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {formData.isActive
+                      ? "Clients can see and book this service."
+                      : "Keep it off your public profile for now."}
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => handleInputChange("isActive", checked)}
+                  size="lg"
+                  className="shrink-0 data-[state=checked]:bg-[#0055ff] data-[state=unchecked]:bg-slate-300"
+                  aria-label="Toggle service visibility"
+                />
               </div>
             </section>
           </div>

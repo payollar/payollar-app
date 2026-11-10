@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,25 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { format } from "date-fns";
-import {
+  ArrowUpRight,
   Briefcase,
   Plus,
   Edit,
   Trash2,
-  Clock,
   CheckCircle2,
   XCircle,
   Search,
   Filter,
   TrendingUp,
-  MoreVertical,
   User,
 } from "lucide-react";
 import {
@@ -42,13 +32,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BorderBeam } from "border-beam";
 import { CreateServiceModal } from "./create-service-modal";
 import { EditServiceModal } from "./edit-service-modal";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 import { deleteService } from "@/actions/services";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function CreatorServices({
   services = [],
@@ -126,17 +116,14 @@ export function CreatorServices({
   }, [services]);
 
   const getRateDisplay = (service) => {
-    const rate = service.rate.toFixed(2);
-    switch (service.rateType) {
-      case "PER_HOUR":
-        return `₵${rate}/hour`;
-      case "PER_SESSION":
-        return `₵${rate}/session`;
-      case "FIXED":
-        return `₵${rate}`;
-      default:
-        return `₵${rate}`;
-    }
+    const amount = Number(service.rate);
+    const rate = Number.isFinite(amount)
+      ? amount.toLocaleString("en-GH", {
+          minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+          maximumFractionDigits: 2,
+        })
+      : "0";
+    return `Starting from ₵${rate}`;
   };
 
   return (
@@ -229,26 +216,16 @@ export function CreatorServices({
               Active services ({activeServices.length})
             </h3>
           </div>
-          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch justify-items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {activeServices.map((service) => (
-              <BorderBeam
+              <ServiceCard
                 key={service.id}
-                className="h-full"
-                size="md"
-                theme="light"
-                colorVariant="ocean"
-                strength={0.85}
-                borderRadius={16}
-                duration={6}
-              >
-                <ServiceCard
-                  service={service}
-                  creator={creator}
-                  getRateDisplay={getRateDisplay}
-                  onEdit={() => setEditingService(service)}
-                  onDelete={() => handleDelete(service.id)}
-                />
-              </BorderBeam>
+                service={service}
+                creator={creator}
+                getRateDisplay={getRateDisplay}
+                onEdit={() => setEditingService(service)}
+                onDelete={() => handleDelete(service.id)}
+              />
             ))}
           </div>
         </div>
@@ -263,7 +240,7 @@ export function CreatorServices({
               Inactive services ({inactiveServices.length})
             </h3>
           </div>
-          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch justify-items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {inactiveServices.map((service) => (
               <ServiceCard
                 key={service.id}
@@ -338,109 +315,84 @@ export function CreatorServices({
   );
 }
 
+function rateTypeLabel(rateType) {
+  if (rateType === "PER_HOUR") return "Hourly";
+  if (rateType === "PER_SESSION") return "Session";
+  if (rateType === "FIXED") return "Fixed";
+  return "Rate";
+}
+
 function ServiceCard({ service, creator, getRateDisplay, onEdit, onDelete }) {
   const creatorName = creator?.name || "Creator";
   const creatorImage = creator?.imageUrl || null;
+  const tags = [
+    rateTypeLabel(service.rateType),
+    service.category || null,
+    service.duration ? `${service.duration} min` : null,
+  ].filter(Boolean);
 
   return (
     <article
-      className={`flex h-full flex-col overflow-hidden ${creatorCardClass} ${
-        !service.isActive ? "opacity-70" : ""
-      }`}
+      className={cn(
+        "flex h-full w-full max-w-none flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:max-w-[17.5rem]",
+        !service.isActive && "opacity-70"
+      )}
     >
-      {service.imageUrl ? (
-        <div className="relative h-36 w-full bg-slate-100">
-          <Image
-            src={service.imageUrl}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 33vw"
-          />
-        </div>
-      ) : null}
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-start gap-3">
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#e8f0ff]">
-            {creatorImage ? (
-              <Image src={creatorImage} alt="" fill className="object-cover" sizes="40px" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-[#0055ff]">
-                <User className="h-4 w-4" />
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-slate-400">{creatorName}</p>
-            <h3 className="truncate text-base font-semibold text-slate-950">{service.title}</h3>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="mt-3 flex h-6 items-center gap-2 overflow-hidden">
-          <Badge
-            className={
-              service.isActive
-                ? "border-[#0055ff]/20 bg-[#0055ff]/10 text-[#0055ff]"
-                : "border-slate-200 bg-slate-100 text-slate-500"
-            }
-          >
-            {service.isActive ? "Active" : "Inactive"}
-          </Badge>
-          {service.category ? (
-            <Badge variant="outline" className="truncate text-xs">
-              {service.category}
-            </Badge>
-          ) : null}
-        </div>
-
-        <p className="mt-2 h-10 overflow-hidden text-sm leading-5 text-slate-500">
-          <span className="line-clamp-2">{service.description || "No description yet."}</span>
-        </p>
-
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-          <p className="text-lg font-semibold tabular-nums text-slate-950">{getRateDisplay(service)}</p>
-          {service.duration ? (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-400">
-              <Clock className="h-3.5 w-3.5" />
-              {service.duration} min
-            </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#e8f0ff] ring-2 ring-white">
+          {creatorImage ? (
+            <Image src={creatorImage} alt="" fill className="object-cover" sizes="44px" />
           ) : (
-            <span className="text-xs text-slate-400">{format(new Date(service.createdAt), "MMM d, yyyy")}</span>
+            <span className="flex h-full w-full items-center justify-center text-[#0055ff]">
+              <User className="h-5 w-5" />
+            </span>
           )}
         </div>
 
-        <div className="mt-auto flex gap-2 pt-3">
-          <Button variant="outline" size="sm" className="h-9 flex-1 rounded-xl border-slate-200" onClick={onEdit}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
-            onClick={onDelete}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+              aria-label="Service actions"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDelete} className="text-red-600">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="mt-4 min-w-0">
+        <h3 className="truncate text-[15px] font-semibold tracking-tight text-slate-950">
+          {service.title}
+        </h3>
+        <p className="mt-0.5 truncate text-sm text-slate-500">
+          {creatorName}
+          <span className="text-slate-300"> · </span>
+          {getRateDisplay(service)}
+        </p>
+      </div>
+
+      <div className="mt-auto flex flex-wrap gap-1.5 pt-5">
+        {tags.slice(0, 3).map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex max-w-full truncate rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
           >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+            {tag}
+          </span>
+        ))}
       </div>
     </article>
   );

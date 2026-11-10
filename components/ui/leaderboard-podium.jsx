@@ -5,12 +5,12 @@ import { cva } from "class-variance-authority";
 import { Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const podiumVariants = cva("flex items-end justify-center gap-4", {
+const podiumVariants = cva("flex w-full items-end justify-center", {
   variants: {
     size: {
       sm: "gap-2",
-      default: "gap-4",
-      lg: "gap-6",
+      default: "gap-3 sm:gap-5",
+      lg: "gap-3 sm:gap-6",
     },
   },
   defaultVariants: {
@@ -21,29 +21,38 @@ const podiumVariants = cva("flex items-end justify-center gap-4", {
 const PODIUM_CONFIG = {
   1: {
     icon: Crown,
-    color: "text-rank-1",
-    bg: "bg-rank-1/60",
+    color: "text-amber-500",
+    bar: "bg-gradient-to-b from-amber-300 to-amber-400/80",
+    ring: "ring-amber-300/70",
     height: "h-32",
     heightSm: "h-24",
     heightLg: "h-40",
   },
   2: {
     icon: Crown,
-    color: "text-rank-2",
-    bg: "bg-rank-2/30",
+    color: "text-slate-400",
+    bar: "bg-gradient-to-b from-slate-200 to-slate-300/90",
+    ring: "ring-slate-300/80",
     height: "h-24",
     heightSm: "h-20",
     heightLg: "h-32",
   },
   3: {
     icon: Crown,
-    color: "text-rank-3",
-    bg: "bg-rank-3/50",
+    color: "text-orange-500",
+    bar: "bg-gradient-to-b from-orange-200 to-orange-300/85",
+    ring: "ring-orange-300/70",
     height: "h-20",
     heightSm: "h-16",
     heightLg: "h-28",
   },
 };
+
+function formatValue(ranking) {
+  if (ranking.displayValue != null) return ranking.displayValue;
+  if (typeof ranking.value === "number") return ranking.value.toLocaleString();
+  return "—";
+}
 
 const LeaderboardPodium = React.forwardRef(function LeaderboardPodium(
   {
@@ -69,19 +78,13 @@ const LeaderboardPodium = React.forwardRef(function LeaderboardPodium(
   const avatarSize = {
     sm: "h-10 w-10 text-sm",
     default: "h-14 w-14 text-lg",
-    lg: "h-20 w-20 text-2xl",
+    lg: "h-16 w-16 text-xl sm:h-20 sm:w-20 sm:text-2xl",
   }[size ?? "default"];
 
   const iconSize = {
     sm: "h-4 w-4",
     default: "h-5 w-5",
-    lg: "h-6 w-6",
-  }[size ?? "default"];
-
-  const textSize = {
-    sm: "text-xs",
-    default: "text-sm",
-    lg: "text-base",
+    lg: "h-5 w-5 sm:h-6 sm:w-6",
   }[size ?? "default"];
 
   return (
@@ -98,9 +101,7 @@ const LeaderboardPodium = React.forwardRef(function LeaderboardPodium(
 
         const displayName =
           ranking.userName || `User ${ranking.userId.slice(0, 6)}`;
-        const avatarSrc =
-          ranking.avatarUrl ||
-          `https://i.pravatar.cc/96?u=${encodeURIComponent(ranking.userId)}`;
+        const avatarSrc = ranking.avatarUrl || null;
         const podiumHeight = {
           sm: config.heightSm,
           default: config.height,
@@ -113,24 +114,40 @@ const LeaderboardPodium = React.forwardRef(function LeaderboardPodium(
             key={ranking.userId}
             role="listitem"
             aria-label={`Rank ${ranking.rank}: ${displayName}${
-              showValue ? `, ${ranking.value.toLocaleString()}` : ""
+              showValue ? `, ${formatValue(ranking)}` : ""
             }`}
-            className="flex flex-col items-center"
+            className="flex w-[30%] max-w-[11rem] flex-col items-center sm:w-36"
           >
             <div className="relative mb-2">
               {showAvatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarSrc}
-                  alt=""
-                  className={cn("rounded-full object-cover", avatarSize)}
-                />
+                avatarSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    className={cn(
+                      "rounded-full object-cover ring-2 ring-offset-2 ring-offset-white",
+                      config.ring,
+                      avatarSize
+                    )}
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "flex items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-700 ring-2 ring-offset-2 ring-offset-white",
+                      config.ring,
+                      avatarSize
+                    )}
+                  >
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                )
               ) : (
                 <div
                   className={cn(
                     "flex items-center justify-center rounded-full",
                     avatarSize,
-                    config.bg
+                    config.bar
                   )}
                 >
                   <Icon className={cn(iconSize, config.color)} />
@@ -139,56 +156,53 @@ const LeaderboardPodium = React.forwardRef(function LeaderboardPodium(
               {medalStyle !== "minimal" ? (
                 <div
                   className={cn(
-                    "absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-background shadow-sm",
-                    size === "sm" ? "h-5 w-5" : size === "lg" ? "h-8 w-8" : "h-6 w-6"
+                    "absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-100",
+                    size === "sm" ? "h-5 w-5" : "h-6 w-6 sm:h-7 sm:w-7"
                   )}
                 >
                   <Icon
                     className={cn(
                       config.color,
-                      size === "sm" ? "h-3 w-3" : size === "lg" ? "h-5 w-5" : "h-4 w-4"
+                      size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5 sm:h-4 sm:w-4"
                     )}
                   />
                 </div>
               ) : null}
             </div>
 
-            <span
-              className={cn("max-w-24 truncate text-center font-medium", textSize)}
+            <p
+              className="w-full truncate text-center text-sm font-semibold text-slate-950"
               title={displayName}
             >
               {displayName}
-            </span>
+            </p>
+            {ranking.specialty ? (
+              <p className="mt-0.5 w-full truncate text-center text-[11px] text-slate-400">
+                {ranking.specialty}
+              </p>
+            ) : null}
 
             {showValue ? (
-              <span
-                className={cn(
-                  "tabular-nums text-muted-foreground",
-                  size === "sm" ? "text-xs" : "text-sm"
-                )}
-              >
-                {ranking.value.toLocaleString()}
-              </span>
+              <p className="mt-1 text-sm font-semibold tabular-nums text-slate-700">
+                {formatValue(ranking)}
+              </p>
             ) : null}
 
             <div
               aria-hidden
               className={cn(
-                "mt-2 w-22 rounded-t-lg",
-                size === "sm" && "w-20",
-                size === "lg" && "w-24",
+                "mt-3 w-full max-w-[6.5rem] rounded-t-2xl sm:max-w-[7.5rem]",
                 podiumHeight,
-                config.bg,
-                medalStyle === "modern" && "rounded-t-xl"
+                config.bar
               )}
             >
               <div
                 className={cn(
-                  "flex h-8 items-center justify-center font-bold",
+                  "flex h-9 items-center justify-center text-sm font-bold",
                   config.color
                 )}
               >
-                {ranking.rank}
+                #{ranking.rank}
               </div>
             </div>
           </div>

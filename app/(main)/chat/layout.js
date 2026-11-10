@@ -9,10 +9,12 @@ export const metadata = {
 
 export default function ChatLayout({ children }) {
   return (
-    <div className="relative min-h-dvh w-full bg-black">
+    <div className="relative min-h-dvh w-full overflow-x-hidden bg-black">
       <LandingBackground />
       <LandingNavbar />
-      <div className="relative z-10 w-full pt-[5.25rem] md:pt-28">{children}</div>
+      <div className="relative z-10 flex h-dvh w-full flex-col pt-[4.75rem] md:pt-[5.5rem]">
+        {children}
+      </div>
     </div>
   );
 }

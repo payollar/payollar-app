@@ -174,6 +174,8 @@ export function MediaNegotiateWorkspace({
   cardClass = clientCardClass,
   fromCart = false,
   cartItemId = "",
+  /** When true, render inside Messages (no page shell). */
+  embedded = false,
 }) {
   const router = useRouter();
   const [negotiation, setNegotiation] = useState(initial);
@@ -255,46 +257,67 @@ export function MediaNegotiateWorkspace({
     });
   };
 
-  return (
-    <PageShell
-      eyebrow="Negotiate"
-      title={negotiation.title}
-      description={`Talk with ${negotiation.stationName || "the station"} about rates and discounts.`}
-      actions={
-        <Button asChild variant="outline" className="rounded-full">
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-      }
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className={cn("rounded-full", status.className)}>
-          {status.label}
-        </Badge>
-        {negotiation.packageLabel ? (
-          <span className="text-sm text-slate-500">{negotiation.packageLabel}</span>
-        ) : null}
-      </div>
+  const dealBody = (
+    <>
+      {!embedded ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className={cn("rounded-full", status.className)}>
+            {status.label}
+          </Badge>
+          {negotiation.packageLabel ? (
+            <span className="text-sm text-slate-500">{negotiation.packageLabel}</span>
+          ) : null}
+        </div>
+      ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className={cn(cardClass, "flex min-h-[560px] flex-col overflow-hidden p-0")}>
-          <div className="border-b border-slate-100 px-4 py-3.5 sm:px-5">
-            <p className="text-sm font-semibold text-slate-950">
-              Inbox · {negotiation.stationName || "Station"}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Negotiate directly with the media owner.
-            </p>
+      <div
+        className={cn(
+          embedded
+            ? "flex min-h-0 flex-1 flex-col gap-3 xl:flex-row"
+            : "grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]"
+        )}
+      >
+        <section
+          className={cn(
+            embedded
+              ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[1.6rem] bg-white"
+              : cn(cardClass, "flex min-h-[560px] flex-col overflow-hidden p-0")
+          )}
+        >
+          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+            {embedded ? (
+              <Link
+                href="/messages"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 md:hidden"
+                aria-label="All messages"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-950 sm:text-base">
+                {embedded
+                  ? negotiation.stationName || negotiation.title || "Media deal"
+                  : `Inbox · ${negotiation.stationName || "Station"}`}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-slate-500">
+                {embedded
+                  ? [negotiation.title, negotiation.packageLabel].filter(Boolean).join(" · ") ||
+                    "Negotiate rates and discounts"
+                  : "Negotiate directly with the media owner."}
+              </p>
+            </div>
+            <Badge variant="outline" className={cn("shrink-0 rounded-full", status.className)}>
+              {status.label}
+            </Badge>
           </div>
 
-          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700 sm:px-5">
+          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">
             Quote {money(negotiation.listAmount)}
             {negotiation.packageLabel ? ` · ${negotiation.packageLabel}` : ""}
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#f7f8fb] px-4 py-4">
             {(negotiation.messages || []).map((message) => (
               <MessageBubble
                 key={message.id}
@@ -311,7 +334,7 @@ export function MediaNegotiateWorkspace({
           </div>
 
           {!closed ? (
-            <div className="space-y-3 border-t border-slate-100 px-4 py-4 sm:px-5">
+            <div className="space-y-3 border-t border-slate-100 px-4 py-4">
               {perspective === "CLIENT" ? (
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
                   <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
@@ -507,7 +530,7 @@ export function MediaNegotiateWorkspace({
               </div>
             </div>
           ) : (
-            <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-sm text-slate-500 sm:px-5">
+            <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-sm text-slate-500">
               <p>
                 This negotiation is {negotiation.status.toLowerCase()}.
                 {negotiation.agreedAmount != null
@@ -526,8 +549,43 @@ export function MediaNegotiateWorkspace({
           )}
         </section>
 
-        <OfferSummary negotiation={negotiation} />
+        <div
+          className={cn(
+            embedded
+              ? "hidden w-[280px] shrink-0 xl:block"
+              : "min-w-0"
+          )}
+        >
+          <OfferSummary negotiation={negotiation} />
+          {embedded && fromCart ? (
+            <Button asChild variant="outline" className="mt-3 w-full rounded-full">
+              <Link href="/products/media-cart">Back to cart</Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="flex min-h-0 flex-1 flex-col gap-3">{dealBody}</div>;
+  }
+
+  return (
+    <PageShell
+      eyebrow="Negotiate"
+      title={negotiation.title}
+      description={`Talk with ${negotiation.stationName || "the station"} about rates and discounts.`}
+      actions={
+        <Button asChild variant="outline" className="rounded-full">
+          <Link href={backHref}>
+            <ArrowLeft className="h-4 w-4" />
+            {backLabel}
+          </Link>
+        </Button>
+      }
+    >
+      {dealBody}
     </PageShell>
   );
 }

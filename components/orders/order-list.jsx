@@ -92,12 +92,12 @@ function fulfillmentMeta(order) {
   if (order.status === "SCHEDULED") {
     return {
       label: "In production",
-      className: "bg-violet-50 text-violet-700 ring-violet-100",
+      className: "bg-[#eef2ff] text-[#0055ff] ring-[#dbeafe]",
     };
   }
   return {
     label: "In production",
-    className: "bg-violet-50 text-violet-700 ring-violet-100",
+    className: "bg-[#eef2ff] text-[#0055ff] ring-[#dbeafe]",
   };
 }
 
@@ -171,7 +171,7 @@ function PartyAvatar({ order }) {
     );
   }
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ede9fe] to-[#ddd6fe] text-sm font-semibold text-[#6d28d9] ring-2 ring-white shadow-sm">
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#e8f0ff] to-[#dbeafe] text-sm font-semibold text-[#0055ff] ring-2 ring-white shadow-sm">
       {name.charAt(0).toUpperCase()}
     </span>
   );
@@ -333,7 +333,7 @@ export function OrderList({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search order, creator or campaign"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#c4b5fd] focus:ring-2 focus:ring-[#ede9fe]"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
               />
               {query ? (
                 <button
@@ -351,7 +351,7 @@ export function OrderList({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-full border-[#c4b5fd] px-4 text-[#6d28d9] hover:bg-[#f5f3ff] hover:text-[#5b21b6]"
+                className="h-11 rounded-full border-[#93c5fd] px-4 text-[#0055ff] hover:bg-[#eef2ff] hover:text-[#0046d4]"
                 onClick={() => exportOrdersCsv(filtered)}
                 disabled={filtered.length === 0}
               >
@@ -376,8 +376,8 @@ export function OrderList({
                   className={cn(
                     "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition",
                     active
-                      ? "border-[#7c3aed] bg-[#7c3aed] text-white shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-[#c4b5fd] hover:bg-[#f5f3ff] hover:text-[#5b21b6]"
+                      ? "border-[#0055ff] bg-[#0055ff] text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-[#93c5fd] hover:bg-[#eef2ff] hover:text-[#0046d4]"
                   )}
                 >
                   {item.label}
@@ -416,7 +416,7 @@ export function OrderList({
 
           {filtered.length === 0 ? (
             <div className="px-5 py-16 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f3ff] text-[#7c3aed]">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#0055ff]">
                 <Search className="h-5 w-5" />
               </div>
               <h2 className="text-base font-semibold text-slate-900">
@@ -434,7 +434,7 @@ export function OrderList({
                     setQuery("");
                     goToCategory("all");
                   }}
-                  className="mt-4 text-sm font-semibold text-[#6d28d9] hover:underline"
+                  className="mt-4 text-sm font-semibold text-[#0055ff] hover:underline"
                 >
                   Clear filters
                 </button>
@@ -476,7 +476,7 @@ export function OrderList({
                           >
                             <td className="px-4 py-4 sm:px-5">
                               <Link href={href} className="block">
-                                <p className="font-semibold tabular-nums text-slate-950 group-hover:text-[#5b21b6]">
+                                <p className="font-semibold tabular-nums text-slate-950 group-hover:text-[#0055ff]">
                                   {orderIdLabel(order)}
                                 </p>
                                 <p className="mt-0.5 text-xs text-slate-400">
@@ -498,7 +498,7 @@ export function OrderList({
                               </Link>
                             </td>
                             <td className="px-4 py-4">
-                              <span className="inline-flex rounded-full bg-[#f5f3ff] px-2.5 py-1 text-xs font-medium text-[#6d28d9] ring-1 ring-inset ring-[#ddd6fe]">
+                              <span className="inline-flex rounded-full bg-[#eef2ff] px-2.5 py-1 text-xs font-medium text-[#0055ff] ring-1 ring-inset ring-[#dbeafe]">
                                 {orderSourceLabel(order.category || "TALENT")}
                               </span>
                             </td>
@@ -516,7 +516,7 @@ export function OrderList({
                             <td className="px-4 py-4 sm:pr-5">
                               <Link
                                 href={href}
-                                className="inline-flex items-center gap-1 rounded-full border border-[#c4b5fd] px-3 py-1.5 text-xs font-semibold text-[#6d28d9] transition group-hover:bg-[#f5f3ff]"
+                                className="inline-flex items-center gap-1 rounded-full border border-[#93c5fd] px-3 py-1.5 text-xs font-semibold text-[#0055ff] transition group-hover:bg-[#eef2ff]"
                               >
                                 View
                                 <ArrowRight className="h-3.5 w-3.5" />
@@ -560,7 +560,7 @@ export function OrderList({
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex rounded-full bg-[#f5f3ff] px-2.5 py-1 text-[11px] font-medium text-[#6d28d9] ring-1 ring-inset ring-[#ddd6fe]">
+                          <span className="inline-flex rounded-full bg-[#eef2ff] px-2.5 py-1 text-[11px] font-medium text-[#0055ff] ring-1 ring-inset ring-[#dbeafe]">
                             {orderSourceLabel(order.category || "TALENT")}
                           </span>
                           <StatusPill {...fulfillment} />
@@ -572,7 +572,7 @@ export function OrderList({
                             {orderIdLabel(order)}
                             {ref ? ` · ${ref}` : created ? ` · ${created}` : ""}
                           </span>
-                          <span className="inline-flex items-center gap-1 font-semibold text-[#6d28d9]">
+                          <span className="inline-flex items-center gap-1 font-semibold text-[#0055ff]">
                             View
                             <ArrowRight className="h-3.5 w-3.5" />
                           </span>

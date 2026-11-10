@@ -21,5 +21,5 @@ export default async function StartClientMediaNegotiatePage({ params }) {
     redirect("/client/media");
   }
 
-  redirect(`/client/media/negotiate/${result.negotiation.id}`);
+  redirect(`/messages/media/${result.negotiation.id}`);
 }

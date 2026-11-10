@@ -55,7 +55,6 @@ import { doctorFormSchema } from "@/lib/schema";
 import { SPECIALTIES } from "@/lib/specialities";
 import useFetch from "@/hooks/use-fetch";
 import { UploadButton } from "@uploadthing/react";
-import "@uploadthing/react/styles.css";
 import { toast } from "sonner";
 import Image from "next/image";
 

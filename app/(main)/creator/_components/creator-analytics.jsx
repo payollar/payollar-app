@@ -1,611 +1,688 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  DollarSign,
-  TrendingUp,
-  ShoppingBag,
-  Calendar,
-  Package,
-  BarChart3,
-  CreditCard,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
-import { format } from "date-fns";
 import Link from "next/link";
+import { format } from "date-fns";
+import {
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  Calendar,
+  CreditCard,
+  DollarSign,
+  Package,
+  ShoppingBag,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { CreatorPageShell, creatorCardClass } from "./creator-page-shell";
 
-// Simple bar chart component
+function money(value) {
+  const n = Number(value) || 0;
+  return `₵${n.toLocaleString("en-GH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function TrendPill({ value }) {
+  const n = Number(value) || 0;
+  if (n === 0) {
+    return (
+      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+        Flat vs last month
+      </span>
+    );
+  }
+  const up = n > 0;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        up ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+      )}
+    >
+      {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+      {Math.abs(n).toFixed(1)}%
+    </span>
+  );
+}
+
+function Panel({ title, description, icon: Icon, action, children, className }) {
+  return (
+    <section className={cn(creatorCardClass, "overflow-hidden", className)}>
+      <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {Icon ? (
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#eef2ff] text-[#0055ff]">
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+            <h2 className="text-sm font-semibold text-slate-950 sm:text-base">{title}</h2>
+          </div>
+          {description ? (
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">{description}</p>
+          ) : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      <div className="p-4 sm:p-5">{children}</div>
+    </section>
+  );
+}
+
+function EmptyBlock({ icon: Icon, title, description, href, cta }) {
+  return (
+    <div className="flex flex-col items-center px-4 py-8 text-center">
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#0055ff]">
+        <Icon className="h-5 w-5" />
+      </span>
+      <p className="mt-3 text-sm font-semibold text-slate-950">{title}</p>
+      {description ? (
+        <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
+          {description}
+        </p>
+      ) : null}
+      {href && cta ? (
+        <Button asChild size="sm" className="mt-4 h-8 rounded-full bg-[#0055ff] px-3 text-xs text-white hover:bg-[#0046d4]">
+          <Link href={href}>
+            {cta}
+            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function BarChart({ data }) {
   const maxEarnings = Math.max(...data.map((d) => d.earnings), 1);
   const maxBookings = Math.max(...data.map((d) => d.bookings), 1);
-  
+  const hasSignal = data.some((d) => d.earnings > 0 || d.bookings > 0);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between h-40 sm:h-48 gap-1 sm:gap-2">
+      <div className="relative flex h-40 items-end justify-between gap-1.5 sm:h-44 sm:gap-2">
+        {!hasSignal ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <p className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-100">
+              Activity will show here once you earn
+            </p>
+          </div>
+        ) : null}
         {data.map((item, index) => (
-          <div key={index} className="flex-1 flex flex-col items-center gap-2">
-            <div className="w-full flex flex-col items-center justify-end h-full gap-1 relative">
-              {/* Earnings bar */}
+          <div key={index} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+            <div className="flex h-full w-full items-end justify-center gap-0.5">
               <div
-                className="w-full rounded-t bg-primary shadow-[0_0_10px_rgba(0,85,255,0.25)] transition-all"
+                className="w-[45%] rounded-t-md bg-[#0055ff] transition-all"
                 style={{
-                  height: `${(item.earnings / maxEarnings) * 100}%`,
-                  minHeight: item.earnings > 0 ? "4px" : "0px",
+                  height: `${Math.max((item.earnings / maxEarnings) * 100, hasSignal && item.earnings > 0 ? 6 : 2)}%`,
+                  opacity: item.earnings > 0 ? 1 : 0.12,
                 }}
-                title={`₵${item.earnings.toFixed(2)}`}
+                title={money(item.earnings)}
               />
               <div
-                className="w-full rounded-t bg-primary/40 transition-all"
+                className="w-[45%] rounded-t-md bg-[#93c5fd] transition-all"
                 style={{
-                  height: `${(item.bookings / maxBookings) * 100}%`,
-                  minHeight: item.bookings > 0 ? "4px" : "0px",
+                  height: `${Math.max((item.bookings / maxBookings) * 100, hasSignal && item.bookings > 0 ? 6 : 2)}%`,
+                  opacity: item.bookings > 0 ? 1 : 0.12,
                 }}
                 title={`${item.bookings} bookings`}
               />
             </div>
-            <span className="text-xs text-muted-foreground font-medium">{item.month}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:text-xs">
+              {item.month}
+            </span>
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-4 justify-center text-xs sm:text-sm pt-2">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-primary shadow-[0_0_8px_rgba(0,85,255,0.35)]" />
-          <span className="text-muted-foreground">Earnings</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-primary/40" />
-          <span className="text-muted-foreground">Bookings</span>
-        </div>
+      <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm bg-[#0055ff]" />
+          Earnings
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm bg-[#93c5fd]" />
+          Bookings
+        </span>
       </div>
     </div>
   );
 }
 
-// Revenue trend chart
 function RevenueChart({ data }) {
   const maxRevenue = Math.max(...data.map((d) => d.revenue), 1);
-  
+  const hasSignal = data.some((d) => d.revenue > 0);
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between h-32 sm:h-40 gap-1 sm:gap-2">
-        {data.map((item, index) => (
-          <div key={index} className="flex-1 flex flex-col items-center gap-2">
-            <div className="w-full flex items-end justify-center h-full">
-              <div
-                className="w-full rounded-t bg-gradient-to-t from-primary to-primary/60 transition-all"
-                style={{
-                  height: `${(item.revenue / maxRevenue) * 100}%`,
-                  minHeight: item.revenue > 0 ? "4px" : "0px",
-                }}
-                title={`₵${item.revenue.toFixed(2)}`}
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">{item.month}</span>
+    <div className="relative flex h-40 items-end justify-between gap-1.5 sm:h-44 sm:gap-2">
+      {!hasSignal ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <p className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-100">
+            No revenue in this window yet
+          </p>
+        </div>
+      ) : null}
+      {data.map((item, index) => (
+        <div key={index} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+          <div className="flex h-full w-full items-end justify-center">
+            <div
+              className="w-full max-w-[2rem] rounded-t-md bg-gradient-to-t from-[#0055ff] to-[#60a5fa] transition-all"
+              style={{
+                height: `${Math.max((item.revenue / maxRevenue) * 100, hasSignal && item.revenue > 0 ? 6 : 2)}%`,
+                opacity: item.revenue > 0 ? 1 : 0.12,
+              }}
+              title={money(item.revenue)}
+            />
           </div>
-        ))}
-      </div>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:text-xs">
+            {item.month}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// Trend indicator component
-function TrendIndicator({ value, isPositive = true }) {
-  if (value === 0) {
-    return <span className="text-xs text-muted-foreground">No change</span>;
+function statusMeta(status) {
+  if (status === "COMPLETED") {
+    return "border-emerald-100 bg-emerald-50 text-emerald-700";
   }
-  
-  return (
-    <div className={`flex items-center gap-1 text-xs ${isPositive ? 'text-primary' : 'text-red-600'}`}>
-      {isPositive ? (
-        <ArrowUpRight className="h-3 w-3" />
-      ) : (
-        <ArrowDownRight className="h-3 w-3" />
-      )}
-      <span>{Math.abs(value).toFixed(1)}%</span>
-    </div>
-  );
+  if (status === "SCHEDULED") {
+    return "border-[#dbeafe] bg-[#eef2ff] text-[#0055ff]";
+  }
+  return "border-rose-100 bg-rose-50 text-rose-700";
 }
 
-export function CreatorAnalyticsClient({ analytics, user }) {
-  const { productSales, appointments, monthlyData, topProducts, categoryBreakdown, recentSales, recentAppointments } = analytics;
+export function CreatorAnalyticsClient({ analytics }) {
+  const {
+    productSales,
+    appointments,
+    monthlyData,
+    topProducts,
+    categoryBreakdown,
+    recentSales,
+    recentAppointments,
+  } = analytics;
+
+  const bookingTotal = Math.max(appointments.total, 1);
+  const bookingRows = [
+    {
+      label: "Completed",
+      value: appointments.completed,
+      bar: "bg-emerald-500",
+      track: "bg-emerald-50",
+    },
+    {
+      label: "Scheduled",
+      value: appointments.scheduled,
+      bar: "bg-[#0055ff]",
+      track: "bg-[#eef2ff]",
+    },
+    {
+      label: "Cancelled",
+      value: appointments.cancelled,
+      bar: "bg-rose-500",
+      track: "bg-rose-50",
+    },
+  ];
+
+  const kpis = [
+    {
+      label: "Revenue",
+      value: money(productSales.totalRevenue),
+      hint: <TrendPill value={productSales.revenueTrend} />,
+      icon: DollarSign,
+    },
+    {
+      label: "Earnings",
+      value: money(productSales.totalEarnings),
+      hint: <TrendPill value={productSales.earningsTrend} />,
+      icon: TrendingUp,
+      accent: true,
+    },
+    {
+      label: "Bookings",
+      value: String(appointments.total),
+      hint: <TrendPill value={appointments.trend} />,
+      icon: Calendar,
+    },
+    {
+      label: "Product sales",
+      value: String(productSales.totalSales),
+      hint: (
+        <span className="text-[11px] text-slate-400">
+          {productSales.thisMonthSales} this month
+        </span>
+      ),
+      icon: ShoppingBag,
+    },
+  ];
 
   return (
     <CreatorPageShell
       eyebrow="Insights"
       title="Analytics"
-      description="Track your performance, earnings, and growth."
+      description="Track performance, earnings, and growth across products and bookings."
+      actions={
+        <Button asChild variant="outline" className="rounded-full border-slate-200">
+          <Link href="/creator/payouts">
+            <Wallet className="mr-1.5 h-4 w-4" />
+            Payouts
+          </Link>
+        </Button>
+      }
     >
-    <div className="space-y-4 sm:space-y-6">
-
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Revenue */}
-        <Card className={creatorCardClass}>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground truncate">
-                  ₵{productSales.totalRevenue.toFixed(2)}
-                </p>
-                <div className="flex items-center gap-2">
-                  <TrendIndicator 
-                    value={productSales.revenueTrend} 
-                    isPositive={productSales.revenueTrend >= 0}
-                  />
-                  <span className="text-xs text-muted-foreground">vs last month</span>
+      <div className="space-y-4">
+        {/* KPI strip */}
+        <div className={`${creatorCardClass} grid grid-cols-2 overflow-hidden lg:grid-cols-4`}>
+          {kpis.map((kpi, index) => {
+            const Icon = kpi.icon;
+            return (
+              <div
+                key={kpi.label}
+                className={cn(
+                  "border-b border-slate-100 px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r lg:last:border-r-0",
+                  index % 2 === 0 ? "sm:border-r" : "",
+                  index >= 2 ? "border-b-0" : ""
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    {kpi.label}
+                  </p>
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-lg",
+                      kpi.accent ? "bg-[#0055ff] text-white" : "bg-[#eef2ff] text-[#0055ff]"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
                 </div>
-              </div>
-              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Earnings */}
-        <Card className={creatorCardClass}>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground">Total Earnings</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground truncate">
-                  ₵{productSales.totalEarnings.toFixed(2)}
+                <p
+                  className={cn(
+                    "mt-2 truncate text-xl font-semibold tabular-nums sm:text-2xl",
+                    kpi.accent ? "text-[#0055ff]" : "text-slate-950"
+                  )}
+                >
+                  {kpi.value}
                 </p>
-                <div className="flex items-center gap-2">
-                  <TrendIndicator 
-                    value={productSales.earningsTrend} 
-                    isPositive={productSales.earningsTrend >= 0}
-                  />
-                  <span className="text-xs text-muted-foreground">vs last month</span>
-                </div>
+                <div className="mt-2">{kpi.hint}</div>
               </div>
-              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            );
+          })}
+        </div>
 
-        {/* Total Bookings */}
-        <Card className={creatorCardClass}>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground">Total Bookings</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-                  {appointments.total}
-                </p>
-                <div className="flex items-center gap-2">
-                  <TrendIndicator 
-                    value={appointments.trend} 
-                    isPositive={appointments.trend >= 0}
-                  />
-                  <span className="text-xs text-muted-foreground">vs last month</span>
-                </div>
-              </div>
-              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <Calendar className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Sales */}
-        <Card className={creatorCardClass}>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-muted-foreground">Product Sales</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-                  {productSales.totalSales}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {productSales.thisMonthSales} this month
-                </p>
-              </div>
-              <div className="bg-primary/10 p-2 sm:p-3 rounded-full flex-shrink-0 ml-2">
-                <ShoppingBag className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Earnings & Bookings Trend */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Earnings & Bookings Trend
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Last 6 months performance
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+        {/* Charts */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel
+            title="Earnings & bookings"
+            description="Last 6 months"
+            icon={BarChart3}
+          >
             {monthlyData.length > 0 ? (
               <BarChart data={monthlyData} />
             ) : (
-              <div className="h-48 flex items-center justify-center text-muted-foreground">
-                <p className="text-sm">No data available yet</p>
-              </div>
+              <EmptyBlock
+                icon={BarChart3}
+                title="No trend data yet"
+                description="Complete bookings or product sales to build this chart."
+              />
             )}
-          </CardContent>
-        </Card>
+          </Panel>
 
-        {/* Revenue Trend */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Revenue Trend
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Monthly revenue over time
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+          <Panel
+            title="Revenue trend"
+            description="Monthly revenue over time"
+            icon={TrendingUp}
+          >
             {monthlyData.length > 0 ? (
               <RevenueChart data={monthlyData} />
             ) : (
-              <div className="h-40 flex items-center justify-center text-muted-foreground">
-                <p className="text-sm">No data available yet</p>
-              </div>
+              <EmptyBlock
+                icon={TrendingUp}
+                title="No revenue yet"
+                description="Your monthly revenue will plot here."
+              />
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </Panel>
+        </div>
 
-      {/* This Month Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">This Month</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Current month performance
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-sm text-muted-foreground">Revenue</span>
-                <span className="text-base sm:text-lg font-bold text-foreground">
-                  ₵{productSales.thisMonthRevenue.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-sm text-muted-foreground">Earnings</span>
-                <span className="text-base sm:text-lg font-bold text-primary">
-                  ₵{productSales.thisMonthEarnings.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-sm text-muted-foreground">Product Sales</span>
-                <span className="text-base sm:text-lg font-bold text-foreground">
-                  {productSales.thisMonthSales}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-sm text-muted-foreground">Bookings</span>
-                <span className="text-base sm:text-lg font-bold text-foreground">
-                  {appointments.thisMonth}
-                </span>
-              </div>
+        {/* This month + booking mix */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Panel title="This month" description="Current period snapshot" icon={DollarSign}>
+            <div className="grid grid-cols-2 gap-2.5">
+              {[
+                { label: "Revenue", value: money(productSales.thisMonthRevenue) },
+                {
+                  label: "Earnings",
+                  value: money(productSales.thisMonthEarnings),
+                  accent: true,
+                },
+                { label: "Sales", value: String(productSales.thisMonthSales) },
+                { label: "Bookings", value: String(appointments.thisMonth) },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-slate-100 bg-[#f8fafc] px-3 py-3"
+                >
+                  <p className="text-[11px] font-medium text-slate-400">{item.label}</p>
+                  <p
+                    className={cn(
+                      "mt-1 text-base font-semibold tabular-nums sm:text-lg",
+                      item.accent ? "text-[#0055ff]" : "text-slate-950"
+                    )}
+                  >
+                    {item.value}
+                  </p>
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </Panel>
 
-        {/* Appointment Status */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">Appointment Status</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Overview of your bookings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 space-y-4">
+          <Panel
+            title="Booking mix"
+            description="Status across all appointments"
+            icon={Calendar}
+            action={
+              <Link
+                href="/creator/bookings"
+                className="text-xs font-semibold text-[#0055ff] hover:underline"
+              >
+                View orders
+              </Link>
+            }
+          >
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/25">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="text-sm text-muted-foreground">Completed</span>
+              {bookingRows.map((row) => (
+                <div key={row.label}>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <span className="text-sm text-slate-600">{row.label}</span>
+                    <span className="text-sm font-semibold tabular-nums text-slate-950">
+                      {row.value}
+                    </span>
+                  </div>
+                  <div className={cn("h-2 overflow-hidden rounded-full", row.track)}>
+                    <div
+                      className={cn("h-full rounded-full transition-all", row.bar)}
+                      style={{
+                        width: `${Math.min(100, (row.value / bookingTotal) * 100)}%`,
+                        minWidth: row.value > 0 ? "6px" : "0",
+                      }}
+                    />
+                  </div>
                 </div>
-                <span className="text-base sm:text-lg font-bold text-foreground">
-                  {appointments.completed}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-blue-900/20 border border-blue-900/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-400" />
-                  <span className="text-sm text-muted-foreground">Scheduled</span>
-                </div>
-                <span className="text-base sm:text-lg font-bold text-foreground">
-                  {appointments.scheduled}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-red-900/20 border border-red-900/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-400" />
-                  <span className="text-sm text-muted-foreground">Cancelled</span>
-                </div>
-                <span className="text-base sm:text-lg font-bold text-foreground">
-                  {appointments.cancelled}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                <span className="text-sm text-muted-foreground">Total</span>
-                <span className="text-base sm:text-lg font-bold text-foreground">
+              ))}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                <span className="font-medium text-slate-500">Total</span>
+                <span className="font-semibold tabular-nums text-slate-950">
                   {appointments.total}
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </Panel>
+        </div>
 
-      {/* Top Products & Category Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Top Performing Products */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Top Products
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Your best performing products
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+        {/* Products */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel
+            title="Top products"
+            description="Best earners by payout"
+            icon={Package}
+            action={
+              <Link
+                href="/creator/products"
+                className="text-xs font-semibold text-[#0055ff] hover:underline"
+              >
+                Manage
+              </Link>
+            }
+          >
             {topProducts.length > 0 ? (
-              <div className="space-y-3">
+              <ul className="space-y-2">
                 {topProducts.map((product, index) => (
-                  <div
+                  <li
                     key={product.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border/50"
+                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-[#fafbfd] px-3 py-2.5"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm sm:text-base text-foreground truncate">
-                          {product.title}
-                        </p>
-                        {product.category && (
-                          <Badge variant="outline" className="text-xs mt-1">
-                            {product.category}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-2">
-                      <p className="text-sm sm:text-base font-bold text-foreground">
-                        ₵{product.earnings.toFixed(2)}
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#0055ff]">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-950">
+                        {product.title}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.salesCount} sales
+                      <p className="truncate text-xs text-slate-400">
+                        {product.salesCount} sale{product.salesCount === 1 ? "" : "s"}
+                        {product.category ? ` · ${product.category}` : ""}
                       </p>
                     </div>
-                  </div>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-950">
+                      {money(product.earnings)}
+                    </p>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No products yet</p>
-                <Link href="/creator/products" className="text-primary hover:underline text-sm mt-2 inline-block">
-                  Create your first product
-                </Link>
-              </div>
+              <EmptyBlock
+                icon={Package}
+                title="No products yet"
+                description="Publish a digital product to start tracking top sellers."
+                href="/creator/products"
+                cta="Add a product"
+              />
             )}
-          </CardContent>
-        </Card>
+          </Panel>
 
-        {/* Category Breakdown */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Sales by Category
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Revenue breakdown by product category
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+          <Panel
+            title="Sales by category"
+            description="Share of product revenue"
+            icon={BarChart3}
+          >
             {categoryBreakdown.length > 0 ? (
-              <div className="space-y-3">
-                {categoryBreakdown.map((category, index) => {
-                  const percentage = productSales.totalRevenue > 0
-                    ? (category.revenue / productSales.totalRevenue) * 100
-                    : 0;
-                  
+              <ul className="space-y-3">
+                {categoryBreakdown.map((category) => {
+                  const percentage =
+                    productSales.totalRevenue > 0
+                      ? (category.revenue / productSales.totalRevenue) * 100
+                      : 0;
                   return (
-                    <div key={category.category} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
+                    <li key={category.category}>
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Badge className="rounded-full border-0 bg-slate-100 px-2 py-0 text-[10px] font-medium text-slate-600">
                             {category.category}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-slate-400">
                             {category.sales} sales
                           </span>
                         </div>
-                        <span className="text-sm font-bold text-foreground">
-                          ₵{category.earnings.toFixed(2)}
+                        <span className="text-sm font-semibold tabular-nums text-slate-950">
+                          {money(category.earnings)}
                         </span>
                       </div>
-                      <div className="w-full bg-muted/20 rounded-full h-2 overflow-hidden">
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all"
-                          style={{ width: `${percentage}%` }}
+                          className="h-full rounded-full bg-[#0055ff] transition-all"
+                          style={{ width: `${Math.max(percentage, percentage > 0 ? 4 : 0)}%` }}
                         />
                       </div>
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No category data yet</p>
-              </div>
+              <EmptyBlock
+                icon={BarChart3}
+                title="No category mix yet"
+                description="Category share appears after your first product sale."
+              />
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </Panel>
+        </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Recent Sales */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Recent Sales
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Latest product purchases
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+        {/* Recent activity */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel
+            title="Recent sales"
+            description="Latest product purchases"
+            icon={ShoppingBag}
+          >
             {recentSales.length > 0 ? (
-              <div className="space-y-2">
+              <ul className="divide-y divide-slate-100">
                 {recentSales.map((sale) => (
-                  <div
+                  <li
                     key={sale.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/10 border border-border/50"
+                    className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base text-foreground truncate">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-950">
                         {sale.product?.title || "Product"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {sale.buyer?.name || "Customer"} • {format(new Date(sale.createdAt), "MMM d, yyyy")}
+                      <p className="truncate text-xs text-slate-400">
+                        {sale.buyer?.name || "Customer"} ·{" "}
+                        {format(new Date(sale.createdAt), "MMM d, yyyy")}
                       </p>
                     </div>
-                    <div className="text-left sm:text-right flex-shrink-0">
-                      <p className="text-sm sm:text-base font-bold text-primary">
-                        ₵{sale.creatorEarnings.toFixed(2)}
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums text-[#0055ff]">
+                        {money(sale.creatorEarnings)}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        from ₵{sale.amount.toFixed(2)}
+                      <p className="text-[11px] text-slate-400">
+                        of {money(sale.amount)}
                       </p>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No sales yet</p>
-              </div>
+              <EmptyBlock
+                icon={ShoppingBag}
+                title="No sales yet"
+                description="Share your storefront to land the first purchase."
+                href="/creator/products"
+                cta="Open products"
+              />
             )}
-          </CardContent>
-        </Card>
+          </Panel>
 
-        {/* Recent Appointments */}
-        <Card className={creatorCardClass}>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Recent Bookings
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Latest appointment bookings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+          <Panel
+            title="Recent bookings"
+            description="Latest appointment activity"
+            icon={Calendar}
+          >
             {recentAppointments.length > 0 ? (
-              <div className="space-y-2">
+              <ul className="divide-y divide-slate-100">
                 {recentAppointments.map((apt) => (
-                  <div
+                  <li
                     key={apt.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/10 border border-border/50"
+                    className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base text-foreground">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-950">
                         {apt.client?.name || "Client"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(apt.startTime), "MMM d, yyyy 'at' h:mm a")}
+                      <p className="truncate text-xs text-slate-400">
+                        {format(new Date(apt.startTime), "MMM d, yyyy · h:mm a")}
                       </p>
                     </div>
                     <Badge
                       variant="outline"
-                      className={`flex-shrink-0 ${
-                        apt.status === "COMPLETED"
-                          ? "bg-primary/10 border-primary/25 text-primary"
-                          : apt.status === "SCHEDULED"
-                          ? "bg-blue-900/20 border-blue-900/30 text-blue-400"
-                          : "bg-red-900/20 border-red-900/30 text-red-400"
-                      }`}
+                      className={cn(
+                        "shrink-0 rounded-full text-[10px] font-semibold capitalize",
+                        statusMeta(apt.status)
+                      )}
                     >
-                      {apt.status}
+                      {String(apt.status || "").toLowerCase()}
                     </Badge>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No bookings yet</p>
-              </div>
+              <EmptyBlock
+                icon={Calendar}
+                title="No bookings yet"
+                description="Promote your services to get on the calendar."
+                href="/creator/services"
+                cta="View services"
+              />
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </Panel>
+        </div>
 
-      {/* Payout Summary */}
-      <Card className={creatorCardClass}>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            Payout Summary
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Your earnings breakdown and payout information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Revenue</p>
-              <p className="text-xl sm:text-2xl font-bold text-foreground">
-                ₵{productSales.totalRevenue.toFixed(2)}
-              </p>
+        {/* Payout summary */}
+        <section className={cn(creatorCardClass, "overflow-hidden p-4 sm:p-5")}>
+          <div className="flex flex-col gap-4 rounded-2xl bg-[#eef2ff] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#0055ff] shadow-sm">
+                <CreditCard className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#0055ff]/80">
+                  Available for payout
+                </p>
+                <p className="mt-0.5 truncate text-2xl font-semibold tabular-nums text-slate-950 sm:text-3xl">
+                  {money(productSales.availableForPayout)}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  After the 1% platform fee
+                </p>
+              </div>
             </div>
-            <div className="p-4 rounded-lg bg-muted/20 border border-border/50">
-              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Platform Fees (1%)</p>
-              <p className="text-xl sm:text-2xl font-bold text-foreground">
-                ₵{productSales.totalPlatformFees.toFixed(2)}
-              </p>
-            </div>
-            <div className="p-4 rounded-lg bg-primary/10 border border-primary/25">
-              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Your Earnings</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">
-                ₵{productSales.totalEarnings.toFixed(2)}
-              </p>
-            </div>
+            <Button
+              asChild
+              className="h-10 shrink-0 rounded-full bg-[#0055ff] px-5 text-white hover:bg-[#0046d4]"
+            >
+              <Link href="/creator/payouts">
+                Request payout
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p className="text-xs text-blue-800 sm:text-sm">
-              <strong>Available for Payout:</strong> ₵{productSales.availableForPayout.toFixed(2)}
-            </p>
-            <p className="mt-1 text-xs text-blue-700">
-              Visit the <Link href="/creator/payouts" className="underline font-medium">Payouts</Link> page to request a payout.
-            </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            {[
+              { label: "Total revenue", value: money(productSales.totalRevenue) },
+              {
+                label: "Platform fees (1%)",
+                value: money(productSales.totalPlatformFees),
+              },
+              {
+                label: "Your earnings",
+                value: money(productSales.totalEarnings),
+                accent: true,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className={cn(
+                  "rounded-xl border px-4 py-3.5",
+                  item.accent
+                    ? "border-[#bfdbfe] bg-[#f8fbff]"
+                    : "border-slate-100 bg-[#fafbfd]"
+                )}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {item.label}
+                </p>
+                <p
+                  className={cn(
+                    "mt-1.5 text-lg font-semibold tabular-nums sm:text-xl",
+                    item.accent ? "text-[#0055ff]" : "text-slate-950"
+                  )}
+                >
+                  {item.value}
+                </p>
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </section>
+      </div>
     </CreatorPageShell>
   );
 }

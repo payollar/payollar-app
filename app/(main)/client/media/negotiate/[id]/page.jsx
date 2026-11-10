@@ -1,30 +1,22 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/actions/onboarding";
-import { getMediaNegotiation } from "@/actions/media-negotiate";
-import { MediaNegotiateWorkspace } from "../../../_components/media-negotiate";
 
 export const dynamic = "force-dynamic";
 
+/** Legacy URL — media deals now live in the unified Messages inbox. */
 export default async function ClientMediaNegotiatePage({ params, searchParams }) {
   const user = await getCurrentUser();
   if (user?.role !== "CLIENT") redirect("/onboarding");
 
   const { id } = await params;
   const query = await searchParams;
-  const fromCart = query?.from === "cart";
+  const from = query?.from === "cart" ? "cart" : "";
   const cartItemId = typeof query?.cartItemId === "string" ? query.cartItemId : "";
 
-  const data = await getMediaNegotiation(id).catch(() => null);
-  if (!data?.negotiation || data.perspective !== "CLIENT") notFound();
+  const qs = new URLSearchParams();
+  if (from) qs.set("from", from);
+  if (cartItemId) qs.set("cartItemId", cartItemId);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
 
-  return (
-    <MediaNegotiateWorkspace
-      negotiation={data.negotiation}
-      perspective="CLIENT"
-      backHref={fromCart ? "/products/media-cart" : "/client/media"}
-      backLabel={fromCart ? "Back to cart" : "Media bookings"}
-      cartItemId={fromCart ? cartItemId : ""}
-      fromCart={fromCart}
-    />
-  );
+  redirect(`/messages/media/${id}${suffix}`);
 }

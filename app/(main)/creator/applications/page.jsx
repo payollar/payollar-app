@@ -1,5 +1,8 @@
 import { getCurrentUser } from "@/actions/onboarding";
-import { getCreatorCampaignApplications } from "@/actions/campaigns";
+import {
+  getActiveCampaigns,
+  getCreatorCampaignApplications,
+} from "@/actions/campaigns";
 import { redirect } from "next/navigation";
 import { CreatorApplications } from "../_components/creator-applications";
 
@@ -16,11 +19,15 @@ export default async function CreatorApplicationsPage() {
     redirect("/creator/verification");
   }
 
-  const applicationsData = await getCreatorCampaignApplications().catch(() => ({
-    applications: [],
-  }));
+  const [applicationsData, campaignsData] = await Promise.all([
+    getCreatorCampaignApplications().catch(() => ({ applications: [] })),
+    getActiveCampaigns().catch(() => ({ campaigns: [] })),
+  ]);
 
   return (
-    <CreatorApplications applications={applicationsData.applications || []} />
+    <CreatorApplications
+      applications={applicationsData.applications || []}
+      openCampaigns={campaignsData.campaigns || []}
+    />
   );
 }

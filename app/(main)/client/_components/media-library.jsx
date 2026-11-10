@@ -532,7 +532,7 @@ export function MediaLibrary({
                                       }/${booking.id}`}
                                     >
                                       <MessageSquare className="h-3.5 w-3.5" />
-                                      Negotiate discount
+                                      Negotiate in Messages
                                     </Link>
                                   </Button>
                                 ) : null}

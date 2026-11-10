@@ -1,6 +1,6 @@
-import { listBookingChats } from "@/actions/booking-chat";
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
+import { listUnifiedInboxChats } from "@/lib/unified-inbox";
 import { MessagesWorkspace } from "./_components/booking-thread";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export default async function MessagesPage() {
 
   let chats = [];
   try {
-    chats = await listBookingChats();
+    chats = await listUnifiedInboxChats();
   } catch (error) {
     console.error("MessagesPage failed:", error);
     if (error?.code === "UNAUTHENTICATED" || error?.message === "Unauthorized") {

@@ -14,7 +14,6 @@ import { toast } from "sonner"
 import useFetch from "@/hooks/use-fetch"
 import { useEffect } from "react"
 import { UploadButton } from "@uploadthing/react"
-import "@uploadthing/react/styles.css"
 
 const MEDIA_TYPES = [
   { value: "TV", label: "TV Station", icon: Tv },
@@ -427,6 +426,11 @@ export default function MediaAgencyForm() {
                     </p>
                     <UploadButton
                       endpoint="mediaAgencyImage"
+                      appearance={{
+                        button:
+                          "h-9! rounded-full! bg-slate-950! px-4! text-xs! font-semibold! text-white! ut-ready:bg-slate-950! hover:bg-slate-800!",
+                        allowedContent: "text-xs text-muted-foreground",
+                      }}
                       onClientUploadComplete={(res) => {
                         try {
                           let imageUrl = null;

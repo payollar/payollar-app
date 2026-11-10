@@ -26,7 +26,6 @@ import { updateBankAccount } from "@/actions/products";
 import { forgetPassword } from "@/lib/auth-client";
 import Image from "next/image";
 import { UploadButton } from "@uploadthing/react";
-import "@uploadthing/react/styles.css";
 
 export function CreatorSettingsClient({ user }) {
   const router = useRouter();
@@ -233,6 +232,11 @@ export function CreatorSettingsClient({ user }) {
                   <div className="flex-1 w-full sm:w-auto space-y-2">
                     <UploadButton
                       endpoint="profileImage"
+                      appearance={{
+                        button:
+                          "h-9! rounded-full! bg-slate-950! px-4! text-xs! font-semibold! text-white! ut-ready:bg-slate-950! hover:bg-slate-800!",
+                        allowedContent: "text-xs text-muted-foreground",
+                      }}
                       onClientUploadComplete={handleImageUpload}
                       onUploadError={(error) => {
                         console.error("Upload error:", error);

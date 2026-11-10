@@ -230,18 +230,29 @@ export function CreatorProfile({ user }) {
 
             <div className="mt-5">
               <p className="mb-2 text-xs font-medium text-slate-500">Profile photo</p>
-              <div className="creator-settings-upload [&_button]:!h-9 [&_button]:!rounded-full [&_button]:!bg-slate-950 [&_button]:!px-4 [&_button]:!text-xs [&_button]:!font-semibold [&_label]:!rounded-full">
-                <UploadButton
-                  endpoint="profileImage"
-                  onClientUploadComplete={handleUploadComplete}
-                  onUploadError={(error) => {
-                    console.error("Upload error:", error);
-                    toast.error(
-                      `Upload failed: ${error.message || "Please try again."}`
-                    );
-                  }}
-                />
-              </div>
+              <UploadButton
+                endpoint="profileImage"
+                appearance={{
+                  container: "w-full items-start",
+                  button:
+                    "h-9! w-full rounded-full! bg-slate-950! px-4! text-xs! font-semibold! text-white! ut-ready:bg-slate-950! ut-uploading:cursor-wait hover:bg-slate-800!",
+                  allowedContent: "sr-only",
+                }}
+                content={{
+                  button({ ready, isUploading }) {
+                    if (isUploading) return "Uploading…";
+                    if (ready) return profileImage ? "Replace photo" : "Upload photo";
+                    return "Preparing…";
+                  },
+                }}
+                onClientUploadComplete={handleUploadComplete}
+                onUploadError={(error) => {
+                  console.error("Upload error:", error);
+                  toast.error(
+                    `Upload failed: ${error.message || "Please try again."}`
+                  );
+                }}
+              />
               <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
                 Square image works best. JPG or PNG, up to 4MB.
               </p>

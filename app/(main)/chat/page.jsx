@@ -2,118 +2,171 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Sparkles,
-  Loader2,
-  Copy,
-  Check,
-  Bell,
   ArrowUp,
-  Paperclip,
-  BookmarkPlus,
-  Radio,
+  Check,
+  ChevronDown,
+  Clapperboard,
+  Copy,
+  Film,
+  Globe2,
+  Loader2,
+  Mic,
+  MoreHorizontal,
+  Music2,
   PenLine,
+  Plus,
+  Radio,
+  Sparkles,
   TrendingUp,
   Wallet,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { BorderBeam } from "border-beam";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 
-const GLOW = {
-  blue: "from-blue-500/35 via-blue-500/5 to-transparent",
-  amber: "from-amber-500/35 via-amber-500/5 to-transparent",
-  violet: "from-violet-500/35 via-violet-500/5 to-transparent",
-  teal: "from-teal-400/35 via-teal-500/5 to-transparent",
-};
+const MODES = [
+  { id: "agents", label: "Agents" },
+  { id: "tools", label: "Tools" },
+];
 
-const FEATURES = [
+const SHORTCUTS = [
   {
-    title: "Media mix strategy",
-    description: "Plan TV, radio, digital, and creator touchpoints for launches.",
+    id: "media-mix",
+    label: "Media mix",
+    badge: "NEW",
     question: "What's the best media mix for a product launch in Ghana?",
-    glow: GLOW.blue,
     icon: Radio,
   },
   {
-    title: "Content & social",
-    description: "Hooks, formats, and calendars that actually get engagement.",
+    id: "short-film",
+    label: "Short film",
+    question: "Help me brief a short brand film for social and TV.",
+    icon: Film,
+  },
+  {
+    id: "music-video",
+    label: "Music video",
+    question: "How should I plan a music video campaign with creators and media?",
+    icon: Music2,
+  },
+  {
+    id: "content",
+    label: "Content",
     question: "How do I create engaging content for social media?",
-    glow: GLOW.amber,
     icon: PenLine,
   },
   {
-    title: "ROI & channels",
-    description: "Compare performance and budget across advertising channels.",
+    id: "roi",
+    label: "ROI",
     question: "What's the ROI difference between TV and digital ads?",
-    glow: GLOW.violet,
     icon: TrendingUp,
   },
   {
-    title: "Budget planning",
-    description: "Allocate spend with clear priorities and guardrails.",
+    id: "budget",
+    label: "Budget",
     question: "How should I budget my advertising spend?",
-    glow: GLOW.teal,
     icon: Wallet,
   },
 ];
 
-const QUICK_PILLS = [
-  "What's the best media mix for a product launch in Ghana?",
-  "How do I create engaging content for social media?",
-  "Give me one high-impact marketing tip for this week.",
-  "How should I budget my advertising spend?",
+const TOOL_LINKS = [
+  { href: "/talents", label: "Find talents" },
+  { href: "/products", label: "Buy media" },
+  { href: "/campaigns", label: "Campaigns" },
+  { href: "/products/media-cart", label: "Media cart" },
 ];
 
-function FeatureCard({ item, onPick }) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(item.question)}
-      className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 text-left transition-all hover:border-white/20 hover:bg-[#141414]"
-    >
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-to-br blur-3xl",
-          item.glow
-        )}
-      />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.35]">
-        <Sparkles className="absolute left-[10%] top-[18%] h-3 w-3 text-white/50" />
-        <Sparkles className="absolute right-[20%] top-[30%] h-2 w-2 text-white/40" />
-        <Sparkles className="absolute bottom-[28%] left-[22%] h-2.5 w-2.5 text-white/35" />
-      </div>
-      <div className="relative z-[1] mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
-        <Icon className="h-5 w-5 text-white" />
-      </div>
-      <h3 className="relative z-[1] text-base font-semibold text-white">{item.title}</h3>
-      <p className="relative z-[1] mt-1.5 text-sm leading-relaxed text-zinc-400">
-        {item.description}
-      </p>
-    </button>
-  );
+const PLACEHOLDER_PROMPTS = [
+  "Plan a TV + creator launch for Christmas…",
+  "Build a media mix for a Ghana product launch…",
+  "Brief a short brand film for social and TV…",
+  "Plan a music video campaign with creators…",
+  "Compare ROI between TV and digital ads…",
+  "Budget my advertising spend across channels…",
+];
+
+function useTypingPlaceholder(prompts, { enabled = true } = {}) {
+  const [text, setText] = useState("");
+  const indexRef = useRef(0);
+  const charRef = useRef(0);
+  const deletingRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || !prompts?.length) {
+      setText("");
+      return undefined;
+    }
+
+    let timeoutId;
+    const typeSpeed = 38;
+    const deleteSpeed = 22;
+    const holdFull = 2200;
+    const holdEmpty = 420;
+
+    const tick = () => {
+      const full = prompts[indexRef.current % prompts.length];
+
+      if (!deletingRef.current) {
+        charRef.current = Math.min(charRef.current + 1, full.length);
+        setText(full.slice(0, charRef.current));
+
+        if (charRef.current === full.length) {
+          timeoutId = setTimeout(() => {
+            deletingRef.current = true;
+            tick();
+          }, holdFull);
+          return;
+        }
+
+        timeoutId = setTimeout(tick, typeSpeed);
+        return;
+      }
+
+      charRef.current = Math.max(charRef.current - 1, 0);
+      setText(full.slice(0, charRef.current));
+
+      if (charRef.current === 0) {
+        deletingRef.current = false;
+        indexRef.current = (indexRef.current + 1) % prompts.length;
+        timeoutId = setTimeout(tick, holdEmpty);
+        return;
+      }
+
+      timeoutId = setTimeout(tick, deleteSpeed);
+    };
+
+    timeoutId = setTimeout(tick, 280);
+    return () => clearTimeout(timeoutId);
+  }, [enabled, prompts]);
+
+  return text;
 }
 
 export default function ChatPage() {
   const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
+  const [mode, setMode] = useState("agents");
   const [copiedId, setCopiedId] = useState(null);
+  const [draft, setDraft] = useState("");
   const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  const busy = status === "in_progress" || status === "submitted";
+  const hasMessages = messages.length > 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, busy]);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    textareaRef.current?.focus();
+  }, [mode, hasMessages]);
 
   useEffect(() => {
     if (error) {
@@ -121,90 +174,172 @@ export default function ChatPage() {
     }
   }, [error]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const raw = inputRef.current?.value ?? "";
-    const input = raw.trim();
-    if (!input) return;
-
+  const send = (text) => {
+    const input = String(text || "").trim();
+    if (!input || busy) return;
     sendMessage({ text: input });
-    if (inputRef.current) inputRef.current.value = "";
-    inputRef.current?.focus();
+    setDraft("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.focus();
+    }
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    send(draft);
   };
 
   const copyToClipboard = async (text, messageId) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(messageId);
-      toast.success("Copied to clipboard!");
+      toast.success("Copied to clipboard");
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       toast.error("Failed to copy");
     }
   };
 
-  const exportChat = async () => {
-    const lines = messages.map((message) => {
-      const messageText = message.parts
-        .filter((part) => part.type === "text")
-        .map((part) => part.text)
-        .join("");
-      const role = message.role === "user" ? "You" : "Payollar AI";
-      return `${role}: ${messageText}`;
-    });
-    const text = lines.join("\n\n");
-    if (!text.trim()) {
-      toast.message("Nothing to export yet.");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Chat copied to clipboard");
-    } catch {
-      toast.error("Could not copy");
-    }
+  const resizeTextarea = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   };
 
-  const busy = status === "in_progress";
-
-  /** Minimum height = viewport below navbar; content flows — no inner scroll box. */
-  const shellMin =
-    "min-h-[calc(100dvh-5.25rem)] md:min-h-[calc(100dvh-7rem)]";
-
   return (
-    <div
-      className={cn(
-        "mx-auto flex w-full max-w-[56rem] flex-col text-zinc-100 xl:max-w-[64rem]",
-        shellMin
-      )}
-    >
-      <div className="flex flex-1 flex-col px-4 py-4 sm:px-6 sm:py-5">
-        {messages.length === 0 && (
-          <div className="mb-6 text-center sm:mb-8">
-            <h1 className="text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl [font-family:var(--font-heading)]">
-              Welcome to Payollar AI
-            </h1>
-            <p className="mx-auto mt-2 max-w-xl text-pretty text-sm text-zinc-400 sm:text-base">
-              Your marketing copilot for media planning, creators, campaigns, and growth—ask
-              anything.
-            </p>
-          </div>
-        )}
+    <div className="relative mx-auto flex h-full w-full max-w-[64rem] flex-col px-4 text-zinc-100 sm:px-6">
+      {!hasMessages ? (
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          {/* Balanced vertical band: fills the page without floating too high or low */}
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-0 pb-[4.5rem] pt-2 sm:pb-20">
+            <div className="flex w-full max-w-[56rem] -translate-y-[8vh] flex-col items-center sm:-translate-y-[10vh] md:-translate-y-[12vh]">
+              <h1 className="text-center text-[1.85rem] font-semibold tracking-tight text-white sm:text-4xl md:text-[2.75rem]">
+                What are we planning today?
+              </h1>
 
-        {messages.length === 0 && (
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:mb-8 sm:grid-cols-2 sm:gap-3">
-            {FEATURES.map((item) => (
-              <FeatureCard
-                key={item.title}
-                item={item}
-                onPick={(q) => sendMessage({ text: q })}
-              />
-            ))}
-          </div>
-        )}
+              <div className="mt-[clamp(1.25rem,3.5vh,2rem)] inline-flex rounded-full border border-white/10 bg-[#141414] p-1">
+                {MODES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setMode(item.id)}
+                    className={cn(
+                      "rounded-full px-5 py-2 text-sm font-medium transition",
+                      mode === item.id
+                        ? "bg-white text-black shadow-[0_0_24px_rgba(255,255,255,0.16)]"
+                        : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
 
-        <div className="space-y-6 pb-4">
-          {messages.map((message) => {
+              {mode === "agents" ? (
+                <>
+                  <Composer
+                    draft={draft}
+                    setDraft={setDraft}
+                    busy={busy}
+                    onSubmit={handleSubmit}
+                    textareaRef={textareaRef}
+                    onResize={resizeTextarea}
+                    className="mt-[clamp(1.5rem,4vh,2.25rem)] w-full"
+                    spacious
+                    animatePlaceholder
+                  />
+
+                  <div className="mt-[clamp(0.5rem,1.5vh,0.75rem)] flex w-full flex-wrap items-center justify-center gap-2">
+                    {SHORTCUTS.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          disabled={busy}
+                          onClick={() => send(item.question)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-[#141414] px-3.5 text-sm text-zinc-300 transition hover:border-white/20 hover:bg-[#1a1a1a] hover:text-white disabled:opacity-50"
+                        >
+                          <Icon className="h-3.5 w-3.5 text-zinc-500" />
+                          {item.label}
+                          {item.badge ? (
+                            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                              {item.badge}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#141414] text-zinc-400 hover:border-white/20 hover:text-white"
+                      aria-label="More prompts"
+                      onClick={() => toast.message("More prompt packs coming soon.")}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                </>
+              ) : (
+                <div className="mt-[clamp(1.5rem,4vh,2.25rem)] grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+                  {TOOL_LINKS.map((tool) => (
+                    <Link
+                      key={tool.href}
+                      href={tool.href}
+                      className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-[#141414] px-4 py-4 transition hover:border-white/20 hover:bg-[#1a1a1a]"
+                    >
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-zinc-300 ring-1 ring-white/10 group-hover:text-white">
+                        <Wrench className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-white">{tool.label}</p>
+                        <p className="text-xs text-zinc-500">Open in Payollar</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-zinc-600 sm:bottom-4">
+            Powered by Groq · AI can make mistakes. Verify important information.
+          </p>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col py-3 sm:py-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+            <div className="inline-flex rounded-full border border-white/10 bg-[#141414] p-1">
+              {MODES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setMode(item.id)}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-xs font-medium transition",
+                    mode === item.id
+                      ? "bg-white text-black"
+                      : "text-zinc-400 hover:text-white"
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:border-white/20 hover:text-white"
+            >
+              New chat
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4 pr-1">
+            {messages.map((message) => {
               const messageText = message.parts
                 .filter((part) => part.type === "text")
                 .map((part) => part.text)
@@ -220,16 +355,16 @@ export default function ChatPage() {
                 >
                   <div
                     className={cn(
-                      "relative max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[85%]",
+                      "relative max-w-[92%] rounded-2xl px-4 py-3 sm:max-w-[85%]",
                       message.role === "user"
-                        ? "rounded-tr-sm bg-violet-600 text-white"
-                        : "border border-white/10 bg-zinc-900/90 text-zinc-100"
+                        ? "rounded-tr-sm bg-[#ff4d8d] text-white"
+                        : "border border-white/10 bg-[#141414] text-zinc-100"
                     )}
                   >
-                    {message.role === "assistant" && (
+                    {message.role === "assistant" ? (
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                          <Sparkles className="h-3.5 w-3.5 text-[#ff4d8d]" />
                           <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                             Payollar AI
                           </span>
@@ -247,19 +382,16 @@ export default function ChatPage() {
                           )}
                         </button>
                       </div>
-                    )}
-                    <div
-                      className={cn(
-                        "prose prose-sm max-w-none prose-invert",
-                        "prose-p:text-zinc-200 prose-headings:text-white prose-strong:text-white",
-                        "prose-code:rounded prose-code:bg-black/40 prose-code:px-1 prose-code:text-zinc-200"
-                      )}
-                    >
-                      {message.role === "assistant" ? (
+                    ) : null}
+
+                    {message.role === "assistant" ? (
+                      <div className="prose prose-sm max-w-none prose-invert prose-p:text-zinc-200 prose-strong:text-white">
                         <ReactMarkdown
                           components={{
                             p: ({ children }) => (
-                              <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>
+                              <p className="mb-2 text-sm leading-relaxed last:mb-0">
+                                {children}
+                              </p>
                             ),
                             ul: ({ children }) => (
                               <ul className="mb-2 list-inside list-disc space-y-1 text-sm">
@@ -273,148 +405,176 @@ export default function ChatPage() {
                             ),
                             li: ({ children }) => <li className="ml-1">{children}</li>,
                             code: ({ children }) => (
-                              <code className="font-mono text-[0.85em]">{children}</code>
+                              <code className="rounded bg-black/40 px-1 font-mono text-[0.85em]">
+                                {children}
+                              </code>
                             ),
                             pre: ({ children }) => (
                               <pre className="mb-2 overflow-x-auto rounded-lg bg-black/50 p-3 text-sm">
                                 {children}
                               </pre>
                             ),
-                            strong: ({ children }) => (
-                              <strong className="font-semibold">{children}</strong>
-                            ),
                           }}
                         >
                           {messageText}
                         </ReactMarkdown>
-                      ) : (
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                          {messageText}
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {messageText}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
-          })}
+            })}
 
-          {busy && (
-            <div className="flex justify-start">
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-zinc-900/90 px-4 py-3">
-                <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
-                <span className="text-sm text-zinc-400">Thinking…</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      <div className="sticky bottom-0 z-30 mt-auto shrink-0 border-t border-white/10 bg-black/95 px-4 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-black/80 sm:px-6">
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={exportChat}
-            className="hidden border-white/15 bg-transparent text-xs text-zinc-300 hover:bg-white/10 hover:text-white sm:inline-flex"
-          >
-            Export chat
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={exportChat}
-            className="border-white/15 bg-transparent text-xs text-zinc-300 hover:bg-white/10 hover:text-white sm:hidden"
-          >
-            Export
-          </Button>
-          <Button
-            asChild
-            size="sm"
-            className="rounded-full bg-violet-600 px-4 text-white hover:bg-violet-500"
-          >
-            <Link href="/pricing">Upgrade</Link>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="hidden h-8 w-8 text-zinc-400 hover:bg-white/10 hover:text-white md:inline-flex"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-          </Button>
-        </div>
-        {messages.length === 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
-            {QUICK_PILLS.map((pill) => (
-              <button
-                key={pill}
-                type="button"
-                onClick={() => sendMessage({ text: pill })}
-                disabled={busy}
-                className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-left text-xs text-zinc-300 transition hover:border-white/25 hover:bg-white/[0.08] disabled:opacity-50"
-              >
-                {pill}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="relative">
-          <Input
-            ref={inputRef}
-            name="message"
-            placeholder="Ask me anything…"
-            disabled={busy}
-            autoComplete="off"
-            className="h-12 rounded-full border-white/15 bg-zinc-900/80 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-violet-500/40"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={busy}
-            className="absolute right-1.5 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-violet-600 hover:bg-violet-500"
-            aria-label="Send"
-          >
             {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUp className="h-4 w-4" />
-            )}
-          </Button>
-        </form>
+              <div className="flex justify-start">
+                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#141414] px-4 py-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#ff4d8d]" />
+                  <span className="text-sm text-zinc-400">Thinking…</span>
+                </div>
+              </div>
+            ) : null}
+            <div ref={messagesEndRef} />
+          </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-zinc-500 hover:border-white/10 hover:text-zinc-400"
-            onClick={() => toast.message("Saved prompts coming soon.")}
-          >
-            <BookmarkPlus className="h-3.5 w-3.5" />
-            Saved prompts
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-zinc-500 hover:border-white/10 hover:text-zinc-400"
-            onClick={() => toast.message("Attachments coming soon.")}
-          >
-            <Paperclip className="h-3.5 w-3.5" />
-            Attach
-          </button>
+          <Composer
+            draft={draft}
+            setDraft={setDraft}
+            busy={busy}
+            onSubmit={handleSubmit}
+            textareaRef={textareaRef}
+            onResize={resizeTextarea}
+            className="mt-auto w-full shrink-0"
+          />
+          <p className="mt-2 shrink-0 pb-1 text-center text-[11px] text-zinc-600">
+            Powered by Groq · AI can make mistakes. Verify important information.
+          </p>
         </div>
-        <p className="mt-2 text-center text-[11px] text-zinc-600">
-          Powered by Groq · AI can make mistakes. Verify important information.
-        </p>
-      </div>
+      )}
     </div>
+  );
+}
+
+function Composer({
+  draft,
+  setDraft,
+  busy,
+  onSubmit,
+  textareaRef,
+  onResize,
+  className,
+  spacious = false,
+  animatePlaceholder = false,
+}) {
+  const typingPlaceholder = useTypingPlaceholder(PLACEHOLDER_PROMPTS, {
+    enabled: animatePlaceholder && !draft.trim(),
+  });
+  const placeholder = animatePlaceholder
+    ? typingPlaceholder || " "
+    : "Ask Payollar AI…";
+
+  return (
+    <BorderBeam
+      size="md"
+      theme="dark"
+      colorVariant="colorful"
+      strength={0.75}
+      borderRadius={28}
+      duration={6}
+      className={cn("w-full", className)}
+    >
+      <form
+        onSubmit={onSubmit}
+        className="relative rounded-[1.75rem] border border-white/10 bg-[#161616] p-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.8)] sm:p-3.5"
+      >
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            onResize?.();
+          }}
+          rows={2}
+          disabled={busy}
+          placeholder={placeholder}
+          className={cn(
+            "w-full resize-none bg-transparent px-1 text-[15px] leading-relaxed text-white outline-none placeholder:text-zinc-500 disabled:opacity-60",
+            spacious ? "min-h-[64px] sm:min-h-[72px]" : "min-h-[52px] sm:min-h-[56px]"
+          )}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              onSubmit(event);
+            }
+          }}
+        />
+
+        <div className={cn("flex items-center justify-between gap-2", spacious ? "mt-3" : "mt-2.5")}>
+          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-white"
+              onClick={() => toast.message("Attachments coming soon.")}
+              aria-label="Add attachment"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-zinc-300 hover:border-white/20 hover:text-white"
+              onClick={() => toast.message("Chat Mode is ready — more modes soon.")}
+            >
+              <Clapperboard className="h-3.5 w-3.5 text-zinc-500" />
+              <span className="hidden sm:inline">Chat Mode</span>
+              <span className="sm:hidden">Chat</span>
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
+            </button>
+            <button
+              type="button"
+              className="hidden h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-zinc-300 hover:border-white/20 hover:text-white md:inline-flex"
+              onClick={() => toast.message("Running on Groq Llama 3.3 70B.")}
+            >
+              <Globe2 className="h-3.5 w-3.5 text-zinc-500" />
+              Groq Llama 3.3
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
+            </button>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              className="hidden h-9 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-zinc-300 hover:border-white/20 hover:text-white sm:inline-flex"
+              onClick={() => toast.message("Ask-first review stays on for safety.")}
+            >
+              Ask first
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
+            </button>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
+              aria-label="Voice input"
+              onClick={() => toast.message("Voice input coming soon.")}
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+            <button
+              type="submit"
+              disabled={busy || !draft.trim()}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ff4d8d] text-white transition hover:bg-[#ff3b80] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Send"
+            >
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </form>
+    </BorderBeam>
   );
 }

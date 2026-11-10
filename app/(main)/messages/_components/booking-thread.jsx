@@ -30,6 +30,7 @@ import {
 } from "@/actions/booking-chat";
 import { startLogisticsFromAppointment } from "@/actions/logistics";
 import { parseBriefFields } from "@/lib/booking-brief";
+import { MediaNegotiateWorkspace } from "@/app/(main)/client/_components/media-negotiate";
 
 function moneyGhs(value) {
   const amount = Number(value);
@@ -150,6 +151,37 @@ function statusClass(status, active) {
   return "bg-white/10 text-white/70";
 }
 
+function mediaStatusLabel(status) {
+  if (status === "DISCOUNT_REQUESTED") return "Discount pending";
+  if (status === "COUNTERED") return "Countered";
+  if (status === "ACCEPTED") return "Agreed";
+  if (status === "REJECTED") return "Declined";
+  if (status === "CLOSED") return "Closed";
+  return "Media deal";
+}
+
+function mediaStatusClass(status, active) {
+  if (active) return "bg-white/20 text-white";
+  if (status === "DISCOUNT_REQUESTED") return "bg-amber-400/15 text-amber-100";
+  if (status === "COUNTERED") return "bg-sky-400/15 text-sky-100";
+  if (status === "ACCEPTED") return "bg-emerald-400/15 text-emerald-200";
+  if (status === "REJECTED") return "bg-rose-400/15 text-rose-200";
+  return "bg-white/10 text-white/70";
+}
+
+function chatHref(chat) {
+  if (chat?.href) return chat.href;
+  if (chat?.threadType === "MEDIA" && chat?.negotiationId) {
+    return `/messages/media/${chat.negotiationId}`;
+  }
+  return `/messages/${chat.appointmentId}`;
+}
+
+function chatKey(chat) {
+  if (chat?.threadType === "MEDIA") return `media:${chat.negotiationId}`;
+  return `booking:${chat.appointmentId}`;
+}
+
 function profileHref(person) {
   const specialty = person?.specialty?.trim();
   if (!person?.id || !specialty) return null;
@@ -174,7 +206,16 @@ function whenLabel(value) {
   return isToday(date) ? format(date, "h:mm a") : format(date, "MMM d");
 }
 
-export function MessagesWorkspace({ chats = [], appointmentId = null, initialThread = null }) {
+export function MessagesWorkspace({
+  chats = [],
+  appointmentId = null,
+  negotiationId = null,
+  initialThread = null,
+  initialNegotiation = null,
+  negotiationPerspective = "CLIENT",
+  fromCart = false,
+  cartItemId = "",
+}) {
   const [thread, setThread] = useState(initialThread);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -188,6 +229,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   const [payingInvoiceId, setPayingInvoiceId] = useState(null);
   const [query, setQuery] = useState("");
   const endRef = useRef(null);
+  const isMediaThread = Boolean(negotiationId && initialNegotiation);
 
   useEffect(() => {
     setThread(initialThread);
@@ -202,7 +244,7 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
   }, [thread?.messages?.length, appointmentId]);
 
   useEffect(() => {
-    if (!appointmentId) return undefined;
+    if (!appointmentId || isMediaThread) return undefined;
     let active = true;
     const refresh = async () => {
       try {
@@ -217,12 +259,22 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
       active = false;
       clearInterval(timer);
     };
-  }, [appointmentId]);
+  }, [appointmentId, isMediaThread]);
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return chats;
-    return chats.filter((chat) => (chat.other?.name || "").toLowerCase().includes(needle));
+    return chats.filter((chat) => {
+      const hay = [
+        chat.other?.name,
+        chat.other?.specialty,
+        chat.threadType === "MEDIA" ? "media deal" : "booking",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
   }, [chats, query]);
 
   const unreadTotal = chats.reduce((sum, chat) => sum + (chat.unread || 0), 0);
@@ -370,9 +422,11 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
     }
   };
 
+  const hasActiveThread = Boolean(appointmentId || negotiationId);
+
   return (
     <div className="-m-4 flex min-h-0 flex-1 gap-3 bg-[#f4f6fb] p-3 md:-m-6 md:p-4">
-      <aside className={`${appointmentId ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col rounded-[1.6rem] bg-[#12141c] p-3 text-white md:w-[300px]`}>
+      <aside className={`${hasActiveThread ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col rounded-[1.6rem] bg-[#12141c] p-3 text-white md:w-[300px]`}>
         <div className="px-2 pb-3 pt-1">
           <p className="text-lg font-semibold tracking-tight">Messages</p>
           <p className="mt-0.5 text-xs text-white/50">
@@ -385,34 +439,43 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search people"
+            placeholder="Search people or media"
             className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/40"
           />
         </label>
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
           {shown.length === 0 ? (
             <p className="px-2 py-8 text-center text-sm text-white/50">
-              {chats.length === 0 ? "No booking chats yet." : "No one matches that name."}
+              {chats.length === 0
+                ? "No booking or media chats yet."
+                : "No one matches that search."}
             </p>
           ) : (
             shown.map((chat) => {
-              const active = chat.appointmentId === appointmentId;
+              const isMedia = chat.threadType === "MEDIA";
+              const active = isMedia
+                ? chat.negotiationId === negotiationId
+                : chat.appointmentId === appointmentId;
               return (
                 <Link
-                  key={chat.appointmentId}
-                  href={`/messages/${chat.appointmentId}`}
+                  key={chatKey(chat)}
+                  href={chatHref(chat)}
                   className={`flex items-center gap-3 rounded-2xl px-2.5 py-2.5 ${active ? "bg-[#6d28d9]" : "hover:bg-white/10"}`}
                 >
                   <Avatar person={chat.other} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold">{chat.other?.name || "Booking"}</span>
+                      <span className="truncate text-sm font-semibold">
+                        {chat.other?.name || (isMedia ? "Media deal" : "Booking")}
+                      </span>
                       <span className={`shrink-0 text-[10px] ${active ? "text-white/70" : "text-white/40"}`}>
                         {chat.lastMessage ? whenLabel(chat.lastMessage.createdAt) : ""}
                       </span>
                     </span>
                     <span className={`mt-0.5 block truncate text-xs ${active ? "text-white/80" : "text-white/50"}`}>
-                      {chat.other?.specialty || "Session"}
+                      {isMedia
+                        ? chat.other?.specialty || "Media deal"
+                        : chat.other?.specialty || "Session"}
                     </span>
                     <span className="mt-1 flex items-center justify-between gap-2">
                       <span className={`truncate text-xs ${active ? "text-white/75" : "text-white/45"}`}>
@@ -431,8 +494,16 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
                       {chat.unread > 0 ? (
                         <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#6d28d9]">{chat.unread}</span>
                       ) : (
-                        <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusClass(chat.appointmentStatus, active)}`}>
-                          {statusLabel(chat.appointmentStatus)}
+                        <span
+                          className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                            isMedia
+                              ? mediaStatusClass(chat.mediaStatus, active)
+                              : statusClass(chat.appointmentStatus, active)
+                          }`}
+                        >
+                          {isMedia
+                            ? mediaStatusLabel(chat.mediaStatus)
+                            : statusLabel(chat.appointmentStatus)}
                         </span>
                       )}
                     </span>
@@ -444,67 +515,85 @@ export function MessagesWorkspace({ chats = [], appointmentId = null, initialThr
         </div>
       </aside>
 
-      <section className={`${appointmentId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col overflow-hidden rounded-[1.6rem] bg-white`}>
-        {thread && appointmentId ? (
-          <ThreadPane
-            thread={thread}
-            onSubmit={onSubmit}
-            draft={draft}
-            setDraft={setDraft}
-            sending={sending}
-            endRef={endRef}
-            onPay={payForSession}
-            payingInvoiceId={payingInvoiceId}
-            invoiceOpen={invoiceOpen}
-            setInvoiceOpen={setInvoiceOpen}
-            sendingInvoice={sendingInvoice}
-            onSendInvoice={onSendInvoice}
-            briefOpen={briefOpen}
-            setBriefOpen={setBriefOpen}
-            sendingBrief={sendingBrief}
-            onSaveBrief={onSaveBrief}
-            reportOpen={reportOpen}
-            setReportOpen={setReportOpen}
-            sendingReport={sendingReport}
-            onSendReport={onSendReport}
-            reviewingReportId={reviewingReportId}
-            onReviewReport={onReviewReport}
+      {isMediaThread ? (
+        <section className={`${hasActiveThread ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col overflow-hidden`}>
+          <MediaNegotiateWorkspace
+            negotiation={initialNegotiation}
+            perspective={negotiationPerspective}
+            embedded
+            fromCart={fromCart}
+            cartItemId={cartItemId}
+            backHref="/messages"
+            backLabel="Messages"
           />
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-            <MessageCircle className="h-8 w-8 text-slate-300" />
-            <p className="mt-3 font-semibold text-slate-900">Pick a conversation</p>
-            <p className="mt-1 max-w-xs text-sm text-slate-500">Chats here are between you and the other person on a booking.</p>
-          </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <>
+          <section className={`${hasActiveThread ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col overflow-hidden rounded-[1.6rem] bg-white`}>
+            {thread && appointmentId ? (
+              <ThreadPane
+                thread={thread}
+                onSubmit={onSubmit}
+                draft={draft}
+                setDraft={setDraft}
+                sending={sending}
+                endRef={endRef}
+                onPay={payForSession}
+                payingInvoiceId={payingInvoiceId}
+                invoiceOpen={invoiceOpen}
+                setInvoiceOpen={setInvoiceOpen}
+                sendingInvoice={sendingInvoice}
+                onSendInvoice={onSendInvoice}
+                briefOpen={briefOpen}
+                setBriefOpen={setBriefOpen}
+                sendingBrief={sendingBrief}
+                onSaveBrief={onSaveBrief}
+                reportOpen={reportOpen}
+                setReportOpen={setReportOpen}
+                sendingReport={sendingReport}
+                onSendReport={onSendReport}
+                reviewingReportId={reviewingReportId}
+                onReviewReport={onReviewReport}
+              />
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                <MessageCircle className="h-8 w-8 text-slate-300" />
+                <p className="mt-3 font-semibold text-slate-900">Pick a conversation</p>
+                <p className="mt-1 max-w-xs text-sm text-slate-500">
+                  Booking chats and media rate negotiations both live here.
+                </p>
+              </div>
+            )}
+          </section>
 
-      {thread && appointmentId ? (
-        <aside className="hidden w-[280px] shrink-0 flex-col gap-3 xl:flex">
-          <SessionCard
-            thread={thread}
-            onPay={payForSession}
-            onOpenInvoice={() => {
-              setBriefOpen(false);
-              setReportOpen(false);
-              setInvoiceOpen(true);
-            }}
-            onOpenBrief={() => {
-              setInvoiceOpen(false);
-              setReportOpen(false);
-              setBriefOpen(true);
-            }}
-            onOpenReport={() => {
-              setInvoiceOpen(false);
-              setBriefOpen(false);
-              setReportOpen(true);
-            }}
-            invoiceOpen={invoiceOpen}
-            briefOpen={briefOpen}
-            reportOpen={reportOpen}
-          />
-        </aside>
-      ) : null}
+          {thread && appointmentId ? (
+            <aside className="hidden w-[280px] shrink-0 flex-col gap-3 xl:flex">
+              <SessionCard
+                thread={thread}
+                onPay={payForSession}
+                onOpenInvoice={() => {
+                  setBriefOpen(false);
+                  setReportOpen(false);
+                  setInvoiceOpen(true);
+                }}
+                onOpenBrief={() => {
+                  setInvoiceOpen(false);
+                  setReportOpen(false);
+                  setBriefOpen(true);
+                }}
+                onOpenReport={() => {
+                  setInvoiceOpen(false);
+                  setBriefOpen(false);
+                  setReportOpen(true);
+                }}
+                invoiceOpen={invoiceOpen}
+                briefOpen={briefOpen}
+                reportOpen={reportOpen}
+              />
+            </aside>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

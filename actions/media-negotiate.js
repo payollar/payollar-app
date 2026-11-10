@@ -146,11 +146,13 @@ function revalidateNegotiation(id, sourceType, sourceId) {
   revalidatePath("/media-agency/negotiations");
   if (id) {
     revalidatePath(`/client/media/negotiate/${id}`);
+    revalidatePath(`/messages/media/${id}`);
     revalidatePath(`/media-agency/negotiations/${id}`);
   }
   if (sourceType && sourceId) {
     revalidatePath(`/client/media/negotiate/start/${sourceType}/${sourceId}`);
   }
+  revalidatePath("/messages");
 }
 
 export async function ensureMediaNegotiation(sourceType, sourceId) {
@@ -311,6 +313,119 @@ export async function getAgencyMediaNegotiations() {
   return { negotiations: rows.map(shapeNegotiation) };
 }
 
+function previewMediaMessage(message) {
+  if (!message) return "Media rate negotiation";
+  if (message.type === "DISCOUNT_REQUEST") return "Discount request";
+  if (message.type === "COUNTER_OFFER") return "Counter offer";
+  if (message.type === "ACCEPT") return "Deal accepted";
+  if (message.type === "REJECT") return "Deal declined";
+  if (message.type === "SYSTEM") {
+    const body = String(message.body || "");
+    return body.length > 80 ? `${body.slice(0, 77)}…` : body || "Update";
+  }
+  return String(message.body || "Message");
+}
+
+function mediaUnreadForPerspective(status, perspective) {
+  if (perspective === "CLIENT" && status === "COUNTERED") return 1;
+  if (perspective === "AGENCY" && status === "DISCOUNT_REQUESTED") return 1;
+  return 0;
+}
+
+/** Inbox rows for Messages — media deals as a thread type. */
+export async function listMediaInboxChats() {
+  const user = await requireUser();
+  let rows = [];
+  let perspective = null;
+
+  if (user.role === "CLIENT") {
+    if (!user.email) return [];
+    perspective = "CLIENT";
+    rows = await db.mediaNegotiation.findMany({
+      where: {
+        OR: [
+          { clientUserId: user.id },
+          { clientEmail: { equals: user.email, mode: "insensitive" } },
+        ],
+      },
+      include: {
+        agency: { select: { id: true, agencyName: true, contactName: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+  } else if (user.role === "MEDIA_AGENCY") {
+    perspective = "AGENCY";
+    const agency = await db.mediaAgency.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    if (!agency) return [];
+    rows = await db.mediaNegotiation.findMany({
+      where: { agencyId: agency.id },
+      include: {
+        agency: { select: { id: true, agencyName: true, contactName: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+  } else {
+    return [];
+  }
+
+  return rows.map((row) => {
+    const last = Array.isArray(row.messages) ? row.messages[0] : null;
+    const stationName = row.agency?.agencyName || row.stationName || "Station";
+    const clientLabel = row.clientName || row.clientEmail || "Client";
+    const otherName = perspective === "CLIENT" ? stationName : clientLabel;
+    const mine =
+      last &&
+      ((perspective === "CLIENT" && last.senderRole === "CLIENT") ||
+        (perspective === "AGENCY" && last.senderRole === "AGENCY"));
+
+    return {
+      threadType: "MEDIA",
+      negotiationId: row.id,
+      appointmentId: null,
+      href: `/messages/media/${row.id}`,
+      mediaStatus: row.status,
+      listAmount: Number(row.listAmount || 0),
+      other: {
+        id: perspective === "CLIENT" ? row.agencyId : row.clientUserId || row.clientEmail,
+        name: otherName,
+        specialty: row.packageLabel || row.title || "Media deal",
+        imageUrl: "",
+      },
+      lastMessage: last
+        ? {
+            body: previewMediaMessage(last),
+            kind: last.type || "TEXT",
+            createdAt: last.createdAt.toISOString(),
+            mine: Boolean(mine),
+          }
+        : {
+            body: "Media rate negotiation",
+            kind: "SYSTEM",
+            createdAt: row.updatedAt.toISOString(),
+            mine: false,
+          },
+      unread: mediaUnreadForPerspective(row.status, perspective),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  });
+}
+
+/** Actionable media-deal count for the Messages badge. */
+export async function getUnreadMediaNegotiationCount() {
+  try {
+    const chats = await listMediaInboxChats();
+    return chats.reduce((sum, chat) => sum + (Number(chat.unread) || 0), 0);
+  } catch (error) {
+    console.error("getUnreadMediaNegotiationCount failed:", error);
+    return 0;
+  }
+}
+
 export async function sendMediaNegotiationMessage(negotiationId, body) {
   const user = await requireUser();
   const text = String(body || "").trim().slice(0, 2000);
@@ -350,7 +465,7 @@ export async function sendMediaNegotiationMessage(negotiationId, body) {
     href:
       data.perspective === "CLIENT"
         ? `/media-agency/negotiations/${negotiationId}`
-        : `/client/media/negotiate/${negotiationId}`,
+        : `/messages/media/${negotiationId}`,
     meta: { negotiationId },
   });
 
@@ -526,7 +641,7 @@ export async function acceptMediaNegotiation(negotiationId, { amount } = {}) {
     href:
       data.perspective === "CLIENT"
         ? `/media-agency/negotiations/${negotiationId}`
-        : `/client/media/negotiate/${negotiationId}`,
+        : `/messages/media/${negotiationId}`,
     meta: { negotiationId, amount: agreed },
   });
 
@@ -602,7 +717,7 @@ export async function approveMediaDiscount(negotiationId, { discountPct, note } 
     type: NOTIFICATION_TYPES.MEDIA_STATUS,
     title: "Media discount approved",
     body: `Station approved ${pct}% off · ${money(agreed)}.`,
-    href: `/client/media/negotiate/${negotiationId}`,
+    href: `/messages/media/${negotiationId}`,
     meta: { negotiationId, amount: agreed, discountPct: pct },
   });
 
@@ -647,7 +762,7 @@ export async function rejectMediaNegotiation(negotiationId, { note } = {}) {
     type: NOTIFICATION_TYPES.MEDIA_STATUS,
     title: "Media negotiation declined",
     body: noteText || "Station declined the request. List quote still stands.",
-    href: `/client/media/negotiate/${negotiationId}`,
+    href: `/messages/media/${negotiationId}`,
     meta: { negotiationId },
   });
 
@@ -851,7 +966,7 @@ export async function startPlannerCartNegotiation(cartItem) {
     success: true,
     bookingId: booking.id,
     negotiationId: negotiation.id,
-    href: `/client/media/negotiate/${negotiation.id}?from=cart&cartItemId=${encodeURIComponent(
+    href: `/messages/media/${negotiation.id}?from=cart&cartItemId=${encodeURIComponent(
       cartItemId || ""
     )}`,
     negotiation,

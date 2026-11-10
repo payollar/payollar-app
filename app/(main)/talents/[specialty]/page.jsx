@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Trophy, Users } from "lucide-react";
 import { getDoctorsBySpecialty } from "@/actions/doctors-listing";
 import { DoctorCard } from "../components/doctor-card";
 import { getSpecialtyBySlug } from "@/lib/specialities";
@@ -55,12 +55,21 @@ export default async function DoctorSpecialtyPage({ params }) {
           <Users className="h-4 w-4 text-[#6d28d9]" />
           {count === 0 ? "No talents listed yet" : count === 1 ? "1 talent in this specialty" : `${count} talents in this specialty`}
         </p>
-        <Link
-          href="/talents#specialties"
-          className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:border-[#6d28d9]"
-        >
-          Browse other categories
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/talents/leaderboard"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#6d28d9] px-3.5 text-sm font-semibold text-white hover:bg-[#5b21b6]"
+          >
+            <Trophy className="h-3.5 w-3.5" />
+            View leaderboard
+          </Link>
+          <Link
+            href="/talents#specialties"
+            className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:border-[#6d28d9]"
+          >
+            Browse other categories
+          </Link>
+        </div>
       </div>
 
       {list.length > 0 ? (

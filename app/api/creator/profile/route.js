@@ -27,7 +27,12 @@ export async function PUT(request) {
     const name = formData.get("name");
     const specialty = formData.get("specialty");
     const description = formData.get("description");
-    const portfolioUrls = formData.getAll("portfolioUrls");
+    const imageUrl = formData.get("imageUrl");
+    const clearPortfolioUrls = formData.get("clearPortfolioUrls") === "1";
+    const portfolioUrls = formData
+      .getAll("portfolioUrls")
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
 
     // Update user profile
     const updatedUser = await db.user.update({
@@ -36,7 +41,12 @@ export async function PUT(request) {
         name: name || user.name,
         specialty: specialty || user.specialty,
         description: description || user.description,
-        portfolioUrls: portfolioUrls.length > 0 ? portfolioUrls : user.portfolioUrls,
+        ...(imageUrl ? { imageUrl: String(imageUrl) } : {}),
+        portfolioUrls: clearPortfolioUrls
+          ? []
+          : portfolioUrls.length > 0
+            ? portfolioUrls
+            : user.portfolioUrls,
       },
     });
 

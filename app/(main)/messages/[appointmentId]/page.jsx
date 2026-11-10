@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { getBookingThread, listBookingChats } from "@/actions/booking-chat";
+import { getBookingThread } from "@/actions/booking-chat";
 import { getCurrentUser } from "@/actions/onboarding";
+import { listUnifiedInboxChats } from "@/lib/unified-inbox";
 import { MessagesWorkspace } from "../_components/booking-thread";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +17,13 @@ export default async function BookingMessagePage({ params }) {
   try {
     [thread, chats] = await Promise.all([
       getBookingThread(appointmentId),
-      listBookingChats(),
+      listUnifiedInboxChats(),
     ]);
   } catch (error) {
     console.error("BookingMessagePage failed:", error);
     if (error?.code === "UNAUTHENTICATED" || error?.message === "Unauthorized") {
       redirect(`/sign-in?redirect_url=/messages/${appointmentId}`);
     }
-    // Keep the page usable even if chat enrichment fails.
     thread = { error: "Could not load this chat." };
     chats = [];
   }
