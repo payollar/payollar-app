@@ -1,29 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Plus,
-  Save,
   Eye,
   EyeOff,
   Trash2,
-  GripVertical,
-  Edit,
   X,
   Check,
   Tv,
   Radio,
-  Biohazard as Billboard,
+  Megaphone,
   Smartphone,
   Users,
   Video,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import {
   Select,
@@ -36,11 +32,24 @@ import { toast } from "sonner";
 import { SmartRateCardEditor } from "./_components/smart-rate-card-editor";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
+import { cn } from "@/lib/utils";
+
+const fieldClass =
+  "h-10 rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+
+const MEDIA_TYPES = [
+  { value: "TV", label: "TV", icon: Tv },
+  { value: "RADIO", label: "Radio", icon: Radio },
+  { value: "BILLBOARD", label: "Billboard", icon: Megaphone },
+  { value: "DIGITAL", label: "Digital", icon: Smartphone },
+  { value: "INFLUENCER_MARKETING", label: "Influencer", icon: Users },
+  { value: "VIDEO_CLIPPING", label: "Video clipping", icon: Video },
+];
 
 export default function SmartRateCardPage() {
-  const router = useRouter();
   const [rateCards, setRateCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [selectedRateCardId, setSelectedRateCardId] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newRateCardTitle, setNewRateCardTitle] = useState("");
@@ -51,39 +60,52 @@ export default function SmartRateCardPage() {
   const [newLocation, setNewLocation] = useState("");
   const [newImageUrl, setNewImageUrl] = useState("");
 
-  useEffect(() => {
-    fetchRateCards();
-    fetchMediaListings();
-  }, []);
-
-  const fetchMediaListings = async () => {
-    try {
-      const response = await fetch("/api/media-agency/listings");
-      const data = await response.json();
-      if (data.success) {
-        setMediaListings(data.listings || []);
-      }
-    } catch (error) {
-      console.error("Error fetching media listings:", error);
-    }
-  };
-
-  const fetchRateCards = async () => {
+  const fetchRateCards = useCallback(async (preferId = null) => {
     try {
       const response = await fetch("/api/media-agency/rate-cards");
       const data = await response.json();
-      if (data.success) {
-        setRateCards(data.rateCards);
-        if (data.rateCards.length > 0 && !selectedRateCardId) {
-          setSelectedRateCardId(data.rateCards[0].id);
-        }
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to load rate cards");
       }
+      const cards = data.rateCards || [];
+      setRateCards(cards);
+      setSelectedRateCardId((current) => {
+        if (preferId && cards.some((card) => card.id === preferId)) {
+          return preferId;
+        }
+        if (current && cards.some((card) => card.id === current)) {
+          return current;
+        }
+        return cards[0]?.id ?? null;
+      });
+      return cards;
     } catch (error) {
       console.error("Error fetching rate cards:", error);
-      toast.error("Failed to load rate cards");
+      toast.error(error.message || "Failed to load rate cards");
+      return [];
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchRateCards();
+    fetch("/api/media-agency/listings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setMediaListings(data.listings || []);
+      })
+      .catch(() => {});
+  }, [fetchRateCards]);
+
+  const resetCreateForm = () => {
+    setNewRateCardTitle("");
+    setNewRateCardDescription("");
+    setSelectedListingId("");
+    setSelectedListingType("");
+    setNewLocation("");
+    setNewImageUrl("");
+    setShowCreateForm(false);
   };
 
   const handleCreateRateCard = async () => {
@@ -92,8 +114,9 @@ export default function SmartRateCardPage() {
       return;
     }
 
+    setCreating(true);
     try {
-      const selectedListing = selectedListingId 
+      const selectedListing = selectedListingId
         ? mediaListings.find((l) => l.id === selectedListingId)
         : null;
 
@@ -101,60 +124,49 @@ export default function SmartRateCardPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: newRateCardTitle,
-          description: newRateCardDescription,
+          title: newRateCardTitle.trim(),
+          description: newRateCardDescription.trim() || null,
           isPublished: false,
           listingId: selectedListingId || null,
-          listingType: selectedListingType || selectedListing?.listingType || null,
+          listingType:
+            selectedListingType || selectedListing?.listingType || null,
           location: newLocation || selectedListing?.location || null,
           imageUrl: newImageUrl || selectedListing?.imageUrl || null,
         }),
       });
 
       const data = await response.json();
-      if (data.success) {
-        toast.success("Rate card created");
-        setNewRateCardTitle("");
-        setNewRateCardDescription("");
-        setSelectedListingId("");
-        setSelectedListingType("");
-        setNewLocation("");
-        setNewImageUrl("");
-        setShowCreateForm(false);
-        await fetchRateCards();
-        setSelectedRateCardId(data.rateCard.id);
-      } else {
-        toast.error(data.error || "Failed to create rate card");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to create rate card");
       }
+
+      toast.success("Rate card created");
+      resetCreateForm();
+      await fetchRateCards(data.rateCard.id);
     } catch (error) {
       console.error("Error creating rate card:", error);
-      toast.error("Failed to create rate card");
+      toast.error(error.message || "Failed to create rate card");
+    } finally {
+      setCreating(false);
     }
   };
 
   const handleDeleteRateCard = async (id) => {
-    if (!confirm("Are you sure you want to delete this rate card?")) {
-      return;
-    }
+    if (!confirm("Delete this rate card?")) return;
 
     try {
       const response = await fetch(`/api/media-agency/rate-cards/${id}`, {
         method: "DELETE",
       });
-
       const data = await response.json();
-      if (data.success) {
-        toast.success("Rate card deleted");
-        await fetchRateCards();
-        if (selectedRateCardId === id) {
-          setSelectedRateCardId(null);
-        }
-      } else {
-        toast.error(data.error || "Failed to delete rate card");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete rate card");
       }
+      toast.success("Rate card deleted");
+      await fetchRateCards();
     } catch (error) {
       console.error("Error deleting rate card:", error);
-      toast.error("Failed to delete rate card");
+      toast.error(error.message || "Failed to delete rate card");
     }
   };
 
@@ -163,23 +175,19 @@ export default function SmartRateCardPage() {
       const response = await fetch(`/api/media-agency/rate-cards/${rateCard.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          isPublished: !rateCard.isPublished,
-        }),
+        body: JSON.stringify({ isPublished: !rateCard.isPublished }),
       });
-
       const data = await response.json();
-      if (data.success) {
-        toast.success(
-          data.rateCard.isPublished ? "Rate card published" : "Rate card unpublished"
-        );
-        await fetchRateCards();
-      } else {
-        toast.error(data.error || "Failed to update rate card");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to update rate card");
       }
+      toast.success(
+        data.rateCard.isPublished ? "Published" : "Unpublished"
+      );
+      await fetchRateCards(rateCard.id);
     } catch (error) {
       console.error("Error updating rate card:", error);
-      toast.error("Failed to update rate card");
+      toast.error(error.message || "Failed to update rate card");
     }
   };
 
@@ -188,9 +196,12 @@ export default function SmartRateCardPage() {
       <MediaAgencyPageShell
         eyebrow="Pricing"
         title="Smart rate cards"
-        description="Create flexible, table-based rate cards for your media services."
+        description="Build table-based rate cards for your media inventory."
       >
-        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading rate cards…</div>
+        <div className="flex h-48 items-center justify-center text-sm text-slate-400">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Loading…
+        </div>
       </MediaAgencyPageShell>
     );
   }
@@ -201,49 +212,71 @@ export default function SmartRateCardPage() {
     <MediaAgencyPageShell
       eyebrow="Pricing"
       title="Smart rate cards"
-      description="Create flexible, table-based rate cards for your media services."
+      description="Build table-based rate cards for your media inventory."
       actions={
         !showCreateForm ? (
-          <Button variant="black" className="rounded-full" onClick={() => setShowCreateForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button
+            variant="black"
+            className="rounded-full"
+            onClick={() => setShowCreateForm(true)}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
             New rate card
           </Button>
         ) : null
       }
     >
-      {showCreateForm && (
-        <Card className={DASHBOARD_CARD_CLASS}>
-          <CardHeader>
-            <CardTitle>Create New Rate Card</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {showCreateForm ? (
+        <section className={cn(DASHBOARD_CARD_CLASS, "overflow-hidden")}>
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <div>
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={newRateCardTitle}
-                onChange={(e) => setNewRateCardTitle(e.target.value)}
-                placeholder="e.g., TV Media Rate Card 2024"
-              />
+              <h2 className="text-base font-semibold text-slate-950">
+                New rate card
+              </h2>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Add a card, then build sections and rate tables.
+              </p>
             </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={newRateCardDescription}
-                onChange={(e) => setNewRateCardDescription(e.target.value)}
-                placeholder="Optional description"
-                rows={3}
-              />
-            </div>
-            
-            {/* Media Listing Integration */}
-            <div className="space-y-4 border-t pt-4">
-              <div>
-                <Label>Link to Media Listing (Optional)</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Link this rate card to an existing media listing to display it on the frontend
-                </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={resetCreateForm}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-4 px-5 py-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-sm font-medium text-slate-700">
+                  Title <span className="text-[#0055ff]">*</span>
+                </Label>
+                <Input
+                  value={newRateCardTitle}
+                  onChange={(e) => setNewRateCardTitle(e.target.value)}
+                  placeholder="e.g. TV Media Rate Card 2026"
+                  className={fieldClass}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-sm font-medium text-slate-700">
+                  Description
+                </Label>
+                <Textarea
+                  value={newRateCardDescription}
+                  onChange={(e) => setNewRateCardDescription(e.target.value)}
+                  placeholder="Optional description"
+                  rows={2}
+                  className="min-h-[72px] resize-y rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-sm font-medium text-slate-700">
+                  Link to listing
+                </Label>
                 <Select
                   value={selectedListingId || "none"}
                   onValueChange={(value) => {
@@ -252,225 +285,240 @@ export default function SmartRateCardPage() {
                       setSelectedListingType("");
                       setNewLocation("");
                       setNewImageUrl("");
-                    } else {
-                      setSelectedListingId(value);
-                      const listing = mediaListings.find((l) => l.id === value);
-                      if (listing) {
-                        setSelectedListingType(listing.listingType);
-                        setNewLocation(listing.location || "");
-                        setNewImageUrl(listing.imageUrl || "");
-                      }
+                      return;
+                    }
+                    setSelectedListingId(value);
+                    const listing = mediaListings.find((l) => l.id === value);
+                    if (listing) {
+                      setSelectedListingType(listing.listingType || "");
+                      setNewLocation(listing.location || "");
+                      setNewImageUrl(listing.imageUrl || "");
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a media listing (optional)" />
+                  <SelectTrigger className={fieldClass}>
+                    <SelectValue placeholder="Optional listing" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None - Create standalone rate card</SelectItem>
+                    <SelectItem value="none">Standalone (no listing)</SelectItem>
                     {mediaListings.map((listing) => (
                       <SelectItem key={listing.id} value={listing.id}>
-                        {listing.name} ({listing.listingType}) - {listing.location}
+                        {listing.name} · {listing.listingType}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {(!selectedListingId || selectedListingId === "none") && (
+              {!selectedListingId ? (
                 <>
-                  <div>
-                    <Label htmlFor="listingType">Media Type (Optional)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Media type
+                    </Label>
                     <Select
-                      value={selectedListingType}
+                      value={selectedListingType || undefined}
                       onValueChange={setSelectedListingType}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select media type" />
+                      <SelectTrigger className={fieldClass}>
+                        <SelectValue placeholder="Optional" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TV">
-                          <div className="flex items-center gap-2">
-                            <Tv className="h-4 w-4" />
-                            TV Media
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="RADIO">
-                          <div className="flex items-center gap-2">
-                            <Radio className="h-4 w-4" />
-                            Radio Media
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="BILLBOARD">
-                          <div className="flex items-center gap-2">
-                            <Billboard className="h-4 w-4" />
-                            Billboard Media
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="DIGITAL">
-                          <div className="flex items-center gap-2">
-                            <Smartphone className="h-4 w-4" />
-                            Digital Media
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="INFLUENCER_MARKETING">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Influencer Marketing
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="VIDEO_CLIPPING">
-                          <div className="flex items-center gap-2">
-                            <Video className="h-4 w-4" />
-                            Video Clipping
-                          </div>
-                        </SelectItem>
+                        {MEDIA_TYPES.map((type) => {
+                          const Icon = type.icon;
+                          return (
+                            <SelectItem key={type.value} value={type.value}>
+                              <span className="inline-flex items-center gap-2">
+                                <Icon className="h-3.5 w-3.5" />
+                                {type.label}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div>
-                    <Label htmlFor="location">Location (Optional)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Location
+                    </Label>
                     <Input
-                      id="location"
                       value={newLocation}
                       onChange={(e) => setNewLocation(e.target.value)}
-                      placeholder="e.g., Accra, Kumasi"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="imageUrl">Image URL (Optional)</Label>
-                    <Input
-                      id="imageUrl"
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
+                      placeholder="e.g. Accra"
+                      className={fieldClass}
                     />
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleCreateRateCard}>
-                <Check className="h-4 w-4 mr-2" />
-                Create
-              </Button>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
               <Button
+                type="button"
                 variant="outline"
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setNewRateCardTitle("");
-                  setNewRateCardDescription("");
-                  setSelectedListingId("");
-                  setSelectedListingType("");
-                  setNewLocation("");
-                  setNewImageUrl("");
-                }}
+                className="h-9 rounded-full border-slate-200"
+                onClick={resetCreateForm}
               >
-                <X className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
+              <Button
+                type="button"
+                className="h-9 rounded-full bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"
+                disabled={creating}
+                onClick={handleCreateRateCard}
+              >
+                {creating ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="mr-1.5 h-4 w-4" />
+                )}
+                Create
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </section>
+      ) : null}
 
-      {rateCards.length === 0 && !showCreateForm && (
-        <Card className={DASHBOARD_CARD_CLASS}>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">No rate cards yet</p>
-            <Button onClick={() => setShowCreateForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Rate Card
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {rateCards.length === 0 && !showCreateForm ? (
+        <section
+          className={cn(
+            DASHBOARD_CARD_CLASS,
+            "flex flex-col items-center px-5 py-14 text-center"
+          )}
+        >
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#0055ff]">
+            <FileText className="h-5 w-5" />
+          </span>
+          <p className="mt-3 text-sm font-semibold text-slate-950">
+            No rate cards yet
+          </p>
+          <p className="mt-1 max-w-sm text-sm text-slate-500">
+            Create a rate card to publish tables buyers can book from.
+          </p>
+          <Button
+            className="mt-4 h-9 rounded-full bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"
+            onClick={() => setShowCreateForm(true)}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Create rate card
+          </Button>
+        </section>
+      ) : null}
 
-      {rateCards.length > 0 && (
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="md:col-span-1">
-            <Card className={DASHBOARD_CARD_CLASS}>
-              <CardHeader>
-                <CardTitle className="text-lg">Rate Cards</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {rateCards.map((rateCard) => (
-                    <div
-                      key={rateCard.id}
-                      className={`cursor-pointer p-4 transition-colors hover:bg-slate-50 ${
-                        selectedRateCardId === rateCard.id
-                          ? "border-l-2 border-slate-950 bg-slate-50"
-                          : ""
-                      }`}
-                      onClick={() => setSelectedRateCardId(rateCard.id)}
+      {rateCards.length > 0 ? (
+        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className={cn(DASHBOARD_CARD_CLASS, "h-fit overflow-hidden")}>
+            <div className="border-b border-slate-100 px-4 py-3">
+              <p className="text-sm font-semibold text-slate-950">
+                Your cards
+                <span className="ml-1.5 text-slate-400">({rateCards.length})</span>
+              </p>
+            </div>
+            <ul className="max-h-[70vh] overflow-y-auto p-1.5">
+              {rateCards.map((rateCard) => {
+                const active = selectedRateCardId === rateCard.id;
+                return (
+                  <li key={rateCard.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRateCardId(rateCard.id);
+                        setShowCreateForm(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-start gap-2 rounded-xl px-3 py-2.5 text-left transition",
+                        active
+                          ? "bg-[#eef2ff] text-slate-950"
+                          : "hover:bg-slate-50"
+                      )}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium truncate">{rateCard.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {rateCard.isPublished ? (
-                              <span className="text-green-600">Published</span>
-                            ) : (
-                              <span className="text-gray-500">Draft</span>
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => {
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {rateCard.title}
+                        </p>
+                        <p
+                          className={cn(
+                            "mt-0.5 text-[11px] font-medium",
+                            rateCard.isPublished
+                              ? "text-emerald-600"
+                              : "text-slate-400"
+                          )}
+                        >
+                          {rateCard.isPublished ? "Published" : "Draft"}
+                          {typeof rateCard._count?.sections === "number"
+                            ? ` · ${rateCard._count.sections} sections`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-0.5">
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-white hover:text-slate-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePublish(rateCard);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
                               e.stopPropagation();
                               handleTogglePublish(rateCard);
-                            }}
-                          >
-                            {rateCard.isPublished ? (
-                              <Eye className="h-3 w-3" />
-                            ) : (
-                              <EyeOff className="h-3 w-3" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-destructive"
-                            onClick={(e) => {
+                            }
+                          }}
+                          title={rateCard.isPublished ? "Unpublish" : "Publish"}
+                        >
+                          {rateCard.isPublished ? (
+                            <Eye className="h-3.5 w-3.5" />
+                          ) : (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          )}
+                        </span>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteRateCard(rateCard.id);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
                               e.stopPropagation();
                               handleDeleteRateCard(rateCard.id);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                            }
+                          }}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </aside>
 
-          <div className="md:col-span-3">
+          <div className="min-w-0">
             {selectedRateCard ? (
               <SmartRateCardEditor
                 rateCardId={selectedRateCard.id}
-                onUpdate={fetchRateCards}
+                onUpdate={() => fetchRateCards(selectedRateCard.id)}
               />
             ) : (
-              <Card className={DASHBOARD_CARD_CLASS}>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  Select a rate card to edit
-                </CardContent>
-              </Card>
+              <section
+                className={cn(
+                  DASHBOARD_CARD_CLASS,
+                  "px-5 py-12 text-center text-sm text-slate-500"
+                )}
+              >
+                Select a rate card to edit
+              </section>
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </MediaAgencyPageShell>
   );
 }

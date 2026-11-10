@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Search, Trophy, Users } from "lucide-react";
+import { ArrowLeft, Search, Users } from "lucide-react";
 import { getAllVerifiedTalents } from "@/actions/doctors-listing";
 import { DoctorCard } from "../components/doctor-card";
 
@@ -64,21 +64,12 @@ export default async function AllTalentsPage() {
               ? "1 verified talent"
               : `${count} verified talents`}
         </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/talents/leaderboard"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#6d28d9] px-3.5 text-sm font-semibold text-white hover:bg-[#5b21b6]"
-          >
-            <Trophy className="h-3.5 w-3.5" />
-            View leaderboard
-          </Link>
-          <Link
-            href="/talents#specialties"
-            className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:border-[#6d28d9]"
-          >
-            Browse by specialty
-          </Link>
-        </div>
+        <Link
+          href="/talents#specialties"
+          className="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:border-[#6d28d9]"
+        >
+          Browse by specialty
+        </Link>
       </div>
 
       {list.length > 0 ? (

@@ -21,32 +21,21 @@ export async function GET(request) {
       return NextResponse.json({ error: "Media agency not found" }, { status: 404 });
     }
 
+    // Lightweight list payload — full card body loads in the editor by id.
     const rateCards = await db.rateCard.findMany({
       where: { agencyId: mediaAgency.id },
-      include: {
-        sections: {
-          include: {
-            tables: {
-              include: {
-                columns: {
-                  orderBy: { displayOrder: "asc" },
-                },
-                rows: {
-                  include: {
-                    cells: {
-                      include: {
-                        column: true,
-                      },
-                    },
-                  },
-                  orderBy: { sortOrder: "asc" },
-                },
-              },
-              orderBy: { sortOrder: "asc" },
-            },
-          },
-          orderBy: { sortOrder: "asc" },
-        },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        isPublished: true,
+        listingType: true,
+        location: true,
+        imageUrl: true,
+        listingId: true,
+        createdAt: true,
+        lastUpdated: true,
+        _count: { select: { sections: true } },
       },
       orderBy: { createdAt: "desc" },
     });

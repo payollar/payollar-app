@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -22,7 +22,6 @@ import {
   counterMediaNegotiation,
   rejectMediaNegotiation,
 } from "@/actions/media-negotiate";
-import { MEDIA_NEGOTIATION_DEMO } from "@/lib/media-negotiate-demo";
 import { cn } from "@/lib/utils";
 import {
   MediaAgencyPageShell,
@@ -37,34 +36,22 @@ function money(value) {
 }
 
 function statusMeta(status) {
-  if (status === "DISCOUNT_REQUESTED") {
+  if (status === "DISCOUNT_REQUESTED" || status === "OPEN") {
     return {
-      label: "Action required",
-      className: "border-amber-200 bg-amber-50 text-amber-800",
+      label: status === "OPEN" ? "Open" : "Needs reply",
+      className: "bg-amber-50 text-amber-800",
     };
   }
   if (status === "COUNTERED") {
-    return {
-      label: "Counter sent",
-      className: "border-sky-200 bg-sky-50 text-sky-800",
-    };
+    return { label: "Countered", className: "bg-[#eef2ff] text-[#0055ff]" };
   }
   if (status === "ACCEPTED") {
-    return {
-      label: "Approved",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    };
+    return { label: "Approved", className: "bg-emerald-50 text-emerald-700" };
   }
   if (status === "REJECTED") {
-    return {
-      label: "Declined",
-      className: "border-rose-200 bg-rose-50 text-rose-700",
-    };
+    return { label: "Declined", className: "bg-rose-50 text-rose-700" };
   }
-  return {
-    label: "Open",
-    className: "border-slate-200 bg-slate-100 text-slate-700",
-  };
+  return { label: status || "Open", className: "bg-slate-100 text-slate-600" };
 }
 
 function initials(name) {
@@ -72,11 +59,15 @@ function initials(name) {
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
+    .map((part) => part[0]?.toUpperCase())
     .join("");
 }
 
-function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
+function needsAction(status) {
+  return status === "OPEN" || status === "DISCOUNT_REQUESTED";
+}
+
+function NegotiationCard({ negotiation }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(
@@ -88,20 +79,20 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
         Math.round(Number(negotiation.listAmount || 0) * 0.9)
     )
   );
+
   const status = statusMeta(negotiation.status);
+  const actionNeeded = needsAction(negotiation.status);
   const closed = ["ACCEPTED", "REJECTED", "CLOSED"].includes(negotiation.status);
-  const needsAction = ["OPEN", "DISCOUNT_REQUESTED"].includes(negotiation.status);
+
   const approvedTotal =
-    Number.isFinite(Number(discountPct)) && Number(discountPct) >= 0 && Number(discountPct) < 100
-      ? Math.round(negotiation.listAmount * (1 - Number(discountPct) / 100) * 100) / 100
+    Number.isFinite(Number(discountPct)) &&
+    Number(discountPct) >= 0 &&
+    Number(discountPct) < 100
+      ? Math.round(negotiation.listAmount * (1 - Number(discountPct) / 100) * 100) /
+        100
       : null;
 
-  const run = (fn, successMessage, demoPatch) => {
-    if (isDemo) {
-      if (demoPatch) onLocalUpdate?.(negotiation.id, demoPatch);
-      toast.success(successMessage);
-      return;
-    }
+  const run = (fn, successMessage) => {
     startTransition(async () => {
       try {
         await fn();
@@ -114,79 +105,77 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
   };
 
   return (
-    <article className={cn(mediaAgencyCardClass, "p-4 sm:p-5")}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <article className={cn(mediaAgencyCardClass, "p-4")}>
+      <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-xs font-semibold text-white">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
             {initials(negotiation.clientName || negotiation.clientEmail)}
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate text-base font-semibold text-slate-950">
+              <h3 className="truncate text-sm font-semibold text-slate-950">
                 {negotiation.clientName || negotiation.clientEmail}
               </h3>
-              <Badge variant="outline" className={cn("rounded-full", status.className)}>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                  status.className
+                )}
+              >
                 {status.label}
-              </Badge>
+              </span>
             </div>
-            <p className="mt-0.5 truncate text-sm text-slate-500">
+            <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
               {negotiation.title}
               {negotiation.packageLabel ? ` · ${negotiation.packageLabel}` : ""}
             </p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-lg font-semibold tabular-nums text-slate-950">
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-semibold tabular-nums text-slate-950">
             {money(negotiation.listAmount)}
           </p>
-          <p className="text-xs text-slate-400">Published quote</p>
+          <p className="text-[10px] text-slate-400">Quote</p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {negotiation.requestedDiscountPct != null ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-slate-200 bg-slate-50 text-slate-700"
-          >
-            Requested {negotiation.requestedDiscountPct}% discount
-          </Badge>
-        ) : null}
-        {negotiation.proposedAmount != null ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-slate-200 bg-slate-50 text-slate-700"
-          >
-            Buyer proposed {money(negotiation.proposedAmount)}
-          </Badge>
-        ) : null}
-        {negotiation.counterAmount != null ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-sky-200 bg-sky-50 text-sky-800"
-          >
-            Your counter {money(negotiation.counterAmount)}
-          </Badge>
-        ) : null}
-        {negotiation.agreedAmount != null ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-800"
-          >
-            Agreed {money(negotiation.agreedAmount)}
-          </Badge>
-        ) : null}
-      </div>
+      {(negotiation.requestedDiscountPct != null ||
+        negotiation.proposedAmount != null ||
+        negotiation.counterAmount != null ||
+        negotiation.agreedAmount != null) && (
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-slate-600">
+          {negotiation.requestedDiscountPct != null ? (
+            <span className="rounded-md bg-slate-50 px-2 py-1">
+              −{negotiation.requestedDiscountPct}%
+            </span>
+          ) : null}
+          {negotiation.proposedAmount != null ? (
+            <span className="rounded-md bg-slate-50 px-2 py-1">
+              Asked {money(negotiation.proposedAmount)}
+            </span>
+          ) : null}
+          {negotiation.counterAmount != null ? (
+            <span className="rounded-md bg-slate-50 px-2 py-1">
+              Counter {money(negotiation.counterAmount)}
+            </span>
+          ) : null}
+          {negotiation.agreedAmount != null ? (
+            <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-700">
+              Agreed {money(negotiation.agreedAmount)}
+            </span>
+          ) : null}
+        </div>
+      )}
 
-      {needsAction && !closed ? (
-        <div className="mt-4 space-y-3 rounded-2xl border border-amber-200/80 bg-amber-50/60 p-3.5">
-          <p className="text-sm text-amber-950">
-            Confirm inventory, then approve the requested discount, send a counter, or decline.
-          </p>
+      {actionNeeded && !closed ? (
+        <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor={`discount-${negotiation.id}`}>
-                Seller-approved discount %
+            <div className="space-y-1">
+              <Label
+                htmlFor={`discount-${negotiation.id}`}
+                className="text-xs text-slate-500"
+              >
+                Discount %
               </Label>
               <div className="relative">
                 <Input
@@ -196,33 +185,38 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
                   max="99"
                   value={discountPct}
                   onChange={(e) => setDiscountPct(e.target.value)}
-                  className="h-10 rounded-xl pr-8"
+                  className="h-9 rounded-lg border-slate-200 pr-8 text-sm shadow-none"
                 />
-                <Percent className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Percent className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               </div>
               {approvedTotal != null ? (
-                <p className="text-xs text-slate-500">
-                  Approved total: {money(approvedTotal)}
+                <p className="text-[11px] text-slate-400">
+                  = {money(approvedTotal)}
                 </p>
               ) : null}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`counter-${negotiation.id}`}>Counter amount (GH₵)</Label>
+            <div className="space-y-1">
+              <Label
+                htmlFor={`counter-${negotiation.id}`}
+                className="text-xs text-slate-500"
+              >
+                Counter (GH₵)
+              </Label>
               <Input
                 id={`counter-${negotiation.id}`}
                 type="number"
                 min="1"
                 value={counterAmount}
                 onChange={(e) => setCounterAmount(e.target.value)}
-                className="h-10 rounded-xl"
+                className="h-9 rounded-lg border-slate-200 text-sm shadow-none"
               />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant="black"
-              className="rounded-full"
+              size="sm"
+              className="h-8 rounded-full bg-slate-950 px-3 text-xs text-white hover:bg-black"
               disabled={pending}
               onClick={() =>
                 run(
@@ -230,23 +224,22 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
                     approveMediaDiscount(negotiation.id, {
                       discountPct: Number(discountPct),
                     }),
-                  "Discount approved",
-                  {
-                    status: "ACCEPTED",
-                    requestedDiscountPct: Number(discountPct),
-                    proposedAmount: approvedTotal,
-                    agreedAmount: approvedTotal,
-                  }
+                  "Discount approved"
                 )
               }
             >
-              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Accept terms
+              {pending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              Accept
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="outline"
-              className="rounded-full"
+              className="h-8 rounded-full border-slate-200 px-3 text-xs"
               disabled={pending}
               onClick={() =>
                 run(
@@ -254,57 +247,48 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
                     counterMediaNegotiation(negotiation.id, {
                       amount: Number(counterAmount),
                     }),
-                  "Counter sent",
-                  {
-                    status: "COUNTERED",
-                    counterAmount: Number(counterAmount),
-                  }
+                  "Counter sent"
                 )
               }
             >
-              Send counteroffer
+              Counter
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="outline"
-              className="rounded-full border-rose-200 text-rose-700 hover:bg-rose-50"
+              className="h-8 rounded-full border-rose-200 px-3 text-xs text-rose-700 hover:bg-rose-50"
               disabled={pending}
               onClick={() =>
                 run(
                   () => rejectMediaNegotiation(negotiation.id),
-                  "Discount declined",
-                  { status: "REJECTED" }
+                  "Declined"
                 )
               }
             >
-              <XCircle className="h-4 w-4" />
+              <XCircle className="h-3.5 w-3.5" />
               Decline
             </Button>
-            {!isDemo ? (
-              <Button asChild variant="ghost" className="rounded-full">
-                <Link href={`/media-agency/negotiations/${negotiation.id}`}>
-                  <MessageSquare className="h-4 w-4" />
-                  Open thread
-                </Link>
-              </Button>
-            ) : null}
+            <Button asChild size="sm" variant="ghost" className="h-8 rounded-full px-2 text-xs text-slate-500">
+              <Link href={`/media-agency/negotiations/${negotiation.id}`}>
+                Thread
+              </Link>
+            </Button>
           </div>
         </div>
       ) : (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {!isDemo ? (
-            <Button asChild variant="outline" className="rounded-full">
-              <Link href={`/media-agency/negotiations/${negotiation.id}`}>
-                <MessageSquare className="h-4 w-4" />
-                Open thread
-              </Link>
-            </Button>
-          ) : null}
-          {negotiation.status === "COUNTERED" && !isDemo ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+          <Button asChild size="sm" variant="outline" className="h-8 rounded-full border-slate-200 px-3 text-xs">
+            <Link href={`/media-agency/negotiations/${negotiation.id}`}>
+              <MessageSquare className="h-3.5 w-3.5" />
+              Thread
+            </Link>
+          </Button>
+          {negotiation.status === "COUNTERED" ? (
             <Button
               type="button"
-              variant="black"
-              className="rounded-full"
+              size="sm"
+              className="h-8 rounded-full bg-[#0055ff] px-3 text-xs text-white hover:bg-[#0046d4]"
               disabled={pending}
               onClick={() =>
                 run(
@@ -316,12 +300,14 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
                 )
               }
             >
-              Lock counter as agreed
+              Lock counter
             </Button>
           ) : null}
-          <p className="self-center text-xs text-slate-400">
-            Updated {formatDistanceToNow(new Date(negotiation.updatedAt), { addSuffix: true })}
-          </p>
+          <span className="ml-auto text-[11px] text-slate-400">
+            {formatDistanceToNow(new Date(negotiation.updatedAt), {
+              addSuffix: true,
+            })}
+          </span>
         </div>
       )}
     </article>
@@ -329,134 +315,125 @@ function NegotiationCard({ negotiation, isDemo, onLocalUpdate }) {
 }
 
 export function AgencyNegotiationsDashboard({ negotiations = [] }) {
-  const hasReal = negotiations.length > 0;
-  const [rows, setRows] = useState(hasReal ? negotiations : MEDIA_NEGOTIATION_DEMO);
-  const usingDemo = !hasReal;
-
-  useEffect(() => {
-    setRows(hasReal ? negotiations : MEDIA_NEGOTIATION_DEMO);
-  }, [hasReal, negotiations]);
+  const [filter, setFilter] = useState("all");
 
   const stats = useMemo(() => {
-    const next = {
-      open: 0,
-      requested: 0,
-      countered: 0,
-      accepted: 0,
-      listValue: 0,
-    };
-    for (const row of rows) {
-      next.listValue += Number(row.listAmount || 0);
-      if (row.status === "OPEN") next.open += 1;
-      if (row.status === "DISCOUNT_REQUESTED") next.requested += 1;
-      if (row.status === "COUNTERED") next.countered += 1;
-      if (row.status === "ACCEPTED") next.accepted += 1;
+    let action = 0;
+    let accepted = 0;
+    let listValue = 0;
+    for (const row of negotiations) {
+      listValue += Number(row.listAmount || 0);
+      if (needsAction(row.status)) action += 1;
+      if (row.status === "ACCEPTED") accepted += 1;
     }
-    return next;
-  }, [rows]);
+    return { action, accepted, listValue, total: negotiations.length };
+  }, [negotiations]);
 
-  const actionRequired = rows.filter((row) =>
-    ["OPEN", "DISCOUNT_REQUESTED"].includes(row.status)
-  );
+  const filtered = useMemo(() => {
+    let list = [...negotiations];
+    if (filter === "action") {
+      list = list.filter((row) => needsAction(row.status));
+    } else if (filter === "done") {
+      list = list.filter((row) =>
+        ["ACCEPTED", "REJECTED", "CLOSED", "COUNTERED"].includes(row.status)
+      );
+    }
+    list.sort((a, b) => {
+      const aAction = needsAction(a.status) ? 0 : 1;
+      const bAction = needsAction(b.status) ? 0 : 1;
+      if (aAction !== bAction) return aAction - bAction;
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+    return list;
+  }, [negotiations, filter]);
 
   return (
     <MediaAgencyPageShell
       eyebrow="Seller workspace"
-      title="Quote requests & negotiations"
-      description="Publish rates stay on the quote. Approve discounts, counter, or decline — then lock exact terms."
+      title="Negotiations"
+      description="Approve, counter, or decline buyer discount requests."
     >
-      {usingDemo ? (
-        <p className="text-sm text-slate-500">
-          Preview with example quote requests. Real negotiations appear here when buyers ask for discounts.
-        </p>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Action required" value={stats.requested + stats.open} />
-        <Stat label="Published quote value" value={money(stats.listValue)} />
-        <Stat
-          label="Discount requests"
-          value={stats.requested}
-        />
-        <Stat label="Approved deals" value={stats.accepted} />
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold text-slate-950">
-              Quote requests & negotiations
-            </h2>
-            {actionRequired.length > 0 ? (
-              <Badge
-                variant="outline"
-                className="rounded-full border-amber-200 bg-amber-50 text-amber-800"
-              >
-                Action required
-              </Badge>
-            ) : null}
-          </div>
-
-          {rows.length === 0 ? (
-            <div className={cn(mediaAgencyCardClass, "px-5 py-12 text-center")}>
-              <MessageSquare className="mx-auto h-6 w-6 text-slate-400" />
-              <p className="mt-2 text-sm font-semibold text-slate-900">No negotiations yet</p>
-              <p className="mt-1 text-sm text-slate-500">
-                When buyers request discounts from Media bookings, they show up here.
-              </p>
-            </div>
-          ) : (
-            rows.map((negotiation) => (
-              <NegotiationCard
-                key={negotiation.id}
-                negotiation={negotiation}
-                isDemo={usingDemo}
-                onLocalUpdate={(id, patch) => {
-                  setRows((prev) =>
-                    prev.map((row) => (row.id === id ? { ...row, ...patch } : row))
-                  );
-                }}
-              />
-            ))
-          )}
-        </div>
-
-        <aside className={cn(mediaAgencyCardClass, "h-fit p-4 sm:p-5")}>
-          <h2 className="text-base font-semibold text-slate-950">Station controls</h2>
-          <ul className="mt-4 space-y-2 text-sm">
-            <ControlLink href="/media-agency/smart-rate-card" label="Rate cards" detail="Publish and update rates" />
-            <ControlLink href="/media-agency/rate-card" label="Packages" detail="Custom inventory packages" />
-            <ControlLink href="/media-agency/requests" label="Bookings" detail="Approve booking requests" />
-            <ControlLink href="/media-agency/transmission-certificates" label="Delivery" detail="Upload proof of airing" />
-            <ControlLink href="/media-agency/reporting" label="Reporting" detail="Campaign performance" />
-          </ul>
-        </aside>
-      </div>
-    </MediaAgencyPageShell>
-  );
-}
-
-function Stat({ label, value }) {
-  return (
-    <div className={cn(mediaAgencyCardClass, "p-4")}>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">{value}</p>
-    </div>
-  );
-}
-
-function ControlLink({ href, label, detail }) {
-  return (
-    <li>
-      <Link
-        href={href}
-        className="block rounded-xl px-3 py-2.5 transition hover:bg-slate-50"
+      <div
+        className={cn(
+          mediaAgencyCardClass,
+          "grid grid-cols-3 overflow-hidden"
+        )}
       >
-        <p className="font-semibold text-slate-950">{label}</p>
-        <p className="text-xs text-slate-500">{detail}</p>
-      </Link>
-    </li>
+        {[
+          { label: "Needs reply", value: stats.action },
+          { label: "Open quotes", value: money(stats.listValue) },
+          { label: "Approved", value: stats.accepted },
+        ].map((stat, index) => (
+          <div
+            key={stat.label}
+            className={cn(
+              "px-4 py-3.5",
+              index < 2 && "border-r border-slate-100"
+            )}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {stat.label}
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-slate-950">
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-slate-700">
+          {filtered.length} request{filtered.length === 1 ? "" : "s"}
+        </p>
+        <div className="inline-flex rounded-full border border-slate-200 bg-white p-0.5">
+          {[
+            { id: "all", label: "All" },
+            { id: "action", label: "Needs reply" },
+            { id: "done", label: "Other" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setFilter(item.id)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold transition",
+                filter === item.id
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-500 hover:text-slate-900"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div
+          className={cn(
+            mediaAgencyCardClass,
+            "px-5 py-12 text-center"
+          )}
+        >
+          <MessageSquare className="mx-auto h-5 w-5 text-slate-300" />
+          <p className="mt-2 text-sm font-semibold text-slate-950">
+            {negotiations.length === 0
+              ? "No negotiations yet"
+              : "Nothing here"}
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            {negotiations.length === 0
+              ? "Discount requests from buyers will show up here."
+              : "Try another filter."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {filtered.map((negotiation) => (
+            <NegotiationCard key={negotiation.id} negotiation={negotiation} />
+          ))}
+        </div>
+      )}
+    </MediaAgencyPageShell>
   );
 }
