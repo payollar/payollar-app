@@ -10,7 +10,6 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  X,
   Check,
   Tv,
   Radio,
@@ -29,6 +28,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SmartRateCardEditor } from "./_components/smart-rate-card-editor";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
@@ -140,9 +147,19 @@ export default function SmartRateCardPage() {
         throw new Error(data.error || "Failed to create rate card");
       }
 
+      const created = {
+        ...data.rateCard,
+        _count: data.rateCard._count || { sections: 0 },
+      };
+      setRateCards((prev) => [
+        created,
+        ...prev.filter((card) => card.id !== created.id),
+      ]);
+      setSelectedRateCardId(created.id);
       toast.success("Rate card created");
       resetCreateForm();
-      await fetchRateCards(data.rateCard.id);
+      // Refresh in background to stay in sync
+      fetchRateCards(created.id);
     } catch (error) {
       console.error("Error creating rate card:", error);
       toast.error(error.message || "Failed to create rate card");
@@ -214,173 +231,17 @@ export default function SmartRateCardPage() {
       title="Smart rate cards"
       description="Build table-based rate cards for your media inventory."
       actions={
-        !showCreateForm ? (
-          <Button
-            variant="black"
-            className="rounded-full"
-            onClick={() => setShowCreateForm(true)}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            New rate card
-          </Button>
-        ) : null
+        <Button
+          variant="black"
+          className="rounded-full"
+          onClick={() => setShowCreateForm(true)}
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          New rate card
+        </Button>
       }
     >
-      {showCreateForm ? (
-        <section className={cn(DASHBOARD_CARD_CLASS, "overflow-hidden")}>
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <div>
-              <h2 className="text-base font-semibold text-slate-950">
-                New rate card
-              </h2>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Add a card, then build sections and rate tables.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={resetCreateForm}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="space-y-4 px-5 py-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-sm font-medium text-slate-700">
-                  Title <span className="text-[#0055ff]">*</span>
-                </Label>
-                <Input
-                  value={newRateCardTitle}
-                  onChange={(e) => setNewRateCardTitle(e.target.value)}
-                  placeholder="e.g. TV Media Rate Card 2026"
-                  className={fieldClass}
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-sm font-medium text-slate-700">
-                  Description
-                </Label>
-                <Textarea
-                  value={newRateCardDescription}
-                  onChange={(e) => setNewRateCardDescription(e.target.value)}
-                  placeholder="Optional description"
-                  rows={2}
-                  className="min-h-[72px] resize-y rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-sm font-medium text-slate-700">
-                  Link to listing
-                </Label>
-                <Select
-                  value={selectedListingId || "none"}
-                  onValueChange={(value) => {
-                    if (value === "none") {
-                      setSelectedListingId("");
-                      setSelectedListingType("");
-                      setNewLocation("");
-                      setNewImageUrl("");
-                      return;
-                    }
-                    setSelectedListingId(value);
-                    const listing = mediaListings.find((l) => l.id === value);
-                    if (listing) {
-                      setSelectedListingType(listing.listingType || "");
-                      setNewLocation(listing.location || "");
-                      setNewImageUrl(listing.imageUrl || "");
-                    }
-                  }}
-                >
-                  <SelectTrigger className={fieldClass}>
-                    <SelectValue placeholder="Optional listing" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Standalone (no listing)</SelectItem>
-                    {mediaListings.map((listing) => (
-                      <SelectItem key={listing.id} value={listing.id}>
-                        {listing.name} · {listing.listingType}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {!selectedListingId ? (
-                <>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-slate-700">
-                      Media type
-                    </Label>
-                    <Select
-                      value={selectedListingType || undefined}
-                      onValueChange={setSelectedListingType}
-                    >
-                      <SelectTrigger className={fieldClass}>
-                        <SelectValue placeholder="Optional" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MEDIA_TYPES.map((type) => {
-                          const Icon = type.icon;
-                          return (
-                            <SelectItem key={type.value} value={type.value}>
-                              <span className="inline-flex items-center gap-2">
-                                <Icon className="h-3.5 w-3.5" />
-                                {type.label}
-                              </span>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-slate-700">
-                      Location
-                    </Label>
-                    <Input
-                      value={newLocation}
-                      onChange={(e) => setNewLocation(e.target.value)}
-                      placeholder="e.g. Accra"
-                      className={fieldClass}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 rounded-full border-slate-200"
-                onClick={resetCreateForm}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="h-9 rounded-full bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"
-                disabled={creating}
-                onClick={handleCreateRateCard}
-              >
-                {creating ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="mr-1.5 h-4 w-4" />
-                )}
-                Create
-              </Button>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {rateCards.length === 0 && !showCreateForm ? (
+      {rateCards.length === 0 ? (
         <section
           className={cn(
             DASHBOARD_CARD_CLASS,
@@ -404,9 +265,7 @@ export default function SmartRateCardPage() {
             Create rate card
           </Button>
         </section>
-      ) : null}
-
-      {rateCards.length > 0 ? (
+      ) : (
         <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className={cn(DASHBOARD_CARD_CLASS, "h-fit overflow-hidden")}>
             <div className="border-b border-slate-100 px-4 py-3">
@@ -422,10 +281,7 @@ export default function SmartRateCardPage() {
                   <li key={rateCard.id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedRateCardId(rateCard.id);
-                        setShowCreateForm(false);
-                      }}
+                      onClick={() => setSelectedRateCardId(rateCard.id)}
                       className={cn(
                         "flex w-full items-start gap-2 rounded-xl px-3 py-2.5 text-left transition",
                         active
@@ -518,7 +374,152 @@ export default function SmartRateCardPage() {
             )}
           </div>
         </div>
-      ) : null}
+      )}
+
+      <Dialog
+        open={showCreateForm}
+        onOpenChange={(open) => {
+          if (!open) resetCreateForm();
+          else setShowCreateForm(true);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>New rate card</DialogTitle>
+            <DialogDescription>
+              Add a card, then build sections and rate tables in the editor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-slate-700">
+                Title <span className="text-[#0055ff]">*</span>
+              </Label>
+              <Input
+                value={newRateCardTitle}
+                onChange={(e) => setNewRateCardTitle(e.target.value)}
+                placeholder="e.g. TV Media Rate Card 2026"
+                className={fieldClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-slate-700">
+                Description
+              </Label>
+              <Textarea
+                value={newRateCardDescription}
+                onChange={(e) => setNewRateCardDescription(e.target.value)}
+                placeholder="Optional description"
+                rows={2}
+                className="min-h-[72px] resize-y rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-slate-700">
+                Link to listing
+              </Label>
+              <Select
+                value={selectedListingId || "none"}
+                onValueChange={(value) => {
+                  if (value === "none") {
+                    setSelectedListingId("");
+                    setSelectedListingType("");
+                    setNewLocation("");
+                    setNewImageUrl("");
+                    return;
+                  }
+                  setSelectedListingId(value);
+                  const listing = mediaListings.find((l) => l.id === value);
+                  if (listing) {
+                    setSelectedListingType(listing.listingType || "");
+                    setNewLocation(listing.location || "");
+                    setNewImageUrl(listing.imageUrl || "");
+                  }
+                }}
+              >
+                <SelectTrigger className={fieldClass}>
+                  <SelectValue placeholder="Optional listing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Standalone (no listing)</SelectItem>
+                  {mediaListings.map((listing) => (
+                    <SelectItem key={listing.id} value={listing.id}>
+                      {listing.name} · {listing.listingType}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!selectedListingId ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Media type
+                  </Label>
+                  <Select
+                    value={selectedListingType || undefined}
+                    onValueChange={setSelectedListingType}
+                  >
+                    <SelectTrigger className={fieldClass}>
+                      <SelectValue placeholder="Optional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEDIA_TYPES.map((type) => {
+                        const Icon = type.icon;
+                        return (
+                          <SelectItem key={type.value} value={type.value}>
+                            <span className="inline-flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5" />
+                              {type.label}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Location
+                  </Label>
+                  <Input
+                    value={newLocation}
+                    onChange={(e) => setNewLocation(e.target.value)}
+                    placeholder="e.g. Accra"
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full border-slate-200"
+              onClick={resetCreateForm}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-full bg-[#0055ff] text-white hover:bg-[#0046d4]"
+              disabled={creating}
+              onClick={handleCreateRateCard}
+            >
+              {creating ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-1.5 h-4 w-4" />
+              )}
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MediaAgencyPageShell>
   );
 }
