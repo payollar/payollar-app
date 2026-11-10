@@ -131,7 +131,13 @@ function listingHref(listing) {
   const meta = TYPE_META[listing.listingType] || TYPE_META.TV;
   if (!meta.available || !meta.href) return null;
   if (listing.listingType === "TV" || listing.listingType === "RADIO") {
-    return meta.href;
+    const qs = new URLSearchParams();
+    if (listing.id) qs.set("listing", listing.id);
+    if (listing.agency?.id) qs.set("agency", listing.agency.id);
+    if (listing.rateCardId) qs.set("rateCard", listing.rateCardId);
+    if (listing.name) qs.set("station", listing.name);
+    const query = qs.toString();
+    return query ? `${meta.href}?${query}` : meta.href;
   }
   return `/media/schedule?type=${listing.listingType}&listing=${listing.id}`;
 }
@@ -241,7 +247,7 @@ function ListingCard({ listing, favorited, onToggleFavorite }) {
               className="h-9 shrink-0 rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white hover:bg-slate-800"
             >
               <Link href={href}>
-                Book now
+                Buy
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Link>
             </Button>

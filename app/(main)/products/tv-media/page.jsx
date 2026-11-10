@@ -53,6 +53,11 @@ import {
   sumMediaPlannerLineItems,
 } from "@/lib/media-planner-pricing";
 import {
+  hasStationPref,
+  readStationPrefFromSearch,
+  resolvePreferredRateCard,
+} from "@/lib/media-planner-station-pref";
+import {
   addMediaPlannerCartItem,
   loadMediaPlannerCart,
   mediaPlannerCartCount,
@@ -249,6 +254,8 @@ export default function TVMediaPage() {
   const [draftId, setDraftId] = useState(null);
   const draftHydratedRef = useRef(false);
   const pendingDraftSlotsRef = useRef(null);
+  const stationPrefRef = useRef(null);
+  const stationPrefAppliedRef = useRef(false);
 
   useEffect(() => {
     const refreshCartCount = () => setCartCount(mediaPlannerCartCount(loadMediaPlannerCart()));
@@ -259,6 +266,12 @@ export default function TVMediaPage() {
       window.removeEventListener("media-planner-cart-change", refreshCartCount);
       window.removeEventListener("storage", refreshCartCount);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const pref = readStationPrefFromSearch(window.location.search);
+    if (hasStationPref(pref)) stationPrefRef.current = pref;
   }, []);
 
   useEffect(() => {
@@ -365,6 +378,23 @@ export default function TVMediaPage() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (stationPrefAppliedRef.current || !rateCards.length) return;
+    if (selectedStationId) {
+      stationPrefAppliedRef.current = true;
+      return;
+    }
+    const pref = stationPrefRef.current;
+    if (!hasStationPref(pref)) return;
+    const match = resolvePreferredRateCard(rateCards, pref);
+    if (!match?.id) return;
+    setSelectedStationId(match.id);
+    stationPrefAppliedRef.current = true;
+    toast.message(`Station selected: ${match.title}`, {
+      description: "Continue your campaign brief, then confirm format & airtime.",
+    });
+  }, [rateCards, selectedStationId]);
 
   useEffect(() => {
     setSelectedAirtimeSlotIds([]);
@@ -658,21 +688,27 @@ export default function TVMediaPage() {
       return;
     }
 
-    addMediaPlannerCartItem(buildPlannerItem());
+    const result = addMediaPlannerCartItem(buildPlannerItem());
     if (draftId) {
       removeMediaPlannerDraft(draftId);
       setDraftId(null);
     }
 
-    setCartCount(mediaPlannerCartCount(loadMediaPlannerCart()));
-    toast.success("Added to media cart", {
-      action: {
-        label: "View cart",
-        onClick: () => {
-          window.location.href = "/products/media-cart";
+    setCartCount(mediaPlannerCartCount(result?.items || loadMediaPlannerCart()));
+    toast.success(
+      result?.updated ? "Updated in media cart" : "Added to media cart",
+      {
+        description: result?.updated
+          ? "That campaign flight was already in your cart, so we refreshed it."
+          : undefined,
+        action: {
+          label: "View cart",
+          onClick: () => {
+            window.location.href = "/products/media-cart";
+          },
         },
-      },
-    });
+      }
+    );
   };
 
   return (

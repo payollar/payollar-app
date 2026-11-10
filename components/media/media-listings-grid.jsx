@@ -20,6 +20,7 @@ const MEDIA_TYPES = [
     id: "TV",
     name: "TV Media",
     shortLabel: "Television",
+    buyLabel: "TV",
     href: "/products?type=TV",
     image: "/tv-media.jpg",
     description:
@@ -31,6 +32,7 @@ const MEDIA_TYPES = [
     id: "RADIO",
     name: "Radio Media",
     shortLabel: "Radio",
+    buyLabel: "radio",
     href: "/products?type=RADIO",
     image: "/radio-media.jpg",
     description:
@@ -42,6 +44,7 @@ const MEDIA_TYPES = [
     id: "DIGITAL",
     name: "Digital Media",
     shortLabel: "Digital",
+    buyLabel: "digital",
     href: "/products/digital-media",
     image: "/social-media.jpg",
     description:
@@ -53,6 +56,7 @@ const MEDIA_TYPES = [
     id: "BILLBOARD",
     name: "Billboard Media",
     shortLabel: "Outdoor",
+    buyLabel: "outdoor",
     href: null,
     image: "/billboard.jpg",
     description:
@@ -70,68 +74,60 @@ function ChannelCard({ type, listingCount, index }) {
   const inner = (
     <article
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-border/60 bg-card shadow-[0_14px_44px_-28px_rgba(15,23,42,0.4)] transition-all duration-300",
+        "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-[0_10px_32px_-24px_rgba(15,23,42,0.35)] transition-all duration-300",
         !isComingSoon &&
-          "hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_22px_56px_-30px_rgba(0,85,255,0.38)]",
+          "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_16px_40px_-28px_rgba(0,85,255,0.35)]",
         isComingSoon && "opacity-[0.92]"
       )}
     >
-      <div className="relative aspect-[5/3.2] w-full overflow-hidden bg-muted">
+      <div className="relative aspect-[5/3.4] w-full overflow-hidden bg-muted">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={type.image}
           alt=""
           className={cn(
-            "h-full w-full object-cover transition-transform duration-700 ease-out",
-            !isComingSoon && "group-hover:scale-[1.045]"
+            "h-full w-full object-cover transition-transform duration-500 ease-out",
+            !isComingSoon && "group-hover:scale-[1.03]"
           )}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/5" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
 
-        <div className="absolute left-3.5 top-3.5 flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/95 text-primary shadow-sm backdrop-blur-sm">
-            <Icon className="h-4 w-4" strokeWidth={2} />
+        <div className="absolute left-2 top-2 flex items-center gap-1">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/95 text-primary shadow-sm backdrop-blur-sm">
+            <Icon className="h-3 w-3" strokeWidth={2} />
           </span>
           {isComingSoon ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-amber-700 shadow-sm backdrop-blur-sm">
-              <Clock className="h-3.5 w-3.5" />
-              Coming soon
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-white/95 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 shadow-sm">
+              <Clock className="h-2.5 w-2.5" />
+              Soon
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
-              <BadgeCheck className="h-3.5 w-3.5 text-primary" />
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-white/95 px-1.5 py-0.5 text-[9px] font-semibold text-foreground shadow-sm">
+              <BadgeCheck className="h-2.5 w-2.5 text-primary" />
               Available
             </span>
           )}
         </div>
 
         {!isComingSoon && listingCount > 0 ? (
-          <div className="absolute bottom-3.5 right-3.5">
-            <span className="rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-              {listingCount} listing{listingCount === 1 ? "" : "s"}
+          <div className="absolute right-2 top-2">
+            <span className="rounded-full bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
+              {listingCount}
             </span>
           </div>
         ) : null}
 
-        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-            {type.shortLabel}
-          </p>
-          <h3 className="mt-1 text-xl font-semibold tracking-tight text-white sm:text-[1.35rem]">
+        <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6">
+          <h3 className="text-sm font-semibold tracking-tight text-white">
             {type.name}
           </h3>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground/90">
-            {type.highlight}
-          </p>
-          <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-            {type.description}
-          </p>
-        </div>
+      <div className="flex flex-1 flex-col gap-2 px-2.5 pb-2.5 pt-2.5">
+        <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+          {type.highlight}
+        </p>
 
         <div className="mt-auto">
           {isComingSoon ? (
@@ -139,19 +135,19 @@ function ChannelCard({ type, listingCount, index }) {
               type="button"
               variant="outline"
               disabled
-              className="h-11 w-full rounded-full border-border/60 text-sm text-muted-foreground"
+              className="h-8 w-full rounded-full border-border/60 text-[11px] text-muted-foreground"
             >
-              Notify me later
+              Soon
             </Button>
           ) : (
             <Button
               asChild
               variant="marketing"
-              className="h-11 w-full rounded-full text-sm font-semibold shadow-md shadow-primary/20"
+              className="h-8 w-full rounded-full text-[11px] font-semibold shadow-sm shadow-primary/15"
             >
-              <span className="inline-flex items-center justify-center gap-2">
-                Browse {type.shortLabel.toLowerCase()}
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              <span className="inline-flex items-center justify-center gap-1">
+                Buy {type.buyLabel}
+                <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
               </span>
             </Button>
           )}
@@ -160,12 +156,12 @@ function ChannelCard({ type, listingCount, index }) {
     </article>
   );
 
-  const wrapped = (
+  return (
     <motion.div
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, delay: Math.min(index * 0.07, 0.28) }}
+      transition={{ duration: 0.4, delay: Math.min(index * 0.06, 0.24) }}
       className="h-full"
     >
       {type.href && !isComingSoon ? (
@@ -177,8 +173,6 @@ function ChannelCard({ type, listingCount, index }) {
       )}
     </motion.div>
   );
-
-  return wrapped;
 }
 
 function PartnerListings({ listingsByType }) {
@@ -193,55 +187,53 @@ function PartnerListings({ listingsByType }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="mt-12 space-y-5">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold tracking-tight text-foreground">
-            Partner listings
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Jump into a station or inventory partner to schedule.
-          </p>
-        </div>
+    <div className="mt-8 space-y-4">
+      <div>
+        <h3 className="text-base font-semibold tracking-tight text-foreground">
+          Partner listings
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Jump into a station or inventory partner to schedule.
+        </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map(({ type, listing }, index) => {
           const Icon = type.icon;
           return (
             <motion.div
               key={listing.id}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.25) }}
+              transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.2) }}
             >
               <Link
                 href={`/media/schedule?type=${type.id}&listing=${listing.id}`}
                 className="group block h-full"
               >
-                <div className="flex h-full items-start gap-3.5 rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/10">
-                    <Icon className="h-4 w-4" strokeWidth={1.9} />
+                <div className="flex h-full items-start gap-3 rounded-xl border border-border/60 bg-card p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/10">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
                           {type.shortLabel}
                         </p>
                         <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
                           {listing.name}
                         </p>
                       </div>
-                      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-primary/60 transition-transform group-hover:translate-x-0.5" />
+                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/60 transition-transform group-hover:translate-x-0.5" />
                     </div>
                     {listing.agency?.agencyName ? (
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {listing.agency.agencyName}
                       </p>
                     ) : null}
-                    <div className="mt-2 flex flex-wrap gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
+                    <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                       {listing.location ? (
                         <span className="inline-flex items-center gap-0.5">
                           <MapPin className="h-3 w-3 shrink-0" />
@@ -265,7 +257,7 @@ function PartnerListings({ listingsByType }) {
 export function MediaListingsGrid({ listingsByType }) {
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="grid items-stretch gap-5 sm:grid-cols-2 lg:gap-6">
+      <div className="grid grid-cols-2 items-stretch gap-3 md:grid-cols-4 md:gap-3.5">
         {MEDIA_TYPES.map((type, index) => {
           const listingCount = (listingsByType[type.id] || []).filter(
             (listing) => !listing.name?.toLowerCase().includes("payollar")

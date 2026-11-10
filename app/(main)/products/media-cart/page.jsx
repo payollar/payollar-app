@@ -210,10 +210,12 @@ export default function MediaPlannerCartPage() {
 
   const moveDraftToCart = (draft) => {
     const { status, updatedAt, createdAt, currentStep, ...payload } = draft;
-    addMediaPlannerCartItem(payload);
-    setItems(loadMediaPlannerCart());
+    const result = addMediaPlannerCartItem(payload);
+    setItems(result?.items || loadMediaPlannerCart());
     setDrafts(removeMediaPlannerDraft(draft.id));
-    toast.success("Draft moved to cart");
+    toast.success(
+      result?.updated ? "Draft updated existing cart flight" : "Draft moved to cart"
+    );
   };
 
   const saveDraftFromItem = (item) => {
@@ -259,11 +261,55 @@ export default function MediaPlannerCartPage() {
     }
     setNegotiatingId(item.id);
     try {
-      const result = await startPlannerCartNegotiation(item);
-      if (!result?.href) {
-        toast.error("Could not open negotiation");
+      // Send a slim payload — full cart objects can be large and previously
+      // tied negotiation ownership to the planner contact email.
+      const result = await startPlannerCartNegotiation({
+        id: item.id,
+        rateCardId: item.rateCardId,
+        rateCardBookingId: item.rateCardBookingId || null,
+        channel: item.channel || "TV",
+        mediaCampaignName: item.mediaCampaignName,
+        brandName: item.brandName || null,
+        adFormatLabel: item.adFormatLabel || null,
+        audienceLabels: item.audienceLabels || [],
+        campaignStart: item.campaignStart || null,
+        campaignEnd: item.campaignEnd || null,
+        dayCount: item.dayCount || 1,
+        slotIds: item.slotIds || [],
+        slots: Array.isArray(item.slots)
+          ? item.slots.slice(0, 20).map((slot) => ({
+              id: slot.id,
+              label: slot.label,
+              range: slot.range || "",
+              frequencyId: slot.frequencyId || null,
+              lineTotal: slot.lineTotal ?? null,
+            }))
+          : [],
+        estimatedImpressions: item.estimatedImpressions ?? null,
+        subtotal: item.subtotal || 0,
+        vat: item.vat || 0,
+        nhilGetfund: item.nhilGetfund || 0,
+        total: item.total,
+        contact: {
+          name: item.contact?.name || "",
+          email: item.contact?.email || "",
+          phone: item.contact?.phone || "",
+        },
+      });
+
+      if (!result?.success || !result?.href) {
+        const message = result?.error || "Could not open negotiation";
+        if (/unauthorized|sign in|client/i.test(message)) {
+          toast.error("Sign in as a client to negotiate rates");
+          router.push(
+            `/sign-in?redirect_url=${encodeURIComponent("/products/media-cart")}`
+          );
+          return;
+        }
+        toast.error(message);
         return;
       }
+
       patchMediaPlannerCartItem(item.id, {
         rateCardBookingId: result.bookingId,
         negotiationId: result.negotiationId,
@@ -280,7 +326,7 @@ export default function MediaPlannerCartPage() {
         );
         return;
       }
-      toast.error(message);
+      toast.error("Could not start negotiation. Please try again.");
     } finally {
       setNegotiatingId(null);
     }
