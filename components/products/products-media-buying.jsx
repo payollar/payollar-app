@@ -245,10 +245,15 @@ function ListingCard({ listing, favorited, onToggleFavorite }) {
               From
             </p>
             <p className="truncate text-sm font-semibold tabular-nums text-slate-950">
-              {listing.priceRange ||
-                (listing.packages?.[0]?.price
+              {listing.priceRange
+                ? /₵|GHS/i.test(String(listing.priceRange))
+                  ? listing.priceRange
+                  : `₵${String(listing.priceRange).replace(/^₵\s*/, "")}`
+                : listing.packages?.[0]?.price
                   ? money(listing.packages[0].price)
-                  : "Custom")}
+                  : listing.rateCardId
+                    ? "See rates"
+                    : "On request"}
             </p>
           </div>
           {available ? (

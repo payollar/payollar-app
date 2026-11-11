@@ -21,6 +21,7 @@ function serializeListing(listing) {
     demographics: listing.demographics || [],
     imageUrl: listing.imageUrl,
     priceRange: listing.priceRange,
+    rateCardId: listing.rateCardId || null,
     rating: listing.rating,
     agency: listing.agency
       ? {

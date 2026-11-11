@@ -293,11 +293,7 @@ export function MediaLibrary({
         toast.error(result?.error || "Could not open campaign for editing");
         return;
       }
-      toast.message(
-        result.mode === "cart"
-          ? "Campaign restored to your cart — edit and check out when ready."
-          : "Opening campaign in the planner."
-      );
+      toast.message("Opening campaign in the scheduler — edit, then add to cart when ready.");
       router.push(result.href);
     } catch (error) {
       console.error(error);

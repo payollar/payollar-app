@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/prisma";
 import { checkUser } from "@/lib/checkUser";
+import { priceRangeFromRateCard } from "@/lib/rate-card-price-range";
 
 /**
  * Submit media agency registration form
@@ -305,7 +306,69 @@ export async function getActiveMediaListings(mediaType = null) {
       ],
     });
 
-    return { success: true, listings };
+    const listingIds = listings.map((l) => l.id).filter(Boolean);
+    const publishedCards =
+      listingIds.length > 0
+        ? await db.rateCard.findMany({
+            where: {
+              listingId: { in: listingIds },
+              isPublished: true,
+            },
+            select: {
+              id: true,
+              listingId: true,
+              sections: {
+                select: {
+                  tables: {
+                    select: {
+                      columns: {
+                        where: { dataType: "CURRENCY" },
+                        select: { id: true },
+                      },
+                      rows: {
+                        select: {
+                          cells: {
+                            select: { columnId: true, value: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : [];
+
+    const cardByListingId = new Map();
+    for (const card of publishedCards) {
+      if (!card.listingId) continue;
+      // Prefer the first published card per listing (one card per station)
+      if (!cardByListingId.has(card.listingId)) {
+        cardByListingId.set(card.listingId, card);
+      }
+    }
+
+    const enriched = listings.map((listing) => {
+      const card = cardByListingId.get(listing.id) || null;
+      const derivedRange = card ? priceRangeFromRateCard(card) : null;
+      const priceRange =
+        (listing.priceRange && String(listing.priceRange).trim()) ||
+        derivedRange ||
+        null;
+      return {
+        ...listing,
+        priceRange,
+        rateCardId: card?.id || null,
+        priceRangeSource: listing.priceRange
+          ? "listing"
+          : derivedRange
+            ? "rate_card"
+            : null,
+      };
+    });
+
+    return { success: true, listings: enriched };
   } catch (error) {
     console.error("Error fetching media listings:", error);
     return {

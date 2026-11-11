@@ -332,8 +332,15 @@ export default function TVMediaPage() {
         ? draft.activeBroadcastDays
         : null,
     };
-    setCurrentStep(6);
-    toast.message("Draft loaded — review and continue editing");
+    const step = Number(draft.currentStep);
+    setCurrentStep(
+      Number.isFinite(step) && step >= 1 && step <= 6 ? step : 6
+    );
+    toast.message(
+      Number.isFinite(step) && step <= 4
+        ? "Campaign loaded — adjust airtime, then continue"
+        : "Campaign loaded — review and continue editing"
+    );
   }, []);
 
   useEffect(() => {

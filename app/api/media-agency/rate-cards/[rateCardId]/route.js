@@ -184,6 +184,7 @@ export async function PATCH(request, { params }) {
     });
 
     // Publishing should surface the station on Browse (ACTIVE listing)
+    // and fill empty listing.priceRange from rate-card currency cells.
     const nextListingId = updatedRateCard.listingId || rateCard.listingId;
     if (isPublished === true && nextListingId) {
       await db.mediaListing.updateMany({
@@ -194,6 +195,47 @@ export async function PATCH(request, { params }) {
         },
         data: { status: "ACTIVE" },
       });
+
+      try {
+        const { priceRangeFromRateCard } = await import(
+          "@/lib/rate-card-price-range"
+        );
+        const cardForRange = await db.rateCard.findUnique({
+          where: { id: rateCardId },
+          select: {
+            sections: {
+              select: {
+                tables: {
+                  select: {
+                    columns: {
+                      where: { dataType: "CURRENCY" },
+                      select: { id: true },
+                    },
+                    rows: {
+                      select: {
+                        cells: { select: { columnId: true, value: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+        const derived = priceRangeFromRateCard(cardForRange);
+        if (derived) {
+          await db.mediaListing.updateMany({
+            where: {
+              id: nextListingId,
+              agencyId: mediaAgency.id,
+              OR: [{ priceRange: null }, { priceRange: "" }],
+            },
+            data: { priceRange: derived },
+          });
+        }
+      } catch (syncError) {
+        console.error("Failed to sync listing priceRange from rate card:", syncError);
+      }
     }
 
     if (!listing && updatedRateCard.listingId) {
