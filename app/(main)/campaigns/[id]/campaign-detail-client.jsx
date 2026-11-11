@@ -48,6 +48,9 @@ const TABS = [
   { id: "faqs", label: "FAQs", full: "FAQs", icon: HelpCircle },
 ];
 
+const cardClass =
+  "scroll-mt-36 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-7";
+
 function campaignHaystack(campaign) {
   return [
     campaign.title,
@@ -212,41 +215,45 @@ function faqItems(campaign) {
 function CampaignArt({ title }) {
   const letter = (title || "C").trim().charAt(0).toUpperCase() || "C";
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] via-[#4c1d95] to-[#6d28d9]">
-      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
-      <div className="absolute bottom-6 left-6 text-5xl font-semibold text-white/75">
+    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700">
+      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
+      <div className="absolute bottom-6 left-6 text-5xl font-semibold text-white/20">
         {letter}
       </div>
     </div>
   );
 }
 
-function SectionHeading({ icon: Icon, children, aside }) {
+function SectionHeading({ icon: Icon, children }) {
   return (
-    <div className="mb-5 flex items-start justify-between gap-4">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f3e8ff] text-[#6d28d9]">
-          <Icon className="h-4 w-4" />
-        </span>
-        <h2 className="text-xl font-semibold tracking-tight text-slate-950">
-          {children}
-        </h2>
-      </div>
-      {aside}
+    <div className="mb-5 flex items-center gap-2.5">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+        <Icon className="h-4 w-4" />
+      </span>
+      <h2 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
+        {children}
+      </h2>
     </div>
   );
 }
 
-function HighlightCard({ icon: Icon, label, children }) {
+function HighlightCard({ icon: Icon, label, children, className }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-100 bg-[#f8f7fc] p-4 transition hover:border-violet-200 hover:bg-white hover:shadow-sm">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#6d28d9] shadow-sm">
+    <div
+      className={cn(
+        "flex gap-3.5 p-4 sm:p-5",
+        className
+      )}
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
         <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          {label}
+        </p>
+        <div className="mt-1.5 text-sm text-slate-800">{children}</div>
       </div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </p>
-      <div className="mt-2 flex-1 text-sm font-medium text-slate-800">{children}</div>
     </div>
   );
 }
@@ -341,7 +348,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/campaigns"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-[#6d28d9]"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-950"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to campaigns
@@ -360,8 +367,8 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
       </div>
 
       {/* Hero */}
-      <section className="overflow-hidden rounded-[1.75rem] bg-[#120f2d] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]">
-        <div className="relative min-h-[15rem] sm:min-h-[17rem] lg:min-h-[19rem]">
+      <section className="overflow-hidden rounded-2xl bg-slate-950 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.4)]">
+        <div className="relative min-h-[15rem] sm:min-h-[17rem] lg:min-h-[18rem]">
           {campaign.imageUrl ? (
             <Image
               src={campaign.imageUrl}
@@ -374,34 +381,34 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
           ) : (
             <CampaignArt title={campaign.brand || campaign.title} />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#120f2d] via-[#120f2d]/78 to-[#120f2d]/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#120f2d]/70 via-transparent to-transparent" />
-          <div className="relative flex h-full min-h-[15rem] flex-col justify-end p-5 sm:min-h-[17rem] sm:p-8 lg:min-h-[19rem] lg:p-10">
-            <p className="text-sm font-medium text-violet-200/90">{campaign.brand}</p>
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-slate-950/25" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
+          <div className="relative flex h-full min-h-[15rem] flex-col justify-end p-5 sm:min-h-[17rem] sm:p-8 lg:min-h-[18rem] lg:p-10">
+            <p className="text-sm font-medium text-slate-300">{campaign.brand}</p>
             <h1 className="mt-1.5 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               {campaign.title}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {campaign.category ? (
-                <span className="inline-flex rounded-full bg-white/12 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
                   {campaignCategoryLabel(campaign)}
                 </span>
               ) : null}
               {platforms.map((platform) => (
                 <span
                   key={platform.id}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs text-white backdrop-blur-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-white backdrop-blur-sm"
                 >
                   <PlatformGlyph icon={platform.icon} className="h-3.5 w-3.5" />
                   {platform.label}
                 </span>
               ))}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs text-white backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-white backdrop-blur-sm">
                 <MapPin className="h-3.5 w-3.5" />
                 {campaignPlaceLabel(campaign)}
               </span>
               {followerRange ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs text-white backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-white backdrop-blur-sm">
                   <Users className="h-3.5 w-3.5" />
                   {followerRange}
                 </span>
@@ -410,8 +417,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
           </div>
         </div>
 
-        {/* Key facts strip */}
-        <div className="grid grid-cols-2 border-t border-white/10 divide-x divide-white/10 sm:grid-cols-4">
+        <div className="grid grid-cols-2 divide-x divide-white/10 border-t border-white/10 sm:grid-cols-4">
           {[
             { label: "Budget", value: formatBudget(campaign), icon: Wallet },
             {
@@ -431,7 +437,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             },
           ].map((fact) => (
             <div key={fact.label} className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
-              <fact.icon className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
+              <fact.icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
               <div className="min-w-0">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">
                   {fact.label}
@@ -474,70 +480,63 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-7">
         <div className="min-w-0 space-y-5">
-          {/* Overview */}
-          <section
-            id="overview"
-            className="scroll-mt-36 rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7"
-          >
-            <SectionHeading
-              icon={Megaphone}
-              aside={
-                <p
-                  className="hidden max-w-[8.5rem] text-right text-base leading-tight text-[#7c3aed]/75 lg:block"
-                  style={{ fontFamily: "var(--font-handwriting), cursive" }}
-                  aria-hidden
-                >
-                  Let&apos;s create together!
-                </p>
-              }
-            >
-              About This Campaign
-            </SectionHeading>
+          <section id="overview" className={cardClass}>
+            <SectionHeading icon={Megaphone}>About this campaign</SectionHeading>
 
             <p className="max-w-3xl text-base leading-7 text-slate-600 sm:text-[1.05rem] sm:leading-8">
               {campaign.description}
             </p>
 
-            <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <HighlightCard icon={Package} label="Deliverables">
-                <ul className="space-y-1">
-                  {deliverables.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </HighlightCard>
-              <HighlightCard icon={Users} label="Target audience">
-                <p className="text-base font-semibold text-slate-950">
-                  {campaign.targetAudience?.trim() ||
-                    followerRange ||
-                    campaignPlaceLabel(campaign)}
-                </p>
-                <p className="mt-1 text-xs font-normal text-slate-500">
-                  {campaign.targetAudience?.trim()
-                    ? followerRange || campaignPlaceLabel(campaign)
-                    : followerRange
-                      ? campaignPlaceLabel(campaign)
-                      : "Listed location for this brief"}
-                </p>
-              </HighlightCard>
-              <HighlightCard icon={Wallet} label="Payment">
-                <p className="text-base font-semibold text-slate-950">
-                  {payment.primary}
-                </p>
-                <p className="mt-1 text-xs font-normal text-slate-500">
-                  {payment.secondary}
-                </p>
-              </HighlightCard>
-              <HighlightCard icon={Gift} label="Benefits">
-                <ul className="space-y-1.5 font-normal">
-                  {benefits.slice(0, 2).map((line) => (
-                    <li key={line} className="flex gap-1.5">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                      <span className="leading-snug text-slate-700">{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              </HighlightCard>
+            <div className="mt-7 overflow-hidden rounded-2xl border border-slate-200 bg-[#f7f8fc]">
+              <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-slate-200">
+                <HighlightCard icon={Wallet} label="Payment">
+                  <p className="text-base font-semibold tracking-tight text-slate-950 sm:text-lg">
+                    {payment.primary}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{payment.secondary}</p>
+                </HighlightCard>
+                <HighlightCard icon={Users} label="Target audience">
+                  <p className="text-base font-semibold tracking-tight text-slate-950">
+                    {campaign.targetAudience?.trim() ||
+                      followerRange ||
+                      campaignPlaceLabel(campaign)}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {campaign.targetAudience?.trim()
+                      ? followerRange || campaignPlaceLabel(campaign)
+                      : followerRange
+                        ? campaignPlaceLabel(campaign)
+                        : "Listed location for this brief"}
+                  </p>
+                </HighlightCard>
+              </div>
+              <div className="grid border-t border-slate-200 sm:grid-cols-2 sm:divide-x sm:divide-slate-200">
+                <HighlightCard icon={Package} label="Deliverables">
+                  <ul className="space-y-1.5">
+                    {deliverables.map((line) => (
+                      <li
+                        key={line}
+                        className="flex gap-2 text-sm font-medium leading-snug text-slate-800"
+                      >
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-slate-400" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </HighlightCard>
+                <HighlightCard icon={Gift} label="Benefits">
+                  <ul className="space-y-2">
+                    {benefits.slice(0, 2).map((line) => (
+                      <li key={line} className="flex gap-2">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                        <span className="text-sm leading-snug text-slate-700">
+                          {line}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </HighlightCard>
+              </div>
             </div>
 
             <div className="mt-8 border-t border-slate-100 pt-7">
@@ -546,7 +545,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                 {objectives.items.map((item) => (
                   <li
                     key={item}
-                    className="flex gap-3 rounded-2xl bg-[#f8f7fc] px-4 py-3.5 text-sm text-slate-700 sm:text-[0.95rem]"
+                    className="flex gap-3 rounded-2xl bg-[#f7f8fc] px-4 py-3.5 text-sm text-slate-700 sm:text-[0.95rem]"
                   >
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                     <span className="leading-relaxed">{item}</span>
@@ -556,9 +555,9 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </div>
 
             <div className="mt-8 border-t border-slate-100 pt-7">
-              <SectionHeading icon={Clock3}>Campaign Timeline</SectionHeading>
+              <SectionHeading icon={Clock3}>Campaign timeline</SectionHeading>
               <div className="relative">
-                <div className="absolute left-[1.15rem] top-3 bottom-3 w-px bg-violet-100 md:left-8 md:right-8 md:top-5 md:bottom-auto md:h-0.5 md:w-auto" />
+                <div className="absolute left-[1.15rem] top-3 bottom-3 w-px bg-slate-200 md:left-8 md:right-8 md:top-5 md:bottom-auto md:h-0.5 md:w-auto" />
                 <ol className="grid gap-5 md:grid-cols-4 md:gap-3">
                   {timeline.map((step, index) => (
                     <li
@@ -569,8 +568,8 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                         className={cn(
                           "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold shadow-sm",
                           index === 0
-                            ? "border-[#6d28d9] bg-[#6d28d9] text-white"
-                            : "border-violet-200 bg-white text-[#6d28d9]"
+                            ? "border-slate-950 bg-slate-950 text-white"
+                            : "border-slate-200 bg-white text-slate-500"
                         )}
                       >
                         {index === 0 ? <Check className="h-4 w-4" /> : step.id}
@@ -578,7 +577,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                       <div className="min-w-0 pt-1 md:pt-3">
                         <p className="text-sm font-semibold text-slate-900">{step.label}</p>
                         <p className="mt-0.5 text-xs text-slate-500">{step.detail}</p>
-                        <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6d28d9]">
+                        <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                           {step.date}
                         </p>
                       </div>
@@ -589,10 +588,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </div>
           </section>
 
-          <section
-            id="deliverables"
-            className="scroll-mt-36 rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7"
-          >
+          <section id="deliverables" className={cardClass}>
             <SectionHeading icon={Package}>Deliverables</SectionHeading>
             <p className="mb-5 text-sm leading-relaxed text-slate-500">
               Based on the campaign category and brief. Confirm exact deliverables with the brand if selected.
@@ -601,9 +597,9 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
               {deliverables.map((line) => (
                 <li
                   key={line}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-[#f8f7fc] px-4 py-3.5 text-sm font-medium text-slate-800"
+                  className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-[#f7f8fc] px-4 py-3.5 text-sm font-medium text-slate-800"
                 >
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-[#6d28d9] shadow-sm">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-700 shadow-sm ring-1 ring-slate-100">
                     <Package className="h-3.5 w-3.5" />
                   </span>
                   {line}
@@ -612,19 +608,16 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </ul>
           </section>
 
-          <section
-            id="requirements"
-            className="scroll-mt-36 rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7"
-          >
+          <section id="requirements" className={cardClass}>
             <SectionHeading icon={ListChecks}>Requirements</SectionHeading>
             {campaign.requirements?.length ? (
               <ul className="space-y-3">
                 {campaign.requirements.map((item, index) => (
                   <li
                     key={item}
-                    className="flex gap-3 rounded-2xl border border-slate-100 bg-[#f8f7fc] px-4 py-3.5 text-sm text-slate-700"
+                    className="flex gap-3 rounded-2xl border border-slate-100 bg-[#f7f8fc] px-4 py-3.5 text-sm text-slate-700"
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#6d28d9] text-xs font-bold text-white">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-bold text-white">
                       {index + 1}
                     </span>
                     <span className="leading-relaxed">{item}</span>
@@ -638,13 +631,10 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             )}
           </section>
 
-          <section
-            id="rewards"
-            className="scroll-mt-36 rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7"
-          >
-            <SectionHeading icon={Gift}>Rewards & Benefits</SectionHeading>
-            <div className="mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-[#6d28d9] to-[#4c1d95] px-5 py-5 text-white">
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-200">
+          <section id="rewards" className={cardClass}>
+            <SectionHeading icon={Gift}>Rewards & benefits</SectionHeading>
+            <div className="mb-5 overflow-hidden rounded-2xl bg-slate-950 px-5 py-5 text-white">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Listed budget
               </p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">
@@ -661,21 +651,18 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </ul>
           </section>
 
-          <section
-            id="faqs"
-            className="scroll-mt-36 rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7"
-          >
+          <section id="faqs" className={cardClass}>
             <SectionHeading icon={HelpCircle}>FAQs</SectionHeading>
             <div className="space-y-2.5">
               {faqs.map((item) => (
                 <details
                   key={item.q}
-                  className="group rounded-2xl border border-slate-200 bg-[#f8f7fc] px-4 py-3.5 open:border-violet-200 open:bg-white open:shadow-sm"
+                  className="group rounded-2xl border border-slate-200 bg-[#f7f8fc] px-4 py-3.5 open:border-slate-300 open:bg-white open:shadow-sm"
                 >
                   <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
                     <span className="flex items-center justify-between gap-3">
                       {item.q}
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#6d28d9] shadow-sm transition group-open:rotate-45">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-100 transition group-open:rotate-45 group-open:text-slate-950">
                         +
                       </span>
                     </span>
@@ -685,76 +672,18 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
               ))}
             </div>
           </section>
-
-          <section className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7">
-            <SectionHeading icon={Users}>
-              Applicants ({campaign.applicants || 0})
-            </SectionHeading>
-            {campaign.applications?.length > 0 ? (
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {campaign.applications.map((application) => {
-                  const talent = application.talent;
-                  const href =
-                    talent?.id && talent?.specialty
-                      ? `/talents/${encodeURIComponent(talent.specialty)}/${talent.id}`
-                      : null;
-                  const row = (
-                    <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-[#f8f7fc] px-3 py-3 transition hover:border-violet-200 hover:bg-white">
-                      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white">
-                        {talent?.imageUrl ? (
-                          <Image
-                            src={talent.imageUrl}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="40px"
-                          />
-                        ) : (
-                          <span className="flex h-full items-center justify-center text-xs font-semibold text-slate-500">
-                            {(talent?.name || "?").charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-1 text-sm font-medium text-slate-900">
-                          <span className="truncate">{talent?.name || "Creator"}</span>
-                          {talent?.verificationStatus === "VERIFIED" ? (
-                            <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-500" />
-                          ) : null}
-                        </span>
-                        {talent?.specialty ? (
-                          <span className="block truncate text-xs text-slate-500">
-                            {talent.specialty}
-                          </span>
-                        ) : null}
-                      </span>
-                    </div>
-                  );
-                  return (
-                    <li key={application.id}>
-                      {href ? <Link href={href}>{row}</Link> : row}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="rounded-2xl bg-[#f8f7fc] px-4 py-5 text-sm text-slate-500">
-                No one has applied yet. Be the first.
-              </p>
-            )}
-          </section>
         </div>
 
         {/* Sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-36 lg:self-start">
-          <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_20px_50px_-28px_rgba(15,23,42,0.35)]">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_50px_-28px_rgba(15,23,42,0.3)]">
             <div className="bg-slate-950 px-5 py-4 text-white">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
                   <Rocket className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold">Apply for This Campaign</p>
+                  <p className="text-sm font-semibold">Apply for this campaign</p>
                   <p className="text-xs text-slate-300">
                     {closed
                       ? "This brief is no longer accepting applications"
@@ -791,7 +720,7 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                   onClick={() => setApplyOpen(true)}
                   className="h-11 w-full rounded-full text-sm font-semibold"
                 >
-                  Submit Application
+                  Submit application
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
               )}
@@ -806,11 +735,11 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
                 asChild
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-full border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
+                className="h-11 w-full rounded-full border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950"
               >
                 <Link href="/contact-support">
                   <MessageSquare className="mr-1.5 h-4 w-4" />
-                  Message Brand
+                  Message brand
                 </Link>
               </Button>
 
@@ -828,11 +757,11 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-violet-100 bg-[#f5f3ff] p-5">
-            <div className="flex items-center gap-2 text-[#6d28d9]">
+          <div className="rounded-2xl border border-slate-200 bg-[#f7f8fc] p-5">
+            <div className="flex items-center gap-2 text-slate-600">
               <Clock3 className="h-4 w-4" />
               <p className="text-xs font-semibold uppercase tracking-wide">
-                Application Deadline
+                Application deadline
               </p>
             </div>
             <p className="mt-2 text-lg font-semibold leading-snug text-slate-950">
@@ -843,12 +772,12 @@ export function CampaignDetailClient({ campaign, creatorProfile = null }) {
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f3e8ff] text-[#6d28d9]">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
                 <Building2 className="h-4 w-4" />
               </span>
-              <p className="text-sm font-semibold text-slate-900">Brand Information</p>
+              <p className="text-sm font-semibold text-slate-900">Brand information</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200/80">

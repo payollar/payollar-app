@@ -24,10 +24,10 @@ import { campaignPlaceLabel } from "@/lib/campaign-places";
 import { cn } from "@/lib/utils";
 
 const BUDGET_FILTERS = [
-  { id: "any", label: "Any budget" },
-  { id: "under-1000", label: "Under GH₵1,000" },
-  { id: "1000-5000", label: "GH₵1,000 – 5,000" },
-  { id: "5000-plus", label: "GH₵5,000+" },
+  { id: "any", label: "Any" },
+  { id: "under-1000", label: "Under 1k" },
+  { id: "1000-5000", label: "1k – 5k" },
+  { id: "5000-plus", label: "5k+" },
 ];
 
 const CAMPAIGN_TYPES = [
@@ -49,9 +49,16 @@ const PLATFORMS = [
 
 const POSTED_FILTERS = [
   { id: "any", label: "Any time" },
-  { id: "7", label: "Last 7 days" },
-  { id: "30", label: "Last 30 days" },
+  { id: "7", label: "7 days" },
+  { id: "30", label: "30 days" },
 ];
+
+const filterSelectedClass =
+  "bg-slate-950 font-medium text-white hover:bg-slate-800 hover:text-white";
+const filterIdleClass =
+  "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-950";
+const filterInputClass =
+  "h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-950/5";
 
 function campaignHaystack(campaign) {
   return [campaign.title, campaign.description, campaign.category, campaign.subcategory, ...(campaign.requirements || [])]
@@ -111,8 +118,25 @@ function budgetCeiling(campaign) {
   return asMoney(campaign.budgetMax) ?? asMoney(campaign.budgetMin);
 }
 
-function matchesBudget(campaign, filter) {
+function campaignBudgetTouchesRange(campaign, min, max) {
+  const campMin = asMoney(campaign.budgetMin);
+  const campMax = asMoney(campaign.budgetMax);
+  if (campMin == null && campMax == null) return false;
+  const low = campMin ?? campMax;
+  const high = campMax ?? campMin;
+  if (min != null && high < min) return false;
+  if (max != null && low > max) return false;
+  return true;
+}
+
+function matchesBudget(campaign, filter, customMin, customMax) {
   if (filter === "any") return true;
+  if (filter === "custom") {
+    const min = asMoney(customMin);
+    const max = asMoney(customMax);
+    if (min == null && max == null) return true;
+    return campaignBudgetTouchesRange(campaign, min, max);
+  }
   const amount = budgetCeiling(campaign);
   if (amount == null) return false;
   if (filter === "under-1000") return amount < 1000;
@@ -121,38 +145,65 @@ function matchesBudget(campaign, filter) {
   return true;
 }
 
-function matchesPosted(campaign, filter) {
+function matchesPosted(campaign, filter, customDays) {
   if (filter === "any") return true;
-  const days = Number(filter);
+  const days =
+    filter === "custom" ? asMoney(customDays) : Number(filter);
+  if (days == null || !Number.isFinite(days) || days <= 0) {
+    return filter === "custom";
+  }
   const created = new Date(campaign.createdAt).getTime();
   if (!Number.isFinite(created)) return false;
   return Date.now() - created <= days * 24 * 60 * 60 * 1000;
 }
 
-function FilterChoices({ legend, value, onChange, options, scrollable = false }) {
+function matchesLocation(campaign, filter, customLocation) {
+  if (filter === "all") return true;
+  if (filter === "custom") {
+    const query = String(customLocation || "").trim().toLowerCase();
+    if (!query) return true;
+    const place = `${campaign.location || ""} ${campaignPlaceLabel(campaign)}`.toLowerCase();
+    return place.includes(query);
+  }
+  return campaign.location === filter;
+}
+
+function FilterSection({ icon: Icon, title, children }) {
   return (
-    <fieldset>
-      <legend className="text-sm font-semibold text-slate-900">{legend}</legend>
-      <div className={cn("mt-2 space-y-0.5", scrollable && "max-h-40 overflow-y-auto pr-1")}>
-        {options.map((option) => {
-          const selected = value === option.id;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onChange(option.id)}
-              className={cn(
-                "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50",
-                selected && "bg-[#f5f3ff] font-medium text-[#6d28d9]"
-              )}
-            >
-              <span className="min-w-0 truncate">{option.label}</span>
-              {selected ? <Check className="h-3.5 w-3.5 shrink-0" /> : <span className="w-3.5 shrink-0" />}
-            </button>
-          );
-        })}
-      </div>
+    <fieldset className="rounded-2xl border border-slate-200 bg-[#f7f8fc] p-3.5">
+      <legend className="flex items-center gap-2 px-0.5 text-sm font-semibold text-slate-900">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white text-slate-700 shadow-sm ring-1 ring-slate-200/80">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        {title}
+      </legend>
+      <div className="mt-3 space-y-3">{children}</div>
     </fieldset>
+  );
+}
+
+function FilterChips({ value, onChange, options }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((option) => {
+        const selected = value === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              selected
+                ? "border-slate-950 bg-slate-950 text-white hover:border-slate-800 hover:bg-slate-800 hover:text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -168,8 +219,8 @@ function MetaItem({ icon: Icon, children }) {
 function CampaignArt({ title }) {
   const letter = (title || "C").trim().charAt(0).toUpperCase() || "C";
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#6d28d9]">
-      <div className="absolute -right-4 -top-6 h-16 w-16 rounded-full bg-white/15" />
+    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700">
+      <div className="absolute -right-4 -top-6 h-16 w-16 rounded-full bg-[#0055ff]/20" />
       <div className="absolute bottom-2 left-3 text-2xl font-semibold text-white/80">{letter}</div>
     </div>
   );
@@ -179,8 +230,12 @@ export function CampaignsClient({ initialCampaigns = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [campaignTypes, setCampaignTypes] = useState([]);
   const [locationFilter, setLocationFilter] = useState("all");
+  const [customLocation, setCustomLocation] = useState("");
   const [budgetFilter, setBudgetFilter] = useState("any");
+  const [customBudgetMin, setCustomBudgetMin] = useState("");
+  const [customBudgetMax, setCustomBudgetMax] = useState("");
   const [postedFilter, setPostedFilter] = useState("any");
+  const [customPostedDays, setCustomPostedDays] = useState("");
   const [platformFilter, setPlatformFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -199,15 +254,15 @@ export function CampaignsClient({ initialCampaigns = [] }) {
         campaign.description.toLowerCase().includes(query);
       const matchesCategory =
         campaignTypes.length === 0 || campaignTypes.some((typeId) => matchesCampaignType(campaign, typeId));
-      const matchesLocation = locationFilter === "all" || campaign.location === locationFilter;
-      const matchesPlatform = platformFilter === "all" || campaignPlatformIds(campaign).includes(platformFilter);
+      const matchesPlatform =
+        platformFilter === "all" || campaignPlatformIds(campaign).includes(platformFilter);
       return (
         matchesSearch &&
         matchesCategory &&
-        matchesLocation &&
+        matchesLocation(campaign, locationFilter, customLocation) &&
         matchesPlatform &&
-        matchesBudget(campaign, budgetFilter) &&
-        matchesPosted(campaign, postedFilter)
+        matchesBudget(campaign, budgetFilter, customBudgetMin, customBudgetMax) &&
+        matchesPosted(campaign, postedFilter, customPostedDays)
       );
     });
 
@@ -221,8 +276,12 @@ export function CampaignsClient({ initialCampaigns = [] }) {
     searchQuery,
     campaignTypes,
     locationFilter,
+    customLocation,
     budgetFilter,
+    customBudgetMin,
+    customBudgetMax,
     postedFilter,
+    customPostedDays,
     platformFilter,
     sortBy,
   ]);
@@ -239,32 +298,39 @@ export function CampaignsClient({ initialCampaigns = [] }) {
     setSearchQuery("");
     setCampaignTypes([]);
     setLocationFilter("all");
+    setCustomLocation("");
     setBudgetFilter("any");
+    setCustomBudgetMin("");
+    setCustomBudgetMax("");
     setPostedFilter("any");
+    setCustomPostedDays("");
     setPlatformFilter("all");
   };
 
   return (
     <div className="mx-auto max-w-[90rem] px-4 pb-16 sm:px-6 lg:px-8">
-      <section className="relative min-h-[17.5rem] overflow-hidden rounded-3xl bg-[#120f2d] text-white shadow-xl">
+      <section className="relative min-h-[17.5rem] overflow-hidden rounded-3xl bg-slate-950 text-white shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(0,85,255,0.22),_transparent_55%)]" />
         {heroImage ? (
           <div className="absolute inset-y-0 right-0 hidden w-[48%] md:block">
             <Image src={heroImage} alt="" fill className="object-cover object-[center_20%]" sizes="640px" priority />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#120f2d] via-[#120f2d]/75 to-[#120f2d]/25" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-slate-950/30" />
           </div>
         ) : null}
         <div className="relative grid gap-8 px-6 py-8 md:grid-cols-[minmax(0,1fr)_17rem] md:px-10 md:py-10">
           <div className="max-w-xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-200">Campaigns</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8eb6ff]">
+              Campaigns
+            </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-[2.4rem] md:leading-tight">
               Find the right brief for your work
             </h1>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-300">
               Browse open campaigns, check the budget and deadline, and apply with the details the brand asked for.
             </p>
             <Link
               href="/client/campaigns"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#6d28d9] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#5b21b6]"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#0055ff] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0046d6]"
             >
               <Megaphone className="h-4 w-4" />
               Post a campaign
@@ -277,12 +343,12 @@ export function CampaignsClient({ initialCampaigns = [] }) {
               [BadgeCheck, "Clear briefs", "Budget, location, and deadline stay on the campaign."],
             ].map(([Icon, title, body]) => (
               <li key={title} className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-violet-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/8 text-[#8eb6ff] ring-1 ring-white/10">
                   <Icon className="h-4 w-4" />
                 </span>
                 <span>
                   <span className="block font-medium">{title}</span>
-                  <span className="text-xs leading-snug text-white/65">{body}</span>
+                  <span className="text-xs leading-snug text-slate-400">{body}</span>
                 </span>
               </li>
             ))}
@@ -294,7 +360,11 @@ export function CampaignsClient({ initialCampaigns = [] }) {
         <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-28">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Filter campaigns</h2>
-            <button type="button" onClick={clearFilters} className="text-xs font-medium text-[#6d28d9] hover:underline">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs font-medium text-slate-600 hover:text-slate-950 hover:underline"
+            >
               Clear all
             </button>
           </div>
@@ -313,7 +383,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search title or brand"
-                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-slate-400"
               />
             </label>
             <fieldset>
@@ -325,7 +395,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                       type="checkbox"
                       checked={campaignTypes.includes(type.id)}
                       onChange={() => toggleCampaignType(type.id)}
-                      className="h-4 w-4 rounded border-slate-300 accent-[#6d28d9]"
+                      className="h-4 w-4 rounded border-slate-300 accent-slate-950"
                     />
                     {type.label}
                   </label>
@@ -334,7 +404,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
             </fieldset>
 
             <fieldset>
-              <legend className="text-sm font-medium text-slate-800">Platform</legend>
+              <legend className="text-sm font-semibold text-slate-900">Platform</legend>
               <div className="mt-2 space-y-0.5">
                 {PLATFORMS.map((platform) => {
                   const count = initialCampaigns.filter((campaign) =>
@@ -346,59 +416,165 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                       key={platform.id}
                       type="button"
                       onClick={() => setPlatformFilter(platform.id)}
-                      className={cn(
-                        "flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50",
-                        selected && "bg-[#f5f3ff]"
-                      )}
+                      className={cn(filterIdleClass, "gap-2.5 px-1.5", selected && filterSelectedClass)}
                     >
                       <PlatformGlyph icon={platform.icon} />
                       <span className="flex-1 text-left">{platform.label}</span>
-                      <span className="text-xs text-slate-400">{count}</span>
-                      {selected ? <Check className="h-3.5 w-3.5 text-[#6d28d9]" /> : <span className="w-3.5" />}
+                      <span className={cn("text-xs", selected ? "text-white/60" : "text-slate-400")}>
+                        {count}
+                      </span>
+                      {selected ? <Check className="h-3.5 w-3.5" /> : <span className="w-3.5" />}
                     </button>
                   );
                 })}
                 <button
                   type="button"
                   onClick={() => setPlatformFilter("all")}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50",
-                    platformFilter === "all" && "bg-[#f5f3ff]"
-                  )}
+                  className={cn(filterIdleClass, "gap-2.5 px-1.5", platformFilter === "all" && filterSelectedClass)}
                 >
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[9px] font-semibold text-slate-500">
+                  <span
+                    className={cn(
+                      "flex h-4 w-4 items-center justify-center rounded-full border text-[9px] font-semibold",
+                      platformFilter === "all"
+                        ? "border-white/40 text-white"
+                        : "border-slate-300 text-slate-500"
+                    )}
+                  >
                     All
                   </span>
                   <span className="flex-1 text-left">All platforms</span>
-                  {platformFilter === "all" ? <Check className="h-3.5 w-3.5 text-[#6d28d9]" /> : <span className="w-3.5" />}
+                  {platformFilter === "all" ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <span className="w-3.5" />
+                  )}
                 </button>
               </div>
             </fieldset>
 
-            <FilterChoices
-              legend="Budget"
-              value={budgetFilter}
-              onChange={setBudgetFilter}
-              options={BUDGET_FILTERS}
-            />
+            <FilterSection icon={Wallet} title="Budget">
+              <FilterChips
+                value={budgetFilter === "custom" ? null : budgetFilter}
+                onChange={(id) => {
+                  setBudgetFilter(id);
+                  setCustomBudgetMin("");
+                  setCustomBudgetMax("");
+                }}
+                options={BUDGET_FILTERS}
+              />
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  Or custom GH₵ range
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1">
+                    <span className="text-xs text-slate-500">Min</span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                        ₵
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={customBudgetMin}
+                        onChange={(event) => {
+                          setCustomBudgetMin(event.target.value);
+                          setBudgetFilter("custom");
+                        }}
+                        placeholder="0"
+                        className={cn(filterInputClass, "pl-6")}
+                      />
+                    </div>
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs text-slate-500">Max</span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                        ₵
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={customBudgetMax}
+                        onChange={(event) => {
+                          setCustomBudgetMax(event.target.value);
+                          setBudgetFilter("custom");
+                        }}
+                        placeholder="Any"
+                        className={cn(filterInputClass, "pl-6")}
+                      />
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </FilterSection>
 
-            <FilterChoices
-              legend="Location"
-              value={locationFilter}
-              onChange={setLocationFilter}
-              options={[
-                { id: "all", label: "Any location" },
-                ...locationOptions.map((location) => ({ id: location, label: location })),
-              ]}
-              scrollable
-            />
+            <FilterSection icon={MapPin} title="Location">
+              <FilterChips
+                value={locationFilter === "custom" ? null : locationFilter}
+                onChange={(id) => {
+                  setLocationFilter(id);
+                  setCustomLocation("");
+                }}
+                options={[
+                  { id: "all", label: "Any" },
+                  ...locationOptions.map((location) => ({ id: location, label: location })),
+                ]}
+              />
+              <label className="block space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  Or type a place
+                </span>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={customLocation}
+                    onChange={(event) => {
+                      setCustomLocation(event.target.value);
+                      setLocationFilter("custom");
+                    }}
+                    placeholder="e.g. Kumasi, Tamale"
+                    className={cn(filterInputClass, "pl-8")}
+                  />
+                </div>
+              </label>
+            </FilterSection>
 
-            <FilterChoices
-              legend="Posted"
-              value={postedFilter}
-              onChange={setPostedFilter}
-              options={POSTED_FILTERS}
-            />
+            <FilterSection icon={Calendar} title="Posted">
+              <FilterChips
+                value={postedFilter === "custom" ? null : postedFilter}
+                onChange={(id) => {
+                  setPostedFilter(id);
+                  setCustomPostedDays("");
+                }}
+                options={POSTED_FILTERS}
+              />
+              <label className="block space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  Or within days
+                </span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={customPostedDays}
+                    onChange={(event) => {
+                      setCustomPostedDays(event.target.value);
+                      setPostedFilter("custom");
+                    }}
+                    placeholder="e.g. 14"
+                    className={cn(filterInputClass, "pr-12")}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                    days
+                  </span>
+                </div>
+              </label>
+            </FilterSection>
           </div>
         </aside>
 
@@ -427,21 +603,29 @@ export function CampaignsClient({ initialCampaigns = [] }) {
 
           {filteredCampaigns.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-14 text-center">
-              <h3 className="font-semibold">No campaigns match</h3>
-              <p className="mt-1 text-sm text-slate-500">Clear a filter or check back when a new brief is posted.</p>
+              <h3 className="font-semibold text-slate-950">No campaigns match</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Clear a filter or check back when a new brief is posted.
+              </p>
             </div>
           ) : (
             <ul className="space-y-3">
               {filteredCampaigns.map((campaign) => (
                 <li key={campaign.id}>
-                  <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-[#6d28d9]/35">
+                  <article className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition-all hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
                     <div className="flex gap-4">
                       <Link
                         href={`/campaigns/${campaign.id}`}
-                        className="relative h-[5.5rem] w-[7.25rem] shrink-0 overflow-hidden rounded-xl bg-slate-100"
+                        className="relative h-[5.5rem] w-[7.25rem] shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/80"
                       >
                         {campaign.imageUrl ? (
-                          <Image src={campaign.imageUrl} alt="" fill className="object-cover" sizes="140px" />
+                          <Image
+                            src={campaign.imageUrl}
+                            alt=""
+                            fill
+                            className="object-cover transition duration-300 group-hover:scale-[1.03]"
+                            sizes="140px"
+                          />
                         ) : (
                           <CampaignArt title={campaign.brand || campaign.title} />
                         )}
@@ -449,18 +633,16 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                              {campaign.brand}
-                            </p>
+                            <p className="text-sm font-medium text-slate-500">{campaign.brand}</p>
                             <Link href={`/campaigns/${campaign.id}`} className="block">
-                              <h3 className="truncate text-base font-semibold text-slate-950 hover:text-[#6d28d9]">
+                              <h3 className="truncate text-base font-semibold text-slate-950 transition-colors group-hover:text-[#0055ff]">
                                 {campaign.title}
                               </h3>
                             </Link>
                           </div>
                           <Link
                             href={`/campaigns/${campaign.id}`}
-                            className="hidden shrink-0 rounded-lg border border-[#6d28d9]/30 px-3 py-1.5 text-sm font-medium text-[#6d28d9] hover:bg-[#f5f3ff] sm:inline-flex"
+                            className="hidden shrink-0 items-center rounded-full bg-[#0055ff] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[#0046d6] sm:inline-flex"
                           >
                             View details
                           </Link>
@@ -484,7 +666,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                         </p>
                       </div>
                     </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-slate-100 pt-3">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-slate-100 pt-3">
                       <MetaItem icon={Wallet}>{formatBudget(campaign)}</MetaItem>
                       {formatFollowerRange(campaign) ? (
                         <MetaItem icon={Users}>{formatFollowerRange(campaign)}</MetaItem>
@@ -500,7 +682,7 @@ export function CampaignsClient({ initialCampaigns = [] }) {
                       </MetaItem>
                       <Link
                         href={`/campaigns/${campaign.id}`}
-                        className="rounded-lg border border-[#6d28d9]/30 px-3 py-1.5 text-sm font-medium text-[#6d28d9] sm:hidden"
+                        className="ml-auto inline-flex rounded-full bg-[#0055ff] px-3.5 py-1.5 text-sm font-semibold text-white sm:hidden"
                       >
                         View details
                       </Link>
