@@ -70,6 +70,7 @@ model User {
   sentBookingMessages  BookingMessage[]      @relation("SentBookingMessages")
   bookingInvoices      BookingInvoice[]      @relation("BookingInvoiceCreator")
   mediaInvoices        MediaInvoice[]        @relation("MediaInvoiceClient")
+  mediaCampaignAssets  MediaCampaignAsset[]  @relation("MediaCampaignAssetClient")
   creatorDeliveryReports DeliveryReport[]    @relation("CreatorDeliveryReports")
   clientDeliveryReports  DeliveryReport[]    @relation("ClientDeliveryReports")
   clientLogisticsShipments  LogisticsShipment[] @relation("ClientLogisticsShipments")
@@ -627,6 +628,7 @@ model MediaAgency {
   rateCardBookings RateCardBookingItem[]
   negotiations MediaNegotiation[]
   mediaInvoices MediaInvoice[]
+  campaignAssets MediaCampaignAsset[]
 
   @@index([verificationStatus, createdAt])
 }
@@ -834,6 +836,43 @@ model TransmissionCertificate {
   @@index([bookingId])
   @@index([campaignRefId])
   @@index([airDate])
+}
+
+/// Client-uploaded creatives (TVC, jingle, etc.) for a media booking.
+model MediaCampaignAsset {
+  id            String                   @id @default(uuid())
+  clientId      String
+  client        User                     @relation("MediaCampaignAssetClient", fields: [clientId], references: [id], onDelete: Cascade)
+  agencyId      String
+  agency        MediaAgency              @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  /// RATE_CARD | MEDIA
+  bookingType   String
+  bookingId     String
+  campaignName  String?
+  title         String?
+  /// tvc | jingle | produced-spot | live-read | lpm | sponsorship | announcement | other
+  assetType     String
+  fileUrl       String
+  fileName      String
+  fileType      String
+  fileSize      Int?
+  fileKey       String?
+  notes         String?                  @db.Text
+  status        MediaCampaignAssetStatus @default(SUBMITTED)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([clientId, createdAt])
+  @@index([agencyId, createdAt])
+  @@index([bookingType, bookingId])
+  @@index([assetType, createdAt])
+}
+
+enum MediaCampaignAssetStatus {
+  SUBMITTED
+  ACCEPTED
+  NEEDS_REVISION
+  ARCHIVED
 }
 
 // Smart Rate Card System

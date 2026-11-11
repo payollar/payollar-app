@@ -23,6 +23,7 @@ export default async function ClientMediaPage() {
         certificates={mediaData.certificates || []}
         reports={mediaData.reports || []}
         invoices={mediaData.invoices || []}
+        assets={mediaData.assets || []}
       />
     </Suspense>
   );

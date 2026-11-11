@@ -76,5 +76,26 @@ export const ourFileRouter = {
       size: file.size,
     };
   }),
+  /** Client media creatives: TVC, jingle, produced spots, stills (multi) */
+  mediaCampaignAsset: f(
+    {
+      video: { maxFileSize: "128MB", maxFileCount: 8 },
+      audio: { maxFileSize: "64MB", maxFileCount: 8 },
+      image: { maxFileSize: "16MB", maxFileCount: 8 },
+      pdf: { maxFileSize: "16MB", maxFileCount: 8 },
+      blob: { maxFileSize: "64MB", maxFileCount: 8 },
+    },
+    {
+      awaitServerData: false,
+    }
+  ).onUploadComplete(async ({ file }) => {
+    return {
+      url: file.url || `https://utfs.io/f/${file.key}`,
+      key: file.key,
+      type: file.type,
+      name: file.name,
+      size: file.size,
+    };
+  }),
 };
 

@@ -15,6 +15,7 @@ import {
   Eye,
   FileText,
   FolderOpen,
+  Mail,
   MapPin,
   MessageSquare,
   Pencil,
@@ -23,6 +24,7 @@ import {
   ShoppingCart,
   Tv,
   TrendingUp,
+  Upload,
   XCircle,
   AlertCircle,
 } from "lucide-react";
@@ -48,10 +50,13 @@ import {
 import { resumeUnpaidMediaBooking } from "@/lib/media-planner-edit-booking";
 import { MediaInvoiceView } from "@/components/media/media-invoice-view";
 import { formatMediaInvoiceMoney } from "@/lib/media-invoice-format";
+import { resendClientMediaInvoiceEmail } from "@/actions/client-media";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
+import { MediaAssetsPanel } from "./media-assets-panel";
 
 const TABS = [
   { id: "bookings", label: "Bookings", icon: Calendar },
+  { id: "assets", label: "Creatives", icon: Upload },
   { id: "invoices", label: "Invoices", icon: FileText },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "certificates", label: "Proof of airing", icon: Download },
@@ -123,22 +128,22 @@ function StatCard({ label, value, icon: Icon, tone = "blue" }) {
 
   return (
     <Card className={cn(clientCardClass, "border-0")}>
-      <CardContent className="flex items-center justify-between p-4 sm:p-5">
+      <CardContent className="flex items-center justify-between gap-2 px-3.5 py-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
             {label}
           </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950 sm:text-3xl">
+          <p className="mt-0.5 text-xl font-semibold tabular-nums text-slate-950">
             {value}
           </p>
         </div>
         <span
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
             tones[tone]
           )}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-4 w-4" />
         </span>
       </CardContent>
     </Card>
@@ -239,6 +244,7 @@ export function MediaLibrary({
   certificates = [],
   reports = [],
   invoices = [],
+  assets = [],
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -249,6 +255,25 @@ export function MediaLibrary({
   const [cartItems, setCartItems] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [emailingInvoiceId, setEmailingInvoiceId] = useState(null);
+  const [preferredAssetBookingId, setPreferredAssetBookingId] = useState(null);
+
+  const handleEmailInvoice = async (invoiceId) => {
+    setEmailingInvoiceId(invoiceId);
+    try {
+      const result = await resendClientMediaInvoiceEmail(invoiceId);
+      if (!result?.success) {
+        toast.error(result?.error || "Could not send the receipt email");
+        return;
+      }
+      toast.success("Receipt emailed to your booking address");
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not send the receipt email");
+    } finally {
+      setEmailingInvoiceId(null);
+    }
+  };
 
   useEffect(() => {
     const refreshCart = () => setCartItems(loadMediaPlannerCart());
@@ -331,8 +356,9 @@ export function MediaLibrary({
       totalCertificates: certificates.length,
       totalReports: reports.length,
       totalInvoices: invoices.length,
+      totalAssets: assets.length,
     };
-  }, [bookings, certificates, reports, invoices]);
+  }, [bookings, certificates, reports, invoices, assets]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
@@ -412,6 +438,7 @@ export function MediaLibrary({
 
   const tabCounts = {
     bookings: bookings.length,
+    assets: assets.length,
     invoices: invoices.length,
     reports: reports.length,
     certificates: certificates.length,
@@ -421,7 +448,7 @@ export function MediaLibrary({
     <ClientPageShell
       eyebrow="Media bookings"
       title="Media bookings"
-      description="Track bookings, paid invoices, negotiate with stations, and review proof of airing."
+      description="Track bookings, upload creatives, manage invoices, and review proof of airing."
       actions={
         <Button asChild className="rounded-full bg-slate-950 hover:bg-slate-800">
           <Link href="/products">
@@ -464,7 +491,7 @@ export function MediaLibrary({
           </Card>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           <StatCard
             label="Total bookings"
             value={stats.totalBookings}
@@ -482,6 +509,12 @@ export function MediaLibrary({
             value={stats.completedBookings}
             icon={CheckCircle2}
             tone="emerald"
+          />
+          <StatCard
+            label="Creatives"
+            value={stats.totalAssets}
+            icon={Upload}
+            tone="slate"
           />
           <StatCard
             label="Invoices"
@@ -540,6 +573,23 @@ export function MediaLibrary({
             })}
           </div>
         </div>
+
+        {activeTab === "assets" ? (
+          <div className="space-y-4">
+            <FilterBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchPlaceholder="Search creatives, campaigns, or stations"
+            />
+            <MediaAssetsPanel
+              bookings={bookings}
+              assets={assets}
+              searchQuery={searchQuery}
+              preferredBookingId={preferredAssetBookingId}
+              onChanged={() => router.refresh()}
+            />
+          </div>
+        ) : null}
 
         {activeTab === "invoices" ? (
           <div className="space-y-4">
@@ -603,13 +653,26 @@ export function MediaLibrary({
                             )}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="text-base font-semibold tabular-nums text-slate-950">
                             {formatMediaInvoiceMoney(
                               invoice.amount,
                               invoice.currency
                             )}
                           </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full border-slate-200"
+                            disabled={emailingInvoiceId === invoice.id}
+                            onClick={() => handleEmailInvoice(invoice.id)}
+                          >
+                            <Mail className="mr-1.5 h-3.5 w-3.5" />
+                            {emailingInvoiceId === invoice.id
+                              ? "Sending…"
+                              : "Email"}
+                          </Button>
                           <Button
                             type="button"
                             size="sm"
@@ -772,6 +835,21 @@ export function MediaLibrary({
                                     {editingId === booking.id
                                       ? "Opening…"
                                       : "Edit campaign"}
+                                  </Button>
+                                ) : null}
+                                {booking.status !== "CANCELLED" ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-full border-slate-200"
+                                    onClick={() => {
+                                      setPreferredAssetBookingId(booking.id);
+                                      setActiveTab("assets");
+                                    }}
+                                  >
+                                    <Upload className="h-3.5 w-3.5" />
+                                    Upload creative
                                   </Button>
                                 ) : null}
                                 {booking.mediaInvoiceId ? (

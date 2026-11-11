@@ -321,6 +321,59 @@ export async function getClientCampaignReports() {
 }
 
 /**
+ * Re-send a paid media invoice email to the client.
+ */
+export async function resendClientMediaInvoiceEmail(invoiceId) {
+  try {
+    const authResult = await getAuthUserId();
+    if (!authResult?.userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+    if (!invoiceId) {
+      return { success: false, error: "Invoice id is required" };
+    }
+
+    const invoice = await db.mediaInvoice.findFirst({
+      where: {
+        id: invoiceId,
+        clientId: authResult.userId,
+      },
+      include: {
+        agency: {
+          select: {
+            id: true,
+            agencyName: true,
+          },
+        },
+      },
+    });
+
+    if (!invoice) {
+      return { success: false, error: "Invoice not found" };
+    }
+
+    const { sendMediaInvoiceEmail } = await import("@/lib/email");
+    const emailed = await sendMediaInvoiceEmail(invoice);
+    if (!emailed?.success) {
+      return {
+        success: false,
+        error:
+          emailed?.error ||
+          "Email provider rejected the receipt. Check Resend domain verification.",
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error resending media invoice email:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to resend invoice email",
+    };
+  }
+}
+
+/**
  * Paid media invoices/receipts for the authenticated client
  */
 export async function getClientMediaInvoices() {
@@ -362,20 +415,25 @@ export async function getClientMediaInvoices() {
 }
 
 /**
- * Get all client media library data (bookings, certificates, reports, invoices)
+ * Get all client media library data (bookings, certificates, reports, invoices, assets)
  */
 export async function getClientMediaLibrary() {
   try {
+    const { getClientMediaCampaignAssets } = await import(
+      "@/actions/media-campaign-assets"
+    );
     const [
       bookingsResult,
       certificatesResult,
       reportsResult,
       invoicesResult,
+      assetsResult,
     ] = await Promise.all([
       getClientMediaBookings(),
       getClientTransmissionCertificates(),
       getClientCampaignReports(),
       getClientMediaInvoices(),
+      getClientMediaCampaignAssets(),
     ]);
 
     return {
@@ -386,6 +444,7 @@ export async function getClientMediaLibrary() {
         : [],
       reports: reportsResult.success ? reportsResult.reports : [],
       invoices: invoicesResult.success ? invoicesResult.invoices : [],
+      assets: assetsResult.success ? assetsResult.assets : [],
     };
   } catch (error) {
     console.error("Error fetching client media library:", error);
@@ -396,6 +455,7 @@ export async function getClientMediaLibrary() {
       certificates: [],
       reports: [],
       invoices: [],
+      assets: [],
     };
   }
 }

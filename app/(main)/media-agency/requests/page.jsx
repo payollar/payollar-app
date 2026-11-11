@@ -11,6 +11,8 @@ import {
   MediaAgencyPageShell,
   mediaAgencyCardClass,
 } from "../_components/media-agency-page-shell";
+import { BookingNotes } from "./_components/booking-notes";
+import { BookingCreatives } from "./_components/booking-creatives";
 
 function statusMeta(status) {
   if (status === "PENDING") {
@@ -39,11 +41,28 @@ function initials(name) {
 
 function Field({ label, children }) {
   return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-sm text-slate-700">{children}</p>
+    <div className="min-w-0">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-medium text-slate-800">{children}</p>
     </div>
   );
+}
+
+function money(value) {
+  return `₵${Number(value).toLocaleString("en-GH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/** Negotiate only for unpaid pending quotes — hide once paid/confirmed. */
+function canNegotiate(booking) {
+  if (booking.status !== "PENDING") return false;
+  if (booking.mediaInvoice) return false;
+  if (booking.totalAmount == null || Number(booking.totalAmount) <= 0) return false;
+  return true;
 }
 
 export default async function MediaAgencyRequestsPage() {
@@ -106,6 +125,17 @@ export default async function MediaAgencyRequestsPage() {
     redirect("/media-agency/settings");
   }
 
+  const campaignAssets = await db.mediaCampaignAsset.findMany({
+    where: { agencyId: mediaAgency.id },
+    orderBy: { createdAt: "desc" },
+  });
+  const assetsByBooking = {};
+  for (const asset of campaignAssets) {
+    const key = `${asset.bookingType}:${asset.bookingId}`;
+    if (!assetsByBooking[key]) assetsByBooking[key] = [];
+    assetsByBooking[key].push(asset);
+  }
+
   const empty =
     mediaAgency.bookings.length === 0 && mediaAgency.rateCardBookings.length === 0;
 
@@ -122,14 +152,14 @@ export default async function MediaAgencyRequestsPage() {
           <p className="mt-1 text-sm text-slate-500">Requests from clients will appear here</p>
         </section>
       ) : (
-        <div className="space-y-4">
+        <div className={cn(mediaAgencyCardClass, "divide-y divide-slate-200 overflow-hidden p-0")}>
           {mediaAgency.bookings.map((booking) => {
             const status = statusMeta(booking.status);
             return (
-              <article key={`media-${booking.id}`} className={cn(mediaAgencyCardClass, "p-5 sm:p-6")}>
+              <article key={`media-${booking.id}`} className="p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-xs font-semibold text-white">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-xs font-semibold text-white">
                       {initials(booking.clientName)}
                     </span>
                     <div className="min-w-0">
@@ -142,49 +172,40 @@ export default async function MediaAgencyRequestsPage() {
                         </Badge>
                       </div>
                       <p className="mt-0.5 truncate text-sm text-slate-500">{booking.clientEmail}</p>
-                      {booking.clientPhone ? (
-                        <p className="text-sm text-slate-400">{booking.clientPhone}</p>
-                      ) : null}
                     </div>
                   </div>
                   {booking.totalAmount != null ? (
                     <div className="text-right">
                       <p className="text-lg font-semibold tabular-nums text-slate-950">
-                        ₵{Number(booking.totalAmount).toFixed(2)}
+                        {money(booking.totalAmount)}
                       </p>
-                      <p className="text-xs text-slate-400">Total amount</p>
+                      <p className="text-[11px] text-slate-400">Total</p>
                     </div>
                   ) : null}
                 </div>
 
-                <div className="mt-4 grid gap-4 rounded-2xl bg-[#f7f8fc] p-4 sm:grid-cols-2">
+                <div className="mt-3 grid gap-3 rounded-2xl border border-slate-100 bg-[#f7f8fc] p-3.5 sm:grid-cols-2 lg:grid-cols-3">
                   <Field label="Listing">{booking.listing.name}</Field>
                   <Field label="Package">{booking.packageName || "Custom package"}</Field>
                   {booking.duration ? <Field label="Duration">{booking.duration}</Field> : null}
-                  {booking.slots ? <Field label="Number of spots">{booking.slots}</Field> : null}
+                  {booking.slots ? <Field label="Spots">{booking.slots}</Field> : null}
                   {booking.startDate ? (
-                    <Field label="Start date">{new Date(booking.startDate).toLocaleDateString()}</Field>
+                    <Field label="Start">{new Date(booking.startDate).toLocaleDateString()}</Field>
                   ) : null}
                   {booking.endDate ? (
-                    <Field label="End date">{new Date(booking.endDate).toLocaleDateString()}</Field>
+                    <Field label="End">{new Date(booking.endDate).toLocaleDateString()}</Field>
                   ) : null}
                 </div>
 
-                {booking.notes ? (
-                  <div className="mt-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Notes</p>
-                    <p className="mt-1 text-sm text-slate-600">{booking.notes}</p>
-                  </div>
-                ) : null}
+                <BookingNotes notes={booking.notes} />
+                <BookingCreatives assets={assetsByBooking[`MEDIA:${booking.id}`] || []} />
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
                   <p className="text-xs text-slate-400">
                     Requested on {new Date(booking.createdAt).toLocaleString()}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {booking.totalAmount != null &&
-                    Number(booking.totalAmount) > 0 &&
-                    booking.status !== "CANCELLED" ? (
+                    {canNegotiate(booking) ? (
                       <Button size="sm" variant="outline" className="rounded-full border-slate-200" asChild>
                         <Link href={`/media-agency/negotiations/start/MEDIA_BOOKING/${booking.id}`}>
                           <MessageSquare className="mr-2 h-4 w-4" />
@@ -246,10 +267,10 @@ export default async function MediaAgencyRequestsPage() {
           {mediaAgency.rateCardBookings.map((booking) => {
             const status = statusMeta(booking.status);
             return (
-              <article key={`ratecard-${booking.id}`} className={cn(mediaAgencyCardClass, "p-5 sm:p-6")}>
+              <article key={`ratecard-${booking.id}`} className="p-4 sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-xs font-semibold text-white">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-xs font-semibold text-white">
                       {initials(booking.clientName)}
                     </span>
                     <div className="min-w-0">
@@ -262,22 +283,19 @@ export default async function MediaAgencyRequestsPage() {
                         </Badge>
                       </div>
                       <p className="mt-0.5 truncate text-sm text-slate-500">{booking.clientEmail}</p>
-                      {booking.clientPhone ? (
-                        <p className="text-sm text-slate-400">{booking.clientPhone}</p>
-                      ) : null}
                     </div>
                   </div>
                   {booking.totalAmount != null ? (
                     <div className="text-right">
                       <p className="text-lg font-semibold tabular-nums text-slate-950">
-                        ₵{Number(booking.totalAmount).toFixed(2)}
+                        {money(booking.totalAmount)}
                       </p>
-                      <p className="text-xs text-slate-400">Total amount</p>
+                      <p className="text-[11px] text-slate-400">Total</p>
                     </div>
                   ) : null}
                 </div>
 
-                <div className="mt-4 grid gap-4 rounded-2xl bg-[#f7f8fc] p-4 sm:grid-cols-2">
+                <div className="mt-3 grid gap-3 rounded-2xl border border-slate-100 bg-[#f7f8fc] p-3.5 sm:grid-cols-2 lg:grid-cols-3">
                   <Field label="Rate card">{booking.rateCard.title}</Field>
                   <Field label="Section">{booking.row?.table?.section?.title || "N/A"}</Field>
                   {booking.snapshotDescription ? (
@@ -285,31 +303,27 @@ export default async function MediaAgencyRequestsPage() {
                   ) : null}
                   {booking.quantity ? <Field label="Quantity">{booking.quantity}</Field> : null}
                   {booking.startDate ? (
-                    <Field label="Start date">{new Date(booking.startDate).toLocaleDateString()}</Field>
+                    <Field label="Start">{new Date(booking.startDate).toLocaleDateString()}</Field>
                   ) : null}
                   {booking.endDate ? (
-                    <Field label="End date">{new Date(booking.endDate).toLocaleDateString()}</Field>
+                    <Field label="End">{new Date(booking.endDate).toLocaleDateString()}</Field>
                   ) : null}
-                  {booking.snapshotPrice ? (
-                    <Field label="Unit price">₵{Number(booking.snapshotPrice).toFixed(2)}</Field>
+                  {booking.snapshotPrice != null ? (
+                    <Field label="Unit price">{money(booking.snapshotPrice)}</Field>
                   ) : null}
                 </div>
 
-                {booking.notes ? (
-                  <div className="mt-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Notes</p>
-                    <p className="mt-1 text-sm text-slate-600">{booking.notes}</p>
-                  </div>
-                ) : null}
+                <BookingNotes notes={booking.notes} />
+                <BookingCreatives
+                  assets={assetsByBooking[`RATE_CARD:${booking.id}`] || []}
+                />
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
                   <p className="text-xs text-slate-400">
                     Requested on {new Date(booking.createdAt).toLocaleString()}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {booking.totalAmount != null &&
-                    Number(booking.totalAmount) > 0 &&
-                    booking.status !== "CANCELLED" ? (
+                    {canNegotiate(booking) ? (
                       <Button size="sm" variant="outline" className="rounded-full border-slate-200" asChild>
                         <Link href={`/media-agency/negotiations/start/RATE_CARD_BOOKING/${booking.id}`}>
                           <MessageSquare className="mr-2 h-4 w-4" />

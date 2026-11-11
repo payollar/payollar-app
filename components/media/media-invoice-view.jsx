@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { format } from "date-fns";
-import { CheckCircle2, Printer, X } from "lucide-react";
+import { CheckCircle2, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMediaInvoiceMoney } from "@/lib/media-invoice-format";
 import { cn } from "@/lib/utils";
@@ -58,8 +58,8 @@ export function MediaInvoiceView({
           onClick={handlePrint}
           className="rounded-full border-slate-200"
         >
-          <Printer className="mr-1.5 h-3.5 w-3.5" />
-          Print / PDF
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+          Download
         </Button>
         {onClose ? (
           <button
