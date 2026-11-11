@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
+import { groupRateCardRequests } from "@/lib/media-booking-groups";
 
 const person = { id: true, name: true, imageUrl: true, specialty: true };
 
@@ -108,19 +109,33 @@ function shapeMediaBooking(booking) {
     toIso(booking.createdAt) ||
     new Date().toISOString();
   const end = toIso(booking.endDate) || start;
-  const amount = Number(booking.totalAmount ?? booking.packagePrice ?? 0);
-  const listingName = booking.listing?.name || booking.packageName || "Media booking";
+  const amount = Number(
+    booking.invoiceAmount ?? booking.totalAmount ?? booking.packagePrice ?? 0
+  );
+  const listingName =
+    booking.campaignTitle ||
+    booking.listing?.name ||
+    booking.packageName ||
+    "Media booking";
   const agencyName = booking.agency?.agencyName || "Media agency";
   const typeLabel =
     booking.bookingType === "RATE_CARD"
-      ? "Rate card"
+      ? booking.slotCount > 1
+        ? `${booking.slotCount} slots`
+        : "Rate card"
       : booking.listing?.listingType || "Media";
+  const orderId = booking.groupKey
+    ? `media:${booking.groupKey}`
+    : `media:${booking.id}`;
+  const href = booking.mediaInvoiceId
+    ? `/client/media?invoice=${booking.mediaInvoiceId}`
+    : "/client/media";
 
   return {
-    id: `media:${booking.id}`,
+    id: orderId,
     category: "MEDIA",
     kind: booking.bookingType === "RATE_CARD" ? "RATE_CARD" : "MEDIA",
-    href: "/client/media",
+    href,
     status: mediaStatusToOrderStatus(booking.status),
     mediaStatus: booking.status,
     startTime: start,
@@ -131,18 +146,19 @@ function shapeMediaBooking(booking) {
     notes: booking.notes?.trim() || "",
     campaignTitle: listingName,
     agreedAmount: Number.isFinite(amount) ? amount : null,
-    invoice: Number.isFinite(amount) && amount > 0
-      ? {
-          id: `media-amount:${booking.id}`,
-          title: booking.packageName || "Media order",
-          notes: "",
-          lineItems: [],
-          amount,
-          currency: "GHS",
-          status: booking.status === "PENDING" ? "SENT" : "PAID",
-          createdAt: toIso(booking.createdAt) || start,
-        }
-      : null,
+    invoice:
+      Number.isFinite(amount) && amount > 0
+        ? {
+            id: booking.mediaInvoiceId || `media-amount:${booking.id}`,
+            title: listingName,
+            notes: "",
+            lineItems: [],
+            amount,
+            currency: booking.invoiceCurrency || "GHS",
+            status: booking.status === "PENDING" ? "SENT" : "PAID",
+            createdAt: toIso(booking.createdAt) || start,
+          }
+        : null,
     hasOpenInvoice: booking.status === "PENDING",
     paymentRecorded: booking.status !== "PENDING",
     other: {
@@ -216,6 +232,15 @@ async function listClientMediaOrders(userId) {
         agency: {
           select: { id: true, agencyName: true, contactName: true },
         },
+        mediaInvoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            amount: true,
+            currency: true,
+            title: true,
+          },
+        },
         row: {
           include: {
             table: {
@@ -248,29 +273,88 @@ async function listClientMediaOrders(userId) {
       });
   }
 
-  const rateCardShaped = rateCardBookings.map((booking) =>
-    shapeMediaBooking({
-      id: booking.id,
-      packageName:
-        booking.snapshotDescription ||
-        booking.row?.table?.section?.title ||
-        "Rate card item",
-      packagePrice: booking.snapshotPrice,
-      startDate: booking.startDate,
-      endDate: booking.endDate,
-      totalAmount: booking.totalAmount,
-      status: booking.status,
-      notes: booking.notes,
-      createdAt: booking.createdAt,
-      updatedAt: booking.updatedAt,
+  const rateCardGroups = groupRateCardRequests(rateCardBookings);
+  const rateCardShaped = rateCardGroups.map((group) => {
+    const slotSummary =
+      group.slotCount > 1
+        ? `${group.slotCount} slots · ${group.slotLabels.slice(0, 2).join(", ")}`
+        : group.slotLabels[0] || group.sectionTitle || "Rate card";
+    const invoiceAmount =
+      group.mediaInvoice?.amount != null
+        ? Number(group.mediaInvoice.amount)
+        : group.totalAmount;
+
+    return shapeMediaBooking({
+      id: group.id,
+      groupKey: group.key,
+      mediaInvoiceId: group.mediaInvoiceId,
+      campaignTitle: group.campaignName,
+      packageName: slotSummary,
+      packagePrice: invoiceAmount,
+      startDate: group.startDate,
+      endDate: group.endDate,
+      totalAmount: group.totalAmount,
+      invoiceAmount,
+      invoiceCurrency: group.mediaInvoice?.currency || "GHS",
+      slotCount: group.slotCount,
+      status: group.status,
+      notes: group.primary?.notes || "",
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
       listing: {
-        id: booking.rateCard?.id,
-        name: booking.rateCard?.title || "Media booking",
-        listingType: booking.rateCard?.listingType || "DIGITAL",
-        location: booking.rateCard?.location,
-        imageUrl: booking.rateCard?.imageUrl,
+        id: group.rateCard?.id,
+        name: group.campaignName || group.rateCardTitle || "Media booking",
+        listingType: group.rateCard?.listingType || "DIGITAL",
+        location: group.rateCard?.location,
+        imageUrl: group.rateCard?.imageUrl,
       },
-      agency: booking.agency,
+      agency: group.agency,
+      bookingType: "RATE_CARD",
+    });
+  });
+
+  // Fallback: paid invoices with no linked booking rows still appear as orders.
+  const coveredInvoiceIds = new Set(
+    rateCardGroups.map((group) => group.mediaInvoiceId).filter(Boolean)
+  );
+  const orphanInvoices = await db.mediaInvoice.findMany({
+    where: {
+      clientId: userId,
+      ...(coveredInvoiceIds.size
+        ? { id: { notIn: [...coveredInvoiceIds] } }
+        : {}),
+    },
+    include: {
+      agency: { select: { id: true, agencyName: true, contactName: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const invoiceShaped = orphanInvoices.map((invoice) =>
+    shapeMediaBooking({
+      id: invoice.id,
+      groupKey: `invoice:${invoice.id}`,
+      mediaInvoiceId: invoice.id,
+      campaignTitle: invoice.title || "Media booking",
+      packageName: invoice.invoiceNumber || "Media receipt",
+      packagePrice: invoice.amount,
+      totalAmount: invoice.amount,
+      invoiceAmount: invoice.amount,
+      invoiceCurrency: invoice.currency || "GHS",
+      startDate: invoice.paidAt || invoice.createdAt,
+      endDate: invoice.paidAt || invoice.createdAt,
+      status: "CONFIRMED",
+      notes: invoice.notes || "",
+      createdAt: invoice.createdAt,
+      updatedAt: invoice.updatedAt,
+      listing: {
+        id: invoice.id,
+        name: invoice.title || "Media booking",
+        listingType: "DIGITAL",
+        location: null,
+        imageUrl: null,
+      },
+      agency: invoice.agency,
       bookingType: "RATE_CARD",
     })
   );
@@ -280,6 +364,7 @@ async function listClientMediaOrders(userId) {
       shapeMediaBooking({ ...booking, bookingType: "MEDIA" })
     ),
     ...rateCardShaped,
+    ...invoiceShaped,
   ];
 }
 

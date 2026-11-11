@@ -20,7 +20,7 @@ import {
 } from "../../../_components/media-agency-page-shell";
 import { BookingNotes } from "../../_components/booking-notes";
 import { BookingCreatives } from "../../_components/booking-creatives";
-import { groupRateCardRequests } from "../../_lib/group-rate-card-requests";
+import { groupRateCardRequests } from "@/lib/media-booking-groups";
 import {
   canNegotiate,
   initials,

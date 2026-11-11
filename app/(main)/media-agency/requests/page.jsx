@@ -8,7 +8,7 @@ import {
   mediaAgencyCardClass,
 } from "../_components/media-agency-page-shell";
 import { BookingRequestRow } from "./_components/booking-request-row";
-import { groupRateCardRequests } from "./_lib/group-rate-card-requests";
+import { groupRateCardRequests } from "@/lib/media-booking-groups";
 import { money, statusMeta } from "./_lib/request-helpers";
 
 export default async function MediaAgencyRequestsPage() {
