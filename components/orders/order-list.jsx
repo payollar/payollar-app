@@ -7,6 +7,7 @@ import { ArrowRight, Download, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatMediaOrderNumber } from "@/lib/media-invoice-format";
 
 const SOURCE_OPTIONS = [
   { id: "all", label: "All" },
@@ -50,8 +51,18 @@ function orderSourceLabel(category) {
 }
 
 function orderIdLabel(order) {
+  if (order.category === "MEDIA") {
+    const invoiceId =
+      order.invoice?.id && !String(order.invoice.id).startsWith("media-amount:")
+        ? order.invoice.id
+        : null;
+    return formatMediaOrderNumber({
+      id: order.id,
+      invoiceId,
+      createdAt: order.createdAt || order.startTime,
+    });
+  }
   const raw = String(order.id || "")
-    .replace(/^media:/, "")
     .replace(/[^a-zA-Z0-9]/g, "")
     .toUpperCase();
   const year = new Date(order.createdAt || order.startTime || Date.now()).getFullYear();

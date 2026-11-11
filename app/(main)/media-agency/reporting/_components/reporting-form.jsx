@@ -60,16 +60,19 @@ export function ReportingForm({
 
   useEffect(() => {
     const bookingId = searchParams?.get("bookingId");
-    const bookingType = searchParams?.get("bookingType");
-    if (bookingId && bookingType) {
-      const booking = availableBookings.find(
-        (b) => b.id === bookingId && b.type === bookingType
-      );
-      if (booking) {
-        setSelectedBookingId(bookingId);
-        setSelectedBookingType(bookingType);
-      }
-    }
+    const rawType = searchParams?.get("bookingType");
+    if (!bookingId) return;
+
+    const bookingType = String(rawType || "").toUpperCase().replace("_BOOKING", "");
+    const normalizedType =
+      bookingType === "MEDIA" || bookingType === "RATE_CARD" ? bookingType : "";
+    const booking =
+      availableBookings.find(
+        (b) => b.id === bookingId && (!normalizedType || b.type === normalizedType)
+      ) || availableBookings.find((b) => b.id === bookingId);
+
+    setSelectedBookingId(bookingId);
+    setSelectedBookingType(booking?.type || normalizedType || "RATE_CARD");
   }, [searchParams, availableBookings]);
 
   const resetForm = () => {
@@ -139,6 +142,23 @@ export function ReportingForm({
       ? `${selectedBookingType}|${selectedBookingId}`
       : "none";
 
+  const bookingOptions = [...availableBookings];
+  if (
+    selectedBookingId &&
+    selectedBookingType &&
+    !bookingOptions.some(
+      (booking) =>
+        booking.id === selectedBookingId && booking.type === selectedBookingType
+    )
+  ) {
+    bookingOptions.unshift({
+      id: selectedBookingId,
+      type: selectedBookingType,
+      displayName: "Selected request booking",
+      listingName: "From request page",
+    });
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -186,12 +206,13 @@ export function ReportingForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">No booking</SelectItem>
-              {availableBookings.map((booking) => (
+              {bookingOptions.map((booking) => (
                 <SelectItem
                   key={`${booking.type}-${booking.id}`}
                   value={`${booking.type}|${booking.id}`}
                 >
-                  {booking.displayName} — {booking.listingName}
+                  {booking.displayName}
+                  {booking.listingName ? ` — ${booking.listingName}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -84,18 +84,33 @@ export async function getAgencyBookingsForLinking() {
     }));
 
     // Format RateCardBookings
-    const formattedRateCardBookings = rateCardBookings.map((booking) => ({
-      id: booking.id,
-      type: "RATE_CARD",
-      displayName: `${booking.rateCard.title} - ${booking.clientName}`,
-      clientName: booking.clientName,
-      clientEmail: booking.clientEmail,
-      status: booking.status,
-      createdAt: booking.createdAt,
-      listingName: booking.rateCard.title,
-      listingType: booking.rateCard.listingType || "DIGITAL",
-      sectionTitle: booking.row?.table?.section?.title,
-    }));
+    const formattedRateCardBookings = rateCardBookings.map((booking) => {
+      const slotLabel =
+        booking.snapshotDescription ||
+        booking.row?.table?.section?.title ||
+        null;
+      const campaignLabel = booking.mediaCampaignName || null;
+      return {
+        id: booking.id,
+        type: "RATE_CARD",
+        displayName: [
+          campaignLabel || booking.rateCard.title,
+          booking.clientName,
+          slotLabel,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        clientName: booking.clientName,
+        clientEmail: booking.clientEmail,
+        status: booking.status,
+        createdAt: booking.createdAt,
+        listingName: booking.rateCard.title,
+        listingType: booking.rateCard.listingType || "DIGITAL",
+        sectionTitle: booking.row?.table?.section?.title,
+        mediaCampaignName: campaignLabel,
+        snapshotDescription: booking.snapshotDescription || null,
+      };
+    });
 
     // Combine and sort by date
     const allBookings = [

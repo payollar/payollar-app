@@ -4,7 +4,11 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { CheckCircle2, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatMediaInvoiceMoney } from "@/lib/media-invoice-format";
+import {
+  formatMediaInvoiceMoney,
+  formatMediaOrderNumber,
+  resolveMediaInvoiceTaxes,
+} from "@/lib/media-invoice-format";
 import { cn } from "@/lib/utils";
 
 function asLineItems(value) {
@@ -30,6 +34,12 @@ export function MediaInvoiceView({
 
   const lineItems = asLineItems(invoice.lineItems);
   const currency = invoice.currency || "GHS";
+  const taxes = resolveMediaInvoiceTaxes(invoice);
+  const orderNumber = formatMediaOrderNumber({
+    invoiceId: invoice.id,
+    createdAt: invoice.paidAt || invoice.createdAt,
+    paymentReference: invoice.paymentReference,
+  });
   const agencyLabel =
     invoice.agency?.agencyName ||
     [...new Set(lineItems.map((item) => item.agencyName).filter(Boolean))].join(
@@ -98,6 +108,9 @@ export function MediaInvoiceView({
             </p>
             <p className="mt-0.5 text-lg font-semibold tracking-tight text-slate-950">
               {invoice.invoiceNumber}
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              Order · {orderNumber}
             </p>
             <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -219,34 +232,28 @@ export function MediaInvoiceView({
 
         {/* Totals */}
         <div className="mt-4 ml-auto w-full max-w-sm space-y-2 rounded-2xl bg-[#f7f8fc] px-4 py-4 text-sm">
-          {invoice.subtotal != null ? (
-            <div className="flex justify-between text-slate-600">
-              <span>Subtotal</span>
-              <span className="tabular-nums">
-                {formatMediaInvoiceMoney(invoice.subtotal, currency)}
-              </span>
-            </div>
-          ) : null}
-          {invoice.vat != null && Number(invoice.vat) > 0 ? (
-            <div className="flex justify-between text-slate-600">
-              <span>VAT</span>
-              <span className="tabular-nums">
-                {formatMediaInvoiceMoney(invoice.vat, currency)}
-              </span>
-            </div>
-          ) : null}
-          {invoice.nhilGetfund != null && Number(invoice.nhilGetfund) > 0 ? (
-            <div className="flex justify-between text-slate-600">
-              <span>NHIL / GETFund</span>
-              <span className="tabular-nums">
-                {formatMediaInvoiceMoney(invoice.nhilGetfund, currency)}
-              </span>
-            </div>
-          ) : null}
+          <div className="flex justify-between text-slate-600">
+            <span>Subtotal</span>
+            <span className="tabular-nums">
+              {formatMediaInvoiceMoney(taxes.subtotal, currency)}
+            </span>
+          </div>
+          <div className="flex justify-between text-slate-600">
+            <span>VAT (15%)</span>
+            <span className="tabular-nums">
+              {formatMediaInvoiceMoney(taxes.vat, currency)}
+            </span>
+          </div>
+          <div className="flex justify-between text-slate-600">
+            <span>NHIL / GETFund (5%)</span>
+            <span className="tabular-nums">
+              {formatMediaInvoiceMoney(taxes.nhilGetfund, currency)}
+            </span>
+          </div>
           <div className="flex justify-between border-t border-slate-200 pt-2.5 text-base font-semibold text-slate-950">
             <span>Total paid</span>
             <span className="tabular-nums text-[#0055ff]">
-              {formatMediaInvoiceMoney(invoice.amount, currency)}
+              {formatMediaInvoiceMoney(taxes.amount, currency)}
             </span>
           </div>
         </div>

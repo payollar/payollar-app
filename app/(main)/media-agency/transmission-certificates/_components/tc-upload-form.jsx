@@ -22,6 +22,13 @@ import { cn } from "@/lib/utils";
 const inputClass =
   "h-10 rounded-xl border-slate-200 bg-[#f7f8fc] text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:bg-white focus-visible:ring-slate-950/15";
 
+function normalizeBookingType(value) {
+  const raw = String(value || "").toUpperCase();
+  if (raw === "MEDIA" || raw === "MEDIA_BOOKING") return "MEDIA";
+  if (raw === "RATE_CARD" || raw === "RATE_CARD_BOOKING") return "RATE_CARD";
+  return "";
+}
+
 function Field({ id, label, children, hint, className, required }) {
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -55,17 +62,21 @@ export function TransmissionCertificateForm({
 
   useEffect(() => {
     const bookingId = searchParams?.get("bookingId");
-    const bookingType = searchParams?.get("bookingType");
-    if (bookingId && bookingType) {
-      const booking = availableBookings.find(
-        (b) => b.id === bookingId && b.type === bookingType
-      );
-      if (booking) {
-        setSelectedBookingId(bookingId);
-        setSelectedBookingType(bookingType);
-        setCampaignRefId(`${bookingType}-${bookingId.substring(0, 8).toUpperCase()}`);
-      }
-    }
+    const rawType = searchParams?.get("bookingType");
+    if (!bookingId) return;
+
+    const bookingType = normalizeBookingType(rawType);
+    const booking =
+      availableBookings.find(
+        (b) => b.id === bookingId && (!bookingType || b.type === bookingType)
+      ) || availableBookings.find((b) => b.id === bookingId);
+
+    const resolvedType = booking?.type || bookingType || "RATE_CARD";
+    setSelectedBookingId(bookingId);
+    setSelectedBookingType(resolvedType);
+    setCampaignRefId(
+      `${resolvedType}-${bookingId.substring(0, 8).toUpperCase()}`
+    );
   }, [searchParams, availableBookings]);
 
   const resetForm = () => {
@@ -167,6 +178,23 @@ export function TransmissionCertificateForm({
       ? `${selectedBookingType}|${selectedBookingId}`
       : "none";
 
+  const bookingOptions = [...availableBookings];
+  if (
+    selectedBookingId &&
+    selectedBookingType &&
+    !bookingOptions.some(
+      (booking) =>
+        booking.id === selectedBookingId && booking.type === selectedBookingType
+    )
+  ) {
+    bookingOptions.unshift({
+      id: selectedBookingId,
+      type: selectedBookingType,
+      displayName: "Selected request booking",
+      listingName: "From request page",
+    });
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -189,12 +217,13 @@ export function TransmissionCertificateForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">No booking (manual)</SelectItem>
-              {availableBookings.map((booking) => (
+              {bookingOptions.map((booking) => (
                 <SelectItem
                   key={`${booking.type}-${booking.id}`}
                   value={`${booking.type}|${booking.id}`}
                 >
-                  {booking.displayName} — {booking.listingName}
+                  {booking.displayName}
+                  {booking.listingName ? ` — ${booking.listingName}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
