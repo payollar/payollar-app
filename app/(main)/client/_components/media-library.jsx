@@ -15,6 +15,7 @@ import {
   Eye,
   FileText,
   FolderOpen,
+  Mail,
   MapPin,
   MessageSquare,
   Pencil,
@@ -49,6 +50,7 @@ import {
 import { resumeUnpaidMediaBooking } from "@/lib/media-planner-edit-booking";
 import { MediaInvoiceView } from "@/components/media/media-invoice-view";
 import { formatMediaInvoiceMoney } from "@/lib/media-invoice-format";
+import { resendClientMediaInvoiceEmail } from "@/actions/client-media";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 import { MediaAssetsPanel } from "./media-assets-panel";
 
@@ -253,7 +255,25 @@ export function MediaLibrary({
   const [cartItems, setCartItems] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [emailingInvoiceId, setEmailingInvoiceId] = useState(null);
   const [preferredAssetBookingId, setPreferredAssetBookingId] = useState(null);
+
+  const handleEmailInvoice = async (invoiceId) => {
+    setEmailingInvoiceId(invoiceId);
+    try {
+      const result = await resendClientMediaInvoiceEmail(invoiceId);
+      if (!result?.success) {
+        toast.error(result?.error || "Could not send the receipt email");
+        return;
+      }
+      toast.success("Receipt emailed to your account address");
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not send the receipt email");
+    } finally {
+      setEmailingInvoiceId(null);
+    }
+  };
 
   useEffect(() => {
     const refreshCart = () => setCartItems(loadMediaPlannerCart());
@@ -643,6 +663,19 @@ export function MediaLibrary({
                           <Button
                             type="button"
                             size="sm"
+                            variant="outline"
+                            className="rounded-full border-slate-200"
+                            disabled={emailingInvoiceId === invoice.id}
+                            onClick={() => handleEmailInvoice(invoice.id)}
+                          >
+                            <Mail className="mr-1.5 h-3.5 w-3.5" />
+                            {emailingInvoiceId === invoice.id
+                              ? "Sending…"
+                              : "Email"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
                             variant={open ? "outline" : "black"}
                             className="rounded-full"
                             onClick={() =>
@@ -836,7 +869,8 @@ export function MediaLibrary({
                                       : "View invoice"}
                                   </Button>
                                 ) : null}
-                                {booking.status !== "CANCELLED" &&
+                                {booking.status === "PENDING" &&
+                                !booking.mediaInvoiceId &&
                                 booking.totalAmount != null &&
                                 Number(booking.totalAmount) > 0 ? (
                                   <Button asChild variant="black" size="sm" className="rounded-full">

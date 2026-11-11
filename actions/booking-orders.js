@@ -161,9 +161,29 @@ async function listClientMediaOrders(userId) {
   });
   if (!user?.email) return [];
 
+  const invoiceIds = (
+    await db.mediaInvoice.findMany({
+      where: { clientId: userId },
+      select: { id: true },
+    })
+  ).map((invoice) => invoice.id);
+
+  const emailMatch = {
+    equals: user.email,
+    mode: "insensitive",
+  };
+  const rateCardWhere = {
+    OR: [
+      { clientEmail: emailMatch },
+      ...(invoiceIds.length
+        ? [{ mediaInvoiceId: { in: invoiceIds } }]
+        : []),
+    ],
+  };
+
   const [mediaBookings, rateCardBookings] = await Promise.all([
     db.mediaBooking.findMany({
-      where: { clientEmail: user.email },
+      where: { clientEmail: emailMatch },
       include: {
         listing: {
           select: {
@@ -181,7 +201,7 @@ async function listClientMediaOrders(userId) {
       orderBy: { createdAt: "desc" },
     }),
     db.rateCardBookingItem.findMany({
-      where: { clientEmail: user.email },
+      where: rateCardWhere,
       include: {
         rateCard: {
           select: {
@@ -210,6 +230,24 @@ async function listClientMediaOrders(userId) {
     }),
   ]);
 
+  // Repair older paid bookings that were saved under a contact email.
+  const mismatched = rateCardBookings.filter(
+    (booking) =>
+      booking.mediaInvoiceId &&
+      booking.clientEmail &&
+      booking.clientEmail.toLowerCase() !== user.email.toLowerCase()
+  );
+  if (mismatched.length > 0) {
+    await db.rateCardBookingItem
+      .updateMany({
+        where: { id: { in: mismatched.map((booking) => booking.id) } },
+        data: { clientEmail: user.email },
+      })
+      .catch((error) => {
+        console.error("Failed to realign media booking emails:", error);
+      });
+  }
+
   const rateCardShaped = rateCardBookings.map((booking) =>
     shapeMediaBooking({
       id: booking.id,
@@ -226,11 +264,11 @@ async function listClientMediaOrders(userId) {
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
       listing: {
-        id: booking.rateCard.id,
-        name: booking.rateCard.title,
-        listingType: booking.rateCard.listingType || "DIGITAL",
-        location: booking.rateCard.location,
-        imageUrl: booking.rateCard.imageUrl,
+        id: booking.rateCard?.id,
+        name: booking.rateCard?.title || "Media booking",
+        listingType: booking.rateCard?.listingType || "DIGITAL",
+        location: booking.rateCard?.location,
+        imageUrl: booking.rateCard?.imageUrl,
       },
       agency: booking.agency,
       bookingType: "RATE_CARD",

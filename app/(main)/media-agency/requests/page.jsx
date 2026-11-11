@@ -8,6 +8,7 @@ import {
   mediaAgencyCardClass,
 } from "../_components/media-agency-page-shell";
 import { BookingRequestRow } from "./_components/booking-request-row";
+import { groupRateCardRequests } from "./_lib/group-rate-card-requests";
 import { money, statusMeta } from "./_lib/request-helpers";
 
 export default async function MediaAgencyRequestsPage() {
@@ -59,9 +60,10 @@ export default async function MediaAgencyRequestsPage() {
     redirect("/media-agency/settings");
   }
 
+  const rateCardGroups = groupRateCardRequests(mediaAgency.rateCardBookings);
+
   const empty =
-    mediaAgency.bookings.length === 0 &&
-    mediaAgency.rateCardBookings.length === 0;
+    mediaAgency.bookings.length === 0 && rateCardGroups.length === 0;
 
   return (
     <MediaAgencyPageShell
@@ -105,24 +107,26 @@ export default async function MediaAgencyRequestsPage() {
             );
           })}
 
-          {mediaAgency.rateCardBookings.map((booking) => {
-            const status = statusMeta(booking.status);
+          {rateCardGroups.map((group) => {
+            const status = statusMeta(group.status);
             const summaryParts = [
-              booking.rateCard?.title,
-              booking.row?.table?.section?.title,
-              booking.snapshotDescription,
+              group.campaignName,
+              group.rateCardTitle,
+              group.slotCount > 1
+                ? `${group.slotCount} slots`
+                : group.slotLabels[0] || group.sectionTitle,
             ].filter(Boolean);
 
             return (
               <BookingRequestRow
-                key={`ratecard-${booking.id}`}
-                href={`/media-agency/requests/RATE_CARD/${booking.id}`}
-                clientName={booking.clientName}
-                clientEmail={booking.clientEmail}
+                key={group.key}
+                href={`/media-agency/requests/RATE_CARD/${group.id}`}
+                clientName={group.clientName}
+                clientEmail={group.clientEmail}
                 statusLabel={status.label}
                 statusClassName={status.className}
                 amountLabel={
-                  booking.totalAmount != null ? money(booking.totalAmount) : null
+                  group.totalAmount > 0 ? money(group.totalAmount) : null
                 }
                 summary={summaryParts.join(" · ")}
               />

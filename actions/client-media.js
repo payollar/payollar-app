@@ -28,10 +28,30 @@ export async function getClientMediaBookings() {
       return { success: false, error: "Client not found" };
     }
 
+    const invoiceIds = (
+      await db.mediaInvoice.findMany({
+        where: { clientId: authResult.userId },
+        select: { id: true },
+      })
+    ).map((invoice) => invoice.id);
+
+    const emailMatch = {
+      equals: user.email,
+      mode: "insensitive",
+    };
+    const rateCardWhere = {
+      OR: [
+        { clientEmail: emailMatch },
+        ...(invoiceIds.length
+          ? [{ mediaInvoiceId: { in: invoiceIds } }]
+          : []),
+      ],
+    };
+
     // Get MediaBooking bookings
     const mediaBookings = await db.mediaBooking.findMany({
       where: {
-        clientEmail: user.email,
+        clientEmail: emailMatch,
       },
       include: {
         listing: {
@@ -58,9 +78,7 @@ export async function getClientMediaBookings() {
 
     // Get RateCardBookingItem bookings
     const rateCardBookings = await db.rateCardBookingItem.findMany({
-      where: {
-        clientEmail: user.email,
-      },
+      where: rateCardWhere,
       include: {
         rateCard: {
           select: {
@@ -205,16 +223,35 @@ export async function getClientTransmissionCertificates() {
       return { success: false, error: "Client not found" };
     }
 
+    const invoiceIds = (
+      await db.mediaInvoice.findMany({
+        where: { clientId: authResult.userId },
+        select: { id: true },
+      })
+    ).map((invoice) => invoice.id);
+    const emailMatch = { equals: user.email, mode: "insensitive" };
+
     // Get IDs from both MediaBooking and RateCardBookingItem bookings
     const [mediaBookingIds, rateCardBookingIds] = await Promise.all([
-      db.mediaBooking.findMany({
-        where: { clientEmail: user.email },
-        select: { id: true },
-      }).then(bookings => bookings.map(b => b.id)),
-      db.rateCardBookingItem.findMany({
-        where: { clientEmail: user.email },
-        select: { id: true },
-      }).then(bookings => bookings.map(b => b.id)),
+      db.mediaBooking
+        .findMany({
+          where: { clientEmail: emailMatch },
+          select: { id: true },
+        })
+        .then((bookings) => bookings.map((b) => b.id)),
+      db.rateCardBookingItem
+        .findMany({
+          where: {
+            OR: [
+              { clientEmail: emailMatch },
+              ...(invoiceIds.length
+                ? [{ mediaInvoiceId: { in: invoiceIds } }]
+                : []),
+            ],
+          },
+          select: { id: true },
+        })
+        .then((bookings) => bookings.map((b) => b.id)),
     ]);
 
     const allBookingIds = [...mediaBookingIds, ...rateCardBookingIds];
@@ -275,16 +312,35 @@ export async function getClientCampaignReports() {
       return { success: false, error: "Client not found" };
     }
 
+    const invoiceIds = (
+      await db.mediaInvoice.findMany({
+        where: { clientId: authResult.userId },
+        select: { id: true },
+      })
+    ).map((invoice) => invoice.id);
+    const emailMatch = { equals: user.email, mode: "insensitive" };
+
     // Get IDs from both MediaBooking and RateCardBookingItem bookings
     const [mediaBookingIds, rateCardBookingIds] = await Promise.all([
-      db.mediaBooking.findMany({
-        where: { clientEmail: user.email },
-        select: { id: true },
-      }).then(bookings => bookings.map(b => b.id)),
-      db.rateCardBookingItem.findMany({
-        where: { clientEmail: user.email },
-        select: { id: true },
-      }).then(bookings => bookings.map(b => b.id)),
+      db.mediaBooking
+        .findMany({
+          where: { clientEmail: emailMatch },
+          select: { id: true },
+        })
+        .then((bookings) => bookings.map((b) => b.id)),
+      db.rateCardBookingItem
+        .findMany({
+          where: {
+            OR: [
+              { clientEmail: emailMatch },
+              ...(invoiceIds.length
+                ? [{ mediaInvoiceId: { in: invoiceIds } }]
+                : []),
+            ],
+          },
+          select: { id: true },
+        })
+        .then((bookings) => bookings.map((b) => b.id)),
     ]);
 
     const allBookingIds = [...mediaBookingIds, ...rateCardBookingIds];
@@ -352,8 +408,24 @@ export async function resendClientMediaInvoiceEmail(invoiceId) {
       return { success: false, error: "Invoice not found" };
     }
 
+    const account = await db.user.findUnique({
+      where: { id: authResult.userId },
+      select: { email: true, name: true },
+    });
+    const receiptEmail = account?.email || invoice.clientEmail;
+    if (receiptEmail && receiptEmail !== invoice.clientEmail) {
+      await db.mediaInvoice.update({
+        where: { id: invoice.id },
+        data: { clientEmail: receiptEmail },
+      });
+    }
+
     const { sendMediaInvoiceEmail } = await import("@/lib/email");
-    const emailed = await sendMediaInvoiceEmail(invoice);
+    const emailed = await sendMediaInvoiceEmail({
+      ...invoice,
+      clientEmail: receiptEmail,
+      clientName: invoice.clientName || account?.name || "",
+    });
     if (!emailed?.success) {
       return {
         success: false,

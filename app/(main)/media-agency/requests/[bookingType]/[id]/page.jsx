@@ -20,6 +20,7 @@ import {
 } from "../../../_components/media-agency-page-shell";
 import { BookingNotes } from "../../_components/booking-notes";
 import { BookingCreatives } from "../../_components/booking-creatives";
+import { groupRateCardRequests } from "../../_lib/group-rate-card-requests";
 import {
   canNegotiate,
   initials,
@@ -49,6 +50,39 @@ function normalizeBookingType(value) {
   return null;
 }
 
+const rateCardInclude = {
+  rateCard: {
+    select: {
+      id: true,
+      title: true,
+      listingType: true,
+      location: true,
+    },
+  },
+  mediaInvoice: {
+    select: {
+      id: true,
+      invoiceNumber: true,
+      amount: true,
+      currency: true,
+      paymentReference: true,
+      paidAt: true,
+      status: true,
+    },
+  },
+  row: {
+    include: {
+      table: {
+        include: {
+          section: {
+            select: { title: true },
+          },
+        },
+      },
+    },
+  },
+};
+
 export default async function MediaAgencyRequestDetailPage({ params }) {
   const user = await checkUser();
   if (!user || user.role !== "MEDIA_AGENCY") {
@@ -68,9 +102,12 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
   }
 
   let booking = null;
+  let siblingBookings = [];
   let detailFields = null;
   let summary = "";
   let negotiateHref = null;
+  let requestTotal = null;
+  let campaignLabel = null;
 
   if (bookingType === "MEDIA") {
     booking = await db.mediaBooking.findFirst({
@@ -78,6 +115,9 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
       include: { listing: true },
     });
     if (!booking) notFound();
+    siblingBookings = [booking];
+    requestTotal = booking.totalAmount;
+    campaignLabel = booking.packageName || booking.listing?.name || null;
 
     detailFields = (
       <>
@@ -108,49 +148,75 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
   } else {
     booking = await db.rateCardBookingItem.findFirst({
       where: { id, agencyId: mediaAgency.id },
-      include: {
-        rateCard: {
-          select: {
-            id: true,
-            title: true,
-            listingType: true,
-            location: true,
-          },
-        },
-        mediaInvoice: {
-          select: {
-            id: true,
-            invoiceNumber: true,
-            amount: true,
-            currency: true,
-            paymentReference: true,
-            paidAt: true,
-            status: true,
-          },
-        },
-        row: {
-          include: {
-            table: {
-              include: {
-                section: {
-                  select: { title: true },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: rateCardInclude,
     });
     if (!booking) notFound();
 
+    let candidates = [];
+    if (booking.mediaInvoiceId) {
+      candidates = await db.rateCardBookingItem.findMany({
+        where: {
+          agencyId: mediaAgency.id,
+          mediaInvoiceId: booking.mediaInvoiceId,
+        },
+        include: rateCardInclude,
+        orderBy: { createdAt: "asc" },
+      });
+    } else {
+      candidates = await db.rateCardBookingItem.findMany({
+        where: {
+          agencyId: mediaAgency.id,
+          clientEmail: booking.clientEmail,
+          rateCardId: booking.rateCardId,
+          status: booking.status,
+        },
+        include: rateCardInclude,
+        orderBy: { createdAt: "desc" },
+        take: 40,
+      });
+      const grouped = groupRateCardRequests(candidates);
+      const match =
+        grouped.find((group) => group.items.some((item) => item.id === booking.id)) ||
+        null;
+      candidates = match?.items || [booking];
+    }
+
+    siblingBookings = candidates.length ? candidates : [booking];
+    const groupTotal = siblingBookings.reduce(
+      (sum, item) => sum + (Number(item.totalAmount) || 0),
+      0
+    );
+    requestTotal =
+      booking.mediaInvoice?.amount != null
+        ? booking.mediaInvoice.amount
+        : groupTotal;
+    campaignLabel =
+      booking.mediaCampaignName ||
+      siblingBookings.find((item) => item.mediaCampaignName)?.mediaCampaignName ||
+      booking.rateCard?.title ||
+      null;
+
+    const slotLabels = siblingBookings
+      .map((item) => item.snapshotDescription)
+      .filter(Boolean);
+    summary = [
+      campaignLabel,
+      booking.rateCard?.title,
+      siblingBookings.length > 1
+        ? `${siblingBookings.length} slots`
+        : slotLabels[0] || booking.row?.table?.section?.title,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
     detailFields = (
       <>
+        <Field label="Campaign">{campaignLabel}</Field>
         <Field label="Rate card">{booking.rateCard?.title}</Field>
         <Field label="Section">
           {booking.row?.table?.section?.title || "N/A"}
         </Field>
-        <Field label="Description">{booking.snapshotDescription}</Field>
-        <Field label="Quantity">{booking.quantity}</Field>
+        <Field label="Slots">{siblingBookings.length}</Field>
         <Field label="Start">
           {booking.startDate
             ? new Date(booking.startDate).toLocaleDateString()
@@ -161,31 +227,23 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
             ? new Date(booking.endDate).toLocaleDateString()
             : null}
         </Field>
-        <Field label="Unit price">
-          {booking.snapshotPrice != null ? money(booking.snapshotPrice) : null}
-        </Field>
       </>
     );
-    summary = [
-      booking.rateCard?.title,
-      booking.row?.table?.section?.title,
-      booking.snapshotDescription,
-    ]
-      .filter(Boolean)
-      .join(" · ");
     negotiateHref = `/media-agency/negotiations/start/RATE_CARD_BOOKING/${booking.id}`;
   }
 
+  const siblingIds = siblingBookings.map((item) => item.id);
   const assets = await db.mediaCampaignAsset.findMany({
     where: {
       agencyId: mediaAgency.id,
       bookingType,
-      bookingId: booking.id,
+      bookingId: { in: siblingIds },
     },
     orderBy: { createdAt: "desc" },
   });
 
   const status = statusMeta(booking.status);
+  const bookingIdsValue = siblingIds.join(",");
 
   return (
     <MediaAgencyPageShell
@@ -231,13 +289,13 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
             </div>
           </div>
 
-          {booking.totalAmount != null ? (
+          {requestTotal != null ? (
             <div className="rounded-2xl border border-slate-100 bg-[#f7f8fc] px-4 py-3 text-right">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 Request total
               </p>
               <p className="mt-0.5 text-2xl font-semibold tabular-nums text-slate-950">
-                {money(booking.totalAmount)}
+                {money(requestTotal)}
               </p>
             </div>
           ) : null}
@@ -252,6 +310,50 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
           {detailFields}
         </div>
       </section>
+
+      {bookingType === "RATE_CARD" && siblingBookings.length > 0 ? (
+        <section className={cn(mediaAgencyCardClass, "overflow-hidden p-0")}>
+          <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Airtime slots
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-950">
+              {siblingBookings.length} slot
+              {siblingBookings.length === 1 ? "" : "s"} in this campaign
+            </p>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {siblingBookings.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-6"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-950">
+                    {item.snapshotDescription ||
+                      item.row?.table?.section?.title ||
+                      "Airtime slot"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {[
+                      item.row?.table?.section?.title,
+                      item.quantity ? `Qty ${item.quantity}` : null,
+                      item.snapshotPrice != null
+                        ? `Unit ${money(item.snapshotPrice)}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold tabular-nums text-slate-950">
+                  {item.totalAmount != null ? money(item.totalAmount) : "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <BookingNotes notes={booking.notes} />
       <BookingCreatives assets={assets} />
@@ -280,6 +382,7 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
           <>
             <form action={updateBookingStatus}>
               <input type="hidden" name="bookingId" value={booking.id} />
+              <input type="hidden" name="bookingIds" value={bookingIdsValue} />
               <input type="hidden" name="bookingType" value={bookingType} />
               <input type="hidden" name="status" value="CONFIRMED" />
               <Button
@@ -294,6 +397,7 @@ export default async function MediaAgencyRequestDetailPage({ params }) {
             </form>
             <form action={updateBookingStatus}>
               <input type="hidden" name="bookingId" value={booking.id} />
+              <input type="hidden" name="bookingIds" value={bookingIdsValue} />
               <input type="hidden" name="bookingType" value={bookingType} />
               <input type="hidden" name="status" value="CANCELLED" />
               <Button

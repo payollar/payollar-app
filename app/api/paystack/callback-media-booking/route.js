@@ -105,9 +105,10 @@ async function createBookingItemsFromPlannerCart({
               item.adFormatLabel ||
               null,
             mediaCampaignName: item.mediaCampaignName || null,
-            clientName: item.contactName || clientName || "",
-            clientEmail: item.contactEmail || clientEmail || "",
-            clientPhone: item.contactPhone || clientPhone || "",
+            // Prefer account email so Orders / Media library stay linked to the payer.
+            clientName: clientName || item.contactName || "",
+            clientEmail: clientEmail || item.contactEmail || "",
+            clientPhone: clientPhone || item.contactPhone || "",
             quantity: item.dayCount || 1,
             startDate:
               startDate && !Number.isNaN(startDate.getTime()) ? startDate : null,
@@ -167,9 +168,14 @@ export async function GET(request) {
   try {
     const existingInvoice = await db.mediaInvoice.findUnique({
       where: { paymentReference: reference },
-      select: { id: true },
     });
     if (existingInvoice) {
+      try {
+        const { sendMediaInvoiceEmail } = await import("@/lib/email");
+        await sendMediaInvoiceEmail(existingInvoice);
+      } catch (error) {
+        console.error("Existing media invoice email retry failed:", error);
+      }
       return NextResponse.redirect(
         `${bookingsUrl}?success=1&payment=completed&invoice=${existingInvoice.id}`
       );

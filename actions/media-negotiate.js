@@ -107,6 +107,7 @@ async function loadBookingContext(sourceType, sourceId) {
         .join(" · "),
       listAmount: Number(booking.totalAmount || booking.packagePrice || 0),
       bookingStatus: booking.status,
+      mediaInvoiceId: null,
       agency: booking.agency,
     };
   }
@@ -136,6 +137,7 @@ async function loadBookingContext(sourceType, sourceId) {
       .join(" · "),
     listAmount: Number(booking.totalAmount || booking.snapshotPrice || 0),
     bookingStatus: booking.status,
+    mediaInvoiceId: booking.mediaInvoiceId || null,
     agency: booking.agency,
   };
 }
@@ -207,6 +209,11 @@ export async function ensureMediaNegotiation(sourceType, sourceId) {
   });
   if (existing) {
     return { success: true, negotiation: shapeNegotiation(existing), created: false };
+  }
+
+  const lockedStatuses = new Set(["CONFIRMED", "COMPLETED", "CANCELLED"]);
+  if (lockedStatuses.has(String(ctx.bookingStatus || "").toUpperCase()) || ctx.mediaInvoiceId) {
+    throw new Error("This booking is already confirmed or paid and can no longer be negotiated");
   }
 
   if (!ctx.listAmount || ctx.listAmount <= 0) {

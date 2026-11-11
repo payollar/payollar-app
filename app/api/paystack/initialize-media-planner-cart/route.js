@@ -110,14 +110,18 @@ export async function POST(request) {
       return NextResponse.json({ error: "Total amount must be greater than 0" }, { status: 400 });
     }
 
+    const contactName =
+      normalized.find((item) => item.contactName)?.contactName || "";
+    const contactEmail =
+      normalized.find((item) => item.contactEmail)?.contactEmail || "";
+    const contactPhone =
+      normalized.find((item) => item.contactPhone)?.contactPhone || "";
+    // Always link bookings/receipts to the signed-in account email.
     const clientName =
-      normalized.find((item) => item.contactName)?.contactName ||
-      client.name ||
-      client.email?.split("@")[0] ||
-      "Client";
-    const clientEmail =
-      normalized.find((item) => item.contactEmail)?.contactEmail || client.email;
-    const clientPhone = normalized.find((item) => item.contactPhone)?.contactPhone || "";
+      client.name || contactName || client.email?.split("@")[0] || "Client";
+    const clientEmail = client.email;
+    const clientPhone = contactPhone || "";
+    const paystackEmail = contactEmail || clientEmail;
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "";
     const callbackUrl = `${baseUrl}/api/paystack/callback-media-booking`;
@@ -125,13 +129,15 @@ export async function POST(request) {
     // Paystack metadata values must be strings and stay reasonably small.
     const { authorizationUrl, reference } = await initializeTransaction({
       amount: totalAmount,
-      email: clientEmail,
+      email: paystackEmail,
       callbackUrl,
       metadata: {
         clientId: client.id,
         clientName,
         clientEmail,
         clientPhone,
+        contactName,
+        contactEmail,
         bookingType: "MEDIA_PLANNER_CART",
         mediaCampaignName: normalized[0]?.mediaCampaignName || "",
         cartItems: JSON.stringify(normalized),
