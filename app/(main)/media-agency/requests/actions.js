@@ -59,5 +59,6 @@ export async function updateBookingStatus(formData) {
   }
 
   revalidatePath("/media-agency/requests");
+  revalidatePath(`/media-agency/requests/${bookingType}/${bookingId}`);
   revalidatePath("/media-agency");
 }

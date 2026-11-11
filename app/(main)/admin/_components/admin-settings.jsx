@@ -146,7 +146,7 @@ export function AdminSettings() {
   const [smtpPort, setSmtpPort] = useState("587");
   const [smtpUser, setSmtpUser] = useState("");
   const [smtpPassword, setSmtpPassword] = useState("");
-  const [fromEmail, setFromEmail] = useState("noreply@info.payollar.com");
+  const [fromEmail, setFromEmail] = useState("noreply@payollar.com");
   const [fromName, setFromName] = useState("Payollar");
 
   const [payoutFee, setPayoutFee] = useState("2");
@@ -313,7 +313,7 @@ export function AdminSettings() {
               type="email"
               value={fromEmail}
               onChange={(e) => setFromEmail(e.target.value)}
-              placeholder="noreply@info.payollar.com"
+              placeholder="noreply@payollar.com"
               className={inputClass}
             />
           </Field>

@@ -3,6 +3,8 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 function parseNotes(notes) {
   if (!notes) return { kind: "empty" };
   if (typeof notes === "object" && !Array.isArray(notes)) {
@@ -42,6 +44,14 @@ function formatList(value) {
   return value ? String(value) : "";
 }
 
+function formatBroadcastDays(value) {
+  if (!Array.isArray(value) || value.length === 0) return "";
+  if (value.every((item) => typeof item === "boolean")) {
+    return DAY_LABELS.filter((_, index) => value[index]).join(", ");
+  }
+  return formatList(value);
+}
+
 function formatSpotLengths(value) {
   if (!Array.isArray(value) || value.length === 0) return "";
   return value.map((sec) => `${sec}s`).join(", ");
@@ -73,18 +83,51 @@ function Detail({ label, children }) {
   );
 }
 
-function CollapsiblePanel({
+function SectionPanel({
   title,
   subtitle,
   chips = [],
   children,
+  collapsible = false,
   defaultOpen = false,
   className,
 }) {
+  if (!collapsible) {
+    return (
+      <section
+        className={cn(
+          "overflow-hidden rounded-2xl border border-slate-200 bg-white",
+          className
+        )}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {title}
+            </p>
+            {subtitle ? (
+              <p className="mt-0.5 truncate text-sm font-semibold text-slate-950">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+          {chips.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {chips.map((chip) => (
+                <Chip key={chip}>{chip}</Chip>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="px-4 py-4">{children}</div>
+      </section>
+    );
+  }
+
   return (
     <details
       className={cn(
-        "group mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-[#f7f8fc] open:bg-white open:shadow-sm",
+        "group overflow-hidden rounded-2xl border border-slate-200 bg-[#f7f8fc] open:bg-white open:shadow-sm",
         className
       )}
       defaultOpen={defaultOpen}
@@ -118,16 +161,17 @@ function CollapsiblePanel({
   );
 }
 
-function PlannerCampaignNotes({ data }) {
+function PlannerCampaignNotes({ data, collapsible }) {
   const audience = formatList(data.audienceLabels);
   const objectives = formatList(data.objectiveLabels);
   const industries = formatList(data.industryLabels);
-  const days = formatList(data.activeBroadcastDays);
+  const days = formatBroadcastDays(data.activeBroadcastDays);
   const spots = formatSpotLengths(data.spotLengthsSec);
   const impressions = formatImpressions(
     data.estimatedImpressions ?? data.lineImpressions
   );
-  const channel = data.channel || (data.source === "media_planner_cart" ? "TV" : null);
+  const channel =
+    data.channel || (data.source === "media_planner_cart" ? "TV" : null);
 
   const chips = [
     channel ? String(channel).toUpperCase() : null,
@@ -142,30 +186,13 @@ function PlannerCampaignNotes({ data }) {
     data.nhilGetfund != null ||
     data.total != null;
 
-  const summaryBits = [
-    audience ? `Audience: ${audience}` : null,
-    impressions ? `${impressions} impressions` : null,
-    money(data.total) ? `Total ${money(data.total)}` : null,
-  ].filter(Boolean);
-
   return (
-    <CollapsiblePanel
+    <SectionPanel
       title="Campaign brief"
       subtitle={data.brandName || "Media planner booking"}
       chips={chips}
+      collapsible={collapsible}
     >
-      {summaryBits.length > 0 ? (
-        <p className="mb-3 text-xs text-slate-500 sm:hidden">
-          {summaryBits.join(" · ")}
-        </p>
-      ) : null}
-
-      <div className="mb-3 flex flex-wrap gap-1.5 sm:hidden">
-        {chips.map((chip) => (
-          <Chip key={chip}>{chip}</Chip>
-        ))}
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Detail label="Audience">{audience}</Detail>
         <Detail label="Objectives">{objectives}</Detail>
@@ -183,11 +210,11 @@ function PlannerCampaignNotes({ data }) {
           <Detail label="Campaign total">{money(data.total)}</Detail>
         </div>
       ) : null}
-    </CollapsiblePanel>
+    </SectionPanel>
   );
 }
 
-export function BookingNotes({ notes, className }) {
+export function BookingNotes({ notes, className, collapsible = false }) {
   const parsed = parseNotes(notes);
   if (parsed.kind === "empty") return null;
 
@@ -203,7 +230,7 @@ export function BookingNotes({ notes, className }) {
     if (isPlanner) {
       return (
         <div className={className}>
-          <PlannerCampaignNotes data={data} />
+          <PlannerCampaignNotes data={data} collapsible={collapsible} />
         </div>
       );
     }
@@ -220,7 +247,11 @@ export function BookingNotes({ notes, className }) {
 
     return (
       <div className={className}>
-        <CollapsiblePanel title="Notes" subtitle="Additional booking details">
+        <SectionPanel
+          title="Notes"
+          subtitle="Additional booking details"
+          collapsible={collapsible}
+        >
           <div className="grid gap-3 sm:grid-cols-2">
             {entries.map(([key, value]) => (
               <Detail key={key} label={key.replace(/([A-Z])/g, " $1")}>
@@ -228,18 +259,18 @@ export function BookingNotes({ notes, className }) {
               </Detail>
             ))}
           </div>
-        </CollapsiblePanel>
+        </SectionPanel>
       </div>
     );
   }
 
   return (
     <div className={className}>
-      <CollapsiblePanel title="Notes" subtitle="Client message">
+      <SectionPanel title="Notes" subtitle="Client message" collapsible={collapsible}>
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
           {parsed.text}
         </p>
-      </CollapsiblePanel>
+      </SectionPanel>
     </div>
   );
 }
