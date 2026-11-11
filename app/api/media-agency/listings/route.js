@@ -52,30 +52,53 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { mediaAgencyId, listingType, name, network, location, frequency, description, reach, priceRange, timeSlots, demographics, status } = body;
+    const {
+      mediaAgencyId,
+      listingType,
+      name,
+      network,
+      location,
+      frequency,
+      description,
+      reach,
+      priceRange,
+      timeSlots,
+      demographics,
+      status,
+      imageUrl,
+    } = body;
 
-    if (!mediaAgencyId || !listingType || !name || !location) {
+    if (!listingType || !name || !location) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Media type, name, and location are required" },
         { status: 400 }
       );
     }
 
-    // Verify the media agency belongs to the user
-    const mediaAgency = await db.mediaAgency.findUnique({
-      where: { id: mediaAgencyId },
-    });
-
-    if (!mediaAgency || mediaAgency.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
+    // Resolve agency from body or from the signed-in user
+    let mediaAgency = null;
+    if (mediaAgencyId) {
+      mediaAgency = await db.mediaAgency.findUnique({
+        where: { id: mediaAgencyId },
+      });
+      if (!mediaAgency || mediaAgency.userId !== session.user.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
+    } else {
+      mediaAgency = await db.mediaAgency.findUnique({
+        where: { userId: session.user.id },
+      });
+      if (!mediaAgency) {
+        return NextResponse.json(
+          { error: "Media agency not found" },
+          { status: 404 }
+        );
+      }
     }
 
     const listing = await db.mediaListing.create({
       data: {
-        agencyId: mediaAgencyId,
+        agencyId: mediaAgency.id,
         listingType,
         name,
         network,
@@ -86,6 +109,7 @@ export async function POST(req) {
         priceRange,
         timeSlots: timeSlots || [],
         demographics: demographics || [],
+        imageUrl: imageUrl || null,
         status: status || "ACTIVE",
       },
     });

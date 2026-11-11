@@ -24,8 +24,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft, MapPin, Radio, Users, Filter, Sparkles } from "lucide-react";
+import { BookOpen, Building2, Calculator, Clock, ShoppingCart, X, Eye, CreditCard, ShoppingBag, Trash2, ArrowLeft, MapPin, Radio, Filter, BadgeCheck, ArrowRight, Globe } from "lucide-react";
 import { getAdTypesForMediaType, getAdTypeById } from "@/lib/ad-types";
+import {
+  DAY_BAND_MON_FRI,
+  DAY_BAND_SAT_SUN,
+  normalizeDayBand,
+} from "@/lib/tv-airtime-slots";
+import { cn } from "@/lib/utils";
 
 // Helper to read a semantic "role" from a SmartTableColumn config JSON.
 // We use this to identify special columns like time classes.
@@ -59,35 +65,115 @@ const getTimeClassColumn = (table) => {
   );
 };
 
-// Find ad type rates table and get rate for selected ad type + time class.
-// Returns the rate (number) or null if not found.
-// Requires both ad type and time class when using ad-type-by-time-class sections.
-function getAdTypeRateFromRateCard(rateCard, selectedAdTypeId, selectedTimeClassForItem) {
+const getDayBandColumn = (table) => {
+  if (!table?.columns) return null;
+  const viaRole = table.columns.find((col) => getColumnRole(col) === "day_band");
+  if (viaRole) return viaRole;
+  return (
+    table.columns.find(
+      (col) =>
+        typeof col.name === "string" &&
+        /^(days?|day\s*band|day\s*type)$/i.test(col.name.trim())
+    ) || null
+  );
+};
+
+const DAY_BAND_FILTER_OPTIONS = [
+  { id: DAY_BAND_MON_FRI, label: "Mon–Fri" },
+  { id: DAY_BAND_SAT_SUN, label: "Sat–Sun" },
+];
+
+function dayBandLabel(band) {
+  if (band === DAY_BAND_SAT_SUN) return "Sat–Sun";
+  if (band === DAY_BAND_MON_FRI) return "Mon–Fri";
+  return null;
+}
+
+// Find rate for selected ad type + time class (+ optional day band).
+// Prefers duration columns (30s default), then legacy rate_ad_type.
+function getAdTypeRateFromRateCard(
+  rateCard,
+  selectedAdTypeId,
+  selectedTimeClassForItem,
+  durationSec = 30,
+  preferredDayBand = null
+) {
   if (!rateCard?.sections || !selectedAdTypeId) return null;
   const norm = (v) => (v && String(v).trim().toLowerCase()) || "";
   const targetId = norm(selectedAdTypeId);
+  const preferredSecs = [durationSec, 30, 15, 45, 60].filter(
+    (v, i, arr) => Number.isFinite(v) && arr.indexOf(v) === i
+  );
+  const wantBand = preferredDayBand
+    ? normalizeDayBand(preferredDayBand)
+    : null;
 
   for (const section of rateCard.sections) {
     for (const table of section.tables || []) {
-      const adTypeCol = table.columns?.find((c) => getColumnRole(c) === "ad_type_identifier");
-      const timeClassCol = table.columns?.find((c) => getColumnRole(c) === "time_class");
-      const rateCol = table.columns?.find((c) => getColumnRole(c) === "rate_ad_type");
-      if (!adTypeCol || !rateCol) continue;
+      const columns = table.columns || [];
+      const adTypeCol = columns.find(
+        (c) => getColumnRole(c) === "ad_type_identifier"
+      );
+      const timeClassCol = columns.find(
+        (c) => getColumnRole(c) === "time_class"
+      );
+      const dayBandCol = columns.find(
+        (c) => getColumnRole(c) === "day_band"
+      );
+      const rateAdTypeCol = columns.find(
+        (c) => getColumnRole(c) === "rate_ad_type"
+      );
+      const durationCols = preferredSecs
+        .map((sec) =>
+          columns.find((c) => getColumnRole(c) === `rate_${sec}s`)
+        )
+        .filter(Boolean);
+
+      if (!adTypeCol) continue;
+      if (!rateAdTypeCol && durationCols.length === 0) continue;
 
       for (const row of table.rows || []) {
-        const adTypeVal = row.cells?.find((c) => c.columnId === adTypeCol.id)?.value;
+        const adTypeVal = row.cells?.find(
+          (c) => c.columnId === adTypeCol.id
+        )?.value;
         if (norm(adTypeVal) !== targetId) continue;
 
-        // When table has time_class column, require match
         if (timeClassCol && selectedTimeClassForItem) {
-          const tcVal = row.cells?.find((c) => c.columnId === timeClassCol.id)?.value;
+          const tcVal = row.cells?.find(
+            (c) => c.columnId === timeClassCol.id
+          )?.value;
           const rowTc = tcVal && String(tcVal).trim();
           if (rowTc !== selectedTimeClassForItem) continue;
         }
 
-        const rateVal = row.cells?.find((c) => c.columnId === rateCol.id)?.value;
-        const num = parseFloat(rateVal);
-        if (!isNaN(num) && num > 0) return num;
+        if (dayBandCol && wantBand) {
+          const rowBand = normalizeDayBand(
+            row.cells?.find((c) => c.columnId === dayBandCol.id)?.value
+          );
+          if (rowBand !== wantBand) continue;
+        }
+
+        const readRate = () => {
+          for (const col of durationCols) {
+            const rateVal = row.cells?.find(
+              (c) => c.columnId === col.id
+            )?.value;
+            const num = parseFloat(rateVal);
+            if (!isNaN(num) && num > 0) return num;
+          }
+          if (rateAdTypeCol) {
+            const rateVal = row.cells?.find(
+              (c) => c.columnId === rateAdTypeCol.id
+            )?.value;
+            const num = parseFloat(rateVal);
+            if (!isNaN(num) && num > 0) return num;
+          }
+          return null;
+        };
+
+        const rate = readRate();
+        if (rate == null) continue;
+        return rate;
       }
     }
   }
@@ -99,16 +185,25 @@ function sectionMatchesAdTypeFilter(section, selectedAdTypeFilter) {
   if (!selectedAdTypeFilter || selectedAdTypeFilter === "ALL") return true;
   const norm = (v) => (v && String(v).trim().toLowerCase()) || "";
   const target = norm(selectedAdTypeFilter);
+  const titleNorm = norm(section.title);
+  if (titleNorm === target || titleNorm.replace(/\s+/g, "-") === target) {
+    return true;
+  }
 
+  let sawAdTypeTable = false;
   for (const table of section.tables || []) {
-    const adTypeCol = table.columns?.find((c) => getColumnRole(c) === "ad_type_identifier");
-    if (!adTypeCol) continue; // Table has no ad type - this is a generic section
+    const adTypeCol = table.columns?.find(
+      (c) => getColumnRole(c) === "ad_type_identifier"
+    );
+    // Legacy / generic tables (no ad-type column) stay visible for any filter
+    if (!adTypeCol) return true;
+    sawAdTypeTable = true;
     for (const row of table.rows || []) {
       const val = row.cells?.find((c) => c.columnId === adTypeCol.id)?.value;
       if (norm(val) === target) return true;
     }
   }
-  // Section has no ad-type tables, or no matching rows - hide when filter is specific
+  if (!sawAdTypeTable) return true;
   return false;
 }
 
@@ -121,6 +216,18 @@ const rowMatchesTimeClassFilter = (table, row, selectedTimeClass, getCellValueFn
   const raw = getCellValueFn(row, timeClassColumn.id);
   const value = typeof raw === "string" ? raw.trim() : raw;
   return !!value && value === selectedTimeClass;
+};
+
+const rowMatchesDayBandFilter = (table, row, selectedDayBand, getCellValueFn) => {
+  if (selectedDayBand === "ALL") return true;
+  const dayBandColumn = getDayBandColumn(table);
+  // No Days column → legacy sheet; show under every day filter
+  if (!dayBandColumn) return true;
+  const raw = getCellValueFn(row, dayBandColumn.id);
+  const rowBand = normalizeDayBand(raw);
+  // Empty / invalid Days cell does not match a specific filter
+  if (!rowBand) return false;
+  return rowBand === selectedDayBand;
 };
 
 // Cart item structure
@@ -147,7 +254,13 @@ function getDaysBetween(start, end) {
   return Math.max(0, diff + 1);
 }
 
-export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaignName = null }) {
+export function RateCardDisplay({
+  rateCard,
+  mediaStations = [],
+  initialAdType = null,
+  initialCampaignName = null,
+  isDraftPreview = false,
+}) {
   const mediaType = (rateCard?.listingType || "TV").toLowerCase();
   const adTypes = getAdTypesForMediaType(mediaType);
 
@@ -161,6 +274,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTimeClass, setSelectedTimeClass] = useState("ALL");
+  const [selectedDayBand, setSelectedDayBand] = useState(DAY_BAND_MON_FRI);
   const [selectedAdTypeFilter, setSelectedAdTypeFilter] = useState(() => {
     if (initialAdType && adTypes.some((t) => t.id === initialAdType)) return initialAdType;
     return "ALL";
@@ -341,26 +455,62 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
     return Array.from(values);
   }, [rateCard]);
 
+  const hasDayBandColumns = useMemo(() => {
+    return (rateCard.sections || []).some((section) =>
+      (section.tables || []).some((table) => Boolean(getDayBandColumn(table)))
+    );
+  }, [rateCard]);
+
   // Cost per spot: use the spot the user selected (sum of selected rate cells).
   // Only fall back to ad type rate when no rate cells are selected.
+  // When Days = All, don't sum Mon–Fri + Sat–Sun for the same spot length.
   const costPerSpot = useMemo(() => {
+    const rateCells = selectedCellsData.filter(
+      ({ column, value }) =>
+        ["CURRENCY", "NUMBER"].includes(column.dataType) &&
+        !isNaN(parseFloat(value)) &&
+        parseFloat(value) > 0
+    );
+    let cellsToSum = rateCells;
+    if (hasDayBandColumns && rateCells.length > 1) {
+      const bandOf = (entry) => {
+        const col = getDayBandColumn(entry.table);
+        if (!col) return null;
+        return normalizeDayBand(getCellValue(entry.row, col.id));
+      };
+      const preferred =
+        selectedDayBand !== "ALL"
+          ? selectedDayBand
+          : bandOf(rateCells[0]) || DAY_BAND_MON_FRI;
+      const sameBand = rateCells.filter((entry) => {
+        const band = bandOf(entry);
+        return !band || band === preferred;
+      });
+      if (sameBand.length > 0) cellsToSum = sameBand;
+    }
+
     let sum = 0;
-    selectedCellsData.forEach(({ column, value }) => {
-      if (["CURRENCY", "NUMBER"].includes(column.dataType)) {
-        const price = parseFloat(value);
-        if (!isNaN(price)) sum += price;
-      }
+    cellsToSum.forEach(({ value }) => {
+      sum += parseFloat(value);
     });
     if (sum > 0) return sum;
-    // Fallback: ad type rate when no rate cells selected (e.g. ad-type-only flow)
     const adTypeRate = getAdTypeRateFromRateCard(
       rateCard,
       selectedAdType,
-      selectedTimeClassForItem
+      selectedTimeClassForItem,
+      30,
+      selectedDayBand === "ALL" ? DAY_BAND_MON_FRI : selectedDayBand
     );
     if (adTypeRate != null && adTypeRate > 0) return adTypeRate;
     return 0;
-  }, [rateCard, selectedAdType, selectedTimeClassForItem, selectedCellsData]);
+  }, [
+    rateCard,
+    selectedAdType,
+    selectedTimeClassForItem,
+    selectedDayBand,
+    selectedCellsData,
+    hasDayBandColumns,
+  ]);
 
   // Number of spots based on period (frequency, dates, times per period)
   const numSpots = useMemo(() => {
@@ -410,6 +560,10 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
       agencyName: rateCard.agency.agencyName,
       adType: adTypeObj ? { id: adTypeObj.id, label: adTypeObj.label, fullName: adTypeObj.fullName } : null,
       timeClass: selectedTimeClassForItem,
+      dayBand:
+        selectedDayBand === "ALL"
+          ? DAY_BAND_MON_FRI
+          : selectedDayBand,
       selectedCells: Array.from(selectedCells),
       selectedCellsData: selectedCellsData.map(({ rowId, columnId, row, column, table, section, value, formattedValue }) => ({
         rowId,
@@ -599,118 +753,302 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
     }
   };
 
+  const agency = rateCard.agency || null;
+  const agencyName = agency?.agencyName || "Media partner";
+  const agencyLogo = agency?.logoUrl || null;
+  const agencyId = agency?.id || null;
+  const agencyPlace = [agency?.city || agency?.region, agency?.country]
+    .filter(Boolean)
+    .join(", ");
+  const currentStation =
+    mediaStations.find((s) => s.rateCard?.id === rateCard.id) ||
+    mediaStations.find((s) => s.id === rateCard.listingId) ||
+    null;
+  const filterChipClass = (active) =>
+    cn(
+      "h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition",
+      active
+        ? "border-[#0055ff] bg-[#0055ff] text-white shadow-sm shadow-[#0055ff]/25 hover:bg-[#0046d4]"
+        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+    );
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 pb-36 sm:pb-32">
-        {/* Header */}
-        <div className="mb-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" aria-hidden />
-          <div className="p-6 sm:p-8">
+    <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
+      {isDraftPreview ? (
+        <div className="border-b border-amber-200 bg-amber-50 text-amber-950">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm sm:px-6 lg:px-8">
+            <p className="font-medium">
+              Draft preview — only you can see this. Publish the card to make it public.
+            </p>
             <Link
-              href="/products"
-              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-6 rounded-full px-3 py-1.5 -ml-1 hover:bg-muted/60"
+              href="/media-agency/smart-rate-card"
+              className="text-sm font-semibold text-amber-800 underline-offset-4 hover:underline"
             >
-              <ArrowLeft className="h-4 w-4 shrink-0" />
-              Back to Products
+              Back to editor
             </Link>
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 mb-2">
-                  Rate card
-                </p>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-                  {rateCard.title}
-                </h1>
-                {rateCard.description && (
-                  <p className="text-muted-foreground text-base sm:text-lg mt-3 leading-relaxed max-w-3xl">
-                    {rateCard.description}
-                  </p>
-                )}
-              </div>
-              {rateCard.agency.logoUrl && (
-                <div className="shrink-0 rounded-xl border border-border/80 bg-background p-2 shadow-sm">
-                  <img
-                    src={rateCard.agency.logoUrl}
-                    alt={rateCard.agency.agencyName}
-                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground border-t border-border/50 pt-6">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 shrink-0 text-primary/70" />
-                <span className="font-medium text-foreground/90">{rateCard.agency.agencyName}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0" />
-                <span>Updated {format(new Date(rateCard.lastUpdated), "PPP")}</span>
-              </div>
-              {rateCard.location && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 shrink-0" />
-                  <span>{rateCard.location}</span>
-                </div>
-              )}
-              {rateCard.reach && (
-                <div className="flex items-center gap-2">
-                  <Radio className="h-4 w-4 shrink-0" />
-                  <span>{rateCard.reach}</span>
-                </div>
-              )}
-              {rateCard.demographics?.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-                  <Users className="h-4 w-4 shrink-0" />
-                  {rateCard.demographics.map((d, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 text-xs font-medium"
-                    >
-                      {d}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
+      ) : null}
 
-        {/* Filters - ad type first, then time class */}
-        <Card className="mt-6 sticky top-3 z-30 rounded-2xl border-border/80 shadow-md shadow-black/5 dark:shadow-black/20">
-          <CardHeader className="pb-2 pt-5 px-5 sm:px-6">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Filter className="h-4 w-4" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-semibold">Refine rates</CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  Narrow down by ad type and time class; then tap rates to select and build your campaign.
-                </CardDescription>
+      <div className="mx-auto max-w-6xl px-4 pb-36 pt-5 sm:px-6 sm:pt-7 lg:px-8">
+        <Link
+          href="/products"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          Back to products
+        </Link>
+
+        {/* Media profile banner */}
+        <header className="overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+          <div className="h-1 bg-gradient-to-r from-[#0055ff] via-[#3b82f6] to-[#0055ff]" aria-hidden />
+          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+            <div className="flex min-w-0 flex-1 gap-4">
+              {agencyLogo ? (
+                <div className="shrink-0 self-start rounded-2xl border border-slate-200 bg-slate-50 p-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={agencyLogo}
+                    alt={agencyName}
+                    className="h-16 w-16 rounded-xl object-cover sm:h-[4.5rem] sm:w-[4.5rem]"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#0055ff] sm:h-[4.5rem] sm:w-[4.5rem]">
+                  <Building2 className="h-7 w-7" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#eef2ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#0055ff]">
+                    Media profile
+                  </span>
+                  {agency?.verificationStatus === "VERIFIED" ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+                      <BadgeCheck className="h-3 w-3" />
+                      Verified
+                    </span>
+                  ) : null}
+                </div>
+                <h1 className="mt-2.5 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+                  {agencyId ? (
+                    <Link
+                      href={`/media-agencies/${agencyId}`}
+                      className="hover:text-[#0055ff]"
+                    >
+                      {agencyName}
+                    </Link>
+                  ) : (
+                    agencyName
+                  )}
+                </h1>
+                {(agency?.description || agencyPlace) && (
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500 sm:text-[15px]">
+                    {agency.description ||
+                      `Stations and rates from ${agencyName}`}
+                  </p>
+                )}
+                <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
+                  {agencyPlace ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {agencyPlace}
+                    </span>
+                  ) : rateCard.location ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {rateCard.location}
+                    </span>
+                  ) : null}
+                  {agency?.website ? (
+                    <a
+                      href={
+                        agency.website.startsWith("http")
+                          ? agency.website
+                          : `https://${agency.website}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 font-medium text-[#0055ff] hover:underline"
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                      {agency.website.replace(/^https?:\/\//, "")}
+                    </a>
+                  ) : null}
+                  <span className="inline-flex items-center gap-1.5">
+                    <Radio className="h-3.5 w-3.5" />
+                    {mediaStations.length} station
+                    {mediaStations.length === 1 ? "" : "s"}
+                  </span>
+                </div>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="pb-5 px-5 sm:px-6 space-y-5">
-            {/* Ad type filter - comes first */}
-            <div className="space-y-3">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Ad type
+            {agencyId ? (
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 shrink-0 rounded-full border-slate-200 px-4 text-xs font-semibold"
+              >
+                <Link href={`/media-agencies/${agencyId}`}>
+                  Full media profile
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </header>
+
+        {/* Stations / listings */}
+        {mediaStations.length > 0 ? (
+          <section className="mt-5 overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+              <h2 className="text-sm font-semibold text-slate-950">Stations</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Pick a station to view its published rates
+              </p>
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {mediaStations.map((station) => {
+                const active =
+                  station.rateCard?.id === rateCard.id ||
+                  station.id === rateCard.listingId;
+                const card = station.rateCard;
+                return (
+                  <li key={station.id}>
+                    <div
+                      className={cn(
+                        "flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6",
+                        active && "bg-[#f5f8ff]"
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-950">
+                            {station.name}
+                          </p>
+                          <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                            {String(station.listingType).replaceAll("_", " ")}
+                          </span>
+                          {active ? (
+                            <span className="rounded-full bg-[#0055ff] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                              Viewing
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {[station.location, station.frequency, station.reach]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </p>
+                        {card ? (
+                          <p className="mt-1 text-xs font-medium text-[#0055ff]">
+                            {card.title}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-slate-400">
+                            No published rate card
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        {card ? (
+                          active ? (
+                            <Button
+                              type="button"
+                              disabled
+                              variant="outline"
+                              className="h-9 rounded-full border-[#0055ff]/20 bg-white px-4 text-xs text-[#0055ff]"
+                            >
+                              Current rates
+                            </Button>
+                          ) : (
+                            <Button
+                              asChild
+                              className="h-9 rounded-full bg-slate-950 px-4 text-xs text-white hover:bg-slate-800"
+                            >
+                              <Link href={`/rate-cards/${card.id}`}>
+                                View rates
+                                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                              </Link>
+                            </Button>
+                          )
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+
+        {/* Current rate card context */}
+        <div className="mt-5 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#eef2ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#0055ff]">
+              Rate card
+            </span>
+            {rateCard.listingType ? (
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                {rateCard.listingType}
               </span>
-              <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 -mx-1 px-1 sm:overflow-visible">
-                <Button
-                  size="sm"
-                  className="rounded-full h-9 px-4"
-                  variant={selectedAdTypeFilter === "ALL" ? "default" : "outline"}
+            ) : null}
+          </div>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+            {rateCard.title}
+          </h2>
+          {currentStation ? (
+            <p className="mt-1 text-sm text-slate-500">
+              Station: {currentStation.name}
+              {rateCard.location ? ` · ${rateCard.location}` : ""}
+            </p>
+          ) : rateCard.location ? (
+            <p className="mt-1 text-sm text-slate-500">{rateCard.location}</p>
+          ) : null}
+          {rateCard.description ? (
+            <p className="mt-2 max-w-2xl text-sm text-slate-500">
+              {rateCard.description}
+            </p>
+          ) : null}
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-400">
+            <Clock className="h-3.5 w-3.5" />
+            Updated {format(new Date(rateCard.lastUpdated), "MMM d, yyyy")}
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="sticky top-3 z-30 mt-5 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-md sm:p-5">
+          <div className="mb-3 flex items-start gap-2.5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eef2ff] text-[#0055ff]">
+              <Filter className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-slate-950">Refine rates</h2>
+              <p className="text-xs text-slate-500">
+                Pick ad type, weekdays or weekend, and time class — then tap a
+                rate.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3.5">
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Ad type
+              </p>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <button
+                  type="button"
+                  className={filterChipClass(selectedAdTypeFilter === "ALL")}
                   onClick={() => setSelectedAdTypeFilter("ALL")}
                 >
                   All
-                </Button>
+                </button>
                 {adTypes.map((at) => (
-                  <Button
+                  <button
                     key={at.id}
-                    size="sm"
-                    className="rounded-full h-9 px-4"
-                    variant={selectedAdTypeFilter === at.id ? "default" : "outline"}
+                    type="button"
+                    className={filterChipClass(selectedAdTypeFilter === at.id)}
                     onClick={() => {
                       setSelectedAdTypeFilter(at.id);
                       setSelectedAdType(at.id);
@@ -718,57 +1056,72 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                     }}
                   >
                     {at.label}
-                  </Button>
+                  </button>
                 ))}
               </div>
-              {selectedAdTypeFilter !== "ALL" && (
-                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                  Showing rates for{" "}
-                  <span className="font-medium text-foreground">
-                    {getAdTypeById(mediaType, selectedAdTypeFilter)?.label || selectedAdTypeFilter}
-                  </span>
-                </p>
-              )}
             </div>
 
-            {/* Time class filter */}
-            {timeClassValues.length > 0 && (
-              <div className="space-y-3 pt-4 border-t border-border/60">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {hasDayBandColumns ? (
+              <div className="space-y-2 border-t border-slate-100 pt-3.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Days
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    className={filterChipClass(selectedDayBand === "ALL")}
+                    onClick={() => {
+                      setSelectedDayBand("ALL");
+                      setSelectedCells(new Set());
+                    }}
+                  >
+                    All
+                  </button>
+                  {DAY_BAND_FILTER_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={filterChipClass(selectedDayBand === opt.id)}
+                      onClick={() => {
+                        setSelectedDayBand(opt.id);
+                        setSelectedCells(new Set());
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {timeClassValues.length > 0 ? (
+              <div className="space-y-2 border-t border-slate-100 pt-3.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                   Time class
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    className="rounded-full h-9 px-4"
-                    variant={selectedTimeClass === "ALL" ? "default" : "outline"}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    className={filterChipClass(selectedTimeClass === "ALL")}
                     onClick={() => setSelectedTimeClass("ALL")}
                   >
                     All
-                  </Button>
+                  </button>
                   {timeClassValues.map((value) => (
-                    <Button
+                    <button
                       key={value}
-                      size="sm"
-                      className="rounded-full h-9 px-4"
-                      variant={selectedTimeClass === value ? "default" : "outline"}
+                      type="button"
+                      className={filterChipClass(selectedTimeClass === value)}
                       onClick={() => setSelectedTimeClass(value)}
                     >
                       {value}
-                    </Button>
+                    </button>
                   ))}
                 </div>
-                {selectedTimeClass !== "ALL" && (
-                  <p className="text-sm text-muted-foreground">
-                    Spots & prices for{" "}
-                    <span className="font-medium text-foreground">{selectedTimeClass}</span>
-                  </p>
-                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            ) : null}
+          </div>
+        </div>
 
         {/* Period Calculator - drawer opens when a spot is clicked */}
         <Sheet open={isPeriodCalcOpen} onOpenChange={setIsPeriodCalcOpen}>
@@ -799,6 +1152,18 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                       </p>
                     </div>
                   )}
+                  {hasDayBandColumns ? (
+                    <div>
+                      <Label className="text-sm font-medium">Days</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedDayBand === "ALL"
+                          ? "Using Mon–Fri rates by default — pick Days above to switch"
+                          : selectedDayBand === DAY_BAND_SAT_SUN
+                            ? "Sat–Sun rates"
+                            : "Mon–Fri rates"}
+                      </p>
+                    </div>
+                  ) : null}
                   <div>
                     <Label className="text-sm font-medium">Cost per spot</Label>
                     <p className="text-xl font-bold text-primary mt-1">
@@ -807,8 +1172,16 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {selectedCellsData.some((d) => ["CURRENCY", "NUMBER"].includes(d.column.dataType) && parseFloat(d.value) > 0)
                         ? "From selected spot"
-                        : getAdTypeRateFromRateCard(rateCard, selectedAdType, selectedTimeClassForItem) != null
-                          ? "Ad type + time class rate"
+                        : getAdTypeRateFromRateCard(
+                            rateCard,
+                            selectedAdType,
+                            selectedTimeClassForItem,
+                            30,
+                            selectedDayBand === "ALL"
+                              ? DAY_BAND_MON_FRI
+                              : selectedDayBand
+                          ) != null
+                          ? "From ad type, time class, and days"
                           : "Select a spot or ad type"}
                     </p>
                   </div>
@@ -938,54 +1311,66 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
           </SheetContent>
         </Sheet>
 
-        {/* Sections - filtered by ad type when filter is active */}
-        <div className="space-y-10 sm:space-y-14">
+        {/* Sections */}
+        <div className="mt-8 space-y-8">
           {rateCard.sections
             ?.filter((section) =>
               sectionMatchesAdTypeFilter(section, selectedAdTypeFilter)
             )
             ?.map((section) => (
-            <div key={section.id} className="scroll-mt-28">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <span className="text-sm font-semibold text-primary uppercase tracking-wider">
-                  Section
-                </span>
-                <div className="h-px flex-1 bg-border" />
+            <section key={section.id} className="scroll-mt-28">
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0055ff]">
+                    Rates
+                  </p>
+                  <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+                    {section.title}
+                  </h2>
+                </div>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-6">{section.title}</h2>
 
               {section.tables?.map((table) => {
-                // When filtering by a specific time class, hide the Time Class column
-                // so users see only spots (durations) and prices
+                // When filtering by a specific time class / day band, hide those columns
                 const timeClassColumn = getTimeClassColumn(table);
+                const dayBandColumn = getDayBandColumn(table);
                 const displayColumns = table.columns.filter(
                   (col) => col.isVisibleOnFrontend !== false
                 );
-                const visibleColumns =
-                  selectedTimeClass !== "ALL" && timeClassColumn
-                    ? displayColumns.filter((col) => col.id !== timeClassColumn.id)
-                    : displayColumns;
+                let visibleColumns = displayColumns;
+                if (selectedTimeClass !== "ALL" && timeClassColumn) {
+                  visibleColumns = visibleColumns.filter(
+                    (col) => col.id !== timeClassColumn.id
+                  );
+                }
+                if (selectedDayBand !== "ALL" && dayBandColumn) {
+                  visibleColumns = visibleColumns.filter(
+                    (col) => col.id !== dayBandColumn.id
+                  );
+                }
 
                 return (
-                <Card key={table.id} className="mb-8 rounded-2xl border-border/80 shadow-sm overflow-hidden">
-                  {table.title && (
-                    <CardHeader className="bg-muted/30 border-b border-border/60 py-4">
-                      <CardTitle className="text-lg font-semibold">{table.title}</CardTitle>
-                    </CardHeader>
-                  )}
-                  <CardContent className="px-0 pt-0 pb-4">
-                    <div className="overflow-x-auto px-4 sm:px-6">
-                      <table className="w-full border-collapse text-sm">
+                <div
+                  key={table.id}
+                  className="mb-5 overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+                >
+                  {table.title ? (
+                    <div className="border-b border-slate-100 bg-[#fafbfd] px-4 py-3 sm:px-5">
+                      <h3 className="text-sm font-semibold text-slate-900">{table.title}</h3>
+                    </div>
+                  ) : null}
+                  <div className="overflow-x-auto">
+                      <table className="w-full min-w-[32rem] border-collapse text-sm">
                         <thead>
-                          <tr className="border-b border-border/80 bg-muted/40">
+                          <tr className="border-b border-slate-100 bg-[#f7f8fc]">
                             {visibleColumns.map((column) => (
                               <th
                                 key={column.id}
-                                className="p-3 sm:p-4 text-left font-semibold text-foreground text-xs uppercase tracking-wide sm:text-sm"
+                                className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:px-5"
                               >
                                 {column.name}
                                 {column.isRequiredForBooking && (
-                                  <span className="text-red-500 ml-1">*</span>
+                                  <span className="ml-1 text-[#0055ff]">*</span>
                                 )}
                               </th>
                             ))}
@@ -1002,63 +1387,90 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                                 getCellValue
                               )
                             )
+                            .filter((row) =>
+                              rowMatchesDayBandFilter(
+                                table,
+                                row,
+                                selectedDayBand,
+                                getCellValue
+                              )
+                            )
                             .map((row) => (
-                              <tr key={row.id} className="border-b border-border/80 last:border-0 hover:bg-muted/20 transition-colors">
+                              <tr
+                                key={row.id}
+                                className="border-b border-slate-100 last:border-0 transition-colors hover:bg-[#f8faff]"
+                              >
                                 {visibleColumns.map((column) => {
                                   const cellValue = getCellValue(row, column.id);
                                   const isSelected = isCellSelected(row.id, column.id);
                                   const isEmpty = !cellValue || cellValue.trim() === "" || cellValue === "-";
                                   const isTimeClassCell = timeClassColumn && column.id === timeClassColumn.id;
-                                  const isFilterActive = isTimeClassCell && selectedTimeClass === cellValue;
+                                  const isDayBandCell = dayBandColumn && column.id === dayBandColumn.id;
+                                  const isFilterActive =
+                                    (isTimeClassCell && selectedTimeClass === cellValue) ||
+                                    (isDayBandCell &&
+                                      normalizeDayBand(cellValue) === selectedDayBand);
+                                  const isRateCell = ["CURRENCY", "NUMBER"].includes(column.dataType);
 
                                   return (
                                     <td
                                       key={column.id}
-                                      className={`p-3 sm:p-4 transition-all ${
+                                      className={cn(
+                                        "px-4 py-3.5 transition sm:px-5",
                                         isEmpty
-                                          ? "cursor-default text-muted-foreground/70"
-                                          : "cursor-pointer hover:bg-primary/5 active:bg-primary/10"
-                                      } ${
-                                        isSelected
-                                          ? "bg-primary/10 ring-2 ring-inset ring-primary/25"
-                                          : ""
-                                      }`}
+                                          ? "cursor-default text-slate-300"
+                                          : "cursor-pointer",
+                                        isSelected &&
+                                          "bg-[#eef2ff] ring-2 ring-inset ring-[#0055ff]/20"
+                                      )}
                                       onClick={() => {
                                         if (isEmpty) return;
                                         if (isTimeClassCell) {
                                           setSelectedTimeClass(cellValue);
                                           return;
                                         }
+                                        if (isDayBandCell) {
+                                          const band = normalizeDayBand(cellValue);
+                                          if (band) setSelectedDayBand(band);
+                                          return;
+                                        }
                                         const wasSelected = isCellSelected(row.id, column.id);
                                         toggleCellSelection(row.id, column.id);
-                                        if (!wasSelected && ["CURRENCY", "NUMBER"].includes(column.dataType)) {
+                                        if (!wasSelected && isRateCell) {
                                           setIsPeriodCalcOpen(true);
                                         }
                                       }}
                                     >
-                                      {isTimeClassCell ? (
-                                        <Badge
-                                          variant={isFilterActive ? "default" : "outline"}
-                                          className="inline-flex cursor-pointer hover:bg-primary/10 transition-colors"
+                                      {isTimeClassCell || isDayBandCell ? (
+                                        <span
+                                          className={cn(
+                                            "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                                            isFilterActive
+                                              ? "border-[#0055ff] bg-[#0055ff] text-white"
+                                              : "border-slate-200 bg-slate-50 text-slate-700"
+                                          )}
                                         >
                                           {formatCellValue(cellValue, column)}
-                                        </Badge>
+                                        </span>
                                       ) : isSelected ? (
-                                        <Badge
-                                          variant="default"
-                                          className="inline-flex items-center gap-1.5 px-2 py-1"
-                                        >
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0055ff] px-2.5 py-1 text-xs font-semibold text-white">
                                           {formatCellValue(cellValue, column)}
                                           <X
-                                            className="h-3 w-3 cursor-pointer hover:bg-primary/20 rounded"
+                                            className="h-3 w-3 cursor-pointer opacity-80 hover:opacity-100"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               toggleCellSelection(row.id, column.id);
                                             }}
                                           />
-                                        </Badge>
+                                        </span>
+                                      ) : isRateCell && !isEmpty ? (
+                                        <span className="font-semibold tabular-nums text-slate-950">
+                                          {formatCellValue(cellValue, column)}
+                                        </span>
                                       ) : (
-                                        <span>{formatCellValue(cellValue, column)}</span>
+                                        <span className="text-slate-700">
+                                          {formatCellValue(cellValue, column)}
+                                        </span>
                                       )}
                                     </td>
                                   );
@@ -1076,18 +1488,37 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                             selectedTimeClass,
                             getCellValue
                           )
+                        )
+                        .filter((row) =>
+                          rowMatchesDayBandFilter(
+                            table,
+                            row,
+                            selectedDayBand,
+                            getCellValue
+                          )
                         ).length === 0 && (
-                        <div className="text-center py-10 px-4 text-muted-foreground text-sm">
-                          No bookable rows match your filters. Try &quot;All&quot; for ad type or time class.
+                        <div className="px-4 py-10 text-center text-sm text-slate-400">
+                          No bookable rows match your filters. Try &quot;All&quot; for
+                          ad type, days, or time class.
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
                 );
               })}
-            </div>
+            </section>
           ))}
+
+          {(rateCard.sections || []).filter((section) =>
+            sectionMatchesAdTypeFilter(section, selectedAdTypeFilter)
+          ).length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-14 text-center">
+              <p className="text-sm font-semibold text-slate-900">No rates for this filter</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Choose another ad type, or set the filter back to All.
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1095,18 +1526,19 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
           <Button
-            className={`fixed right-4 sm:right-6 h-14 w-14 rounded-full shadow-lg z-[100] border border-border/80 hover:scale-105 active:scale-95 transition-transform ${
+            className={cn(
+              "fixed right-4 z-[100] h-12 w-12 rounded-full border border-slate-200 bg-white text-slate-900 shadow-lg shadow-slate-900/10 transition hover:scale-105 hover:bg-slate-50 active:scale-95 sm:right-6 sm:h-14 sm:w-14",
+              cart.length > 0 && "border-[#0055ff]/30 bg-[#0055ff] text-white hover:bg-[#0046d4]",
               selectedCells.size > 0 ? "bottom-[7.5rem] sm:bottom-32" : "bottom-6"
-            }`}
+            )}
             size="icon"
-            variant={cart.length > 0 ? "default" : "outline"}
+            variant="outline"
             aria-label="Open campaign cart"
           >
-            <ShoppingBag className="h-6 w-6" />
+            <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
             {cartItemCount > 0 && (
               <Badge
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center p-0 text-xs"
-                variant="destructive"
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-rose-500 p-0 text-[10px] text-white"
               >
                 {cartItemCount}
               </Badge>
@@ -1155,7 +1587,7 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    {(item.adType || item.timeClass) && (
+                    {(item.adType || item.timeClass || item.dayBand) && (
                       <div className="flex flex-wrap gap-1">
                         {item.adType && (
                           <Badge variant="outline" className="text-xs">
@@ -1165,6 +1597,11 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                         {item.timeClass && (
                           <Badge variant="outline" className="text-xs">
                             {item.timeClass}
+                          </Badge>
+                        )}
+                        {dayBandLabel(item.dayBand) && (
+                          <Badge variant="outline" className="text-xs">
+                            {dayBandLabel(item.dayBand)}
                           </Badge>
                         )}
                       </div>
@@ -1248,15 +1685,15 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
 
       {/* Floating selection bar */}
       {selectedCells.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-primary/20 bg-background/95 backdrop-blur-md shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.4)] rounded-t-2xl sm:rounded-t-none">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 py-4 sm:py-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-col gap-3 min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-foreground">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <div className="fixed bottom-0 left-0 right-0 z-[100] rounded-t-2xl border-t border-slate-200 bg-white/95 shadow-[0_-12px_40px_-16px_rgba(15,23,42,0.2)] backdrop-blur-md sm:rounded-t-none">
+          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-4 lg:px-8">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <div className="flex items-center gap-2 text-slate-900">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2ff] text-[#0055ff]">
                     <ShoppingCart className="h-4 w-4" />
                   </div>
-                  <span className="font-semibold text-sm sm:text-base">
+                  <span className="text-sm font-semibold sm:text-[15px]">
                     {selectedCells.size} cell{selectedCells.size > 1 ? "s" : ""} selected
                   </span>
                 </div>
@@ -1270,6 +1707,18 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                   {selectedTimeClassForItem && (
                     <Badge variant="secondary" className="text-xs font-normal border-border/80">
                       <span className="font-medium text-foreground/90">Time class:</span> {selectedTimeClassForItem}
+                    </Badge>
+                  )}
+                  {hasDayBandColumns && dayBandLabel(
+                    selectedDayBand === "ALL" ? DAY_BAND_MON_FRI : selectedDayBand
+                  ) && (
+                    <Badge variant="secondary" className="text-xs font-normal border-border/80">
+                      <span className="font-medium text-foreground/90">Days:</span>{" "}
+                      {dayBandLabel(
+                        selectedDayBand === "ALL"
+                          ? DAY_BAND_MON_FRI
+                          : selectedDayBand
+                      )}
                     </Badge>
                   )}
                   {selectedCellsData.slice(0, 5).map(({ rowId, columnId, formattedValue, column }) => (
@@ -1288,41 +1737,41 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                   )}
                 </div>
                 {periodTotal > 0 && (
-                  <div className="text-sm sm:text-right lg:text-left">
-                    <span className="text-muted-foreground">Estimate total </span>
-                    <span className="font-bold text-primary text-base sm:text-lg tabular-nums">
+                  <div className="text-sm">
+                    <span className="text-slate-500">Estimate </span>
+                    <span className="text-base font-semibold tabular-nums text-[#0055ff] sm:text-lg">
                       ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
                     </span>
-                    <span className="text-muted-foreground text-xs block sm:inline sm:ml-1"> incl. VAT & NHIL/GETFund</span>
+                    <span className="ml-1 text-xs text-slate-400">incl. taxes</span>
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">
+              <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full"
+                  className="h-9 rounded-full border-slate-200 bg-white text-slate-700"
                   onClick={() => setIsPeriodCalcOpen(true)}
                   title="Period calculator"
                 >
-                  <Calculator className="h-4 w-4 mr-2" />
+                  <Calculator className="mr-1.5 h-4 w-4" />
                   Calculator
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full"
+                  className="h-9 rounded-full border-slate-200 bg-white text-slate-700"
                   onClick={() => setSelectedCells(new Set())}
                 >
-                  <X className="h-4 w-4 mr-2" />
+                  <X className="mr-1.5 h-4 w-4" />
                   Clear
                 </Button>
                 <Button
                   size="sm"
-                  className="rounded-full shadow-md"
+                  className="h-9 rounded-full bg-[#0055ff] px-4 text-white shadow-sm shadow-[#0055ff]/25 hover:bg-[#0046d4]"
                   onClick={() => setIsSummaryDialogOpen(true)}
                 >
-                  <Eye className="h-4 w-4 mr-2" />
+                  <Eye className="mr-1.5 h-4 w-4" />
                   View summary
                 </Button>
               </div>
@@ -1354,6 +1803,16 @@ export function RateCardDisplay({ rateCard, initialAdType = null, initialCampaig
                   {selectedTimeClassForItem && (
                     <Badge variant="outline" className="text-xs">
                       Time class: {selectedTimeClassForItem}
+                    </Badge>
+                  )}
+                  {hasDayBandColumns && (
+                    <Badge variant="outline" className="text-xs">
+                      Days:{" "}
+                      {dayBandLabel(
+                        selectedDayBand === "ALL"
+                          ? DAY_BAND_MON_FRI
+                          : selectedDayBand
+                      )}
                     </Badge>
                   )}
                 </div>

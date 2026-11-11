@@ -201,7 +201,8 @@ export async function getMediaAgency(id) {
 }
 
 /**
- * Get all published rate cards for public display
+ * Get all published rate cards for public display.
+ * Attaches linked listing summary when rateCard.listingId is set.
  */
 export async function getPublishedRateCards(mediaType = null) {
   try {
@@ -230,7 +231,35 @@ export async function getPublishedRateCards(mediaType = null) {
       ],
     });
 
-    return { success: true, rateCards };
+    const listingIds = [
+      ...new Set(
+        rateCards.map((card) => card.listingId).filter(Boolean)
+      ),
+    ];
+    const listings =
+      listingIds.length > 0
+        ? await db.mediaListing.findMany({
+            where: { id: { in: listingIds } },
+            select: {
+              id: true,
+              name: true,
+              location: true,
+              imageUrl: true,
+              listingType: true,
+              agencyId: true,
+            },
+          })
+        : [];
+    const listingById = Object.fromEntries(
+      listings.map((listing) => [listing.id, listing])
+    );
+
+    const enriched = rateCards.map((card) => ({
+      ...card,
+      listing: card.listingId ? listingById[card.listingId] || null : null,
+    }));
+
+    return { success: true, rateCards: enriched };
   } catch (error) {
     console.error("Error fetching rate cards:", error);
     return {

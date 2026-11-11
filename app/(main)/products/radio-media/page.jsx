@@ -24,6 +24,7 @@ import { MediaPlannerIntro } from "@/components/products/media-planner-intro";
 import { getPublishedRateCards } from "@/actions/media-agency";
 import { getRateCardSchedulerSlots } from "@/actions/tv-media-airtime";
 import { RADIO_AD_TYPES } from "@/lib/ad-types";
+import { getSlotRateForSec as getSlotRateForSecBase } from "@/lib/tv-airtime-slots";
 import {
   addMediaPlannerCartItem,
   loadMediaPlannerCart,
@@ -36,9 +37,12 @@ import {
 } from "@/lib/media-planner-drafts";
 import { takeMediaPlannerCampaignSeed } from "@/lib/media-planner-campaign-seed";
 import {
+  filterRateCardsForScheduler,
   hasStationPref,
   readStationPrefFromSearch,
   resolvePreferredRateCard,
+  stationDisplayLocation,
+  stationDisplayName,
 } from "@/lib/media-planner-station-pref";
 import {
   CampaignDatesPicker,
@@ -129,18 +133,6 @@ function slotCampaignTotalGhs(rateGhs, dayCount) {
   return Math.round((rateGhs ?? 0) * Math.max(1, dayCount));
 }
 
-/** Rate for one slot at a given spot length — duration columns when present, else baseline × sec/30 */
-function getSlotRateForSec(slot, sec) {
-  if (!slot) return 0;
-  const r = slot.ratesBySec;
-  if (r && typeof r === "object") {
-    const v = r[sec] ?? r[String(sec)];
-    if (typeof v === "number" && !isNaN(v) && v > 0) return v;
-  }
-  const base = slot.rateGhs ?? slot.weeklyGhs ?? 0;
-  return base * (sec / 30);
-}
-
 export default function RadioMediaPage() {
   const [rateCards, setRateCards] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
@@ -187,7 +179,7 @@ export default function RadioMediaPage() {
   const [draftId, setDraftId] = useState(null);
   const draftHydratedRef = useRef(false);
   const pendingDraftSlotsRef = useRef(null);
-  const stationPrefRef = useRef(null);
+  const [stationPref, setStationPref] = useState(null);
   const stationPrefAppliedRef = useRef(false);
 
   useEffect(() => {
@@ -210,25 +202,44 @@ export default function RadioMediaPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const pref = readStationPrefFromSearch(window.location.search);
-    if (hasStationPref(pref)) stationPrefRef.current = pref;
+    setStationPref(hasStationPref(pref) ? pref : null);
   }, []);
+
+  const stationOptions = useMemo(
+    () => filterRateCardsForScheduler(rateCards, stationPref),
+    [rateCards, stationPref]
+  );
+  const stationLocked = hasStationPref(stationPref) && stationOptions.length === 1;
 
   useEffect(() => {
     if (stationPrefAppliedRef.current || !rateCards.length) return;
+    const options = filterRateCardsForScheduler(rateCards, stationPref);
+
     if (selectedRateCardId) {
+      const stillVisible = options.some((card) => card.id === selectedRateCardId);
+      if (!stillVisible && options[0]?.id) {
+        setSelectedRateCardId(options[0].id);
+      }
       stationPrefAppliedRef.current = true;
       return;
     }
-    const pref = stationPrefRef.current;
-    if (!hasStationPref(pref)) return;
-    const match = resolvePreferredRateCard(rateCards, pref);
-    if (!match?.id) return;
-    setSelectedRateCardId(match.id);
-    stationPrefAppliedRef.current = true;
-    toast.message(`Station selected: ${match.title}`, {
-      description: "Continue your campaign brief, then confirm format & airtime.",
-    });
-  }, [rateCards, selectedRateCardId]);
+
+    if (hasStationPref(stationPref)) {
+      const match = resolvePreferredRateCard(rateCards, stationPref) || options[0];
+      if (!match?.id) return;
+      setSelectedRateCardId(match.id);
+      stationPrefAppliedRef.current = true;
+      toast.message(`Station locked: ${stationDisplayName(match)}`, {
+        description: "This buy uses the rate card linked to that listing.",
+      });
+      return;
+    }
+
+    if (options.length === 1) {
+      setSelectedRateCardId(options[0].id);
+      stationPrefAppliedRef.current = true;
+    }
+  }, [rateCards, selectedRateCardId, stationPref]);
 
   useEffect(() => {
     if (draftHydratedRef.current || typeof window === "undefined") return;
@@ -442,6 +453,9 @@ export default function RadioMediaPage() {
     setCalendarMonth
   );
 
+  const getSlotRateForSec = (slot, sec) =>
+    getSlotRateForSecBase(slot, sec, activeBroadcastDays);
+
   /** Sum of rate-card amounts per spot length across selected rows */
   const rateSubtotalBySec = useMemo(() => {
     const m = Object.fromEntries(SPOT_LENGTH_OPTIONS.map(({ sec }) => [sec, 0]));
@@ -452,7 +466,7 @@ export default function RadioMediaPage() {
       }
     }
     return m;
-  }, [selectedAirtimeSlotIds, airtimeSlots]);
+  }, [selectedAirtimeSlotIds, airtimeSlots, activeBroadcastDays]);
 
   const pricingLineItems = useMemo(
     () =>
@@ -472,6 +486,7 @@ export default function RadioMediaPage() {
       airtimeSlots,
       slotFrequencyById,
       pricingDayCount,
+      activeBroadcastDays,
     ]
   );
 
@@ -687,35 +702,52 @@ export default function RadioMediaPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    Select station
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      {stationLocked ? "Station" : "Select station"}
+                    </div>
+                    {stationLocked ? (
+                      <p className="text-xs text-muted-foreground">
+                        Locked from the listing you selected
+                      </p>
+                    ) : null}
                   </div>
-                  {rateCards.length === 0 ? (
+                  {stationOptions.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                      No published radio rate cards yet.
+                      {hasStationPref(stationPref)
+                        ? "No published rate card is linked to this listing yet."
+                        : "No station rate cards available yet. Link a published rate card to a listing."}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {rateCards.map((rc) => {
+                      {stationOptions.map((rc) => {
                         const selected = selectedRateCardId === rc.id;
                         return (
                           <button
                             key={rc.id}
                             type="button"
-                            onClick={() => setSelectedRateCardId(rc.id)}
+                            disabled={stationLocked && !selected}
+                            onClick={() => {
+                              if (stationLocked) return;
+                              setSelectedRateCardId(rc.id);
+                            }}
                             className={cn(
                               "rounded-2xl border p-4 text-left transition-all",
                               selected
                                 ? "border-primary/35 bg-primary/8 ring-1 ring-primary/15"
-                                : "border-border/60 bg-card/70 hover:border-primary/25 hover:bg-muted/40"
+                                : "border-border/60 bg-card/70 hover:border-primary/25 hover:bg-muted/40",
+                              stationLocked && selected && "cursor-default"
                             )}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div>
-                                <div className="text-sm font-semibold text-foreground">{rc.title}</div>
+                                <div className="text-sm font-semibold text-foreground">
+                                  {stationDisplayName(rc)}
+                                </div>
                                 <div className="mt-1 text-xs text-muted-foreground">
-                                  {rc.agency?.agencyName ? rc.agency.agencyName : "Media agency"}
+                                  {stationDisplayLocation(rc)}
+                                  {rc.agency?.agencyName ? ` · ${rc.agency.agencyName}` : ""}
                                 </div>
                                 {rc.location ? (
                                   <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[11px] text-muted-foreground">

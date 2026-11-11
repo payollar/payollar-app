@@ -187,6 +187,16 @@ function ListingCard({ listing, favorited, onToggleFavorite }) {
           ) : null}
         </div>
 
+        {listing.agency?.id && listing.agency?.agencyName ? (
+          <Link
+            href={`/media-agencies/${listing.agency.id}`}
+            className="mt-1 block truncate text-xs font-medium text-[#0055ff] hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {listing.agency.agencyName}
+          </Link>
+        ) : null}
+
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
           {listing.location ? (
             <span className="inline-flex items-center gap-0.5">

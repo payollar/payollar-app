@@ -160,14 +160,14 @@ export function LandingNavbar() {
                   className={cn(
                     "hidden h-9 rounded-full px-3.5 sm:inline-flex",
                     useDarkPill
-                      ? "border border-white/40 bg-white/5 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:border-white/70 hover:bg-white/10"
-                      : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                      ? "border border-white/40 bg-white/5 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:!bg-white/15 hover:!text-white focus-visible:!text-white [&_svg]:text-white"
+                      : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900"
                   )}
                   asChild
                 >
                   <Link
                     href={dashboardNav.href}
-                    className="flex max-w-[11rem] items-center gap-1.5 truncate md:max-w-none"
+                    className="flex max-w-[11rem] items-center gap-1.5 truncate text-inherit md:max-w-none"
                   >
                     <LayoutDashboard className="size-4 shrink-0" />
                     <span className="truncate text-xs font-medium md:text-sm">

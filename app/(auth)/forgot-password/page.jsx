@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Mail, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Mail, ArrowLeft, CheckCircle2, Inbox } from "lucide-react";
+import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
+import {
+  authInputClass,
+  authLabelClass,
+  authLinkClass,
+} from "@/components/auth/auth-ui";
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -20,15 +23,13 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
-    if (!email) {
+    if (!email.trim()) {
       toast.error("Please enter your email address");
       return;
     }
-    
-    // Email format validation
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.trim())) {
       toast.error("Please enter a valid email address");
       return;
     }
@@ -40,18 +41,17 @@ export default function ForgotPasswordPage() {
       const redirectTo = `${baseURL}/reset-password`;
 
       await authClient.forgetPassword({
-        email,
+        email: email.trim(),
         redirectTo,
       });
 
       setIsSubmitted(true);
-      toast.success("Password reset email sent! Check your inbox.");
+      toast.success("Check your inbox for a reset link");
     } catch (error) {
       console.error("Forgot password error:", error);
-      // Better Auth doesn't reveal if email exists for security
-      // Always show success message to prevent email enumeration attacks
+      // Always show success to avoid email enumeration
       setIsSubmitted(true);
-      toast.success("If an account exists with this email, you'll receive a password reset link.");
+      toast.success("If an account exists, you’ll get a reset link shortly");
     } finally {
       setIsLoading(false);
     }
@@ -59,148 +59,126 @@ export default function ForgotPasswordPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen flex bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Left side - Image */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-          <Image
-            src="/design.jpg"
-            alt="Password reset background"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-700/70"></div>
-        </div>
+      <AuthSplitLayout>
+        <div className="space-y-8">
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+              <Inbox className="h-6 w-6" strokeWidth={1.75} />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                Check your email
+              </h1>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                If an account exists for{" "}
+                <span className="font-medium text-foreground break-all">
+                  {email.trim()}
+                </span>
+                , we sent a link to reset your password.
+              </p>
+            </div>
+          </div>
 
-        {/* Right side - Success Message */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
-          <div className="w-full max-w-md space-y-8">
-            <div className="text-center space-y-6">
-              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/25">
-                <Mail className="h-10 w-10 text-emerald-600" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-4xl font-bold text-gray-900">Check Your Email</h2>
-                <div className="w-16 h-1 bg-emerald-500 rounded-full mx-auto"></div>
-              </div>
-              <div className="space-y-3 pt-4">
-                <p className="text-gray-700 text-lg">
-                  We've sent a password reset link to
-                </p>
-                <p className="text-emerald-600 font-semibold text-lg break-all">
-                  {email}
-                </p>
-                <p className="text-sm text-gray-500 pt-2">
-                  Click the link in the email to reset your password. The link will expire in 1 hour.
-                </p>
-              </div>
-              <div className="mt-8 space-y-3">
-                <Button
-                  onClick={() => router.push("/sign-in")}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25 h-12 text-base font-semibold"
-                >
-                  Back to Sign In
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsSubmitted(false);
-                    setEmail("");
-                  }}
-                  className="w-full h-12 border-2 hover:bg-gray-50"
-                >
-                  Send Another Email
-                </Button>
+          <div className="rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-left">
+            <div className="flex gap-3">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>The link expires in about an hour.</p>
+                <p>Don’t see it? Check spam or wait a minute and try again.</p>
               </div>
             </div>
           </div>
+
+          <div className="space-y-3">
+            <Button
+              asChild
+              variant="marketing"
+              className="h-12 w-full rounded-full text-base font-semibold"
+            >
+              <Link href="/sign-in">Back to sign in</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-full border-border/60 text-sm font-semibold"
+              onClick={() => {
+                setIsSubmitted(false);
+              }}
+            >
+              Use a different email
+            </Button>
+          </div>
         </div>
-      </div>
+      </AuthSplitLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <Image
-          src="/design.jpg"
-          alt="Forgot password background"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-700/70"></div>
-        <div className="absolute inset-0 flex items-center justify-center p-12 z-10">
-          <div className="text-white max-w-md space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-5xl font-bold leading-tight">Forgot Password?</h1>
-              <div className="w-20 h-1 bg-emerald-400 rounded-full"></div>
-            </div>
-            <p className="text-xl text-emerald-50 leading-relaxed">
-              No worries! Enter your email address and we'll send you a link to reset your password.
-            </p>
-          </div>
+    <AuthSplitLayout>
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            Account recovery
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Forgot password?
+          </h1>
+          <p className="text-muted-foreground">
+            Enter the email on your Payollar account and we&apos;ll send a reset
+            link.
+          </p>
         </div>
-      </div>
 
-      {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
-        <div className="w-full max-w-md space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <h2 className="text-4xl font-bold text-gray-900">Reset Password</h2>
-            <p className="text-gray-600">
-              Enter your email address and we'll send you a link to reset your password.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                Email address
-              </Label>
-              <div className="relative group">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 bg-white text-gray-900 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+            <Label htmlFor="email" className={authLabelClass}>
+              Email
+            </Label>
+            <div className="group relative">
+              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={authInputClass}
+                required
+                disabled={isLoading}
+                autoFocus
+              />
             </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25 h-12 text-base font-semibold"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                "Send Reset Link"
-              )}
-            </Button>
-          </form>
-
-          <div className="text-center">
-            <Link
-              href="/sign-in"
-              className="inline-flex items-center text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Sign In
-            </Link>
           </div>
+
+          <Button
+            type="submit"
+            variant="marketing"
+            className="h-12 w-full rounded-full text-base font-semibold"
+            disabled={isLoading || !email.trim()}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Sending link…
+              </>
+            ) : (
+              "Send reset link"
+            )}
+          </Button>
+        </form>
+
+        <div className="text-center">
+          <Link
+            href="/sign-in"
+            className={`inline-flex items-center gap-2 text-sm ${authLinkClass}`}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to sign in
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthSplitLayout>
   );
 }

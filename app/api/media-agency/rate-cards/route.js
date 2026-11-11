@@ -30,7 +30,33 @@ export async function GET(request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, rateCards });
+    const listingIds = [
+      ...new Set(rateCards.map((card) => card.listingId).filter(Boolean)),
+    ];
+    const listings =
+      listingIds.length > 0
+        ? await db.mediaListing.findMany({
+            where: { id: { in: listingIds }, agencyId: mediaAgency.id },
+            select: {
+              id: true,
+              name: true,
+              listingType: true,
+              location: true,
+              status: true,
+              imageUrl: true,
+              reach: true,
+            },
+          })
+        : [];
+    const listingById = Object.fromEntries(listings.map((l) => [l.id, l]));
+
+    return NextResponse.json({
+      success: true,
+      rateCards: rateCards.map((card) => ({
+        ...card,
+        listing: card.listingId ? listingById[card.listingId] || null : null,
+      })),
+    });
   } catch (error) {
     console.error("Error fetching rate cards:", error);
     return NextResponse.json(
@@ -107,8 +133,26 @@ export async function POST(request) {
           sections: true,
         },
       });
-      
-      return NextResponse.json({ success: true, rateCard }, { status: 201 });
+
+      return NextResponse.json(
+        {
+          success: true,
+          rateCard: {
+            ...rateCard,
+            listing: {
+              id: listing.id,
+              name: listing.name,
+              listingType: listing.listingType,
+              location: listing.location,
+              status: listing.status,
+              imageUrl: listing.imageUrl,
+              reach: listing.reach,
+            },
+            _count: { sections: rateCard.sections?.length || 0 },
+          },
+        },
+        { status: 201 }
+      );
     }
 
     // Create rate card without listing link

@@ -34,14 +34,14 @@ const inputClass =
 const STATUS = {
   VERIFIED: {
     label: "Verified",
-    hint: "Your agency can publish rate cards and receive bookings.",
+    hint: "Your media house can publish rate cards and receive bookings.",
     icon: CheckCircle2,
     className: "bg-emerald-50 text-emerald-700 border-emerald-100",
     iconClass: "text-emerald-600",
   },
   PENDING: {
     label: "Pending review",
-    hint: "We’re reviewing your agency. You can still set up rate cards meanwhile.",
+    hint: "We’re reviewing your media profile. You can still set up rate cards meanwhile.",
     icon: Clock3,
     className: "bg-amber-50 text-amber-800 border-amber-100",
     iconClass: "text-amber-600",
@@ -93,7 +93,7 @@ export function MediaAgencySettingsForm({ agency }) {
 
   const handleSave = async () => {
     if (!form.agencyName.trim() || !form.contactName.trim()) {
-      toast.error("Agency name and contact person are required");
+      toast.error("Media name and contact person are required");
       return;
     }
 
@@ -127,7 +127,7 @@ export function MediaAgencySettingsForm({ agency }) {
                 {logoUrl ? (
                   <Image
                     src={logoUrl}
-                    alt={form.agencyName || "Agency logo"}
+                    alt={form.agencyName || "Media logo"}
                     fill
                     className="object-cover"
                     unoptimized
@@ -139,7 +139,7 @@ export function MediaAgencySettingsForm({ agency }) {
                 )}
               </div>
               <h2 className="text-xl font-semibold tracking-tight text-slate-950">
-                {form.agencyName || "Your agency"}
+                {form.agencyName || "Your media"}
               </h2>
               <p className="mt-1 text-sm text-slate-500">{agency.email}</p>
               <div
@@ -249,10 +249,10 @@ export function MediaAgencySettingsForm({ agency }) {
           <div className="mb-6 flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-950">
-                Agency profile
+                Media profile
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                How your agency appears to clients booking media.
+                How your media house appears to clients booking media.
               </p>
             </div>
             <Button
@@ -413,7 +413,7 @@ export function MediaAgencySettingsForm({ agency }) {
             <div className="border-t border-slate-100 pt-6">
               <Field
                 id="description"
-                label="About the agency"
+                label="About the media"
                 hint="Short description clients may see with your inventory."
               >
                 <Textarea

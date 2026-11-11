@@ -21,13 +21,13 @@ export default async function MediaAgencySettingsPage() {
   if (!mediaAgency) {
     return (
       <MediaAgencyPageShell
-        eyebrow="Agency"
+        eyebrow="Media"
         title="Settings"
-        description="Complete your media agency profile."
+        description="Complete your media profile."
       >
         <div className={`${DASHBOARD_CARD_CLASS} px-6 py-10 text-center`}>
           <p className="text-sm text-slate-500">
-            Media agency profile not found. Please contact support.
+            Media profile not found. Please contact support.
           </p>
         </div>
       </MediaAgencyPageShell>
@@ -36,9 +36,9 @@ export default async function MediaAgencySettingsPage() {
 
   return (
     <MediaAgencyPageShell
-      eyebrow="Agency"
+      eyebrow="Media"
       title="Settings"
-      description="Update your profile, contact details, and how clients see your agency."
+      description="Update your profile, contact details, and how clients see your media house."
     >
       <MediaAgencySettingsForm agency={mediaAgency} />
     </MediaAgencyPageShell>

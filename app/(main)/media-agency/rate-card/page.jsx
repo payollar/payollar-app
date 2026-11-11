@@ -75,9 +75,9 @@ export default async function MediaAgencyRateCardPage() {
 
   return (
     <MediaAgencyPageShell
-      eyebrow="Listings"
+      eyebrow="Packages"
       title="Custom packages"
-      description="Set agency defaults, manage listing packages, and add time-class rates for the package builder."
+      description="Build package offers outside your smart rate card—defaults, listing packages, and time-class rates."
       actions={
         <Button variant="black" className="rounded-full" asChild>
           <a href="#add-listing">

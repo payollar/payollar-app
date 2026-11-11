@@ -186,7 +186,8 @@ export function MediaFrequencyStep({
                 Active broadcast days
               </p>
               <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                Spots only run on the days you leave on.
+                Spots only run on the days you leave on. Weekday vs weekend
+                rates follow this when the rate card has both.
               </p>
             </div>
             <p className="text-xs font-medium tabular-nums text-slate-400">{activeCount}/7 days</p>

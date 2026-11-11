@@ -40,7 +40,7 @@ export default function LandingMobileMenu({
                   onClick={() => setIsOpen(false)}
                   className={
                     useDarkPill
-                      ? "flex w-full items-center gap-2 rounded-full border border-white/35 bg-white/5 px-4 py-3 text-start text-base font-medium text-primary hover:border-white/60 hover:bg-white/10 active:scale-[0.99]"
+                      ? "flex w-full items-center gap-2 rounded-full border border-white/35 bg-white/5 px-4 py-3 text-start text-base font-medium text-white hover:border-white/60 hover:bg-white/15 hover:text-white active:scale-[0.99]"
                       : "flex w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-start text-base font-medium text-slate-900 hover:bg-slate-100 active:scale-[0.99]"
                   }
                 >

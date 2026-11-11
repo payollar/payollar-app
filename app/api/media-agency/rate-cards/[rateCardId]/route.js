@@ -58,7 +58,28 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Rate card not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, rateCard });
+    let listing = null;
+    if (rateCard.listingId) {
+      listing = await db.mediaListing.findFirst({
+        where: { id: rateCard.listingId, agencyId: mediaAgency.id },
+        select: {
+          id: true,
+          name: true,
+          listingType: true,
+          location: true,
+          status: true,
+          imageUrl: true,
+          reach: true,
+          frequency: true,
+          demographics: true,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      rateCard: { ...rateCard, listing },
+    });
   } catch (error) {
     console.error("Error fetching rate card:", error);
     return NextResponse.json(
@@ -100,21 +121,102 @@ export async function PATCH(request, { params }) {
     }
 
     const body = await request.json();
-    const { title, description, isPublished, location, reach, demographics } = body;
+    const {
+      title,
+      description,
+      isPublished,
+      location,
+      reach,
+      demographics,
+      listingId,
+      listingType,
+      imageUrl,
+    } = body;
+
+    const data = {
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description }),
+      ...(isPublished !== undefined && { isPublished }),
+      ...(location !== undefined && { location }),
+      ...(reach !== undefined && { reach }),
+      ...(demographics !== undefined &&
+        Array.isArray(demographics) && { demographics }),
+      ...(imageUrl !== undefined && { imageUrl }),
+      ...(listingType !== undefined && { listingType }),
+    };
+
+    let listing = null;
+    if (listingId !== undefined) {
+      if (listingId === null || listingId === "") {
+        data.listingId = null;
+      } else {
+        listing = await db.mediaListing.findFirst({
+          where: { id: listingId, agencyId: mediaAgency.id },
+          select: {
+            id: true,
+            name: true,
+            listingType: true,
+            location: true,
+            status: true,
+            imageUrl: true,
+            reach: true,
+            frequency: true,
+            demographics: true,
+          },
+        });
+        if (!listing) {
+          return NextResponse.json(
+            { error: "Media listing not found or doesn't belong to your agency" },
+            { status: 404 }
+          );
+        }
+        data.listingId = listing.id;
+        data.listingType = listingType || listing.listingType;
+        if (location === undefined) data.location = listing.location;
+        if (imageUrl === undefined) data.imageUrl = listing.imageUrl;
+        if (reach === undefined && listing.reach) data.reach = listing.reach;
+      }
+    }
 
     const updatedRateCard = await db.rateCard.update({
       where: { id: rateCardId },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(isPublished !== undefined && { isPublished }),
-        ...(location !== undefined && { location }),
-        ...(reach !== undefined && { reach }),
-        ...(demographics !== undefined && Array.isArray(demographics) && { demographics }),
-      },
+      data,
     });
 
-    return NextResponse.json({ success: true, rateCard: updatedRateCard });
+    // Publishing should surface the station on Browse (ACTIVE listing)
+    const nextListingId = updatedRateCard.listingId || rateCard.listingId;
+    if (isPublished === true && nextListingId) {
+      await db.mediaListing.updateMany({
+        where: {
+          id: nextListingId,
+          agencyId: mediaAgency.id,
+          status: { not: "ACTIVE" },
+        },
+        data: { status: "ACTIVE" },
+      });
+    }
+
+    if (!listing && updatedRateCard.listingId) {
+      listing = await db.mediaListing.findFirst({
+        where: { id: updatedRateCard.listingId, agencyId: mediaAgency.id },
+        select: {
+          id: true,
+          name: true,
+          listingType: true,
+          location: true,
+          status: true,
+          imageUrl: true,
+          reach: true,
+          frequency: true,
+          demographics: true,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      rateCard: { ...updatedRateCard, listing },
+    });
   } catch (error) {
     console.error("Error updating rate card:", error);
     return NextResponse.json(

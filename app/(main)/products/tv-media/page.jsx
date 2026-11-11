@@ -22,6 +22,7 @@ import { BorderBeam } from "border-beam";
 import { getPublishedRateCards } from "@/actions/media-agency";
 import { getRateCardSchedulerSlots } from "@/actions/tv-media-airtime";
 import { TV_AD_TYPES } from "@/lib/ad-types";
+import { getSlotRateForSec as getSlotRateForSecBase } from "@/lib/tv-airtime-slots";
 import { cn } from "@/lib/utils";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
 import { MediaPlannerIntro } from "@/components/products/media-planner-intro";
@@ -53,9 +54,12 @@ import {
   sumMediaPlannerLineItems,
 } from "@/lib/media-planner-pricing";
 import {
+  filterRateCardsForScheduler,
   hasStationPref,
   readStationPrefFromSearch,
   resolvePreferredRateCard,
+  stationDisplayLocation,
+  stationDisplayName,
 } from "@/lib/media-planner-station-pref";
 import {
   addMediaPlannerCartItem,
@@ -155,18 +159,6 @@ function slotCampaignTotalGhs(rateGhs, dayCount) {
   return Math.round((rateGhs ?? 0) * Math.max(1, dayCount));
 }
 
-/** Rate for one slot at a given spot length — duration columns when present, else baseline × sec/30 */
-function getSlotRateForSec(slot, sec) {
-  if (!slot) return 0;
-  const r = slot.ratesBySec;
-  if (r && typeof r === "object") {
-    const v = r[sec] ?? r[String(sec)];
-    if (typeof v === "number" && !isNaN(v) && v > 0) return v;
-  }
-  const base = slot.rateGhs ?? slot.weeklyGhs ?? 0;
-  return base * (sec / 30);
-}
-
 const SPOT_LENGTH_OPTIONS = [
   { sec: 15, short: "15s", subtitle: "Teaser" },
   { sec: 30, short: "30s", subtitle: "Standard" },
@@ -254,7 +246,7 @@ export default function TVMediaPage() {
   const [draftId, setDraftId] = useState(null);
   const draftHydratedRef = useRef(false);
   const pendingDraftSlotsRef = useRef(null);
-  const stationPrefRef = useRef(null);
+  const [stationPref, setStationPref] = useState(null);
   const stationPrefAppliedRef = useRef(false);
 
   useEffect(() => {
@@ -271,7 +263,7 @@ export default function TVMediaPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const pref = readStationPrefFromSearch(window.location.search);
-    if (hasStationPref(pref)) stationPrefRef.current = pref;
+    setStationPref(hasStationPref(pref) ? pref : null);
   }, []);
 
   useEffect(() => {
@@ -379,22 +371,41 @@ export default function TVMediaPage() {
     });
   }, []);
 
+  const stationOptions = useMemo(
+    () => filterRateCardsForScheduler(rateCards, stationPref),
+    [rateCards, stationPref]
+  );
+  const stationLocked = hasStationPref(stationPref) && stationOptions.length === 1;
+
   useEffect(() => {
     if (stationPrefAppliedRef.current || !rateCards.length) return;
+    const options = filterRateCardsForScheduler(rateCards, stationPref);
+
     if (selectedStationId) {
+      const stillVisible = options.some((card) => card.id === selectedStationId);
+      if (!stillVisible && options[0]?.id) {
+        setSelectedStationId(options[0].id);
+      }
       stationPrefAppliedRef.current = true;
       return;
     }
-    const pref = stationPrefRef.current;
-    if (!hasStationPref(pref)) return;
-    const match = resolvePreferredRateCard(rateCards, pref);
-    if (!match?.id) return;
-    setSelectedStationId(match.id);
-    stationPrefAppliedRef.current = true;
-    toast.message(`Station selected: ${match.title}`, {
-      description: "Continue your campaign brief, then confirm format & airtime.",
-    });
-  }, [rateCards, selectedStationId]);
+
+    if (hasStationPref(stationPref)) {
+      const match = resolvePreferredRateCard(rateCards, stationPref) || options[0];
+      if (!match?.id) return;
+      setSelectedStationId(match.id);
+      stationPrefAppliedRef.current = true;
+      toast.message(`Station locked: ${stationDisplayName(match)}`, {
+        description: "This buy uses the rate card linked to that listing.",
+      });
+      return;
+    }
+
+    if (options.length === 1) {
+      setSelectedStationId(options[0].id);
+      stationPrefAppliedRef.current = true;
+    }
+  }, [rateCards, selectedStationId, stationPref]);
 
   useEffect(() => {
     setSelectedAirtimeSlotIds([]);
@@ -525,6 +536,9 @@ export default function TVMediaPage() {
     [selectedAirtimeSlotIds, slotFrequencyById]
   );
 
+  const getSlotRateForSec = (slot, sec) =>
+    getSlotRateForSecBase(slot, sec, activeBroadcastDays);
+
   /** Sum of rate-card amounts per spot length across selected rows (15s/30s/… columns when set) */
   const rateSubtotalBySec = useMemo(() => {
     const m = Object.fromEntries(SPOT_LENGTH_OPTIONS.map(({ sec }) => [sec, 0]));
@@ -535,7 +549,7 @@ export default function TVMediaPage() {
       }
     }
     return m;
-  }, [selectedAirtimeSlotIds, airtimeSlots]);
+  }, [selectedAirtimeSlotIds, airtimeSlots, activeBroadcastDays]);
 
   /** Per-slot lines: rate × days × frequency */
   const pricingLineItems = useMemo(
@@ -554,6 +568,7 @@ export default function TVMediaPage() {
       selectedSingleSpotSec,
       slotFrequencyById,
       pricingDayCount,
+      activeBroadcastDays,
     ]
   );
 
@@ -765,39 +780,68 @@ export default function TVMediaPage() {
             {currentStep === 2 && (
               <div className="space-y-12">
                 <div>
-                  <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-sm">
-                    Choose station
-                  </h3>
-                  {rateCards.length === 0 ? (
+                  <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-sm">
+                      {stationLocked ? "Station" : "Choose station"}
+                    </h3>
+                    {stationLocked ? (
+                      <p className="text-xs text-slate-500">
+                        Locked from the listing you selected
+                      </p>
+                    ) : null}
+                  </div>
+                  {stationOptions.length === 0 ? (
                     <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-base text-slate-500">
-                      No TV rate cards available yet. Check back soon or contact a media agency.
+                      {hasStationPref(stationPref)
+                        ? "No published rate card is linked to this listing yet. Ask the station to link and publish one."
+                        : "No station rate cards available yet. Agencies need to link a published rate card to a listing."}
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
-                      {rateCards.map((card) => (
-                        <button
-                          key={card.id}
-                          type="button"
-                          onClick={() => setSelectedStationId(card.id)}
-                          className={cn(
-                            "text-left rounded-2xl border p-5 transition-all hover:border-primary/40 hover:shadow-sm",
-                            selectedStationId === card.id
-                              ? "border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm"
-                              : "border-slate-200 bg-white hover:bg-slate-50"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="inline-flex items-center justify-center rounded-md bg-[#0071e3]/90 px-2 py-0.5 text-[11px] font-bold text-white sm:text-xs">
-                              <Tv className="h-3 w-3 mr-0.5" />
-                              TV
-                            </span>
-                          </div>
-                          <p className="text-base font-semibold leading-snug text-foreground">{card.title}</p>
-                          <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
-                            {card.location || "Nationwide"}
-                          </p>
-                        </button>
-                      ))}
+                      {stationOptions.map((card) => {
+                        const selected = selectedStationId === card.id;
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            disabled={stationLocked && !selected}
+                            onClick={() => {
+                              if (stationLocked) return;
+                              setSelectedStationId(card.id);
+                            }}
+                            className={cn(
+                              "text-left rounded-2xl border p-5 transition-all",
+                              selected
+                                ? "border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-primary/40 hover:bg-slate-50 hover:shadow-sm",
+                              stationLocked && selected && "cursor-default"
+                            )}
+                          >
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="inline-flex items-center justify-center rounded-md bg-[#0071e3]/90 px-2 py-0.5 text-[11px] font-bold text-white sm:text-xs">
+                                <Tv className="mr-0.5 h-3 w-3" />
+                                TV
+                              </span>
+                              {stationLocked ? (
+                                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                  Selected
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="text-base font-semibold leading-snug text-foreground">
+                              {stationDisplayName(card)}
+                            </p>
+                            <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+                              {stationDisplayLocation(card)}
+                            </p>
+                            {card.listing?.name && card.title && card.title !== card.listing.name ? (
+                              <p className="mt-1 text-[11px] text-slate-400">
+                                Rate card · {card.title}
+                              </p>
+                            ) : null}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

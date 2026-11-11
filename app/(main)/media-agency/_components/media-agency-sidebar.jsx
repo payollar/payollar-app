@@ -156,7 +156,7 @@ export function MediaAgencySidebar() {
               />
               <p className="relative text-sm font-semibold text-white">Rate cards</p>
               <p className="relative mt-1 text-xs leading-relaxed text-white/70">
-                Publish packages and smart tables clients can book from.
+                Link pricing tables to a listing, then publish for buyers.
               </p>
               <div className="relative mt-3 inline-flex">
                 <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.9}>

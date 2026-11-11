@@ -33,6 +33,7 @@ import {
   ArrowUpDown,
   Search,
   Maximize2,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -342,6 +343,66 @@ export function SmartTableEditor({ table, onUpdate }) {
     } catch (error) {
       console.error("Error adding row:", error);
       toast.error("Failed to add row");
+    }
+  };
+
+  const handleDuplicateColumn = async (sourceColumn) => {
+    try {
+      const baseName = String(sourceColumn.name || "Column").trim() || "Column";
+      const copyName = baseName.endsWith(" copy")
+        ? `${baseName} 2`
+        : `${baseName} copy`;
+
+      const createRes = await fetch(
+        `/api/media-agency/rate-cards/tables/${table.id}/columns`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: copyName,
+            dataType: sourceColumn.dataType,
+            isVisibleOnFrontend: sourceColumn.isVisibleOnFrontend !== false,
+            isRequiredForBooking: Boolean(sourceColumn.isRequiredForBooking),
+            config: sourceColumn.config || null,
+          }),
+        }
+      );
+      const createData = await createRes.json();
+      if (!createRes.ok || !createData.success) {
+        throw new Error(createData.error || "Failed to duplicate column");
+      }
+
+      const newColumn = createData.column;
+
+      // Copy cell values from the source column into the new column
+      await Promise.all(
+        rows.map(async (row) => {
+          const sourceCell = row.cells?.find(
+            (c) => c.columnId === sourceColumn.id
+          );
+          const value = sourceCell?.value ?? "";
+          if (value === "" || value == null) return;
+
+          await fetch(
+            `/api/media-agency/rate-cards/tables/rows/${row.id}/cells`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                cells: [{ columnId: newColumn.id, value }],
+              }),
+            }
+          );
+        })
+      );
+
+      toast.success(
+        `Duplicated “${baseName}” — rename it (e.g. Rate per 60s)`
+      );
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error("Error duplicating column:", error);
+      toast.error(error.message || "Failed to duplicate column");
     }
   };
 
@@ -1122,6 +1183,12 @@ export function SmartTableEditor({ table, onUpdate }) {
                           <DropdownMenuItem onClick={() => setEditingColumn(column)}>
                             <Settings className="h-4 w-4 mr-2" />
                             Edit Column
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDuplicateColumn(column)}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate Column
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"

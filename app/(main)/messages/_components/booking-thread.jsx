@@ -530,15 +530,15 @@ export function MessagesWorkspace({
       ) : (
         <>
           <section className={`${hasActiveThread ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col overflow-hidden rounded-[1.6rem] bg-white`}>
-            {thread && appointmentId ? (
-              <ThreadPane
-                thread={thread}
-                onSubmit={onSubmit}
-                draft={draft}
-                setDraft={setDraft}
-                sending={sending}
-                endRef={endRef}
-                onPay={payForSession}
+        {thread && appointmentId ? (
+          <ThreadPane
+            thread={thread}
+            onSubmit={onSubmit}
+            draft={draft}
+            setDraft={setDraft}
+            sending={sending}
+            endRef={endRef}
+            onPay={payForSession}
                 payingInvoiceId={payingInvoiceId}
                 invoiceOpen={invoiceOpen}
                 setInvoiceOpen={setInvoiceOpen}
@@ -554,20 +554,20 @@ export function MessagesWorkspace({
                 onSendReport={onSendReport}
                 reviewingReportId={reviewingReportId}
                 onReviewReport={onReviewReport}
-              />
-            ) : (
-              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-                <MessageCircle className="h-8 w-8 text-slate-300" />
-                <p className="mt-3 font-semibold text-slate-900">Pick a conversation</p>
+          />
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+            <MessageCircle className="h-8 w-8 text-slate-300" />
+            <p className="mt-3 font-semibold text-slate-900">Pick a conversation</p>
                 <p className="mt-1 max-w-xs text-sm text-slate-500">
                   Booking chats and media rate negotiations both live here.
                 </p>
-              </div>
-            )}
-          </section>
+          </div>
+        )}
+      </section>
 
-          {thread && appointmentId ? (
-            <aside className="hidden w-[280px] shrink-0 flex-col gap-3 xl:flex">
+      {thread && appointmentId ? (
+        <aside className="hidden w-[280px] shrink-0 flex-col gap-3 xl:flex">
               <SessionCard
                 thread={thread}
                 onPay={payForSession}
@@ -590,8 +590,8 @@ export function MessagesWorkspace({
                 briefOpen={briefOpen}
                 reportOpen={reportOpen}
               />
-            </aside>
-          ) : null}
+        </aside>
+      ) : null}
         </>
       )}
     </div>
@@ -732,16 +732,16 @@ function ThreadPane({
                       />
                     </div>
                   ) : (
-                    <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
-                      {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
-                      <div
-                        className={
-                          message.mine
-                            ? "max-w-[78%] rounded-2xl rounded-br-md bg-[#16181f] px-3 py-2 text-sm text-white"
-                            : "max-w-[78%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
-                        }
-                      >
-                        <p className="whitespace-pre-wrap">{message.body}</p>
+                <div className={message.mine ? "flex justify-end" : "flex items-end gap-2"}>
+                  {message.mine ? null : <Avatar person={thread.other} className="h-7 w-7" />}
+                  <div
+                    className={
+                      message.mine
+                        ? "max-w-[78%] rounded-2xl rounded-br-md bg-[#16181f] px-3 py-2 text-sm text-white"
+                        : "max-w-[78%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
+                    }
+                  >
+                    <p className="whitespace-pre-wrap">{message.body}</p>
                         {timeLabel ? (
                           <p
                             className={
@@ -754,8 +754,8 @@ function ThreadPane({
                             {timeLabel}
                           </p>
                         ) : null}
-                      </div>
-                    </div>
+                  </div>
+                </div>
                   )}
                 </MessageErrorBoundary>
               </div>
@@ -1754,7 +1754,7 @@ function SessionCard({
       </div>
 
       <div className="mt-4 flex items-start gap-2 rounded-2xl bg-[#f7f8fb] px-3 py-2.5 text-sm">
-        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
+          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#6d28d9]" />
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             Session
@@ -1767,8 +1767,8 @@ function SessionCard({
               until {untilLabel}
             </p>
           ) : null}
+          </div>
         </div>
-      </div>
 
       {tools.length > 0 ? (
         <div className="mt-4">
