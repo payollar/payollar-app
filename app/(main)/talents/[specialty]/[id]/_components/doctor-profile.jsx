@@ -846,6 +846,7 @@ export function DoctorProfile({ doctor, availableDays }) {
                 selectedSlot ? (
                   <AppointmentForm
                     doctorId={doctor.id}
+                    doctorName={doctor.name || doctor.firstName || ""}
                     slot={selectedSlot}
                     onBack={() => setSelectedSlot(null)}
                     onComplete={() => router.push("/appointments")}

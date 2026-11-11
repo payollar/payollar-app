@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Loader2, Clock, ArrowLeft, Calendar, CreditCard, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { buildTalentIntroMessage } from "@/lib/media-invoice-format";
 
 /** Build booking description including optional physical-package request. */
 export function buildBookingDescription({
@@ -42,6 +43,7 @@ export function buildBookingDescription({
 
 export function AppointmentForm({
   doctorId,
+  doctorName = "",
   slot,
   onBack,
   onComplete: _onComplete,
@@ -91,7 +93,13 @@ export function AppointmentForm({
         setLoading(false);
         return;
       }
-      router.push(`/messages/${result.appointmentId}`);
+      const intro = buildTalentIntroMessage({
+        creatorName: doctorName,
+        serviceLabel: initialSessionNote,
+      });
+      router.push(
+        `/messages/${result.appointmentId}?message=${encodeURIComponent(intro)}`
+      );
     } catch (error) {
       const message = String(error?.message || "");
       if (error?.digest || message.includes("Server Components render")) {

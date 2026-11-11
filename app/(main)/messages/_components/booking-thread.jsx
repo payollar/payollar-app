@@ -30,6 +30,7 @@ import {
 } from "@/actions/booking-chat";
 import { startLogisticsFromAppointment } from "@/actions/logistics";
 import { parseBriefFields } from "@/lib/booking-brief";
+import { formatBookingOrderNumber } from "@/lib/media-invoice-format";
 import { MediaNegotiateWorkspace } from "@/app/(main)/client/_components/media-negotiate";
 
 function moneyGhs(value) {
@@ -215,6 +216,7 @@ export function MessagesWorkspace({
   negotiationPerspective = "CLIENT",
   fromCart = false,
   cartItemId = "",
+  initialDraft = "",
 }) {
   const [thread, setThread] = useState(initialThread);
   const [draft, setDraft] = useState("");
@@ -233,11 +235,18 @@ export function MessagesWorkspace({
 
   useEffect(() => {
     setThread(initialThread);
-    setDraft("");
+    const messageCount = Array.isArray(initialThread?.messages)
+      ? initialThread.messages.length
+      : 0;
+    const shouldPrefill =
+      Boolean(initialDraft?.trim()) &&
+      messageCount === 0 &&
+      !initialThread?.isCreator;
+    setDraft(shouldPrefill ? String(initialDraft).slice(0, 2000) : "");
     setInvoiceOpen(false);
     setBriefOpen(false);
     setReportOpen(false);
-  }, [initialThread, appointmentId]);
+  }, [initialThread, appointmentId, initialDraft]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -632,6 +641,10 @@ function ThreadPane({
   const canSetBrief = Boolean(thread.canSetBrief);
   const canSendReport = Boolean(thread.canSendReport);
   const sessionWhen = safeSessionWhen(thread.appointment?.startTime);
+  const orderNumber = formatBookingOrderNumber(
+    thread.appointmentId || thread.appointment?.id,
+    thread.appointment?.createdAt || thread.appointment?.startTime
+  );
 
   return (
     <>
@@ -643,8 +656,9 @@ function ThreadPane({
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-slate-950">{thread.other?.name || "Booking chat"}</p>
           <p className="truncate text-xs text-slate-500" suppressHydrationWarning>
-            {thread.other?.specialty ? `${thread.other.specialty} · ` : ""}
-            {sessionWhen}
+            {orderNumber}
+            {thread.other?.specialty ? ` · ${thread.other.specialty}` : ""}
+            {sessionWhen ? ` · ${sessionWhen}` : ""}
             {thread.appointment?.agreedAmount != null
               ? ` · ${moneyGhs(thread.appointment.agreedAmount)}`
               : ""}
@@ -1745,7 +1759,11 @@ function SessionCard({
             {thread.other?.name || "Booking"}
           </p>
           <p className="truncate text-xs text-slate-500">
-            {thread.other?.specialty || "Session"}
+            {formatBookingOrderNumber(
+              thread.appointmentId || thread.appointment?.id,
+              thread.appointment?.createdAt || thread.appointment?.startTime
+            )}
+            {thread.other?.specialty ? ` · ${thread.other.specialty}` : ""}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-[#f3eefe] px-2 py-0.5 text-[10px] font-semibold text-[#5b21b6]">

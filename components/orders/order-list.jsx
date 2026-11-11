@@ -7,7 +7,10 @@ import { ArrowRight, Download, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatMediaOrderNumber } from "@/lib/media-invoice-format";
+import {
+  formatBookingOrderNumber,
+  formatMediaOrderNumber,
+} from "@/lib/media-invoice-format";
 
 const SOURCE_OPTIONS = [
   { id: "all", label: "All" },
@@ -62,12 +65,10 @@ function orderIdLabel(order) {
       createdAt: order.createdAt || order.startTime,
     });
   }
-  const raw = String(order.id || "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toUpperCase();
-  const year = new Date(order.createdAt || order.startTime || Date.now()).getFullYear();
-  const tail = raw.slice(-4) || "0000";
-  return `ORD-${year}-${tail}`;
+  return formatBookingOrderNumber(
+    order.id,
+    order.createdAt || order.startTime
+  );
 }
 
 function orderRefLabel(order) {

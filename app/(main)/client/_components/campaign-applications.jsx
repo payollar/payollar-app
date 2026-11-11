@@ -193,7 +193,11 @@ export function CampaignApplications({ campaign, variant = "client" }) {
         toast.error(result?.error || "Could not open the chat.");
         return;
       }
-      router.push(`/messages/${result.appointmentId}`);
+      const intro =
+        "Hi, thanks for applying — I'd love to discuss this campaign booking with you.";
+      router.push(
+        `/messages/${result.appointmentId}?message=${encodeURIComponent(intro)}`
+      );
     } catch (error) {
       toast.error(error.message || "Could not open the chat.");
     } finally {

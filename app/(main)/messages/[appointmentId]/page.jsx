@@ -6,11 +6,14 @@ import { MessagesWorkspace } from "../_components/booking-thread";
 
 export const dynamic = "force-dynamic";
 
-export default async function BookingMessagePage({ params }) {
+export default async function BookingMessagePage({ params, searchParams }) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in?redirect_url=/messages");
 
   const { appointmentId } = await params;
+  const query = searchParams ? await searchParams : {};
+  const initialDraft =
+    typeof query.message === "string" ? query.message.slice(0, 2000) : "";
 
   let thread;
   let chats = [];
@@ -38,6 +41,7 @@ export default async function BookingMessagePage({ params }) {
       chats={Array.isArray(chats) ? chats : []}
       appointmentId={appointmentId}
       initialThread={thread}
+      initialDraft={initialDraft}
     />
   );
 }
