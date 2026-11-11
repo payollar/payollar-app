@@ -22,6 +22,7 @@ export default async function ClientMediaPage() {
         bookings={mediaData.bookings || []}
         certificates={mediaData.certificates || []}
         reports={mediaData.reports || []}
+        invoices={mediaData.invoices || []}
       />
     </Suspense>
   );

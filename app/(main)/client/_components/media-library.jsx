@@ -46,12 +46,15 @@ import {
   readMediaPlannerPendingCheckout,
 } from "@/lib/media-planner-cart";
 import { resumeUnpaidMediaBooking } from "@/lib/media-planner-edit-booking";
+import { MediaInvoiceView } from "@/components/media/media-invoice-view";
+import { formatMediaInvoiceMoney } from "@/lib/media-invoice-format";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
 const TABS = [
   { id: "bookings", label: "Bookings", icon: Calendar },
+  { id: "invoices", label: "Invoices", icon: FileText },
   { id: "reports", label: "Reports", icon: BarChart3 },
-  { id: "certificates", label: "Proof of airing", icon: FileText },
+  { id: "certificates", label: "Proof of airing", icon: Download },
 ];
 
 function formatFileType(type) {
@@ -235,6 +238,7 @@ export function MediaLibrary({
   bookings = [],
   certificates = [],
   reports = [],
+  invoices = [],
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -244,6 +248,7 @@ export function MediaLibrary({
   const [activeTab, setActiveTab] = useState("bookings");
   const [cartItems, setCartItems] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
 
   useEffect(() => {
     const refreshCart = () => setCartItems(loadMediaPlannerCart());
@@ -265,11 +270,16 @@ export function MediaLibrary({
         finalizeMediaPlannerCheckout(pending.itemIds);
         setCartItems(loadMediaPlannerCart());
       }
+      const invoiceId = searchParams.get("invoice");
       toast.success(
         source === "planner_cart"
           ? "Payment received — your media campaign is booked."
           : "Payment received."
       );
+      if (invoiceId) {
+        setActiveTab("invoices");
+        setSelectedInvoiceId(invoiceId);
+      }
       router.replace("/client/media", { scroll: false });
       router.refresh();
       return;
@@ -320,8 +330,9 @@ export function MediaLibrary({
       completedBookings,
       totalCertificates: certificates.length,
       totalReports: reports.length,
+      totalInvoices: invoices.length,
     };
-  }, [bookings, certificates, reports]);
+  }, [bookings, certificates, reports, invoices]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
@@ -380,8 +391,28 @@ export function MediaLibrary({
     });
   }, [reports, searchQuery]);
 
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((invoice) => {
+      const haystack = [
+        invoice.invoiceNumber,
+        invoice.title,
+        invoice.clientName,
+        invoice.agency?.agencyName,
+        invoice.paymentReference,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchQuery === "" || haystack.includes(searchQuery.toLowerCase());
+    });
+  }, [invoices, searchQuery]);
+
+  const selectedInvoice =
+    invoices.find((invoice) => invoice.id === selectedInvoiceId) || null;
+
   const tabCounts = {
     bookings: bookings.length,
+    invoices: invoices.length,
     reports: reports.length,
     certificates: certificates.length,
   };
@@ -390,7 +421,7 @@ export function MediaLibrary({
     <ClientPageShell
       eyebrow="Media bookings"
       title="Media bookings"
-      description="Track bookings, negotiate discounts with stations, and review proof of airing."
+      description="Track bookings, paid invoices, negotiate with stations, and review proof of airing."
       actions={
         <Button asChild className="rounded-full bg-slate-950 hover:bg-slate-800">
           <Link href="/products">
@@ -433,7 +464,7 @@ export function MediaLibrary({
           </Card>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           <StatCard
             label="Total bookings"
             value={stats.totalBookings}
@@ -453,9 +484,15 @@ export function MediaLibrary({
             tone="emerald"
           />
           <StatCard
+            label="Invoices"
+            value={stats.totalInvoices}
+            icon={FileText}
+            tone="slate"
+          />
+          <StatCard
             label="Proof of airing"
             value={stats.totalCertificates}
-            icon={FileText}
+            icon={Download}
             tone="violet"
           />
           <StatCard
@@ -503,6 +540,97 @@ export function MediaLibrary({
             })}
           </div>
         </div>
+
+        {activeTab === "invoices" ? (
+          <div className="space-y-4">
+            <FilterBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchPlaceholder="Search invoice number, station, or reference"
+            />
+
+            {selectedInvoice ? (
+              <MediaInvoiceView
+                invoice={selectedInvoice}
+                onClose={() => setSelectedInvoiceId(null)}
+              />
+            ) : null}
+
+            {filteredInvoices.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title={
+                  invoices.length === 0
+                    ? "No media invoices yet"
+                    : "No matching invoices"
+                }
+                description={
+                  invoices.length === 0
+                    ? "After you pay for a media booking, a receipt appears here with line items and your Paystack reference."
+                    : "Try another search."
+                }
+                actionLabel={invoices.length === 0 ? "Browse media" : null}
+                actionHref={invoices.length === 0 ? "/products" : null}
+              />
+            ) : (
+              <div className="space-y-3">
+                {filteredInvoices.map((invoice) => {
+                  const open = selectedInvoiceId === invoice.id;
+                  return (
+                    <Card key={invoice.id} className={cn(clientCardClass, "border-0")}>
+                      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-slate-950">
+                              {invoice.invoiceNumber}
+                            </p>
+                            <Badge
+                              variant="outline"
+                              className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
+                            >
+                              Paid
+                            </Badge>
+                          </div>
+                          <p className="mt-1 truncate text-sm text-slate-600">
+                            {invoice.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {invoice.agency?.agencyName || "Media booking"}
+                            {" · "}
+                            {format(
+                              new Date(invoice.paidAt || invoice.createdAt),
+                              "MMM d, yyyy"
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <p className="text-base font-semibold tabular-nums text-slate-950">
+                            {formatMediaInvoiceMoney(
+                              invoice.amount,
+                              invoice.currency
+                            )}
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={open ? "outline" : "black"}
+                            className="rounded-full"
+                            onClick={() =>
+                              setSelectedInvoiceId(open ? null : invoice.id)
+                            }
+                          >
+                            <Eye className="mr-1.5 h-3.5 w-3.5" />
+                            {open ? "Hide" : "View"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {activeTab === "bookings" ? (
           <div className="space-y-4">
@@ -644,6 +772,23 @@ export function MediaLibrary({
                                     {editingId === booking.id
                                       ? "Opening…"
                                       : "Edit campaign"}
+                                  </Button>
+                                ) : null}
+                                {booking.mediaInvoiceId ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-full border-slate-200"
+                                    onClick={() => {
+                                      setSelectedInvoiceId(booking.mediaInvoiceId);
+                                      setActiveTab("invoices");
+                                    }}
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    {booking.mediaInvoiceNumber
+                                      ? `Invoice ${booking.mediaInvoiceNumber}`
+                                      : "View invoice"}
                                   </Button>
                                 ) : null}
                                 {booking.status !== "CANCELLED" &&

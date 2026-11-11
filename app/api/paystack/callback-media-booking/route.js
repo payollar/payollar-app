@@ -1,14 +1,28 @@
 import { NextResponse } from "next/server";
 import { verifyTransaction } from "@/lib/paystack";
 import { db } from "@/lib/prisma";
+import {
+  createPaidMediaInvoice,
+  lineItemFromBooking,
+} from "@/lib/media-invoice";
 
-async function createBookingItemsFromPlannerCart({ cartItems, clientName, clientEmail, clientPhone }) {
+async function createBookingItemsFromPlannerCart({
+  cartItems,
+  clientName,
+  clientEmail,
+  clientPhone,
+}) {
   const creates = [];
 
   for (const item of cartItems) {
     const rateCard = await db.rateCard.findUnique({
       where: { id: item.rateCardId },
-      select: { id: true, agencyId: true },
+      select: {
+        id: true,
+        agencyId: true,
+        title: true,
+        agency: { select: { agencyName: true } },
+      },
     });
     if (!rateCard) continue;
 
@@ -81,7 +95,9 @@ async function createBookingItemsFromPlannerCart({ cartItems, clientName, client
             rateCardId: rateCard.id,
             agencyId: rateCard.agencyId,
             snapshotData,
-            snapshotPrice: priceColumn?.value ? parseFloat(priceColumn.value) : null,
+            snapshotPrice: priceColumn?.value
+              ? parseFloat(priceColumn.value)
+              : null,
             snapshotUnit: "campaign estimate",
             snapshotDescription:
               slotMeta?.label ||
@@ -93,12 +109,16 @@ async function createBookingItemsFromPlannerCart({ cartItems, clientName, client
             clientEmail: item.contactEmail || clientEmail || "",
             clientPhone: item.contactPhone || clientPhone || "",
             quantity: item.dayCount || 1,
-            startDate: startDate && !Number.isNaN(startDate.getTime()) ? startDate : null,
+            startDate:
+              startDate && !Number.isNaN(startDate.getTime()) ? startDate : null,
             endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
             notes,
             totalAmount: Math.round(perSlotTotal * 100) / 100,
-            // Payment verified — confirmed until the station completes airing.
             status: "CONFIRMED",
+          },
+          include: {
+            agency: { select: { agencyName: true } },
+            rateCard: { select: { title: true } },
           },
         })
       );
@@ -108,7 +128,26 @@ async function createBookingItemsFromPlannerCart({ cartItems, clientName, client
   if (creates.length === 0) {
     throw new Error("No bookable slots found for planner cart");
   }
-  await Promise.all(creates);
+  return Promise.all(creates);
+}
+
+function paystackAmountGhs(result) {
+  const subunits = Number(result?.data?.amount);
+  if (!Number.isFinite(subunits)) return null;
+  return Math.round(subunits) / 100;
+}
+
+function cartTaxTotals(cartItems) {
+  return cartItems.reduce(
+    (acc, item) => {
+      acc.subtotal += Number(item.subtotal) || 0;
+      acc.vat += Number(item.vat) || 0;
+      acc.nhilGetfund += Number(item.nhilGetfund) || 0;
+      acc.total += Number(item.total) || 0;
+      return acc;
+    },
+    { subtotal: 0, vat: 0, nhilGetfund: 0, total: 0 }
+  );
 }
 
 export async function GET(request) {
@@ -126,6 +165,16 @@ export async function GET(request) {
   }
 
   try {
+    const existingInvoice = await db.mediaInvoice.findUnique({
+      where: { paymentReference: reference },
+      select: { id: true },
+    });
+    if (existingInvoice) {
+      return NextResponse.redirect(
+        `${bookingsUrl}?success=1&payment=completed&invoice=${existingInvoice.id}`
+      );
+    }
+
     const result = await verifyTransaction(reference);
     if (!result.success || !result.metadata) {
       return NextResponse.redirect(
@@ -152,12 +201,20 @@ export async function GET(request) {
       );
     }
 
+    const paidAmount = paystackAmountGhs(result);
+    const paidAt = result.data?.paid_at
+      ? new Date(result.data.paid_at)
+      : new Date();
+    const currency = result.data?.currency || "GHS";
+
     // Planner cart checkout (TV/radio confirm → cart → Paystack)
     if (bookingType === "MEDIA_PLANNER_CART") {
       let cartItems;
       try {
         cartItems =
-          typeof cartItemsRaw === "string" ? JSON.parse(cartItemsRaw) : cartItemsRaw;
+          typeof cartItemsRaw === "string"
+            ? JSON.parse(cartItemsRaw)
+            : cartItemsRaw;
       } catch (e) {
         console.error("Error parsing planner cartItems:", e);
         return NextResponse.redirect(
@@ -170,15 +227,41 @@ export async function GET(request) {
         );
       }
 
-      await createBookingItemsFromPlannerCart({
+      const bookings = await createBookingItemsFromPlannerCart({
         cartItems,
         clientName,
         clientEmail,
         clientPhone,
       });
 
+      const taxes = cartTaxTotals(cartItems);
+      const lineItems = bookings.map((booking) =>
+        lineItemFromBooking(booking, booking.agency?.agencyName)
+      );
+      const campaignName =
+        cartItems.find((item) => item.mediaCampaignName)?.mediaCampaignName ||
+        "Media campaign";
+
+      const invoice = await createPaidMediaInvoice({
+        paymentReference: reference,
+        clientId,
+        clientName: clientName || bookings[0]?.clientName || "",
+        clientEmail: clientEmail || bookings[0]?.clientEmail || "",
+        clientPhone: clientPhone || bookings[0]?.clientPhone || null,
+        amount: paidAmount ?? taxes.total,
+        currency,
+        source: "MEDIA_PLANNER_CART",
+        title: `${campaignName} — media receipt`,
+        lineItems,
+        bookingItemIds: bookings.map((booking) => booking.id),
+        subtotal: taxes.subtotal,
+        vat: taxes.vat,
+        nhilGetfund: taxes.nhilGetfund,
+        paidAt,
+      });
+
       return NextResponse.redirect(
-        `${bookingsUrl}?success=1&payment=completed&source=planner_cart`
+        `${bookingsUrl}?success=1&payment=completed&source=planner_cart&invoice=${invoice.id}`
       );
     }
 
@@ -188,11 +271,12 @@ export async function GET(request) {
       );
     }
 
-    // Parse selected cells from metadata
     let cellData;
     try {
       cellData =
-        typeof selectedCells === "string" ? JSON.parse(selectedCells) : selectedCells;
+        typeof selectedCells === "string"
+          ? JSON.parse(selectedCells)
+          : selectedCells;
     } catch (e) {
       console.error("Error parsing selectedCells:", e);
       return NextResponse.redirect(
@@ -200,11 +284,10 @@ export async function GET(request) {
       );
     }
 
-    // Verify rate card exists
     const rateCard = await db.rateCard.findUnique({
       where: { id: rateCardId },
       include: {
-        agency: true,
+        agency: { select: { id: true, agencyName: true } },
       },
     });
 
@@ -214,7 +297,6 @@ export async function GET(request) {
       );
     }
 
-    // Group selected cells by row (each row becomes one booking item)
     const rowsToBook = new Map();
 
     for (const cell of cellData) {
@@ -234,71 +316,106 @@ export async function GET(request) {
       });
     }
 
-    // Create booking items for each row
-    const bookingPromises = Array.from(rowsToBook.values()).map(async (rowData) => {
-      const row = await db.smartTableRow.findUnique({
-        where: { id: rowData.rowId },
-        include: {
-          table: {
-            include: {
-              columns: true,
+    const bookingPromises = Array.from(rowsToBook.values()).map(
+      async (rowData) => {
+        const row = await db.smartTableRow.findUnique({
+          where: { id: rowData.rowId },
+          include: {
+            table: {
+              include: {
+                columns: true,
+              },
+            },
+            cells: {
+              include: {
+                column: true,
+              },
             },
           },
-          cells: {
-            include: {
-              column: true,
-            },
-          },
-        },
-      });
+        });
 
-      if (!row) {
-        throw new Error(`Row ${rowData.rowId} not found`);
-      }
-
-      const snapshotData = {};
-      row.cells.forEach((cell) => {
-        snapshotData[cell.column.name] = cell.value;
-      });
-
-      const priceColumn = row.cells.find((c) =>
-        ["CURRENCY", "NUMBER"].includes(c.column.dataType)
-      );
-      const descriptionColumn = row.cells.find((c) =>
-        ["TEXT", "NOTES"].includes(c.column.dataType)
-      );
-
-      let totalAmount = null;
-      if (priceColumn?.value) {
-        const price = parseFloat(priceColumn.value);
-        if (!isNaN(price)) {
-          totalAmount = price;
+        if (!row) {
+          throw new Error(`Row ${rowData.rowId} not found`);
         }
-      }
 
-      return db.rateCardBookingItem.create({
-        data: {
-          rowId: row.id,
-          rateCardId: rateCard.id,
-          agencyId: rateCard.agencyId,
-          snapshotData,
-          snapshotPrice: priceColumn?.value ? parseFloat(priceColumn.value) : null,
-          snapshotUnit: null,
-          snapshotDescription: descriptionColumn?.value || null,
-          mediaCampaignName: mediaCampaignName || null,
-          clientName: clientName || "",
-          clientEmail: clientEmail || "",
-          clientPhone: clientPhone || "",
-          notes: notes || "",
-          totalAmount,
-          status: "CONFIRMED",
-        },
-      });
+        const snapshotData = {};
+        row.cells.forEach((cell) => {
+          snapshotData[cell.column.name] = cell.value;
+        });
+
+        const priceColumn = row.cells.find((c) =>
+          ["CURRENCY", "NUMBER"].includes(c.column.dataType)
+        );
+        const descriptionColumn = row.cells.find((c) =>
+          ["TEXT", "NOTES"].includes(c.column.dataType)
+        );
+
+        let totalAmount = null;
+        if (priceColumn?.value) {
+          const price = parseFloat(priceColumn.value);
+          if (!isNaN(price)) {
+            totalAmount = price;
+          }
+        }
+
+        return db.rateCardBookingItem.create({
+          data: {
+            rowId: row.id,
+            rateCardId: rateCard.id,
+            agencyId: rateCard.agencyId,
+            snapshotData,
+            snapshotPrice: priceColumn?.value
+              ? parseFloat(priceColumn.value)
+              : null,
+            snapshotUnit: null,
+            snapshotDescription: descriptionColumn?.value || null,
+            mediaCampaignName: mediaCampaignName || null,
+            clientName: clientName || "",
+            clientEmail: clientEmail || "",
+            clientPhone: clientPhone || "",
+            notes: notes || "",
+            totalAmount,
+            status: "CONFIRMED",
+          },
+          include: {
+            agency: { select: { agencyName: true } },
+            rateCard: { select: { title: true } },
+          },
+        });
+      }
+    );
+
+    const bookings = await Promise.all(bookingPromises);
+    const lineItems = bookings.map((booking) =>
+      lineItemFromBooking(booking, rateCard.agency?.agencyName)
+    );
+    const computedTotal = lineItems.reduce(
+      (sum, item) => sum + (Number(item.total) || 0),
+      0
+    );
+
+    const invoice = await createPaidMediaInvoice({
+      paymentReference: reference,
+      clientId,
+      clientName: clientName || "",
+      clientEmail: clientEmail || "",
+      clientPhone: clientPhone || null,
+      amount: paidAmount ?? computedTotal,
+      currency,
+      source: "RATE_CARD",
+      title: `${mediaCampaignName || rateCard.title || "Rate card"} — media receipt`,
+      lineItems,
+      bookingItemIds: bookings.map((booking) => booking.id),
+      subtotal: computedTotal,
+      vat: 0,
+      nhilGetfund: 0,
+      notes: notes || null,
+      paidAt,
     });
 
-    await Promise.all(bookingPromises);
-
-    return NextResponse.redirect(`${bookingsUrl}?success=1&payment=completed`);
+    return NextResponse.redirect(
+      `${bookingsUrl}?success=1&payment=completed&invoice=${invoice.id}`
+    );
   } catch (error) {
     console.error("Paystack callback media booking error:", error);
     return NextResponse.redirect(

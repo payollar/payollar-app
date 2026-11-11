@@ -78,6 +78,12 @@ export async function getClientMediaBookings() {
             contactName: true,
           },
         },
+        mediaInvoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+          },
+        },
         row: {
           include: {
             table: {
@@ -156,6 +162,8 @@ export async function getClientMediaBookings() {
           contactName: booking.agency.contactName,
         },
         bookingType: "RATE_CARD",
+        mediaInvoiceId: booking.mediaInvoiceId || booking.mediaInvoice?.id || null,
+        mediaInvoiceNumber: booking.mediaInvoice?.invoiceNumber || null,
       };
     });
 
@@ -313,21 +321,71 @@ export async function getClientCampaignReports() {
 }
 
 /**
- * Get all client media library data (bookings, certificates, reports)
+ * Paid media invoices/receipts for the authenticated client
+ */
+export async function getClientMediaInvoices() {
+  try {
+    const authResult = await getAuthUserId();
+    if (!authResult?.userId) {
+      return { success: false, error: "Unauthorized", invoices: [] };
+    }
+
+    const invoices = await db.mediaInvoice.findMany({
+      where: { clientId: authResult.userId },
+      include: {
+        agency: {
+          select: {
+            id: true,
+            agencyName: true,
+          },
+        },
+        bookingItems: {
+          select: {
+            id: true,
+            status: true,
+            mediaCampaignName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: true, invoices };
+  } catch (error) {
+    console.error("Error fetching client media invoices:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch invoices",
+      invoices: [],
+    };
+  }
+}
+
+/**
+ * Get all client media library data (bookings, certificates, reports, invoices)
  */
 export async function getClientMediaLibrary() {
   try {
-    const [bookingsResult, certificatesResult, reportsResult] = await Promise.all([
+    const [
+      bookingsResult,
+      certificatesResult,
+      reportsResult,
+      invoicesResult,
+    ] = await Promise.all([
       getClientMediaBookings(),
       getClientTransmissionCertificates(),
       getClientCampaignReports(),
+      getClientMediaInvoices(),
     ]);
 
     return {
       success: true,
       bookings: bookingsResult.success ? bookingsResult.bookings : [],
-      certificates: certificatesResult.success ? certificatesResult.certificates : [],
+      certificates: certificatesResult.success
+        ? certificatesResult.certificates
+        : [],
       reports: reportsResult.success ? reportsResult.reports : [],
+      invoices: invoicesResult.success ? invoicesResult.invoices : [],
     };
   } catch (error) {
     console.error("Error fetching client media library:", error);
@@ -337,6 +395,7 @@ export async function getClientMediaLibrary() {
       bookings: [],
       certificates: [],
       reports: [],
+      invoices: [],
     };
   }
 }

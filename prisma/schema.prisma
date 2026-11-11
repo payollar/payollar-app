@@ -69,6 +69,7 @@ model User {
   creatorChats         BookingConversation[] @relation("CreatorChats")
   sentBookingMessages  BookingMessage[]      @relation("SentBookingMessages")
   bookingInvoices      BookingInvoice[]      @relation("BookingInvoiceCreator")
+  mediaInvoices        MediaInvoice[]        @relation("MediaInvoiceClient")
   creatorDeliveryReports DeliveryReport[]    @relation("CreatorDeliveryReports")
   clientDeliveryReports  DeliveryReport[]    @relation("ClientDeliveryReports")
   clientLogisticsShipments  LogisticsShipment[] @relation("ClientLogisticsShipments")
@@ -625,6 +626,7 @@ model MediaAgency {
   rateCards RateCard[]
   rateCardBookings RateCardBookingItem[]
   negotiations MediaNegotiation[]
+  mediaInvoices MediaInvoice[]
 
   @@index([verificationStatus, createdAt])
 }
@@ -961,6 +963,8 @@ model RateCardBookingItem {
   rateCard        RateCard      @relation("RateCardBookings", fields: [rateCardId], references: [id], onDelete: Restrict)
   agencyId        String
   agency          MediaAgency   @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  mediaInvoiceId  String?
+  mediaInvoice    MediaInvoice? @relation(fields: [mediaInvoiceId], references: [id], onDelete: SetNull)
   
   // Snapshot of row data at booking time (never changes)
   snapshotData    Json          @db.JsonB // Complete snapshot: { columnName: value, ... }
@@ -986,6 +990,47 @@ model RateCardBookingItem {
   @@index([rateCardId])
   @@index([agencyId, status])
   @@index([status, createdAt])
+  @@index([mediaInvoiceId])
+}
+
+/// Paid media receipt created after successful Paystack checkout.
+model MediaInvoice {
+  id               String             @id @default(uuid())
+  invoiceNumber    String             @unique
+  clientId         String
+  client           User               @relation("MediaInvoiceClient", fields: [clientId], references: [id], onDelete: Cascade)
+  /// Primary agency when the checkout is for a single station; null for multi-agency carts.
+  agencyId         String?
+  agency           MediaAgency?       @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  clientName       String
+  clientEmail      String
+  clientPhone      String?
+  paymentReference String             @unique
+  currency         String             @default("GHS")
+  subtotal         Float?
+  vat              Float?
+  nhilGetfund      Float?
+  amount           Float
+  status           MediaInvoiceStatus @default(PAID)
+  /// MEDIA_PLANNER_CART | RATE_CARD
+  source           String
+  title            String
+  /// [{ description, quantity, unitAmount, total, agencyId, agencyName, rateCardTitle, bookingItemId }]
+  lineItems        Json
+  notes            String?            @db.Text
+  paidAt           DateTime           @default(now())
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  bookingItems     RateCardBookingItem[]
+
+  @@index([clientId, createdAt])
+  @@index([agencyId, createdAt])
+  @@index([status, createdAt])
+}
+
+enum MediaInvoiceStatus {
+  PAID
+  VOID
 }
 
 enum MediaNegotiationSource {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Inbox, CheckCircle, XCircle, FileText, Upload, MessageSquare } from "lucide-react";
+import { Inbox, CheckCircle, XCircle, FileText, Upload, MessageSquare, Receipt } from "lucide-react";
 import { updateBookingStatus } from "./actions";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -71,6 +71,17 @@ export default async function MediaAgencyRequestsPage() {
               title: true,
               listingType: true,
               location: true,
+            },
+          },
+          mediaInvoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              amount: true,
+              currency: true,
+              paymentReference: true,
+              paidAt: true,
+              status: true,
             },
           },
           row: {
@@ -332,6 +343,14 @@ export default async function MediaAgencyRequestsPage() {
                           </Button>
                         </form>
                       </>
+                    ) : null}
+                    {booking.mediaInvoice ? (
+                      <Button size="sm" variant="outline" className="rounded-full border-slate-200" asChild>
+                        <Link href={`/media-agency/invoices/${booking.mediaInvoice.id}`}>
+                          <Receipt className="mr-2 h-4 w-4" />
+                          Receipt {booking.mediaInvoice.invoiceNumber}
+                        </Link>
+                      </Button>
                     ) : null}
                     {(booking.status === "CONFIRMED" || booking.status === "COMPLETED") && (
                       <>
