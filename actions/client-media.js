@@ -98,38 +98,66 @@ export async function getClientMediaBookings() {
     });
 
     // Transform rate card bookings to match MediaBooking format for consistent display
-    const transformedRateCardBookings = rateCardBookings.map((booking) => ({
-      id: booking.id,
-      listingId: booking.rateCard.listingId || booking.rateCard.id,
-      agencyId: booking.agencyId,
-      clientName: booking.clientName,
-      clientEmail: booking.clientEmail,
-      clientPhone: booking.clientPhone,
-      packageName: booking.snapshotDescription || booking.row?.table?.section?.title || "Rate Card Item",
-      packagePrice: booking.snapshotPrice,
-      startDate: booking.startDate,
-      endDate: booking.endDate,
-      duration: null,
-      slots: booking.quantity,
-      totalAmount: booking.totalAmount,
-      status: booking.status,
-      notes: booking.notes,
-      createdAt: booking.createdAt,
-      updatedAt: booking.updatedAt,
-      listing: {
-        id: booking.rateCard.id,
-        name: booking.rateCard.title,
-        listingType: booking.rateCard.listingType || "DIGITAL",
-        location: booking.rateCard.location,
-        imageUrl: booking.rateCard.imageUrl,
-      },
-      agency: {
-        id: booking.agency.id,
-        agencyName: booking.agency.agencyName,
-        contactName: booking.agency.contactName,
-      },
-      bookingType: "RATE_CARD", // Flag to identify rate card bookings
-    }));
+    const transformedRateCardBookings = rateCardBookings.map((booking) => {
+      let notesMeta = null;
+      try {
+        notesMeta =
+          booking.notes && typeof booking.notes === "string"
+            ? JSON.parse(booking.notes)
+            : booking.notes && typeof booking.notes === "object"
+              ? booking.notes
+              : null;
+      } catch {
+        notesMeta = null;
+      }
+      const source = notesMeta?.source || null;
+      // Negotiate quotes stay PENDING until paid; paid planner checkouts are CONFIRMED.
+      const awaitingPayment =
+        booking.status === "PENDING" &&
+        (source === "media_planner_cart_negotiate" || !source);
+
+      return {
+        id: booking.id,
+        listingId: booking.rateCard.listingId || booking.rateCard.id,
+        agencyId: booking.agencyId,
+        clientName: booking.clientName,
+        clientEmail: booking.clientEmail,
+        clientPhone: booking.clientPhone,
+        mediaCampaignName: booking.mediaCampaignName || null,
+        packageName:
+          booking.mediaCampaignName ||
+          booking.snapshotDescription ||
+          booking.row?.table?.section?.title ||
+          "Rate Card Item",
+        packagePrice: booking.snapshotPrice,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        duration: null,
+        slots: booking.quantity,
+        totalAmount: booking.totalAmount,
+        status: booking.status,
+        notes: booking.notes,
+        notesMeta,
+        awaitingPayment,
+        canEditCampaign: awaitingPayment,
+        rateCardId: booking.rateCardId,
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+        listing: {
+          id: booking.rateCard.id,
+          name: booking.rateCard.title,
+          listingType: booking.rateCard.listingType || "DIGITAL",
+          location: booking.rateCard.location,
+          imageUrl: booking.rateCard.imageUrl,
+        },
+        agency: {
+          id: booking.agency.id,
+          agencyName: booking.agency.agencyName,
+          contactName: booking.agency.contactName,
+        },
+        bookingType: "RATE_CARD",
+      };
+    });
 
     // Combine both types of bookings
     const allBookings = [

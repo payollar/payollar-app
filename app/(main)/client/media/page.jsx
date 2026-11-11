@@ -1,10 +1,11 @@
+import { Suspense } from "react";
 import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
 import { getClientMediaLibrary } from "@/actions/client-media";
 import { MediaLibrary } from "../_components/media-library";
 
 // Force dynamic rendering to avoid static generation issues with headers()
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function ClientMediaPage() {
   const user = await getCurrentUser();
@@ -16,10 +17,12 @@ export default async function ClientMediaPage() {
   const mediaData = await getClientMediaLibrary();
 
   return (
-    <MediaLibrary
-      bookings={mediaData.bookings || []}
-      certificates={mediaData.certificates || []}
-      reports={mediaData.reports || []}
-    />
+    <Suspense fallback={null}>
+      <MediaLibrary
+        bookings={mediaData.bookings || []}
+        certificates={mediaData.certificates || []}
+        reports={mediaData.reports || []}
+      />
+    </Suspense>
   );
 }

@@ -24,6 +24,7 @@ import { startPlannerCartNegotiation } from "@/actions/media-negotiate";
 import {
   addMediaPlannerCartItem,
   clearMediaPlannerCart,
+  stashMediaPlannerPendingCheckout,
   loadMediaPlannerCart,
   patchMediaPlannerCartItem,
   removeMediaPlannerCartItem,
@@ -355,8 +356,11 @@ export default function MediaPlannerCartPage() {
         return;
       }
       if (data.authorizationUrl) {
-        const remaining = items.filter((item) => !selectedIds.includes(item.id));
-        saveMediaPlannerCart(remaining);
+        // Keep cart intact until Paystack succeeds — abandoned checkouts restore.
+        stashMediaPlannerPendingCheckout({
+          itemIds: selectedIds,
+          reference: data.reference || null,
+        });
         window.location.href = data.authorizationUrl;
         return;
       }

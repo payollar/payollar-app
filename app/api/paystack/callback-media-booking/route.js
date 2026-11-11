@@ -97,7 +97,8 @@ async function createBookingItemsFromPlannerCart({ cartItems, clientName, client
             endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
             notes,
             totalAmount: Math.round(perSlotTotal * 100) / 100,
-            status: "PENDING",
+            // Payment verified — confirmed until the station completes airing.
+            status: "CONFIRMED",
           },
         })
       );
@@ -290,7 +291,7 @@ export async function GET(request) {
           clientPhone: clientPhone || "",
           notes: notes || "",
           totalAmount,
-          status: "PENDING",
+          status: "CONFIRMED",
         },
       });
     });

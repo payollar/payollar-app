@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import {
   ArrowRight,
@@ -16,13 +17,16 @@ import {
   FolderOpen,
   MapPin,
   MessageSquare,
+  Pencil,
   Radio,
   Search,
+  ShoppingCart,
   Tv,
   TrendingUp,
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +39,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  finalizeMediaPlannerCheckout,
+  loadMediaPlannerCart,
+  mediaPlannerCartCount,
+  readMediaPlannerPendingCheckout,
+} from "@/lib/media-planner-cart";
+import { resumeUnpaidMediaBooking } from "@/lib/media-planner-edit-booking";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
 
 const TABS = [
@@ -76,6 +87,13 @@ function statusMeta(status) {
       label: "Cancelled",
       className: "border-rose-200 bg-rose-50 text-rose-700",
       icon: XCircle,
+    };
+  }
+  if (status === "PENDING") {
+    return {
+      label: "Awaiting payment",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+      icon: AlertCircle,
     };
   }
   return {
@@ -218,10 +236,76 @@ export function MediaLibrary({
   certificates = [],
   reports = [],
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("bookings");
+  const [cartItems, setCartItems] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => {
+    const refreshCart = () => setCartItems(loadMediaPlannerCart());
+    refreshCart();
+    window.addEventListener("media-planner-cart-change", refreshCart);
+    return () =>
+      window.removeEventListener("media-planner-cart-change", refreshCart);
+  }, []);
+
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const source = searchParams.get("source");
+    const payment = searchParams.get("payment");
+    const error = searchParams.get("error");
+
+    if (success === "1" || payment === "completed") {
+      const pending = readMediaPlannerPendingCheckout();
+      if (pending?.itemIds?.length) {
+        finalizeMediaPlannerCheckout(pending.itemIds);
+        setCartItems(loadMediaPlannerCart());
+      }
+      toast.success(
+        source === "planner_cart"
+          ? "Payment received — your media campaign is booked."
+          : "Payment received."
+      );
+      router.replace("/client/media", { scroll: false });
+      router.refresh();
+      return;
+    }
+
+    if (success === "0" || error) {
+      toast.error(
+        error
+          ? `Payment wasn’t completed (${error.replace(/_/g, " ")}). Your cart is still available.`
+          : "Payment wasn’t completed. Your cart is still available."
+      );
+      router.replace("/client/media", { scroll: false });
+    }
+  }, [searchParams, router]);
+
+  const handleEditCampaign = (booking) => {
+    setEditingId(booking.id);
+    try {
+      const result = resumeUnpaidMediaBooking(booking);
+      if (!result?.success || !result?.href) {
+        toast.error(result?.error || "Could not open campaign for editing");
+        return;
+      }
+      toast.message(
+        result.mode === "cart"
+          ? "Campaign restored to your cart — edit and check out when ready."
+          : "Opening campaign in the planner."
+      );
+      router.push(result.href);
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not open campaign for editing");
+    } finally {
+      setEditingId(null);
+    }
+  };
 
   const stats = useMemo(() => {
     const totalBookings = bookings.length;
@@ -321,6 +405,38 @@ export function MediaLibrary({
       }
     >
       <div className="space-y-6">
+        {cartItems.length > 0 ? (
+          <Card className={cn(clientCardClass, "border-0 overflow-hidden")}>
+            <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+                  <ShoppingCart className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-950">
+                    {mediaPlannerCartCount(cartItems)} campaign
+                    {mediaPlannerCartCount(cartItems) === 1 ? "" : "s"} awaiting
+                    checkout
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    You can keep editing flights in your cart. Nothing is removed
+                    until payment succeeds.
+                  </p>
+                </div>
+              </div>
+              <Button
+                asChild
+                className="h-10 shrink-0 rounded-full bg-slate-950 px-5 hover:bg-slate-800"
+              >
+                <Link href="/products/media-cart">
+                  Open media cart
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard
             label="Total bookings"
@@ -520,6 +636,20 @@ export function MediaLibrary({
                               </div>
 
                               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                                {booking.canEditCampaign ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="rounded-full bg-slate-950 hover:bg-slate-800"
+                                    disabled={editingId === booking.id}
+                                    onClick={() => handleEditCampaign(booking)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    {editingId === booking.id
+                                      ? "Opening…"
+                                      : "Edit campaign"}
+                                  </Button>
+                                ) : null}
                                 {booking.status !== "CANCELLED" &&
                                 booking.totalAmount != null &&
                                 Number(booking.totalAmount) > 0 ? (
