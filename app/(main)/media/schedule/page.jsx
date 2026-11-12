@@ -108,7 +108,7 @@ export default function ScheduleMediaPage() {
   const mediaTypes = [
     { id: "RADIO", name: "Radio Media", icon: Radio, description: "Radio spots and promotions" },
     { id: "TV", name: "TV Media", icon: Tv, description: "Television commercials and spots" },
-    { id: "DIGITAL", name: "Digital Media", icon: Smartphone, description: "Social media, search ads, video ads" },
+    { id: "DIGITAL", name: "Digital Media", icon: Smartphone, description: "Digital platform shows on social channels" },
     { id: "BILLBOARD", name: "Billboard Media", icon: Billboard, description: "Outdoor advertising and billboards" },
     { id: "INFLUENCER_MARKETING", name: "Influencer Marketing", icon: Users, description: "Social media influencers and creators" },
     { id: "VIDEO_CLIPPING", name: "Video Clipping", icon: Video, description: "Video editing and clipping services" },

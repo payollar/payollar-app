@@ -48,8 +48,8 @@ const MEDIA_TYPES = [
     href: "/products/digital-media",
     image: "/social-media.jpg",
     description:
-      "Social, search, and video ads across digital platforms and networks.",
-    highlight: "Social, search & video",
+      "Book digital platform shows and series distributed on social channels.",
+    highlight: "Shows on social platforms",
     icon: Share2,
   },
   {

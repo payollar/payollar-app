@@ -1,330 +1,431 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Smartphone, Search, Users, Target, Star, Facebook, Instagram, Youtube, MapPin, Calendar, ArrowRight } from "lucide-react"
-import { siX } from "simple-icons"
-import Link from "next/link"
-import InquiryFormModal from "@/components/InquiryFormModal"
-import CustomPackageBuilder from "@/components/CustomPackageBuilder"
-import { getHeaderImage } from "@/lib/getHeaderImage"
-import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency"
-import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar"
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Calendar,
+  Clapperboard,
+  Instagram,
+  MapPin,
+  MonitorPlay,
+  Search,
+  Smartphone,
+  Youtube,
+} from "lucide-react";
+import { siTiktok, siX } from "simple-icons";
+import { getActiveMediaListings, getPublishedRateCards } from "@/actions/media-agency";
+import InquiryFormModal from "@/components/InquiryFormModal";
+import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getHeaderImage } from "@/lib/getHeaderImage";
+import { cn } from "@/lib/utils";
 
-function XIcon({ className }) {
+function BrandIcon({ path, className }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path fill="currentColor" d={siX.path} />
+      <path fill="currentColor" d={path} />
     </svg>
-  )
+  );
 }
 
+function TikTokIcon({ className }) {
+  return <BrandIcon path={siTiktok.path} className={className} />;
+}
+
+function XIcon({ className }) {
+  return <BrandIcon path={siX.path} className={className} />;
+}
+
+const SHOW_EXAMPLES = [
+  {
+    id: "morning-brief",
+    name: "Morning Brief",
+    hostLabel: "Daily digital show",
+    icon: Youtube,
+    platforms: ["YouTube", "Instagram"],
+    audience: "Professionals · weekday mornings",
+    formats: ["Sponsored segment", "Host read", "Product demo"],
+    packages: [
+      {
+        name: "Single episode",
+        price: "₵4,500",
+        features: [
+          "1 sponsored segment",
+          "Show page mention",
+          "Clip for brand reuse",
+        ],
+      },
+      {
+        name: "Weekly flight",
+        price: "₵18,000",
+        features: [
+          "4 episode integrations",
+          "Host-led brand moment",
+          "Cross-post to Stories/Reels",
+        ],
+      },
+      {
+        name: "Season partner",
+        price: "₵55,000",
+        features: [
+          "Season-long show partnership",
+          "Opening billboard",
+          "Recurring segment ownership",
+        ],
+      },
+    ],
+  },
+  {
+    id: "lifestyle-series",
+    name: "City Lifestyle Series",
+    hostLabel: "Vertical show format",
+    icon: Instagram,
+    platforms: ["Instagram", "TikTok"],
+    audience: "Urban lifestyle · 18–34",
+    formats: ["Episode takeover", "Creator co-host", "Story arc"],
+    packages: [
+      {
+        name: "Episode feature",
+        price: "₵3,200",
+        features: [
+          "1 episode integration",
+          "On-screen brand moment",
+          "Story highlights pack",
+        ],
+      },
+      {
+        name: "Mini series",
+        price: "₵12,500",
+        features: [
+          "3 connected episodes",
+          "Creator co-host appearance",
+          "Saved series highlight",
+        ],
+      },
+      {
+        name: "Platform residency",
+        price: "₵40,000",
+        features: [
+          "Month-long show residency",
+          "Weekly branded episodes",
+          "Community live session",
+        ],
+      },
+    ],
+  },
+  {
+    id: "live-talk",
+    name: "After Dark Live",
+    hostLabel: "Live talk show",
+    icon: TikTokIcon,
+    platforms: ["TikTok", "YouTube Live"],
+    audience: "Night-time entertainment",
+    formats: ["Live sponsorship", "Guest seat", "Poll moment"],
+    packages: [
+      {
+        name: "Live drop-in",
+        price: "₵2,800",
+        features: [
+          "Live sponsor shoutout",
+          "Pinned comment",
+          "Replay mention",
+        ],
+      },
+      {
+        name: "Guest episode",
+        price: "₵9,500",
+        features: [
+          "Brand guest seat",
+          "Live + replay cutdown",
+          "Comment takeover window",
+        ],
+      },
+      {
+        name: "Live night partner",
+        price: "₵28,000",
+        features: [
+          "Full live-night partnership",
+          "Opening & closing billboards",
+          "Interactive brand segment",
+        ],
+      },
+    ],
+  },
+  {
+    id: "newsroom-desk",
+    name: "Newsroom Desk",
+    hostLabel: "Short-form news show",
+    icon: XIcon,
+    platforms: ["X", "YouTube Shorts"],
+    audience: "News & culture followers",
+    formats: ["Desk sponsorship", "Topic segment", "Thread companion"],
+    packages: [
+      {
+        name: "Desk mention",
+        price: "₵2,000",
+        features: [
+          "Sponsored desk open",
+          "Topic tag inclusion",
+          "Companion post",
+        ],
+      },
+      {
+        name: "Topic week",
+        price: "₵7,500",
+        features: [
+          "5 daily show integrations",
+          "Branded topic framing",
+          "Clip package for brand",
+        ],
+      },
+      {
+        name: "Desk franchise",
+        price: "₵22,000",
+        features: [
+          "Named desk segment",
+          "Multi-platform distribution",
+          "Monthly franchise rights",
+        ],
+      },
+    ],
+  },
+];
+
 export default function DigitalMediaPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedPackage, setSelectedPackage] = useState(null)
-  const [showCustomBuilder, setShowCustomBuilder] = useState(false)
-  const [registeredListings, setRegisteredListings] = useState([])
-  const [rateCards, setRateCards] = useState([])
-  const headerImage = getHeaderImage("/products/digital-media")
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [registeredListings, setRegisteredListings] = useState([]);
+  const [rateCards, setRateCards] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("all");
+  const [formatFilter, setFormatFilter] = useState("all");
+  const headerImage = getHeaderImage("/products/digital-media");
 
   useEffect(() => {
     getActiveMediaListings("DIGITAL").then((result) => {
       if (result.success && result.listings?.length) {
-        setRegisteredListings(result.listings)
+        setRegisteredListings(result.listings);
       }
-    })
+    });
     getPublishedRateCards("DIGITAL").then((result) => {
       if (result.success && result.rateCards?.length) {
-        setRateCards(result.rateCards)
+        setRateCards(result.rateCards);
       }
-    })
-  }, [])
+    });
+  }, []);
 
-  const handlePackageClick = (platformName, pkg) => {
+  const handlePackageClick = (showName, pkg) => {
     setSelectedPackage({
-      name: `${platformName} - ${pkg.name}`,
+      name: `${showName} — ${pkg.name}`,
       price: pkg.price,
       details: pkg.features.join(", "),
-    })
-    setIsModalOpen(true)
-  }
+    });
+    setIsModalOpen(true);
+  };
 
-  const digitalPlatforms = [
-    {
-      id: 1,
-      name: "Facebook Ads",
-      platform: "Meta",
-      icon: Facebook,
-      reach: "2.9B users",
-      rating: 4.8,
-      targeting: "Advanced",
-      priceRange: "₵500-50,000",
-      adFormats: ["Image", "Video", "Carousel", "Stories"],
-      demographics: ["All Ages", "Global Reach"],
-      packages: [
-        {
-          name: "Starter Campaign",
-          price: "₵2,500",
-          features: ["₵2,500 ad spend", "Basic targeting", "Image & video ads", "7-day campaign"],
-        },
-        {
-          name: "Growth Campaign",
-          price: "₵10,000",
-          features: ["₵10,000 ad spend", "Advanced targeting", "All ad formats", "30-day campaign"],
-        },
-        {
-          name: "Premium Campaign",
-          price: "₵25,000",
-          features: ["₵25,000 ad spend", "Premium targeting", "A/B testing", "60-day campaign"],
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Instagram Ads",
-      platform: "Meta",
-      icon: Instagram,
-      reach: "2B users",
-      rating: 4.9,
-      targeting: "Advanced",
-      priceRange: "₵500-50,000",
-      adFormats: ["Feed", "Stories", "Reels", "Explore"],
-      demographics: ["Ages 18-34", "Visual Content"],
-      packages: [
-        {
-          name: "Influencer Boost",
-          price: "₵3,500",
-          features: ["₵3,500 ad spend", "Stories & Reels", "Influencer targeting", "14-day campaign"],
-        },
-        {
-          name: "Brand Awareness",
-          price: "₵12,000",
-          features: ["₵12,000 ad spend", "All placements", "Lookalike audiences", "30-day campaign"],
-        },
-        {
-          name: "Conversion Focus",
-          price: "₵30,000",
-          features: ["₵30,000 ad spend", "Shopping ads", "Retargeting", "60-day campaign"],
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "YouTube Ads",
-      platform: "Google",
-      icon: Youtube,
-      reach: "2.5B users",
-      rating: 4.7,
-      targeting: "Advanced",
-      priceRange: "₵1,000-75,000",
-      adFormats: ["Skippable", "Non-skippable", "Bumper", "Discovery"],
-      demographics: ["All Ages", "Video Content"],
-      packages: [
-        {
-          name: "Video Starter",
-          price: "₵5,000",
-          features: ["₵5,000 ad spend", "Skippable ads", "Basic targeting", "15-day campaign"],
-        },
-        {
-          name: "Video Pro",
-          price: "₵17,000",
-          features: ["₵17,000 ad spend", "All ad formats", "Advanced targeting", "30-day campaign"],
-        },
-        {
-          name: "Video Premium",
-          price: "₵40,000",
-          features: ["₵40,000 ad spend", "Premium placements", "Custom audiences", "60-day campaign"],
-        },
-      ],
-    },
-    {
-      id: 4,
-      name: "X Ads",
-      platform: "X Corp",
-      icon: XIcon,
-      reach: "550M users",
-      rating: 4.5,
-      targeting: "Moderate",
-      priceRange: "₵500-25,000",
-      adFormats: ["Promoted Tweets", "Promoted Trends", "Promoted Accounts"],
-      demographics: ["Ages 25-49", "News & Trends"],
-      packages: [
-        {
-          name: "Engagement Boost",
-          price: "₵2,000",
-          features: ["₵2,000 ad spend", "Promoted tweets", "Hashtag targeting", "10-day campaign"],
-        },
-        {
-          name: "Trend Campaign",
-          price: "₵7,500",
-          features: ["₵7,500 ad spend", "All formats", "Conversation targeting", "21-day campaign"],
-        },
-        {
-          name: "Brand Takeover",
-          price: "₵20,000",
-          features: ["₵20,000 ad spend", "Premium placement", "Trend sponsorship", "30-day campaign"],
-        },
-      ],
-    },
-  ]
+  const filteredShows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return SHOW_EXAMPLES.filter((show) => {
+      const matchesQuery =
+        !q ||
+        show.name.toLowerCase().includes(q) ||
+        show.hostLabel.toLowerCase().includes(q) ||
+        show.platforms.some((platform) => platform.toLowerCase().includes(q)) ||
+        show.formats.some((format) => format.toLowerCase().includes(q));
+      const matchesPlatform =
+        platformFilter === "all" ||
+        show.platforms.some((platform) =>
+          platform.toLowerCase().includes(platformFilter)
+        );
+      const matchesFormat =
+        formatFilter === "all" ||
+        show.formats.some((format) =>
+          format.toLowerCase().includes(formatFilter)
+        );
+      return matchesQuery && matchesPlatform && matchesFormat;
+    });
+  }, [searchQuery, platformFilter, formatFilter]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <ProductsChannelTopBar title="Digital Media" icon={Smartphone} />
+    <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
+      <ProductsChannelTopBar
+        title="Digital Media"
+        icon={Smartphone}
+        variant="light"
+        showChannelLabel={false}
+      />
 
-      {/* Header Cover */}
-      <section className="relative h-64 md:h-80 w-full overflow-hidden">
+      <section className="relative h-64 w-full overflow-hidden md:h-80">
         <img
           src={headerImage}
-          alt="Digital Media Cover"
-          className="absolute inset-0 w-full h-full object-cover rounded-b-2xl"
+          alt="Digital platform shows"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-white px-4">
-            <h1 className="text-3xl md:text-5xl font-bold mb-4">Digital Advertising</h1>
-            <p className="text-lg md:text-xl max-w-3xl mx-auto opacity-90">
-              Reach your target audience with precision through social media and online platforms
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/35 to-slate-950/10" />
+        <div className="absolute inset-0 flex items-end">
+          <div className="mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+              Digital media
+            </p>
+            <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-5xl">
+              Book digital platform shows
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-white/85 md:text-base">
+              Sponsor or integrate into digital shows that run on social
+              platforms — YouTube, Instagram, TikTok, and more. Not social ads.
+              Show inventory.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Header */}
-      <section className="py-12 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* <div className="text-center space-y-4 mb-8">
-            <h1 className="text-4xl lg:text-5xl font-bold text-balance">Digital Advertising</h1>
-            <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
-              Reach your target audience with precision through social media, streaming platforms, and online
-              advertising networks.
-            </p>
-          </div> */}
-
-          {/* Search and Filters */}
-          <div className="max-w-4xl mx-auto space-y-4">
-            <div className="grid md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search platforms..." className="pl-10" />
-              </div>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Platform Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="social">Social Media</SelectItem>
-                  <SelectItem value="video">Video Streaming</SelectItem>
-                  <SelectItem value="search">Search Engines</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ad Format" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Formats</SelectItem>
-                  <SelectItem value="image">Image Ads</SelectItem>
-                  <SelectItem value="video">Video Ads</SelectItem>
-                  <SelectItem value="carousel">Carousel Ads</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Budget" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any Budget</SelectItem>
-                  <SelectItem value="low">Under ₵5,000</SelectItem>
-                  <SelectItem value="mid">₵5,000 - ₵25,000</SelectItem>
-                  <SelectItem value="high">₵25,000+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Custom Package Builder Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-4">Build Your Custom Package</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Create a personalized advertising package by selecting digital services across different days of the week.
-              Choose from social media postings, ads, and campaigns with flexible scheduling.
-            </p>
-            <Button
-              onClick={() => setShowCustomBuilder(!showCustomBuilder)}
-              className="mt-6"
-              variant={showCustomBuilder ? "outline" : "default"}
+      <section className="border-b border-slate-200/80 bg-white">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
+          {[
+            {
+              icon: Clapperboard,
+              title: "Shows & series",
+              body: "Morning shows, lifestyle series, live talk, and short-form desks.",
+            },
+            {
+              icon: MonitorPlay,
+              title: "Social distribution",
+              body: "Formats built for the platforms audiences already watch daily.",
+            },
+            {
+              icon: Smartphone,
+              title: "Bookable inventory",
+              body: "Browse digital platforms, rate cards, and sponsorship packages.",
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-2xl border border-slate-200 bg-[#f7f8fc] px-4 py-4"
             >
-              {showCustomBuilder ? "Hide Custom Builder" : "Show Custom Package Builder"}
-            </Button>
-          </div>
+              <item.icon className="h-5 w-5 text-slate-700" />
+              <p className="mt-3 text-sm font-semibold text-slate-950">
+                {item.title}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {showCustomBuilder && (
-            <div className="mt-8">
-              <CustomPackageBuilder
-                mediaType="digital"
-                onPackageSubmit={(packageData) => {
-                  setSelectedPackage({
-                    name: "Custom Digital Package",
-                    price: `₵${packageData.calculations.finalTotal.toFixed(2)}`,
-                    details: `${packageData.calculations.totalQuantity} items over ${packageData.weeks} week${packageData.weeks > 1 ? "s" : ""}`,
-                    customData: packageData,
-                  })
-                  setIsModalOpen(true)
-                }}
+      <section className="py-10">
+        <div className="mx-auto max-w-7xl space-y-4 px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="relative md:col-span-2">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search shows, platforms, or formats…"
+                className="h-11 rounded-xl border-slate-200 bg-white pl-10"
               />
             </div>
-          )}
+            <Select value={platformFilter} onValueChange={setPlatformFilter}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                <SelectValue placeholder="Platform" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All platforms</SelectItem>
+                <SelectItem value="youtube">YouTube</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="tiktok">TikTok</SelectItem>
+                <SelectItem value="x">X</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={formatFilter} onValueChange={setFormatFilter}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                <SelectValue placeholder="Show format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All formats</SelectItem>
+                <SelectItem value="sponsored">Sponsored segment</SelectItem>
+                <SelectItem value="host">Host read</SelectItem>
+                <SelectItem value="live">Live sponsorship</SelectItem>
+                <SelectItem value="guest">Guest seat</SelectItem>
+                <SelectItem value="desk">Desk sponsorship</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </section>
 
-      {/* Rate Cards Section */}
-      {rateCards.length > 0 && (
-        <section className="py-12 border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold mb-6">Digital Media Rate Cards</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {rateCards.length > 0 ? (
+        <section className="pb-12">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+                  Digital platform rate cards
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Published show and platform inventory from media agencies.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {rateCards.map((rateCard) => (
                 <Link key={rateCard.id} href={`/rate-cards/${rateCard.id}`}>
-                  <Card className="hover:shadow-lg transition-all cursor-pointer h-full">
-                    {rateCard.imageUrl && (
+                  <Card className="h-full overflow-hidden border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-md">
+                    {rateCard.imageUrl ? (
                       <div className="relative h-40 w-full overflow-hidden">
                         <img
                           src={rateCard.imageUrl}
                           alt={rateCard.title}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent" />
                       </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-bold">{rateCard.title}</h3>
-                        <Badge variant="outline">Rate Card</Badge>
+                    ) : null}
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-lg font-semibold text-slate-950">
+                          {rateCard.title}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className="rounded-full border-slate-200"
+                        >
+                          Rate card
+                        </Badge>
                       </div>
-                      {rateCard.agency?.agencyName && (
-                        <p className="text-sm text-muted-foreground mb-2">{rateCard.agency.agencyName}</p>
-                      )}
-                      {rateCard.location && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                      {rateCard.agency?.agencyName ? (
+                        <p className="mt-1 text-sm text-slate-500">
+                          {rateCard.agency.agencyName}
+                        </p>
+                      ) : null}
+                      {rateCard.location ? (
+                        <p className="mt-2 flex items-center gap-1 text-xs text-slate-400">
                           <MapPin className="h-3 w-3" />
                           {rateCard.location}
                         </p>
-                      )}
-                      {rateCard.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{rateCard.description}</p>
-                      )}
-                      <Button className="w-full mt-4" variant="outline">
-                        View Rate Card
+                      ) : null}
+                      {rateCard.description ? (
+                        <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                          {rateCard.description}
+                        </p>
+                      ) : null}
+                      <Button
+                        className="mt-4 w-full rounded-full"
+                        variant="outline"
+                      >
+                        View rate card
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </CardContent>
@@ -334,118 +435,210 @@ export default function DigitalMediaPage() {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* Digital Platforms List */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-8">
-            {digitalPlatforms.map((platform) => {
-              const IconComponent = platform.icon
-              return (
-                <Card key={platform.id} className="overflow-hidden">
-                  <div className="grid lg:grid-cols-3 gap-6 p-6">
-                    {/* Platform Info */}
-                    <div className="lg:col-span-1 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <IconComponent className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-bold">{platform.name}</h3>
-                            <Badge variant="secondary" className="mt-1">
-                              {platform.platform}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">{platform.rating}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>{platform.reach}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Target className="h-4 w-4 text-muted-foreground" />
-                          <span>{platform.targeting} Targeting</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium">Ad Formats:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {platform.adFormats.map((format, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {format}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium">Best For:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {platform.demographics.map((demo, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {demo}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
+      {registeredListings.length > 0 ? (
+        <section className="pb-12">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+                Digital platforms
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Registered digital show platforms you can schedule with.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {registeredListings.map((listing) => (
+                <Card
+                  key={listing.id}
+                  className="overflow-hidden border-slate-200 bg-white"
+                >
+                  {listing.imageUrl ? (
+                    <div className="relative h-36 w-full overflow-hidden">
+                      <img
+                        src={listing.imageUrl}
+                        alt={listing.name}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
-
-                    {/* Packages */}
-                    <div className="lg:col-span-2">
-                      <h4 className="font-semibold mb-4">Available Packages</h4>
-                      <div className="grid md:grid-cols-3 gap-4">
-                        {platform.packages.map((pkg, index) => (
-                          <Card key={index} className="border-2 hover:border-primary/50 transition-colors">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-lg">{pkg.name}</CardTitle>
-                              <div className="text-2xl font-bold text-primary">{pkg.price}</div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <ul className="space-y-1 text-xs text-muted-foreground">
-                                {pkg.features.map((feature, idx) => (
-                                  <li key={idx} className="flex items-start">
-                                    <span className="mr-2">•</span>
-                                    <span>{feature}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                              <Button
-                                className="w-full"
-                                size="sm"
-                                onClick={() => handlePackageClick(platform.name, pkg)}
-                              >
-                                Select Package
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                  ) : null}
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-slate-950">
+                      {listing.name}
+                    </h3>
+                    {listing.agency?.agencyName ? (
+                      <p className="text-sm text-slate-500">
+                        {listing.agency.agencyName}
+                      </p>
+                    ) : null}
+                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-500">
+                      {listing.location ? (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {listing.location}
+                        </span>
+                      ) : null}
+                      {listing.reach ? <span>{listing.reach}</span> : null}
+                      {listing.priceRange ? (
+                        <span>{listing.priceRange}</span>
+                      ) : null}
                     </div>
-                  </div>
+                    <Button asChild className="mt-4 w-full rounded-full" size="sm">
+                      <Link
+                        href={`/media/schedule?type=DIGITAL&listing=${listing.id}`}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Schedule show
+                      </Link>
+                    </Button>
+                  </CardContent>
                 </Card>
-              )
-            })}
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="pb-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+              Example show formats
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              These are digital shows distributed on social platforms — episode
+              integrations, live sponsorships, and show partnerships. Not paid
+              social ad campaigns.
+            </p>
           </div>
 
-          {/* Load More */}
-          <div className="text-center mt-12">
-            <Button variant="outline" size="lg">
-              Load More Platforms
-            </Button>
+          <div className="space-y-6">
+            {filteredShows.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-14 text-center">
+                <p className="text-sm font-medium text-slate-700">
+                  No shows match those filters
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Try another platform or format.
+                </p>
+              </div>
+            ) : (
+              filteredShows.map((show) => {
+                const IconComponent = show.icon;
+                return (
+                  <Card
+                    key={show.id}
+                    className="overflow-hidden border-slate-200 bg-white"
+                  >
+                    <div className="grid gap-6 p-5 lg:grid-cols-3 lg:p-6">
+                      <div className="space-y-4 lg:col-span-1">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white">
+                            <IconComponent className="h-5 w-5" />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="text-xl font-semibold text-slate-950">
+                              {show.name}
+                            </h3>
+                            <p className="mt-0.5 text-sm text-slate-500">
+                              {show.hostLabel}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {show.platforms.map((platform) => (
+                            <Badge
+                              key={platform}
+                              variant="outline"
+                              className="rounded-full border-slate-200 bg-[#f7f8fc]"
+                            >
+                              {platform}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        <p className="text-sm text-slate-500">{show.audience}</p>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Integration formats
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {show.formats.map((format) => (
+                              <Badge
+                                key={format}
+                                variant="outline"
+                                className="rounded-full border-slate-200 text-xs text-slate-600"
+                              >
+                                {format}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-2">
+                        <h4 className="mb-4 text-sm font-semibold text-slate-950">
+                          Sponsorship packages
+                        </h4>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {show.packages.map((pkg) => (
+                            <Card
+                              key={pkg.name}
+                              className={cn(
+                                "border-slate-200 bg-[#f7f8fc] transition hover:border-slate-300 hover:bg-white"
+                              )}
+                            >
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-base">
+                                  {pkg.name}
+                                </CardTitle>
+                                <div className="text-2xl font-semibold text-slate-950">
+                                  {pkg.price}
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                <ul className="space-y-1.5 text-xs text-slate-500">
+                                  {pkg.features.map((feature) => (
+                                    <li
+                                      key={feature}
+                                      className="flex items-start gap-2"
+                                    >
+                                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" />
+                                      <span>{feature}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                                <Button
+                                  className="w-full rounded-full"
+                                  size="sm"
+                                  onClick={() =>
+                                    handlePackageClick(show.name, pkg)
+                                  }
+                                >
+                                  Inquire about show
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
 
-      <InquiryFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} packageInfo={selectedPackage} />
+      <InquiryFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        packageInfo={selectedPackage}
+      />
     </div>
-  )
+  );
 }
