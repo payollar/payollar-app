@@ -32,77 +32,85 @@ function VerifyEmailContent() {
         // Check user role and redirect appropriately
         const checkRoleAndRedirect = async () => {
           try {
-            // If coming from media agency sign-up, set the role first
+            // Media agency Google / portal entry: ensure role + profile, then dashboard
             if (isMediaAgency) {
               try {
                 const setRoleResponse = await fetch("/api/media-agency/set-role", {
                   method: "POST",
                   credentials: "include",
                 });
-                
+
                 if (setRoleResponse.ok) {
-                  // Role set successfully, redirect to media agency dashboard
-                  router.push("/media-agency");
-                  return;
+                  const setRoleData = await setRoleResponse.json().catch(() => ({}));
+                  if (setRoleData.role === "MEDIA_AGENCY" || setRoleData.hasMediaAgency) {
+                    toast.success("Welcome — opening your media dashboard");
+                    router.replace("/media-agency");
+                    return;
+                  }
+                  // Different role already assigned
+                  if (setRoleData.role && setRoleData.role !== "MEDIA_AGENCY") {
+                    toast.message("This Google account already has a different Payollar role");
+                    router.replace("/");
+                    return;
+                  }
                 }
               } catch (error) {
                 console.error("Error setting media agency role:", error);
               }
             }
-            
+
             // Check user role
             const response = await fetch("/api/user/check-role", {
               credentials: "include",
             });
-            
+
             if (response.ok) {
               const data = await response.json();
               if (data.role === "MEDIA_AGENCY") {
-                // Media agencies skip onboarding and go directly to dashboard
-                router.push("/media-agency");
+                router.replace("/media-agency");
                 return;
               } else if (data.role === "CLIENT") {
-                router.push("/");
+                router.replace("/");
                 return;
               } else if (data.role === "CREATOR") {
-                if (data.verificationStatus === "VERIFIED") {
-                  router.push("/creator");
-                } else {
-                  router.push("/creator/verification");
-                }
+                router.replace(
+                  data.verificationStatus === "VERIFIED"
+                    ? "/creator"
+                    : "/creator/verification"
+                );
                 return;
               } else if (data.role === "ADMIN") {
-                router.push("/admin");
+                router.replace("/admin");
                 return;
               }
             }
           } catch (error) {
             console.error("Error checking user role:", error);
           }
-          
-          // If coming from media agency sign-up but no role yet, redirect to media agency sign-up
+
+          // Media agency path but setup failed — finish on register form
           if (isMediaAgency) {
-            router.push("/media-agency/sign-up");
+            router.replace("/media-agency/sign-up");
             return;
           }
-          
+
           // Default redirect for Google OAuth or unassigned users
           if (source === "google") {
             toast.success("Welcome to Payollar! Your email is verified.", {
               duration: 3000,
             });
             setTimeout(() => {
-              router.push("/onboarding");
+              router.replace("/onboarding");
             }, 1500);
           } else {
-            router.push("/onboarding");
+            router.replace("/onboarding");
           }
         };
-        
+
         checkRoleAndRedirect();
       }
     }
-  }, [session, isPending, router, source]);
+  }, [session, isPending, router, source, isMediaAgency]);
 
   const handleResendVerification = async () => {
     if (!session?.user?.email) {

@@ -1,11 +1,9 @@
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import Link from "next/link";
 import { getClientCampaigns } from "@/actions/campaigns";
-import { MediaAgencyPageShell } from "./_components/media-agency-page-shell";
 import { MediaAgencyOverview } from "./_components/media-agency-overview";
-import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
+import { CompleteAgencyProfile } from "./_components/complete-agency-profile";
 
 export default async function MediaAgencyDashboard() {
   const user = await checkUser();
@@ -44,24 +42,10 @@ export default async function MediaAgencyDashboard() {
 
   if (!mediaAgency) {
     return (
-      <MediaAgencyPageShell
-        eyebrow="Media agency"
-        title="Dashboard"
-        description="Your agency workspace will appear here once your profile is ready."
-      >
-        <div className={`${DASHBOARD_CARD_CLASS} px-6 py-12 text-center`}>
-          <p className="text-lg font-semibold text-slate-950">Profile setup required</p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Your media agency profile is being set up. Complete your details in settings.
-          </p>
-          <Link
-            href="/media-agency/settings"
-            className="mt-6 inline-flex h-10 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            Go to settings
-          </Link>
-        </div>
-      </MediaAgencyPageShell>
+      <CompleteAgencyProfile
+        defaultEmail={user.email || ""}
+        defaultContactName={user.name || ""}
+      />
     );
   }
 

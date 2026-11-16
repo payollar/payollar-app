@@ -85,12 +85,14 @@ export default function MediaAgencySignUpPage() {
           onSuccess: async () => {
             toast.success("Account created — setting up your agency…");
 
-            await new Promise((resolve) => setTimeout(resolve, 800));
+            // Brief pause so the session cookie is available for the register call
+            await new Promise((resolve) => setTimeout(resolve, 400));
 
             try {
               const response = await fetch("/api/media-agency/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
                   agencyName: agencyName.trim(),
                   contactName: contactName.trim(),
@@ -105,13 +107,12 @@ export default function MediaAgencySignUpPage() {
                 throw new Error(errorData.error || "Failed to create media agency profile");
               }
 
-              toast.success("Agency ready");
-
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new Event("storage"));
                 window.dispatchEvent(new CustomEvent("auth:session-update"));
               }
 
+              toast.success("Agency ready — opening dashboard");
               window.location.href = "/media-agency";
             } catch (error) {
               console.error("Media agency registration error:", error);
@@ -119,9 +120,10 @@ export default function MediaAgencySignUpPage() {
                 error.message ||
                   "Account created but agency setup failed. Sign in to finish."
               );
+              setIsLoading(false);
               setTimeout(() => {
                 window.location.href = "/media-agency/sign-in";
-              }, 2000);
+              }, 1500);
             }
           },
           onError: (ctx) => {

@@ -64,7 +64,7 @@ export function MediaAgencySidebar() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            window.location.href = "/sign-in";
+            window.location.href = "/media-agency/sign-in";
           },
           onError: (ctx) => {
             toast.error(ctx.error?.message || "Failed to sign out");

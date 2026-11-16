@@ -51,7 +51,11 @@ function MediaAgencySignInForm() {
 
   const routeByRole = (data) => {
     if (data?.role === "MEDIA_AGENCY") {
-      toast.success("Welcome back");
+      toast.success(
+        data.hasMediaAgency === false
+          ? "Welcome — finish your agency setup"
+          : "Welcome back"
+      );
       goToDashboard("/media-agency");
       return;
     }

@@ -12,7 +12,7 @@ export default async function MediaAgencyDashboardLayout({ children }) {
   const user = await checkUser();
 
   if (!user) {
-    redirect("/sign-in");
+    redirect("/media-agency/sign-in?redirect_url=/media-agency");
   }
 
   if (user.role !== "MEDIA_AGENCY") {

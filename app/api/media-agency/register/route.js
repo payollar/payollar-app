@@ -27,36 +27,39 @@ export async function POST(req) {
       );
     }
 
-    // Check if user already has a media agency profile
-    const existingAgency = await db.mediaAgency.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (existingAgency) {
-      return NextResponse.json(
-        { error: "Media agency profile already exists" },
-        { status: 400 }
-      );
-    }
-
-    // Update user role to MEDIA_AGENCY
+    // Ensure role is MEDIA_AGENCY
     await db.user.update({
       where: { id: session.user.id },
       data: { role: "MEDIA_AGENCY" },
     });
 
-    // Create media agency profile
-    const mediaAgency = await db.mediaAgency.create({
-      data: {
-        userId: session.user.id,
-        agencyName,
-        contactName,
-        email,
-        phone,
-        website,
-        verificationStatus: "PENDING",
-      },
+    // Idempotent: update existing profile or create a new one
+    const existingAgency = await db.mediaAgency.findUnique({
+      where: { userId: session.user.id },
     });
+
+    const mediaAgency = existingAgency
+      ? await db.mediaAgency.update({
+          where: { id: existingAgency.id },
+          data: {
+            agencyName,
+            contactName,
+            email,
+            phone: phone || null,
+            website: website || null,
+          },
+        })
+      : await db.mediaAgency.create({
+          data: {
+            userId: session.user.id,
+            agencyName,
+            contactName,
+            email,
+            phone: phone || null,
+            website: website || null,
+            verificationStatus: "PENDING",
+          },
+        });
 
     return NextResponse.json({
       success: true,
