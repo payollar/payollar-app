@@ -83,6 +83,16 @@ export async function middleware(req) {
     // For non-API public routes, check if user is already authenticated
     const sessionCookie = getSessionCookie(req);
     if (sessionCookie) {
+      // Media agency auth pages should land in the agency dashboard, not home.
+      if (
+        pathname.startsWith("/media-agency/sign-in") ||
+        pathname.startsWith("/media-agency/sign-up")
+      ) {
+        return withPathname(
+          req,
+          NextResponse.redirect(new URL("/media-agency", req.url))
+        );
+      }
       // If user is already signed in, redirect based on their role
       // We'll let the client-side handle the role check for better UX
       // For now, redirect to home - the app will handle role-based routing
@@ -99,7 +109,12 @@ export async function middleware(req) {
 
   // Redirect unauthenticated users to sign-in for protected routes
   if (!isAuthenticated && isProtectedRoute(pathname)) {
-    const signInUrl = new URL("/sign-in", req.url);
+    const isMediaAgencyRoute =
+      pathname === "/media-agency" || pathname.startsWith("/media-agency/");
+    const signInUrl = new URL(
+      isMediaAgencyRoute ? "/media-agency/sign-in" : "/sign-in",
+      req.url
+    );
     signInUrl.searchParams.set("redirect_url", pathname);
     return withPathname(req, NextResponse.redirect(signInUrl));
   }

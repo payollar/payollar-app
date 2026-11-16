@@ -296,6 +296,8 @@ const CLIENT_CAMPAIGN_APPLICATION_SELECT = {
       name: true,
       imageUrl: true,
       specialty: true,
+      experience: true,
+      verificationStatus: true,
     },
   },
 };

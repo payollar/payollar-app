@@ -270,17 +270,25 @@ function SignInForm() {
           Continue with Google
         </Button>
 
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          By signing in, you agree to our{" "}
-          <Link href="/terms" className={authLinkClass}>
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className={authLinkClass}>
-            Privacy Policy
-          </Link>
-          .
-        </p>
+        <div className="space-y-3 border-t border-border/50 pt-5 text-center">
+          <p className="text-sm text-muted-foreground">
+            Media station or platform?{" "}
+            <Link href="/media-agency/sign-in" className={authLinkClass}>
+              Agency portal sign in
+            </Link>
+          </p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            By signing in, you agree to our{" "}
+            <Link href="/terms" className={authLinkClass}>
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className={authLinkClass}>
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </AuthSplitLayout>
   );

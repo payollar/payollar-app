@@ -6,7 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, Building2, Eye, EyeOff, Phone, Globe } from "lucide-react";
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  Globe,
+  Loader2,
+  Lock,
+  Mail,
+  Phone,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import {
@@ -28,41 +38,37 @@ export default function MediaAgencySignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formError, setFormError] = useState("");
 
-  const getPasswordStrength = (pwd) => {
-    if (!pwd) return { strength: 0, label: "", color: "" };
-    let strength = 0;
-    if (pwd.length >= 8) strength++;
-    if (pwd.length >= 12) strength++;
-    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
-    if (/\d/.test(pwd)) strength++;
-    if (/[^a-zA-Z\d]/.test(pwd)) strength++;
-
-    if (strength <= 2) return { strength, label: "Weak", color: "bg-red-500" };
-    if (strength <= 3) return { strength, label: "Fair", color: "bg-amber-500" };
-    if (strength <= 4) return { strength, label: "Good", color: "bg-primary" };
-    return { strength, label: "Strong", color: "bg-primary" };
-  };
-
-  const passwordStrength = getPasswordStrength(password);
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
   const passwordMismatch = confirmPassword && password !== confirmPassword;
 
+  const clearError = () => {
+    if (formError) setFormError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
 
-    if (!agencyName || !contactName || !email || !password || !confirmPassword) {
-      toast.error("Please fill in all required fields");
+    if (!agencyName.trim() || !contactName.trim() || !email.trim() || !password || !confirmPassword) {
+      setFormError("Fill in all required fields.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setFormError("Enter a valid email address.");
       return;
     }
 
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+      setFormError("Password must be at least 8 characters.");
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      setFormError("Passwords do not match.");
       return;
     }
 
@@ -71,26 +77,26 @@ export default function MediaAgencySignUpPage() {
     try {
       await signUp.email(
         {
-          email,
+          email: email.trim(),
           password,
-          name: contactName,
+          name: contactName.trim(),
         },
         {
           onSuccess: async () => {
-            toast.success("Account created! Setting up your media agency profile…");
+            toast.success("Account created — setting up your agency…");
 
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 800));
 
             try {
               const response = await fetch("/api/media-agency/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  agencyName,
-                  contactName,
-                  email,
-                  phone,
-                  website,
+                  agencyName: agencyName.trim(),
+                  contactName: contactName.trim(),
+                  email: email.trim(),
+                  phone: phone.trim(),
+                  website: website.trim(),
                 }),
               });
 
@@ -99,9 +105,7 @@ export default function MediaAgencySignUpPage() {
                 throw new Error(errorData.error || "Failed to create media agency profile");
               }
 
-              toast.success("Media agency profile created successfully!");
-
-              await new Promise((resolve) => setTimeout(resolve, 800));
+              toast.success("Agency ready");
 
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new Event("storage"));
@@ -113,7 +117,7 @@ export default function MediaAgencySignUpPage() {
               console.error("Media agency registration error:", error);
               toast.error(
                 error.message ||
-                  "Account created but failed to register as media agency. Please sign in and try again."
+                  "Account created but agency setup failed. Sign in to finish."
               );
               setTimeout(() => {
                 window.location.href = "/media-agency/sign-in";
@@ -121,15 +125,16 @@ export default function MediaAgencySignUpPage() {
             }
           },
           onError: (ctx) => {
-            let errorMessage = ctx.error?.message || "Failed to create account. Please try again.";
+            let errorMessage = ctx.error?.message || "Failed to create account.";
 
             if (
               errorMessage.toLowerCase().includes("already exists") ||
               errorMessage.toLowerCase().includes("unique constraint")
             ) {
-              errorMessage = "An account with this email already exists. Please sign in instead.";
+              errorMessage = "An account with this email already exists.";
             }
 
+            setFormError(errorMessage);
             toast.error(errorMessage);
             setIsLoading(false);
           },
@@ -137,95 +142,140 @@ export default function MediaAgencySignUpPage() {
       );
     } catch (error) {
       console.error("Sign up error:", error);
-      toast.error("An unexpected error occurred. Please try again.");
+      const message = "Something went wrong. Please try again.";
+      setFormError(message);
+      toast.error(message);
       setIsLoading(false);
     }
   };
 
   return (
-    <AuthSplitLayout>
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground">Register your agency</h2>
-          <p className="text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/media-agency/sign-in" className={authLinkClass}>
-              Sign in
-            </Link>
-          </p>
+    <AuthSplitLayout theme="light" size="lg">
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+            <Building2 className="h-3.5 w-3.5" />
+            Media agency
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Register your agency
+            </h1>
+            <p className="text-sm text-slate-500">
+              Already registered?{" "}
+              <Link href="/media-agency/sign-in" className={authLinkClass}>
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {formError ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
+            >
+              {formError}
+              {formError.toLowerCase().includes("already exists") ? (
+                <>
+                  {" "}
+                  <Link href="/media-agency/sign-in" className={authLinkClass}>
+                    Sign in
+                  </Link>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="agencyName" className={authLabelClass}>
               Agency name <span className="text-destructive">*</span>
             </Label>
             <div className="group relative">
-              <Building2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Building2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
               <Input
                 id="agencyName"
                 type="text"
-                placeholder="Your media agency name"
+                autoComplete="organization"
+                placeholder="Station or platform name"
                 value={agencyName}
-                onChange={(e) => setAgencyName(e.target.value)}
-                className={authInputClass}
+                onChange={(e) => {
+                  setAgencyName(e.target.value);
+                  clearError();
+                }}
+                className={cn(authInputClass, "h-11 bg-white")}
                 required
                 disabled={isLoading}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contactName" className={authLabelClass}>
-              Contact person <span className="text-destructive">*</span>
-            </Label>
-            <div className="group relative">
-              <Building2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-              <Input
-                id="contactName"
-                type="text"
-                placeholder="John Doe"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                className={authInputClass}
-                required
-                disabled={isLoading}
-              />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="contactName" className={authLabelClass}>
+                Contact person <span className="text-destructive">*</span>
+              </Label>
+              <div className="group relative">
+                <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                <Input
+                  id="contactName"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Full name"
+                  value={contactName}
+                  onChange={(e) => {
+                    setContactName(e.target.value);
+                    clearError();
+                  }}
+                  className={cn(authInputClass, "h-11 bg-white")}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className={authLabelClass}>
+                Phone
+              </Label>
+              <div className="group relative">
+                <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+233…"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    clearError();
+                  }}
+                  className={cn(authInputClass, "h-11 bg-white")}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email" className={authLabelClass}>
-              Email <span className="text-destructive">*</span>
+              Work email <span className="text-destructive">*</span>
             </Label>
             <div className="group relative">
-              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
               <Input
                 id="email"
                 type="email"
-                placeholder="agency@example.com"
+                autoComplete="email"
+                placeholder="you@station.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={authInputClass}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearError();
+                }}
+                className={cn(authInputClass, "h-11 bg-white")}
                 required
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone" className={authLabelClass}>
-              Phone
-            </Label>
-            <div className="group relative">
-              <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+233 XX XXX XXXX"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={authInputClass}
                 disabled={isLoading}
               />
             </div>
@@ -233,109 +283,112 @@ export default function MediaAgencySignUpPage() {
 
           <div className="space-y-2">
             <Label htmlFor="website" className={authLabelClass}>
-              Website
+              Website{" "}
+              <span className="font-normal text-slate-400">(optional)</span>
             </Label>
             <div className="group relative">
-              <Globe className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Globe className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
               <Input
                 id="website"
                 type="url"
-                placeholder="https://yourwebsite.com"
+                autoComplete="url"
+                placeholder="https://"
                 value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className={authInputClass}
+                onChange={(e) => {
+                  setWebsite(e.target.value);
+                  clearError();
+                }}
+                className={cn(authInputClass, "h-11 bg-white")}
                 disabled={isLoading}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className={authLabelClass}>
-              Password <span className="text-destructive">*</span>
-            </Label>
-            <div className="group relative">
-              <Lock className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={authInputPasswordClass}
-                required
-                minLength={8}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-primary"
-                disabled={isLoading}
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            {password ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Password strength</span>
-                  <span
-                    className={cn(
-                      "font-medium",
-                      passwordStrength.strength <= 2 && "text-red-500",
-                      passwordStrength.strength === 3 && "text-amber-500",
-                      passwordStrength.strength >= 4 && "text-primary"
-                    )}
-                  >
-                    {passwordStrength.label}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-muted">
-                  <div
-                    className={cn("h-1.5 rounded-full transition-all duration-300", passwordStrength.color)}
-                    style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
-                  />
-                </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="password" className={authLabelClass}>
+                Password <span className="text-destructive">*</span>
+              </Label>
+              <div className="group relative">
+                <Lock className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Min. 8 characters"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    clearError();
+                  }}
+                  className={cn(authInputPasswordClass, "h-11 bg-white")}
+                  required
+                  minLength={8}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-primary"
+                  disabled={isLoading}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className={authLabelClass}>
-              Confirm password <span className="text-destructive">*</span>
-            </Label>
-            <div className="group relative">
-              <Lock className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={cn(
-                  authInputPasswordClass,
-                  passwordMismatch && "border-destructive",
-                  passwordsMatch && "border-primary/50"
-                )}
-                required
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-primary"
-                disabled={isLoading}
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
             </div>
-            {passwordMismatch ? <p className="text-xs text-destructive">Passwords do not match</p> : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className={authLabelClass}>
+                Confirm <span className="text-destructive">*</span>
+              </Label>
+              <div className="group relative">
+                <Lock className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    clearError();
+                  }}
+                  className={cn(
+                    authInputPasswordClass,
+                    "h-11 bg-white",
+                    passwordMismatch && "border-red-400",
+                    passwordsMatch && "border-primary/40"
+                  )}
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-primary"
+                  disabled={isLoading}
+                  aria-label={
+                    showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {passwordMismatch ? (
+                <p className="text-xs text-red-600">Passwords do not match</p>
+              ) : null}
+            </div>
           </div>
 
           <Button
             type="submit"
             variant="marketing"
-            className="mt-2 h-12 w-full rounded-full text-base font-semibold"
+            className="mt-1 h-11 w-full rounded-full text-base font-semibold"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -344,31 +397,34 @@ export default function MediaAgencySignUpPage() {
                 Creating account…
               </>
             ) : (
-              "Register agency"
+              "Create agency account"
             )}
           </Button>
         </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border/60" />
+            <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-card/95 px-4 text-muted-foreground backdrop-blur-sm">Or continue with</span>
+            <span className="bg-white px-4 text-slate-500">Or</span>
           </div>
         </div>
 
         <Button
           type="button"
           variant="marketingOutline"
-          className="h-12 w-full rounded-full text-base font-semibold"
+          className="h-11 w-full rounded-full text-base font-semibold"
           onClick={async () => {
             try {
               setIsLoading(true);
+              setFormError("");
               await signInWithGoogle("/verify-email?source=google&media_agency=true");
             } catch (error) {
               console.error("Google sign-in error:", error);
-              toast.error("Failed to sign in with Google. Please try again.");
+              const message = "Google sign-up failed. Try again.";
+              setFormError(message);
+              toast.error(message);
               setIsLoading(false);
             }
           }}
@@ -395,10 +451,10 @@ export default function MediaAgencySignUpPage() {
           Continue with Google
         </Button>
 
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+        <p className="text-center text-xs leading-relaxed text-slate-500">
           By registering, you agree to our{" "}
           <Link href="/terms" className={authLinkClass}>
-            Terms of Service
+            Terms
           </Link>{" "}
           and{" "}
           <Link href="/privacy" className={authLinkClass}>

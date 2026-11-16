@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn, signInWithGoogle } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Building2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import {
@@ -15,24 +16,85 @@ import {
   authLabelClass,
   authLinkClass,
 } from "@/components/auth/auth-ui";
+import { cn } from "@/lib/utils";
 
-export default function MediaAgencySignInPage() {
+function safeReturnPath(value) {
+  if (!value) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.startsWith("/sign-in") || value.startsWith("/sign-up")) return null;
+  if (value.startsWith("/media-agency/sign-in") || value.startsWith("/media-agency/sign-up")) {
+    return null;
+  }
+  return value;
+}
+
+function MediaAgencySignInForm() {
+  const searchParams = useSearchParams();
+  const returnPath = useMemo(
+    () => safeReturnPath(searchParams.get("redirect_url")),
+    [searchParams]
+  );
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const goToDashboard = (path = "/media-agency") => {
+    const target =
+      returnPath && (returnPath === "/media-agency" || returnPath.startsWith("/media-agency/"))
+        ? returnPath
+        : path;
+    window.location.href = target;
+  };
+
+  const routeByRole = (data) => {
+    if (data?.role === "MEDIA_AGENCY") {
+      toast.success("Welcome back");
+      goToDashboard("/media-agency");
+      return;
+    }
+
+    if (data?.role === "CLIENT") {
+      toast.message("This portal is for media agencies", {
+        description: "Taking you to the main app.",
+      });
+      window.location.href =
+        returnPath && !returnPath.startsWith("/media-agency") ? returnPath : "/";
+      return;
+    }
+
+    if (data?.role === "CREATOR") {
+      toast.message("This portal is for media agencies", {
+        description: "Taking you to the creator dashboard.",
+      });
+      window.location.href =
+        data.verificationStatus === "VERIFIED" ? "/creator" : "/creator/verification";
+      return;
+    }
+
+    if (data?.role === "ADMIN") {
+      window.location.href = "/admin";
+      return;
+    }
+
+    toast.message("Finish setting up your agency");
+    window.location.href = "/media-agency/sign-up";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
 
     if (!email || !password) {
-      toast.error("Please fill in all fields");
+      setFormError("Enter your email and password.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
+    if (!emailRegex.test(email.trim())) {
+      setFormError("Enter a valid email address.");
       return;
     }
 
@@ -40,11 +102,10 @@ export default function MediaAgencySignInPage() {
 
     try {
       await signIn.email(
-        { email, password },
+        { email: email.trim(), password },
         {
           onSuccess: async () => {
-            toast.success("Signed in successfully!");
-            await new Promise((resolve) => setTimeout(resolve, 800));
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
             if (typeof window !== "undefined") {
               window.dispatchEvent(new Event("storage"));
@@ -57,54 +118,39 @@ export default function MediaAgencySignInPage() {
               });
 
               if (response.ok) {
-                const data = await response.json();
-                if (data.role === "MEDIA_AGENCY") {
-                  window.location.href = "/media-agency";
-                  return;
-                }
-                if (data.role) {
-                  if (data.role === "CLIENT") {
-                    window.location.href = "/";
-                  } else if (data.role === "CREATOR") {
-                    if (data.verificationStatus === "VERIFIED") {
-                      window.location.href = "/creator";
-                    } else {
-                      window.location.href = "/creator/verification";
-                    }
-                  } else if (data.role === "ADMIN") {
-                    window.location.href = "/admin";
-                  } else {
-                    window.location.href = "/onboarding";
-                  }
-                } else {
-                  window.location.href = "/media-agency/sign-up";
-                }
-              } else {
-                window.location.href = "/media-agency/sign-up";
+                routeByRole(await response.json());
+                return;
               }
+
+              window.location.href = "/media-agency/sign-up";
             } catch (error) {
               console.error("Error checking user role:", error);
               window.location.href = "/media-agency/sign-up";
             }
           },
           onError: (ctx) => {
-            let errorMessage = ctx.error?.message || "Failed to sign in. Please check your credentials.";
+            let errorMessage =
+              ctx.error?.message || "Failed to sign in. Please check your credentials.";
+            const lower = errorMessage.toLowerCase();
 
             if (
-              errorMessage.toLowerCase().includes("invalid") ||
-              errorMessage.toLowerCase().includes("credential") ||
-              errorMessage.toLowerCase().includes("password") ||
-              errorMessage.toLowerCase().includes("incorrect")
+              lower.includes("invalid") ||
+              lower.includes("credential") ||
+              lower.includes("password") ||
+              lower.includes("incorrect")
             ) {
-              errorMessage = "Invalid email or password. Please check your credentials and try again.";
+              errorMessage = "Invalid email or password.";
             } else if (
-              errorMessage.toLowerCase().includes("not found") ||
-              errorMessage.toLowerCase().includes("user") ||
-              errorMessage.toLowerCase().includes("does not exist")
+              lower.includes("not found") ||
+              lower.includes("does not exist") ||
+              (lower.includes("user") && lower.includes("exist"))
             ) {
-              errorMessage = "No account found with this email. Please sign up first.";
+              errorMessage = "No agency account found. Register first.";
+            } else if (lower.includes("rate limit") || lower.includes("too many")) {
+              errorMessage = "Too many attempts. Try again shortly.";
             }
 
+            setFormError(errorMessage);
             toast.error(errorMessage);
             setIsLoading(false);
           },
@@ -112,38 +158,63 @@ export default function MediaAgencySignInPage() {
       );
     } catch (error) {
       console.error("Sign in error:", error);
-      toast.error("An unexpected error occurred. Please try again.");
+      const message = "Something went wrong. Please try again.";
+      setFormError(message);
+      toast.error(message);
       setIsLoading(false);
     }
   };
 
   return (
-    <AuthSplitLayout>
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground">Sign in</h2>
-          <p className="text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/media-agency/sign-up" className={authLinkClass}>
-              Register your agency
-            </Link>
-          </p>
+    <AuthSplitLayout theme="light" size="md">
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+            <Building2 className="h-3.5 w-3.5" />
+            Media agency
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Sign in
+            </h1>
+            <p className="text-sm text-slate-500">
+              Don&apos;t have an account?{" "}
+              <Link href="/media-agency/sign-up" className={authLinkClass}>
+                Register your agency
+              </Link>
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {formError ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
+            >
+              {formError}
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="email" className={authLabelClass}>
-              Email
+              Work email
             </Label>
             <div className="group relative">
-              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
               <Input
                 id="email"
                 type="email"
-                placeholder="agency@example.com"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="you@station.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={authInputClass}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (formError) setFormError("");
+                }}
+                className={cn(authInputClass, "h-11 bg-white")}
                 required
                 disabled={isLoading}
               />
@@ -155,27 +226,33 @@ export default function MediaAgencySignInPage() {
               <Label htmlFor="password" className={authLabelClass}>
                 Password
               </Label>
-              <Link href="/forgot-password" className={`${authLinkClass} text-sm`}>
+              <Link href="/forgot-password" className={cn(authLinkClass, "text-sm")}>
                 Forgot password?
               </Link>
             </div>
             <div className="group relative">
-              <Lock className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Lock className="absolute left-3 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
               <Input
                 id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={authInputPasswordClass}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (formError) setFormError("");
+                }}
+                className={cn(authInputPasswordClass, "h-11 bg-white")}
                 required
                 disabled={isLoading}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-primary"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-primary"
                 disabled={isLoading}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -185,7 +262,7 @@ export default function MediaAgencySignInPage() {
           <Button
             type="submit"
             variant="marketing"
-            className="h-12 w-full rounded-full text-base font-semibold"
+            className="mt-1 h-11 w-full rounded-full text-base font-semibold"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -201,24 +278,27 @@ export default function MediaAgencySignInPage() {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border/60" />
+            <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-card/95 px-4 text-muted-foreground backdrop-blur-sm">Or continue with</span>
+            <span className="bg-white px-4 text-slate-500">Or</span>
           </div>
         </div>
 
         <Button
           type="button"
           variant="marketingOutline"
-          className="h-12 w-full rounded-full text-base font-semibold"
+          className="h-11 w-full rounded-full text-base font-semibold"
           onClick={async () => {
             try {
               setIsLoading(true);
+              setFormError("");
               await signInWithGoogle("/verify-email?source=google&media_agency=true");
             } catch (error) {
               console.error("Google sign-in error:", error);
-              toast.error("Failed to sign in with Google. Please try again.");
+              const message = "Google sign-in failed. Try again.";
+              setFormError(message);
+              toast.error(message);
               setIsLoading(false);
             }
           }}
@@ -245,18 +325,27 @@ export default function MediaAgencySignInPage() {
           Continue with Google
         </Button>
 
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          By signing in, you agree to our{" "}
-          <Link href="/terms" className={authLinkClass}>
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className={authLinkClass}>
-            Privacy Policy
+        <p className="text-center text-xs text-slate-500">
+          Brand or creator?{" "}
+          <Link href="/sign-in" className={authLinkClass}>
+            Main sign in
           </Link>
-          .
         </p>
       </div>
     </AuthSplitLayout>
+  );
+}
+
+export default function MediaAgencySignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh flex-col items-center justify-center bg-[#f4f6fb] text-slate-900">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <MediaAgencySignInForm />
+    </Suspense>
   );
 }

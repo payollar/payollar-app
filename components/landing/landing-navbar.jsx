@@ -76,12 +76,16 @@ export function LandingNavbar() {
   const isHome = pathname === "/";
   const homeIsLight = isHome && landingTheme === "light";
   const isHelp = pathname?.startsWith("/help");
+  const isMediaAgencyAuth =
+    pathname?.startsWith("/media-agency/sign-in") ||
+    pathname?.startsWith("/media-agency/sign-up");
   const isLightSurface =
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
-    pathname?.startsWith("/media");
-  /** Light pill on home (light theme) + help; dark pill elsewhere / other light product surfaces */
-  const useLightPill = homeIsLight || isHelp;
+    pathname?.startsWith("/media") ||
+    isMediaAgencyAuth;
+  /** Light pill on home (light theme), help, and media agency auth */
+  const useLightPill = homeIsLight || isHelp || isMediaAgencyAuth;
   const useDarkPill = !useLightPill;
   const linkClass = useDarkPill
     ? "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
