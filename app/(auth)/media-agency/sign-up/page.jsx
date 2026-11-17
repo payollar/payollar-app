@@ -119,8 +119,8 @@ export default function MediaAgencySignUpPage() {
                 window.dispatchEvent(new CustomEvent("auth:session-update"));
               }
 
-              toast.success("Agency ready — opening dashboard");
-              window.location.href = "/media-agency";
+              toast.success("Agency ready — verify your email");
+              window.location.href = "/verify-email?media_agency=true";
             } catch (error) {
               console.error("Media agency registration error:", error);
               toast.error(

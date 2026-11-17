@@ -85,9 +85,9 @@ export default function SignUpPage() {
         },
         {
           onSuccess: async () => {
-            toast.success("Account created successfully!");
+            toast.success("Account created — check your email for a code");
             toast.info(
-              "Please check your email to verify your account. A verification link has been sent to your inbox.",
+              "Enter the 6-digit verification code we just sent to finish setup.",
               { duration: 5000 }
             );
             await new Promise((resolve) => setTimeout(resolve, 800));
