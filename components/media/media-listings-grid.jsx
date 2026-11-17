@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BadgeCheck,
   Clock,
-  MapPin,
   MonitorPlay,
   Radio,
   Share2,
@@ -45,7 +44,7 @@ const MEDIA_TYPES = [
     name: "Digital Media",
     shortLabel: "Digital",
     buyLabel: "digital",
-    href: "/products/digital-media",
+    href: "/products?type=DIGITAL",
     image: "/social-media.jpg",
     description:
       "Book digital platform shows and series distributed on social channels.",
@@ -57,12 +56,11 @@ const MEDIA_TYPES = [
     name: "Billboard Media",
     shortLabel: "Outdoor",
     buyLabel: "outdoor",
-    href: null,
+    href: "/products?type=BILLBOARD",
     image: "/billboard.jpg",
     description:
       "High-impact outdoor advertising in prime locations across cities.",
     highlight: "High-impact city placements",
-    comingSoon: true,
     icon: PanelTop,
   },
 ];
@@ -175,85 +173,6 @@ function ChannelCard({ type, listingCount, index }) {
   );
 }
 
-function PartnerListings({ listingsByType }) {
-  const rows = MEDIA_TYPES.flatMap((type) => {
-    if (type.comingSoon) return [];
-    const listings = (listingsByType[type.id] || []).filter(
-      (listing) => !listing.name?.toLowerCase().includes("payollar")
-    );
-    return listings.slice(0, 3).map((listing) => ({ type, listing }));
-  });
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="mt-8 space-y-4">
-      <div>
-        <h3 className="text-base font-semibold tracking-tight text-foreground">
-          Partner listings
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Jump into a station or inventory partner to schedule.
-        </p>
-      </div>
-
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {rows.map(({ type, listing }, index) => {
-          const Icon = type.icon;
-          return (
-            <motion.div
-              key={listing.id}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.2) }}
-            >
-              <Link
-                href={`/media/schedule?type=${type.id}&listing=${listing.id}`}
-                className="group block h-full"
-              >
-                <div className="flex h-full items-start gap-3 rounded-xl border border-border/60 bg-card p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/10">
-                    <Icon className="h-3.5 w-3.5" strokeWidth={1.9} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-                          {type.shortLabel}
-                        </p>
-                        <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
-                          {listing.name}
-                        </p>
-                      </div>
-                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/60 transition-transform group-hover:translate-x-0.5" />
-                    </div>
-                    {listing.agency?.agencyName ? (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {listing.agency.agencyName}
-                      </p>
-                    ) : null}
-                    <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                      {listing.location ? (
-                        <span className="inline-flex items-center gap-0.5">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          {listing.location}
-                        </span>
-                      ) : null}
-                      {listing.reach ? <span>{listing.reach}</span> : null}
-                      {listing.priceRange ? <span>{listing.priceRange}</span> : null}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export function MediaListingsGrid({ listingsByType }) {
   return (
     <div className="mx-auto max-w-6xl">
@@ -272,7 +191,6 @@ export function MediaListingsGrid({ listingsByType }) {
           );
         })}
       </div>
-      <PartnerListings listingsByType={listingsByType} />
     </div>
   );
 }

@@ -13,7 +13,6 @@ import {
   LogOut,
   Package,
   FileCheck,
-  HelpCircle,
   ScrollText,
   Megaphone,
   MessageCircle,
@@ -154,18 +153,18 @@ export function MediaAgencySidebar() {
                 aria-hidden
                 className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl"
               />
-              <p className="relative text-sm font-semibold text-white">Rate cards</p>
+              <p className="relative text-sm font-semibold text-white">Get started</p>
               <p className="relative mt-1 text-xs leading-relaxed text-white/70">
-                Link pricing tables to a listing, then publish for buyers.
+                Short tour of each page — set up, sell, and deliver.
               </p>
               <div className="relative mt-3 inline-flex">
                 <MetalFx variant="button" preset="chromatic" theme="dark" strength={0.9}>
                   <Link
-                    href="/media-agency/smart-rate-card"
+                    href="/media-agency/get-started"
                     onClick={() => setOpenMobile(false)}
                     className="inline-flex h-8 items-center rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition hover:bg-black"
                   >
-                    Open rate cards
+                    Open guide
                   </Link>
                 </MetalFx>
               </div>
@@ -173,18 +172,6 @@ export function MediaAgencySidebar() {
           </BorderBeam>
         </div>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip="Help"
-              className="rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"
-            >
-              <Link href="/help" onClick={() => setOpenMobile(false)}>
-                <HelpCircle className="h-4 w-4" />
-                <span>Help</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               className="w-full rounded-xl !h-10 !bg-transparent !text-white/75 hover:!bg-white/10 hover:!text-white"

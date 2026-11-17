@@ -12,22 +12,5 @@ export default async function MediaPage() {
     return acc;
   }, {});
 
-  const customPackages = activeListings.flatMap((listing) =>
-    (listing.packages || []).map((pkg) => ({
-      ...pkg,
-      listingId: listing.id,
-      listingName: listing.name,
-      listingType: listing.listingType,
-      location: listing.location,
-      agencyName: listing.agency?.agencyName || null,
-      agencyId: listing.agencyId || listing.agency?.id || null,
-    }))
-  );
-
-  return (
-    <MediaPageView
-      listingsByType={listingsByType}
-      customPackages={customPackages}
-    />
-  );
+  return <MediaPageView listingsByType={listingsByType} />;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
@@ -32,13 +32,26 @@ import {
   mediaPlannerCartTotal,
   removeMediaPlannerCartItem,
 } from "@/lib/media-planner-cart";
+import {
+  cacheDigitalPublisher,
+  digitalLogoToneClass,
+  digitalQuoteBuilderHref,
+  liveListingToDigitalPublisher,
+  priceRangeFromPackages,
+} from "@/lib/demo-digital-marketplace";
+import {
+  BILLBOARD_CATEGORIES,
+  billboardSiteHref,
+  billboardStatusClass,
+  withBillboardMarketplaceDemos,
+} from "@/lib/demo-billboard-marketplace";
 
 const CATEGORIES = [
   { id: "ALL", label: "All Media", icon: PanelTop },
   { id: "RADIO", label: "Radio", icon: Radio },
   { id: "TV", label: "Television", icon: Tv },
   { id: "DIGITAL", label: "Digital Media", icon: Globe },
-  { id: "BILLBOARD", label: "Print & Outdoor", icon: PanelTop },
+  { id: "BILLBOARD", label: "Billboard", icon: PanelTop },
   { id: "INFLUENCER_MARKETING", label: "Music & Entertainment", icon: Music2 },
 ];
 
@@ -57,13 +70,13 @@ const TYPE_META = {
   },
   BILLBOARD: {
     label: "Outdoor",
-    href: null,
+    href: "/products?type=BILLBOARD",
     image: "/billboard.jpg",
-    available: false,
+    available: true,
   },
   DIGITAL: {
     label: "Digital",
-    href: "/products/digital-media",
+    href: "/products?type=DIGITAL",
     image: "/social-media.jpg",
     available: true,
   },
@@ -139,6 +152,12 @@ function listingHref(listing) {
     const query = qs.toString();
     return query ? `${meta.href}?${query}` : meta.href;
   }
+  if (listing.listingType === "DIGITAL") {
+    return "/products?type=DIGITAL";
+  }
+  if (listing.listingType === "BILLBOARD") {
+    return billboardSiteHref(listing);
+  }
   return `/media/schedule?type=${listing.listingType}&listing=${listing.id}`;
 }
 
@@ -165,6 +184,11 @@ function ListingCard({ listing, favorited, onToggleFavorite }) {
         <span className="absolute left-2.5 top-2.5 rounded-full bg-slate-950/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
           {meta.label}
         </span>
+        {listing.isDemo ? (
+          <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm">
+            Demo
+          </span>
+        ) : null}
         <button
           type="button"
           onClick={() => onToggleFavorite(listing.id)}
@@ -282,6 +306,243 @@ function ListingCard({ listing, favorited, onToggleFavorite }) {
   );
 }
 
+/** Marketplace row for digital publishers / rate cards (Joy Online–style). */
+function DigitalMarketplaceCard({ listing, expanded, onToggleExpand }) {
+  const tags =
+    Array.isArray(listing.tags) && listing.tags.length > 0
+      ? listing.tags
+      : [listing.frequency, listing.location].filter(Boolean);
+  const logoLabel =
+    listing.logoText ||
+    String(listing.name || "?")
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+  const packages = listing.packages || [];
+  const quoteHref = digitalQuoteBuilderHref(listing);
+  const displayPrice =
+    listing.priceRange || priceRangeFromPackages(packages) || null;
+  const canQuote = listing.isDemo || packages.length > 0;
+
+  const rememberPublisher = () => {
+    if (listing.isDemo) {
+      cacheDigitalPublisher(listing);
+      return;
+    }
+    const publisher = liveListingToDigitalPublisher(listing);
+    if (publisher) cacheDigitalPublisher(publisher);
+  };
+
+  return (
+    <article
+      id={`digital-listing-${listing.id}`}
+      className="scroll-mt-28 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-shadow hover:shadow-md"
+    >
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex min-w-0 items-start gap-3.5">
+          {listing.imageUrl ? (
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={listing.imageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-sm font-bold tracking-tight shadow-sm",
+                digitalLogoToneClass(listing.logoTone)
+              )}
+            >
+              {logoLabel}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="truncate text-base font-semibold tracking-tight text-slate-950 sm:text-lg">
+                {listing.name}
+              </h3>
+              {listing.agency?.verificationStatus === "VERIFIED" ? (
+                <BadgeCheck className="h-4 w-4 shrink-0 text-sky-500" />
+              ) : null}
+              {listing.isDemo ? (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Demo
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm text-slate-500">{tags.join(" · ")}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+              {listing.reach ? (
+                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+                  <Users className="h-3 w-3 text-slate-400" />
+                  {listing.reach}
+                </span>
+              ) : null}
+              {displayPrice ? (
+                <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-semibold tabular-nums text-slate-900">
+                  From {displayPrice}
+                </span>
+              ) : null}
+              {packages.length > 0 ? (
+                <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+                  {packages.length} rate packages
+                </span>
+              ) : !listing.isDemo ? (
+                <span className="rounded-lg border border-amber-100 bg-amber-50 px-2 py-1 font-medium text-amber-800">
+                  No packages yet
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 rounded-full border-[#0055ff]/30 px-4 text-sm font-semibold text-[#0055ff] hover:bg-[#0055ff]/5"
+            onClick={() => onToggleExpand?.(listing.id)}
+            disabled={!listing.isDemo && packages.length === 0}
+          >
+            {expanded ? "Hide rate card" : "View Rate Card"}
+          </Button>
+          {canQuote ? (
+            <Button
+              asChild
+              className="h-10 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              <Link href={quoteHref} onClick={rememberPublisher}>
+                Get Quote
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              disabled
+              className="h-10 rounded-full bg-slate-200 px-4 text-sm font-semibold text-slate-500"
+            >
+              Add packages to quote
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {expanded && packages.length > 0 ? (
+        <div className="border-t border-slate-100 bg-[#f7f8fc] px-4 py-4 sm:px-5">
+          {listing.description ? (
+            <p className="mb-3 text-sm text-slate-600">{listing.description}</p>
+          ) : null}
+          <div className="grid gap-3 md:grid-cols-3">
+            {packages.map((pkg) => (
+              <div
+                key={pkg.id || pkg.name}
+                className="rounded-xl border border-slate-200 bg-white p-4"
+              >
+                <p className="text-sm font-semibold text-slate-950">{pkg.name}</p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-slate-950">
+                  {money(pkg.price)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {[pkg.duration, pkg.spots ? `${pkg.spots} spot(s)` : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                <Button asChild size="sm" className="mt-3 w-full rounded-full bg-[#0055ff] hover:bg-[#0044cc]">
+                  <Link
+                    href={digitalQuoteBuilderHref(listing, { adTypeId: pkg.id })}
+                    onClick={rememberPublisher}
+                  >
+                    Request quote
+                  </Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+/** Site card for outdoor / billboard marketplace (Discover step). */
+function BillboardMarketplaceCard({ listing }) {
+  const href = billboardSiteHref(listing);
+  const status = listing.status || "AVAILABLE";
+  const statusLabel = listing.statusLabel || (status === "LIMITED" ? "Limited" : "Available");
+
+  return (
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <Link href={href} className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={listingImage(listing)}
+          alt={listing.name}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
+        <span
+          className={cn(
+            "absolute right-2.5 top-2.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+            billboardStatusClass(status)
+          )}
+        >
+          {statusLabel}
+        </span>
+        {listing.isDemo ? (
+          <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm">
+            Demo
+          </span>
+        ) : null}
+      </Link>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Link href={href} className="block truncate text-base font-semibold tracking-tight text-slate-950 hover:text-[#0055ff]">
+              {listing.name}
+            </Link>
+            <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="truncate">{listing.location || listing.city}</span>
+            </p>
+          </div>
+          {listing.agency?.verificationStatus === "VERIFIED" ? (
+            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
+          ) : null}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+          {listing.size ? (
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+              {listing.size}
+            </span>
+          ) : null}
+          {listing.boardType || listing.frequency ? (
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+              {listing.boardType || listing.frequency}
+            </span>
+          ) : null}
+          {listing.priceRange ? (
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-semibold tabular-nums text-slate-900">
+              From {listing.priceRange}
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button asChild variant="outline" className="h-9 flex-1 rounded-full border-slate-200 text-xs font-semibold">
+            <Link href={href}>View site</Link>
+          </Button>
+          <Button asChild className="h-9 flex-1 rounded-full bg-slate-950 text-xs font-semibold text-white hover:bg-slate-800">
+            <Link href={href}>Get Quote</Link>
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 const VALID_CATEGORIES = new Set(CATEGORIES.map((c) => c.id));
 
 export function ProductsMediaBuying({ listings = [] }) {
@@ -303,12 +564,66 @@ export function ProductsMediaBuying({ listings = [] }) {
   const [sortBy, setSortBy] = useState("popular");
   const [favorites, setFavorites] = useState([]);
   const [cartItems, setCartItems] = useState([]);
+  const [expandedDigitalId, setExpandedDigitalId] = useState(null);
+  const [oohCategory, setOohCategory] = useState("ALL");
+  const router = useRouter();
+
+  // Billboard keeps workflow demos; Digital uses live agency listings only
+  const catalog = useMemo(
+    () => withBillboardMarketplaceDemos(listings),
+    [listings]
+  );
+  const isDigitalMarketplace =
+    category === "DIGITAL" ||
+    (selectedTypes.length === 1 && selectedTypes[0] === "DIGITAL");
+  const isBillboardMarketplace =
+    category === "BILLBOARD" ||
+    (selectedTypes.length === 1 && selectedTypes[0] === "BILLBOARD");
 
   useEffect(() => {
     if (VALID_CATEGORIES.has(typeFromQuery)) {
       setCategory(typeFromQuery);
     }
   }, [typeFromQuery]);
+
+  useEffect(() => {
+    if (!isBillboardMarketplace) setOohCategory("ALL");
+  }, [isBillboardMarketplace]);
+
+  // Deep-link: /products?type=DIGITAL&demo=joy-online&quote=1 → quote builder
+  useEffect(() => {
+    if (typeFromQuery !== "DIGITAL") return;
+    const demoParam = String(searchParams.get("demo") || "").trim().toLowerCase();
+    const listingParam = String(searchParams.get("listing") || "").trim();
+    const wantsQuote = searchParams.get("quote") === "1";
+    if (!demoParam && !listingParam) return;
+
+    const match = catalog.find((item) => {
+      if (listingParam && item.id === listingParam) return true;
+      if (!demoParam) return false;
+      return (
+        item.id === `demo-${demoParam}` ||
+        String(item.id).replace(/^demo-/, "") === demoParam ||
+        String(item.name || "")
+          .toLowerCase()
+          .includes(demoParam)
+      );
+    });
+    if (!match) return;
+
+    if (wantsQuote) {
+      router.replace(digitalQuoteBuilderHref(match));
+      return;
+    }
+
+    setExpandedDigitalId(match.id);
+    requestAnimationFrame(() => {
+      document.getElementById(`digital-listing-${match.id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [typeFromQuery, searchParams, catalog, router]);
 
   useEffect(() => {
     const refresh = () => setCartItems(loadMediaPlannerCart());
@@ -322,24 +637,24 @@ export function ProductsMediaBuying({ listings = [] }) {
   }, []);
 
   const counts = useMemo(() => {
-    const map = { ALL: listings.length };
+    const map = { ALL: catalog.length };
     for (const cat of CATEGORIES) {
       if (cat.id === "ALL") continue;
-      map[cat.id] = listings.filter((l) => l.listingType === cat.id).length;
+      map[cat.id] = catalog.filter((l) => l.listingType === cat.id).length;
     }
     return map;
-  }, [listings]);
+  }, [catalog]);
 
   const locations = useMemo(() => {
     const set = new Set();
-    for (const l of listings) {
+    for (const l of catalog) {
       if (l.location) set.add(l.location);
     }
     return [...set].sort();
-  }, [listings]);
+  }, [catalog]);
 
   const filtered = useMemo(() => {
-    let rows = [...listings];
+    let rows = [...catalog];
     const reachOption = REACH_OPTIONS.find((o) => o.id === reach);
 
     if (category !== "ALL") {
@@ -347,6 +662,16 @@ export function ProductsMediaBuying({ listings = [] }) {
     }
     if (selectedTypes.length > 0) {
       rows = rows.filter((l) => selectedTypes.includes(l.listingType));
+    }
+    if (
+      (category === "BILLBOARD" || selectedTypes.includes("BILLBOARD")) &&
+      oohCategory !== "ALL"
+    ) {
+      rows = rows.filter(
+        (l) =>
+          l.listingType !== "BILLBOARD" ||
+          String(l.category || "STATIC").toUpperCase() === oohCategory
+      );
     }
     if (location !== "all") {
       rows = rows.filter((l) => l.location === location);
@@ -402,9 +727,10 @@ export function ProductsMediaBuying({ listings = [] }) {
 
     return rows;
   }, [
-    listings,
+    catalog,
     category,
     selectedTypes,
+    oohCategory,
     location,
     priceMin,
     priceMax,
@@ -729,29 +1055,137 @@ export function ProductsMediaBuying({ listings = [] }) {
           <div className="min-w-0 space-y-5">
             {/* Channel shortcuts (TV / Radio / Outdoor) hidden for now */}
 
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-slate-500">
-                <span className="font-semibold tabular-nums text-slate-900">
-                  {filtered.length}
-                </span>{" "}
-                listing{filtered.length === 1 ? "" : "s"}
-              </p>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                {isDigitalMarketplace ? (
+                  <>
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Digital media rate cards
+                    </h2>
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      Buy inventory from verified digital publishers and show platforms.
+                    </p>
+                  </>
+                ) : isBillboardMarketplace ? (
+                  <>
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Billboard marketplace
+                    </h2>
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      Discover outdoor sites, view rate cards, and request a quote.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    <span className="font-semibold tabular-nums text-slate-900">
+                      {filtered.length}
+                    </span>{" "}
+                    listing{filtered.length === 1 ? "" : "s"}
+                  </p>
+                )}
+              </div>
+              {isDigitalMarketplace || isBillboardMarketplace ? (
+                <p className="text-sm text-slate-500">
+                  <span className="font-semibold tabular-nums text-slate-900">
+                    {filtered.length}
+                  </span>{" "}
+                  {isBillboardMarketplace
+                    ? `site${filtered.length === 1 ? "" : "s"}`
+                    : `publisher${filtered.length === 1 ? "" : "s"}`}
+                </p>
+              ) : null}
             </div>
+
+            {isBillboardMarketplace ? (
+              <div className="flex flex-wrap gap-2">
+                {BILLBOARD_CATEGORIES.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setOohCategory(tab.id)}
+                    className={cn(
+                      "rounded-full px-3.5 py-1.5 text-xs font-semibold transition",
+                      oohCategory === tab.id
+                        ? "bg-slate-950 text-white"
+                        : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
                 <p className="text-base font-semibold text-slate-900">No listings match</p>
                 <p className="mt-2 text-sm text-slate-500">
-                  Try another filter, or start a TV or radio campaign directly.
+                  {isDigitalMarketplace
+                    ? "No live digital publishers yet. Media agencies publish listings from Custom packages."
+                    : isBillboardMarketplace
+                      ? "Try clearing search or OOH filters to see billboard sites."
+                      : "Try another filter, or start a TV or radio campaign directly."}
                 </p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  <Button asChild className="h-10 rounded-full bg-slate-950 px-4 hover:bg-slate-800">
-                    <Link href="/products/tv-media">TV planner</Link>
-                  </Button>
-                  <Button asChild variant="outline" className="h-10 rounded-full border-slate-200 px-4">
-                    <Link href="/products/radio-media">Radio planner</Link>
-                  </Button>
+                  {isDigitalMarketplace || isBillboardMarketplace ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTypes([]);
+                        setLocation("all");
+                        setPriceMin(0);
+                        setPriceMax(PRICE_MAX);
+                        setReach("any");
+                        setAvailableFrom("");
+                        setSortBy("popular");
+                        setQuery("");
+                        setOohCategory("ALL");
+                        setCategory(isBillboardMarketplace ? "BILLBOARD" : "DIGITAL");
+                      }}
+                      className="h-10 rounded-full bg-slate-950 px-4 hover:bg-slate-800"
+                    >
+                      Clear filters
+                    </Button>
+                  ) : (
+                    <>
+                      <Button asChild className="h-10 rounded-full bg-slate-950 px-4 hover:bg-slate-800">
+                        <Link href="/products/tv-media">TV planner</Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="h-10 rounded-full border-slate-200 px-4"
+                      >
+                        <Link href="/products/radio-media">Radio planner</Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
+              </div>
+            ) : isDigitalMarketplace ? (
+              <div className="space-y-3">
+                {filtered.map((listing) => (
+                  <DigitalMarketplaceCard
+                    key={listing.id}
+                    listing={listing}
+                    expanded={expandedDigitalId === listing.id}
+                    onToggleExpand={(id) =>
+                      setExpandedDigitalId((prev) => (prev === id ? null : id))
+                    }
+                  />
+                ))}
+              </div>
+            ) : isBillboardMarketplace ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {filtered.map((listing) => (
+                    <BillboardMarketplaceCard key={listing.id} listing={listing} />
+                  ))}
+                </div>
+                <p className="px-1 pt-1 text-center text-xs text-slate-400">
+                  Demo sites help you explore outdoor booking. Live media-owner inventory appears
+                  here when published.
+                </p>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -877,6 +1311,7 @@ export function ProductsMediaBuying({ listings = [] }) {
           </aside>
         </div>
       </div>
+
     </div>
   );
 }

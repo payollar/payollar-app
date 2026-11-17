@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getActiveMediaListings } from "@/actions/media-agency";
 import { ProductsMediaBuying } from "@/components/products/products-media-buying";
+import { priceRangeFromPackages } from "@/lib/demo-digital-marketplace";
 
 export const metadata = {
   title: "Browse media services - Payollar",
@@ -9,6 +10,18 @@ export const metadata = {
 };
 
 function serializeListing(listing) {
+  const packages = (listing.packages || []).map((pkg) => ({
+    id: pkg.id,
+    name: pkg.name,
+    price: pkg.price,
+    duration: pkg.duration,
+    spots: pkg.spots,
+  }));
+  const priceRange =
+    (listing.priceRange && String(listing.priceRange).trim()) ||
+    priceRangeFromPackages(packages) ||
+    null;
+
   return {
     id: listing.id,
     listingType: listing.listingType,
@@ -20,7 +33,7 @@ function serializeListing(listing) {
     reach: listing.reach,
     demographics: listing.demographics || [],
     imageUrl: listing.imageUrl,
-    priceRange: listing.priceRange,
+    priceRange,
     rateCardId: listing.rateCardId || null,
     rating: listing.rating,
     agency: listing.agency
@@ -30,13 +43,7 @@ function serializeListing(listing) {
           verificationStatus: listing.agency.verificationStatus,
         }
       : null,
-    packages: (listing.packages || []).map((pkg) => ({
-      id: pkg.id,
-      name: pkg.name,
-      price: pkg.price,
-      duration: pkg.duration,
-      spots: pkg.spots,
-    })),
+    packages,
   };
 }
 

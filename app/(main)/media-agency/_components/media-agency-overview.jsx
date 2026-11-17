@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   BarChart3,
   Building2,
+  Compass,
   FileText,
   Inbox,
   Megaphone,
@@ -198,6 +199,13 @@ export function MediaAgencyOverview({
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Link
+            href="/media-agency/get-started"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <Compass className="h-4 w-4" />
+            Get started
+          </Link>
+          <Link
             href="/media-agency/requests"
             className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
@@ -254,6 +262,13 @@ export function MediaAgencyOverview({
         <section className="flex h-full flex-col rounded-[24px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
           <p className="text-sm text-slate-500">Quick actions</p>
           <div className="mt-3 grid flex-1 grid-cols-1 gap-2">
+            <Link
+              href="/media-agency/get-started"
+              className="flex items-center gap-3 rounded-2xl bg-[#eef2ff] px-3 py-2.5 text-sm font-medium text-[#0055ff] transition hover:bg-[#e4ebff]"
+            >
+              <Compass className="h-4 w-4 shrink-0" />
+              Get started guide
+            </Link>
             <Link
               href="/media-agency/rate-card"
               className="flex items-center gap-3 rounded-2xl bg-[#f7f8fc] px-3 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"

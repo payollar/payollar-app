@@ -43,13 +43,15 @@ export async function PATCH(request, { params }) {
       frequency,
       network,
       imageUrl,
+      priceRange,
+      timeSlots,
       status,
       listingType,
     } = body;
 
     if (name !== undefined && !String(name).trim()) {
       return NextResponse.json(
-        { error: "Station name is required" },
+        { error: "Listing name is required" },
         { status: 400 }
       );
     }
@@ -75,11 +77,16 @@ export async function PATCH(request, { params }) {
         ...(network !== undefined && {
           network: network ? String(network).trim() : null,
         }),
+        ...(priceRange !== undefined && {
+          priceRange: priceRange ? String(priceRange).trim() : null,
+        }),
         ...(imageUrl !== undefined && { imageUrl: imageUrl || null }),
         ...(status !== undefined && { status }),
         ...(listingType !== undefined && { listingType }),
         ...(demographics !== undefined &&
           Array.isArray(demographics) && { demographics }),
+        ...(timeSlots !== undefined &&
+          Array.isArray(timeSlots) && { timeSlots }),
       },
     });
 
@@ -107,6 +114,45 @@ export async function PATCH(request, { params }) {
     console.error("Error updating media listing:", error);
     return NextResponse.json(
       { error: "Failed to update listing", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/media-agency/listings/[listingId]
+ * Remove a listing owned by the current media agency.
+ */
+export async function DELETE(_request, { params }) {
+  try {
+    const { listingId } = await params;
+    const user = await checkUser();
+    if (!user || user.role !== "MEDIA_AGENCY") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const owned = await getOwnedListing(listingId, user.id);
+    if (owned.error) {
+      return NextResponse.json({ error: owned.error }, { status: owned.status });
+    }
+
+    await db.rateCard.updateMany({
+      where: {
+        listingId,
+        agencyId: owned.mediaAgency.id,
+      },
+      data: { listingId: null },
+    });
+
+    await db.mediaListing.delete({
+      where: { id: listingId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting media listing:", error);
+    return NextResponse.json(
+      { error: "Failed to delete listing", details: error.message },
       { status: 500 }
     );
   }

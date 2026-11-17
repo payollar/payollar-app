@@ -11,15 +11,22 @@ import { Loader2, Plus, Trash2, Package } from "lucide-react";
 const fieldClass =
   "h-10 rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
 
+function defaultDurationForType(listingType) {
+  if (listingType === "DIGITAL") return "1 week";
+  if (listingType === "BILLBOARD") return "4 weeks";
+  return "30 seconds";
+}
+
 export function ListingPackagesSection({ listing }) {
   const router = useRouter();
   const packages = listing.packages || [];
+  const isDigital = listing.listingType === "DIGITAL";
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     price: "",
-    duration: "30 seconds",
+    duration: defaultDurationForType(listing.listingType),
     spots: "",
     estimatedViewers: "",
   });
@@ -28,7 +35,7 @@ export function ListingPackagesSection({ listing }) {
     setForm({
       name: "",
       price: "",
-      duration: "30 seconds",
+      duration: defaultDurationForType(listing.listingType),
       spots: "",
       estimatedViewers: "",
     });
@@ -92,7 +99,9 @@ export function ListingPackagesSection({ listing }) {
             </span>
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
-            Ready-made buys clients can pick on your media page
+            {isDigital
+              ? "These packages show on the Digital marketplace and power Get Quote"
+              : "Ready-made buys clients can pick on your media page"}
           </p>
         </div>
         {!isAdding ? (
@@ -141,7 +150,9 @@ export function ListingPackagesSection({ listing }) {
         </ul>
       ) : !isAdding ? (
         <p className="mt-3 rounded-xl bg-[#f8fafc] px-3 py-4 text-center text-xs text-slate-400">
-          No packages yet — add one for quick client checkout.
+          {isDigital
+            ? "No packages yet — add homepage, article, or newsletter offers for the Digital marketplace."
+            : "No packages yet — add one for quick client checkout."}
         </p>
       ) : null}
 
@@ -159,7 +170,9 @@ export function ListingPackagesSection({ listing }) {
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Morning Show Package"
+                placeholder={
+                  isDigital ? "Homepage takeover" : "Morning Show Package"
+                }
                 required
                 className={fieldClass}
               />
@@ -172,7 +185,7 @@ export function ListingPackagesSection({ listing }) {
                 step="0.01"
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                placeholder="3500"
+                placeholder={isDigital ? "8500" : "3500"}
                 required
                 className={fieldClass}
               />
@@ -182,29 +195,35 @@ export function ListingPackagesSection({ listing }) {
               <Input
                 value={form.duration}
                 onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
-                placeholder="30 seconds"
+                placeholder={isDigital ? "1 week" : "30 seconds"}
                 className={fieldClass}
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600">Spots</Label>
+              <Label className="text-xs text-slate-600">
+                {isDigital ? "Units / placements" : "Spots"}
+              </Label>
               <Input
                 type="number"
                 min="0"
                 value={form.spots}
                 onChange={(e) => setForm((f) => ({ ...f, spots: e.target.value }))}
-                placeholder="5"
+                placeholder={isDigital ? "1" : "5"}
                 className={fieldClass}
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs text-slate-600">Estimated viewers</Label>
+              <Label className="text-xs text-slate-600">
+                {isDigital ? "Estimated reach / impressions" : "Estimated viewers"}
+              </Label>
               <Input
                 value={form.estimatedViewers}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, estimatedViewers: e.target.value }))
                 }
-                placeholder="e.g. 2.5M+ viewers"
+                placeholder={
+                  isDigital ? "e.g. 100K weekly views" : "e.g. 2.5M+ viewers"
+                }
                 className={fieldClass}
               />
             </div>

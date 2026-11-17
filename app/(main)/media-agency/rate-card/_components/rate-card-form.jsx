@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +16,144 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ListingCoverUpload } from "./listing-cover-upload";
 
 const fieldClass =
   "h-11 rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+
+const TYPE_COPY = {
+  TV: {
+    nameLabel: "Station name",
+    namePlaceholder: "e.g. TV3, Joy Prime",
+    networkLabel: "Network / group",
+    networkPlaceholder: "e.g. Media General",
+    locationPlaceholder: "e.g. Accra, Greater Accra",
+    channelLabel: "Channel",
+    channelPlaceholder: "e.g. Channel 3, DStv 154",
+    showChannel: true,
+    reachLabel: "Estimated reach",
+    reachPlaceholder: "e.g. 2M+ viewers",
+    pricePlaceholder: "e.g. ₵500–5,000",
+    descriptionPlaceholder:
+      "Describe the station, audience, and typical campaign fit…",
+    slotsLabel: "Dayparts / time slots",
+    slotsPlaceholder: "e.g. Prime Time, Morning Show",
+    showSlots: true,
+    demographicsPlaceholder: "e.g. Adults 25–54",
+  },
+  RADIO: {
+    nameLabel: "Station name",
+    namePlaceholder: "e.g. Joy FM, Citi FM",
+    networkLabel: "Network / group",
+    networkPlaceholder: "e.g. Multimedia Group",
+    locationPlaceholder: "e.g. Accra, Greater Accra",
+    channelLabel: "Frequency",
+    channelPlaceholder: "e.g. 99.7 FM",
+    showChannel: true,
+    reachLabel: "Estimated reach",
+    reachPlaceholder: "e.g. 2M+ listeners",
+    pricePlaceholder: "e.g. ₵250–1,500",
+    descriptionPlaceholder:
+      "Describe the station, shows, and typical campaign fit…",
+    slotsLabel: "Dayparts / time slots",
+    slotsPlaceholder: "e.g. Morning Drive, Midday",
+    showSlots: true,
+    demographicsPlaceholder: "e.g. Adults 25–54",
+  },
+  DIGITAL: {
+    nameLabel: "Publisher / platform",
+    namePlaceholder: "e.g. Joy Online, Citi Digital",
+    networkLabel: "Network / brand",
+    networkPlaceholder: "e.g. Multimedia Group",
+    locationPlaceholder: "e.g. Ghana, Accra",
+    channelLabel: "Category / vertical",
+    channelPlaceholder: "e.g. News · Digital, Business",
+    showChannel: true,
+    reachLabel: "Estimated reach / impressions",
+    reachPlaceholder: "e.g. 2.5M monthly",
+    pricePlaceholder: "e.g. ₵2,500+",
+    descriptionPlaceholder:
+      "Describe digital inventory — homepage, articles, newsletter, social…",
+    slotsLabel: "Ad placements",
+    slotsPlaceholder: "e.g. Homepage takeover, ROS banner",
+    showSlots: true,
+    demographicsPlaceholder: "e.g. News readers, Professionals 18–45",
+  },
+  BILLBOARD: {
+    nameLabel: "Site name",
+    namePlaceholder: "e.g. Airport Roundabout, Spintex Road",
+    networkLabel: "Media owner / brand",
+    networkPlaceholder: "e.g. Skyline Outdoor GH",
+    locationPlaceholder: "e.g. Airport Roundabout, Accra",
+    channelLabel: "Board type / size",
+    channelPlaceholder: "e.g. Static 12m × 6m, Digital LED",
+    showChannel: true,
+    reachLabel: "Daily traffic / reach",
+    reachPlaceholder: "e.g. 145K vehicles / day",
+    pricePlaceholder: "e.g. ₵6,000+",
+    descriptionPlaceholder:
+      "Describe the site, orientation, lighting, and traffic context…",
+    slotsLabel: "Facing / positions",
+    slotsPlaceholder: "e.g. Dual-facing, Northbound",
+    showSlots: true,
+    demographicsPlaceholder: "e.g. Commuters, Airport traffic",
+  },
+  INFLUENCER_MARKETING: {
+    nameLabel: "Talent / show name",
+    namePlaceholder: "e.g. Brand show series",
+    networkLabel: "Network / brand",
+    networkPlaceholder: "e.g. Payollar Entertainment",
+    locationPlaceholder: "e.g. Accra, Ghana",
+    channelLabel: "Platform",
+    channelPlaceholder: "e.g. Instagram, YouTube, TikTok",
+    showChannel: true,
+    reachLabel: "Estimated followers / reach",
+    reachPlaceholder: "e.g. 500K followers",
+    pricePlaceholder: "e.g. ₵3,000+",
+    descriptionPlaceholder: "Describe the talent, content style, and audience…",
+    slotsLabel: "Deliverables",
+    slotsPlaceholder: "e.g. Reel, Story set, Live",
+    showSlots: true,
+    demographicsPlaceholder: "e.g. Gen Z, Lifestyle",
+  },
+  VIDEO_CLIPPING: {
+    nameLabel: "Clipping product",
+    namePlaceholder: "e.g. Match highlights package",
+    networkLabel: "Network / brand",
+    networkPlaceholder: "e.g. Sports desk",
+    locationPlaceholder: "e.g. Accra, Ghana",
+    channelLabel: "Format",
+    channelPlaceholder: "e.g. Vertical short, Horizontal cutdown",
+    showChannel: true,
+    reachLabel: "Estimated views",
+    reachPlaceholder: "e.g. 100K views / clip",
+    pricePlaceholder: "e.g. ₵1,500+",
+    descriptionPlaceholder: "Describe clipping turnaround, sports, or content types…",
+    slotsLabel: "Clip types",
+    slotsPlaceholder: "e.g. Highlight, Teaser, Recap",
+    showSlots: true,
+    demographicsPlaceholder: "e.g. Sports fans 18–35",
+  },
+};
+
+const DEFAULT_COPY = {
+  nameLabel: "Listing name",
+  namePlaceholder: "e.g. Station, publisher, or site name",
+  networkLabel: "Network / group",
+  networkPlaceholder: "e.g. Media group or brand",
+  locationPlaceholder: "e.g. Accra, Greater Accra",
+  channelLabel: "Channel / category",
+  channelPlaceholder: "e.g. Frequency, channel, or category",
+  showChannel: true,
+  reachLabel: "Estimated reach",
+  reachPlaceholder: "e.g. 2M+ audience",
+  pricePlaceholder: "e.g. ₵250–1,500",
+  descriptionPlaceholder: "Describe this media listing…",
+  slotsLabel: "Time slots / placements",
+  slotsPlaceholder: "e.g. Morning Drive",
+  showSlots: true,
+  demographicsPlaceholder: "e.g. Adults 25–54",
+};
 
 function ChipField({
   label,
@@ -92,7 +227,20 @@ export function RateCardForm({ mediaAgencyId }) {
   const [currentTimeSlot, setCurrentTimeSlot] = useState("");
   const [demographics, setDemographics] = useState([]);
   const [currentDemographic, setCurrentDemographic] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const copy = useMemo(
+    () => TYPE_COPY[listingType] || DEFAULT_COPY,
+    [listingType]
+  );
+
+  const handleTypeChange = (nextType) => {
+    setListingType(nextType);
+    // Clear type-specific chips when switching so TV dayparts don't stick on Digital
+    setTimeSlots([]);
+    setCurrentTimeSlot("");
+  };
 
   const addTimeSlot = () => {
     if (currentTimeSlot.trim() && !timeSlots.includes(currentTimeSlot.trim())) {
@@ -131,12 +279,13 @@ export function RateCardForm({ mediaAgencyId }) {
           name,
           network,
           location,
-          frequency,
+          frequency: copy.showChannel ? frequency : "",
           description,
           reach,
           priceRange,
-          timeSlots,
+          timeSlots: copy.showSlots ? timeSlots : [],
           demographics,
+          imageUrl: imageUrl || null,
           status: "ACTIVE",
         }),
       });
@@ -156,6 +305,7 @@ export function RateCardForm({ mediaAgencyId }) {
       setPriceRange("");
       setTimeSlots([]);
       setDemographics([]);
+      setImageUrl("");
       window.location.reload();
     } catch (error) {
       console.error("Error creating listing:", error);
@@ -167,12 +317,14 @@ export function RateCardForm({ mediaAgencyId }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <ListingCoverUpload value={imageUrl} onChange={setImageUrl} />
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="listingType" className="text-sm font-medium text-slate-700">
             Media type <span className="text-[#0055ff]">*</span>
           </Label>
-          <Select value={listingType} onValueChange={setListingType} required>
+          <Select value={listingType} onValueChange={handleTypeChange} required>
             <SelectTrigger className={fieldClass}>
               <SelectValue placeholder="Select media type" />
             </SelectTrigger>
@@ -191,13 +343,13 @@ export function RateCardForm({ mediaAgencyId }) {
 
         <div className="space-y-2">
           <Label htmlFor="name" className="text-sm font-medium text-slate-700">
-            Listing name <span className="text-[#0055ff]">*</span>
+            {copy.nameLabel} <span className="text-[#0055ff]">*</span>
           </Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Joy FM, TV3"
+            placeholder={copy.namePlaceholder}
             required
             className={fieldClass}
           />
@@ -205,13 +357,13 @@ export function RateCardForm({ mediaAgencyId }) {
 
         <div className="space-y-2">
           <Label htmlFor="network" className="text-sm font-medium text-slate-700">
-            Network / group
+            {copy.networkLabel}
           </Label>
           <Input
             id="network"
             value={network}
             onChange={(e) => setNetwork(e.target.value)}
-            placeholder="e.g. Multimedia Group"
+            placeholder={copy.networkPlaceholder}
             className={fieldClass}
           />
         </div>
@@ -224,34 +376,36 @@ export function RateCardForm({ mediaAgencyId }) {
             id="location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. Accra, Greater Accra"
+            placeholder={copy.locationPlaceholder}
             required
             className={fieldClass}
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="frequency" className="text-sm font-medium text-slate-700">
-            Frequency / channel
-          </Label>
-          <Input
-            id="frequency"
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value)}
-            placeholder="e.g. 99.7 FM, Channel 3"
-            className={fieldClass}
-          />
-        </div>
+        {copy.showChannel ? (
+          <div className="space-y-2">
+            <Label htmlFor="frequency" className="text-sm font-medium text-slate-700">
+              {copy.channelLabel}
+            </Label>
+            <Input
+              id="frequency"
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
+              placeholder={copy.channelPlaceholder}
+              className={fieldClass}
+            />
+          </div>
+        ) : null}
 
         <div className="space-y-2">
           <Label htmlFor="reach" className="text-sm font-medium text-slate-700">
-            Estimated reach
+            {copy.reachLabel}
           </Label>
           <Input
             id="reach"
             value={reach}
             onChange={(e) => setReach(e.target.value)}
-            placeholder="e.g. 2M+ listeners"
+            placeholder={copy.reachPlaceholder}
             className={fieldClass}
           />
         </div>
@@ -264,9 +418,15 @@ export function RateCardForm({ mediaAgencyId }) {
             id="priceRange"
             value={priceRange}
             onChange={(e) => setPriceRange(e.target.value)}
-            placeholder="e.g. ₵250–1,500"
+            placeholder={copy.pricePlaceholder}
             className={cn(fieldClass, "sm:max-w-sm")}
           />
+          {listingType === "DIGITAL" || listingType === "BILLBOARD" ? (
+            <p className="text-xs text-slate-400">
+              Optional — marketplace can also show “From” using your package
+              prices.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -278,22 +438,29 @@ export function RateCardForm({ mediaAgencyId }) {
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe this media listing…"
+          placeholder={copy.descriptionPlaceholder}
           rows={3}
           className="min-h-[96px] resize-y rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChipField
-          label="Time slots"
-          value={currentTimeSlot}
-          onChange={setCurrentTimeSlot}
-          onAdd={addTimeSlot}
-          items={timeSlots}
-          onRemove={(slot) => setTimeSlots(timeSlots.filter((s) => s !== slot))}
-          placeholder="e.g. Morning Drive"
-        />
+      <div
+        className={cn(
+          "grid gap-4",
+          copy.showSlots ? "lg:grid-cols-2" : "lg:grid-cols-1"
+        )}
+      >
+        {copy.showSlots ? (
+          <ChipField
+            label={copy.slotsLabel}
+            value={currentTimeSlot}
+            onChange={setCurrentTimeSlot}
+            onAdd={addTimeSlot}
+            items={timeSlots}
+            onRemove={(slot) => setTimeSlots(timeSlots.filter((s) => s !== slot))}
+            placeholder={copy.slotsPlaceholder}
+          />
+        ) : null}
         <ChipField
           label="Target demographics"
           value={currentDemographic}
@@ -303,7 +470,7 @@ export function RateCardForm({ mediaAgencyId }) {
           onRemove={(demo) =>
             setDemographics(demographics.filter((d) => d !== demo))
           }
-          placeholder="e.g. Adults 25–54"
+          placeholder={copy.demographicsPlaceholder}
         />
       </div>
 

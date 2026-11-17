@@ -352,8 +352,18 @@ export async function getActiveMediaListings(mediaType = null) {
     const enriched = listings.map((listing) => {
       const card = cardByListingId.get(listing.id) || null;
       const derivedRange = card ? priceRangeFromRateCard(card) : null;
+      const packagePrices = (listing.packages || [])
+        .map((pkg) => Number(pkg.price))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const packageRange =
+        packagePrices.length > 0
+          ? `₵${Math.min(...packagePrices).toLocaleString("en-GH", {
+              maximumFractionDigits: 0,
+            })}+`
+          : null;
       const priceRange =
         (listing.priceRange && String(listing.priceRange).trim()) ||
+        packageRange ||
         derivedRange ||
         null;
       return {
@@ -362,9 +372,11 @@ export async function getActiveMediaListings(mediaType = null) {
         rateCardId: card?.id || null,
         priceRangeSource: listing.priceRange
           ? "listing"
-          : derivedRange
-            ? "rate_card"
-            : null,
+          : packageRange
+            ? "packages"
+            : derivedRange
+              ? "rate_card"
+              : null,
       };
     });
 
@@ -476,19 +488,23 @@ export async function updateMediaListing(listingId, listingData) {
  */
 export async function getMediaListingById(id) {
   try {
-    const baseInclude = {
-      agency: {
-        select: {
-          id: true,
-          agencyName: true,
-          verificationStatus: true,
-        },
-      },
-    };
-    // Don't include packages/timeClasses to avoid Prisma errors if tables don't exist
     const listing = await db.mediaListing.findUnique({
       where: { id },
-      include: baseInclude,
+      include: {
+        agency: {
+          select: {
+            id: true,
+            agencyName: true,
+            verificationStatus: true,
+          },
+        },
+        packages: {
+          orderBy: { sortOrder: "asc" },
+        },
+        timeClasses: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
     });
     if (!listing) return { success: false, error: "Listing not found" };
     return {

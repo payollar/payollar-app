@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Package,
   Plus,
-  Edit,
-  Trash2,
   Tv,
   Radio,
   Megaphone,
@@ -20,6 +18,8 @@ import { RateCardForm } from "./_components/rate-card-form";
 import { ListingPackagesSection } from "./_components/listing-packages-section";
 import { ListingTimeClassesSection } from "./_components/listing-time-classes-section";
 import { CustomPackageDetailsSection } from "./_components/custom-package-details-section";
+import { ListingCoverUpload } from "./_components/listing-cover-upload";
+import { ListingCardActions } from "./_components/listing-card-actions";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,13 @@ export default async function MediaAgencyRateCardPage() {
   const mediaAgency = await db.mediaAgency.findUnique({
     where: { userId: user.id },
     include: {
-      listings: { orderBy: { createdAt: "desc" } },
+      listings: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          packages: { orderBy: { sortOrder: "asc" } },
+          timeClasses: { orderBy: { sortOrder: "asc" } },
+        },
+      },
     },
   });
 
@@ -77,7 +83,7 @@ export default async function MediaAgencyRateCardPage() {
     <MediaAgencyPageShell
       eyebrow="Packages"
       title="Custom packages"
-      description="Build package offers outside your smart rate card—defaults, listing packages, and time-class rates."
+      description="Create listings and package offers for TV, radio, digital, billboard, and more."
       actions={
         <Button variant="black" className="rounded-full" asChild>
           <a href="#add-listing">
@@ -179,8 +185,19 @@ export default async function MediaAgencyRateCardPage() {
                   >
                     <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
                       <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                          <Icon className="h-5 w-5" />
+                        <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+                          {listing.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={listing.imageUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-white">
+                              <Icon className="h-5 w-5" />
+                            </div>
+                          )}
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -210,26 +227,16 @@ export default async function MediaAgencyRateCardPage() {
                             {listing.location}
                             {listing.frequency ? ` · ${listing.frequency}` : ""}
                           </p>
+                          <div className="mt-2.5">
+                            <ListingCoverUpload
+                              listingId={listing.id}
+                              value={listing.imageUrl || ""}
+                              compact
+                            />
+                          </div>
                         </div>
                       </div>
-                      <div className="flex shrink-0 gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 rounded-full border-slate-200"
-                        >
-                          <Edit className="mr-1.5 h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 rounded-full border-rose-200 text-rose-700 hover:bg-rose-50"
-                        >
-                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                          Delete
-                        </Button>
-                      </div>
+                      <ListingCardActions listing={listing} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-px border-y border-slate-200 bg-slate-200 sm:grid-cols-4">
@@ -308,9 +315,20 @@ export default async function MediaAgencyRateCardPage() {
                       </div>
                     )}
 
-                    <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
+                    <div
+                      className={cn(
+                        "grid gap-3 p-4 sm:p-5",
+                        listing.listingType === "DIGITAL" ||
+                          listing.listingType === "BILLBOARD"
+                          ? "lg:grid-cols-1"
+                          : "lg:grid-cols-2"
+                      )}
+                    >
                       <ListingPackagesSection listing={listing} />
-                      <ListingTimeClassesSection listing={listing} />
+                      {listing.listingType === "DIGITAL" ||
+                      listing.listingType === "BILLBOARD" ? null : (
+                        <ListingTimeClassesSection listing={listing} />
+                      )}
                     </div>
                   </article>
                 );
@@ -329,7 +347,8 @@ export default async function MediaAgencyRateCardPage() {
             Add new media listing
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Create an outlet, then attach packages and time-class rates above.
+            Choose a media type to tailor the fields, then add packages on the
+            listing above.
           </p>
         </div>
         <div className="px-5 py-5 sm:px-6">
