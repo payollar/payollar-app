@@ -82,14 +82,16 @@ export function LandingNavbar() {
   const isMediaAgencyAuth =
     pathname?.startsWith("/media-agency/sign-in") ||
     pathname?.startsWith("/media-agency/sign-up");
+  const isVerifyEmail = pathname?.startsWith("/verify-email");
   const isLightSurface =
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
     pathname?.startsWith("/media") ||
     isContactSupport ||
     isLegalPage ||
-    isMediaAgencyAuth;
-  /** Light pill on soft light pages; dark pill elsewhere */
+    isMediaAgencyAuth ||
+    isVerifyEmail;
+  /** Light pill only on select soft pages; verify-email uses dark pill for contrast */
   const useLightPill =
     homeIsLight ||
     isHelp ||

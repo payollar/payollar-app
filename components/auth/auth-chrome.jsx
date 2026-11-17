@@ -10,12 +10,14 @@ export function AuthChrome({ children }) {
   const isMediaAgencyAuth =
     pathname?.startsWith("/media-agency/sign-in") ||
     pathname?.startsWith("/media-agency/sign-up");
+  const isVerifyEmail = pathname?.startsWith("/verify-email");
+  const useLightChrome = isMediaAgencyAuth || isVerifyEmail;
 
   return (
     <div
       className={cn(
         "relative flex min-h-dvh flex-col",
-        isMediaAgencyAuth ? "bg-[#f4f6fb]" : "bg-transparent"
+        useLightChrome ? "bg-[#f4f6fb]" : "bg-transparent"
       )}
     >
       <LandingNavbar />

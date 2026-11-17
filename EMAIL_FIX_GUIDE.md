@@ -21,14 +21,14 @@ Add these lines to your `.env` file:
 ```env
 # Resend Email Configuration
 RESEND_API_KEY=re_your_api_key_here
-RESEND_FROM_EMAIL=noreply@info.payollar.com
-RESEND_SUPPORT_EMAIL=support@info.payollar.com
+RESEND_FROM_EMAIL=noreply@payollar.com
+RESEND_SUPPORT_EMAIL=support@payollar.com
 ```
 
 **Important Notes:**
-- Using `info.payollar.com` as the verified domain in Resend
+- Using `payollar.com` as the verified domain in Resend (not `info.payollar.com`)
 - For **development**: You can use `onboarding@resend.dev` if you want to test without domain verification
-- For **production**: Use `noreply@info.payollar.com` and `support@info.payollar.com`
+- For **production**: Use `noreply@payollar.com` and `support@payollar.com`
 
 ### 3. Restart Your Server
 
@@ -76,8 +76,8 @@ For production, you need to:
 
 2. **Update environment variables**:
    ```env
-   RESEND_FROM_EMAIL=noreply@info.payollar.com
-   RESEND_SUPPORT_EMAIL=support@info.payollar.com
+   RESEND_FROM_EMAIL=noreply@payollar.com
+   RESEND_SUPPORT_EMAIL=support@payollar.com
    ```
 
 ## What Was Fixed

@@ -32,14 +32,14 @@ Add the following to your `.env` file:
 ```env
 # Resend Email Configuration
 RESEND_API_KEY="re_your_resend_api_key_here"
-RESEND_FROM_EMAIL="noreply@info.payollar.com"
-RESEND_SUPPORT_EMAIL="support@info.payollar.com"
+RESEND_FROM_EMAIL="noreply@payollar.com"
+RESEND_SUPPORT_EMAIL="support@payollar.com"
 ```
 
 **Note:** 
-- Using `info.payollar.com` as the verified domain in Resend
+- Using `payollar.com` as the verified domain in Resend (not `info.payollar.com`)
 - For development/testing, you can use Resend's test domain: `onboarding@resend.dev` (if you want to test without domain verification)
-- For production, use `noreply@info.payollar.com` and `support@info.payollar.com`
+- For production, use `noreply@payollar.com` and `support@payollar.com`
 
 ### 5. Test Email Sending
 

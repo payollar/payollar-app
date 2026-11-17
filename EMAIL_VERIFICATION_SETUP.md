@@ -67,8 +67,8 @@ Make sure these are set in your `.env` file:
 ```env
 # Resend Configuration
 RESEND_API_KEY=re_your_api_key_here
-RESEND_FROM_EMAIL=noreply@info.payollar.com
-RESEND_SUPPORT_EMAIL=support@info.payollar.com
+RESEND_FROM_EMAIL=noreply@payollar.com
+RESEND_SUPPORT_EMAIL=support@payollar.com
 
 # App URLs (used in email links)
 NEXT_PUBLIC_APP_URL=http://localhost:3000  # or https://payollar.com for production
