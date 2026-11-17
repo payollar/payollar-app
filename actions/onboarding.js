@@ -100,13 +100,19 @@ export async function setUserRole(formData) {
       });
 
       if (isFirstRoleAssignment) {
-        void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
-          notifyRoleSignupEmails({
+        try {
+          const { notifyRoleSignupEmails } = await import("@/lib/email");
+          await notifyRoleSignupEmails({
             email: updated.email,
             name: updated.name,
             role: "CLIENT",
-          })
-        );
+          });
+        } catch (emailError) {
+          console.error(
+            "CLIENT welcome email failed:",
+            emailError?.message || emailError
+          );
+        }
       }
 
       revalidatePath("/");
@@ -179,14 +185,20 @@ export async function setUserRole(formData) {
       }
 
       if (isFirstRoleAssignment) {
-        void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
-          notifyRoleSignupEmails({
+        try {
+          const { notifyRoleSignupEmails } = await import("@/lib/email");
+          await notifyRoleSignupEmails({
             email: updated.email,
             name: updated.name,
             role: "CREATOR",
             specialty,
-          })
-        );
+          });
+        } catch (emailError) {
+          console.error(
+            "CREATOR welcome email failed:",
+            emailError?.message || emailError
+          );
+        }
       }
 
       revalidatePath("/");

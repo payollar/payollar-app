@@ -78,14 +78,20 @@ export async function POST(req) {
     // Email only when this request creates the agency profile (not on later edits).
     // Google path usually emails from set-role instead when it creates the stub first.
     if (isNewAgency) {
-      void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
-        notifyRoleSignupEmails({
+      try {
+        const { notifyRoleSignupEmails } = await import("@/lib/email");
+        await notifyRoleSignupEmails({
           email: email || session.user.email,
           name: contactName || session.user.name,
           role: "MEDIA_AGENCY",
           agencyName,
-        })
-      );
+        });
+      } catch (emailError) {
+        console.error(
+          "MEDIA_AGENCY welcome email failed:",
+          emailError?.message || emailError
+        );
+      }
     }
 
     return NextResponse.json({

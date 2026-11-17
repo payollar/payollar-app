@@ -79,14 +79,20 @@ export async function POST() {
 
     // First-time assignment / first agency profile only
     if (wasUnassigned || createdNewAgency) {
-      void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
-        notifyRoleSignupEmails({
+      try {
+        const { notifyRoleSignupEmails } = await import("@/lib/email");
+        await notifyRoleSignupEmails({
           email: user.email,
           name: user.name,
           role: "MEDIA_AGENCY",
           agencyName: agencyName || undefined,
-        })
-      );
+        });
+      } catch (emailError) {
+        console.error(
+          "MEDIA_AGENCY welcome email failed:",
+          emailError?.message || emailError
+        );
+      }
     }
 
     return NextResponse.json({

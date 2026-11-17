@@ -14,6 +14,7 @@ import {
   sendEmailVerificationOtp,
   verifyEmailWithOtp,
 } from "@/lib/auth-client";
+import { triggerPostVerifyWelcome } from "@/actions/email";
 import { Button } from "@/components/ui/button";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { toast } from "sonner";
@@ -334,6 +335,11 @@ function VerifyEmailContent() {
       }
 
       toast.success("Email verified");
+      try {
+        await triggerPostVerifyWelcome();
+      } catch {
+        // Welcome is best-effort; don't block redirect
+      }
       try {
         await refetch?.();
       } catch {
