@@ -107,7 +107,7 @@ export function MediaPageView({ listingsByType }) {
 
             <p className="mt-6 max-w-2xl text-base text-foreground/70 md:text-lg">
               <Balancer>
-                TV, radio, billboard, and digital—discover inventory, book slots, and run campaigns without juggling
+                TV, radio, billboard, and digital discover inventory, book slots, and run campaigns without juggling
                 spreadsheets or endless email threads.
               </Balancer>
             </p>
@@ -298,7 +298,7 @@ export function MediaPageView({ listingsByType }) {
                   on the air?
                 </h2>
                 <p className="mt-6 max-w-2xl text-base text-muted-foreground md:text-lg">
-                  Talk to our team, or start with a single channel—your call.
+                  Talk to our team, or start with a single channel your call.
                 </p>
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}

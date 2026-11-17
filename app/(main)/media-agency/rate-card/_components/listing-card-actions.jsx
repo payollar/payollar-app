@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ListingCoverUpload } from "./listing-cover-upload";
+import { BillboardMapPicker } from "./billboard-map-picker";
 
 const fieldClass =
   "h-11 rounded-xl border-slate-200 bg-white text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
@@ -219,6 +220,8 @@ export function ListingCardActions({ listing }) {
     imageUrl: listing.imageUrl || "",
     timeSlots: listing.timeSlots || [],
     demographics: listing.demographics || [],
+    latitude: listing.latitude ?? null,
+    longitude: listing.longitude ?? null,
   }));
 
   useEffect(() => {
@@ -235,6 +238,8 @@ export function ListingCardActions({ listing }) {
       imageUrl: listing.imageUrl || "",
       timeSlots: listing.timeSlots || [],
       demographics: listing.demographics || [],
+      latitude: listing.latitude ?? null,
+      longitude: listing.longitude ?? null,
     });
   }, [open, listing]);
 
@@ -270,7 +275,9 @@ export function ListingCardActions({ listing }) {
     JSON.stringify(form.timeSlots) !==
       JSON.stringify(listing.timeSlots || []) ||
     JSON.stringify(form.demographics) !==
-      JSON.stringify(listing.demographics || []);
+      JSON.stringify(listing.demographics || []) ||
+    form.latitude !== (listing.latitude ?? null) ||
+    form.longitude !== (listing.longitude ?? null);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -295,6 +302,10 @@ export function ListingCardActions({ listing }) {
           imageUrl: form.imageUrl || null,
           timeSlots: form.timeSlots,
           demographics: form.demographics,
+          latitude:
+            listing.listingType === "BILLBOARD" ? form.latitude : null,
+          longitude:
+            listing.listingType === "BILLBOARD" ? form.longitude : null,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -436,6 +447,29 @@ export function ListingCardActions({ listing }) {
                       className={fieldClass}
                     />
                   </Field>
+
+                  {listing.listingType === "BILLBOARD" ? (
+                    <div className="sm:col-span-2">
+                      <BillboardMapPicker
+                        value={{
+                          latitude: form.latitude,
+                          longitude: form.longitude,
+                        }}
+                        onChange={({ latitude, longitude }) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            latitude,
+                            longitude,
+                          }))
+                        }
+                        onLocationLabel={(label) => {
+                          if (!form.location.trim()) {
+                            setForm((prev) => ({ ...prev, location: label }));
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : null}
 
                   <Field label={meta.channel}>
                     <Input

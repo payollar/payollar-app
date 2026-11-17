@@ -2,19 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram, Facebook, Linkedin, Mail, Phone, MapPin } from "lucide-react";
-import { siX } from "simple-icons";
+import { Instagram, Mail, Phone, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionParticles } from "@/components/landing/section-particles";
 import { useLandingTheme } from "@/components/landing/landing-theme";
-
-function XIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path fill="currentColor" d={siX.path} />
-    </svg>
-  );
-}
 
 const quickLinks = [
   ["/#how-it-works", "How it works"],
@@ -74,26 +65,18 @@ export function Footer() {
               for your passion.
             </p>
             <div className="flex flex-wrap gap-2">
-              {[
-                { Icon: XIcon, href: "https://x.com", label: "X" },
-                { Icon: Instagram, href: "https://instagram.com", label: "Instagram" },
-                { Icon: Facebook, href: "https://facebook.com", label: "Facebook" },
-                { Icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-              ].map(({ Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className={cn(
-                    "rounded-xl border border-white/10 bg-white/5 p-2.5 text-white/80 backdrop-blur-sm",
-                    "transition-all duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-                  )}
-                >
-                  <Icon className="h-5 w-5" aria-hidden />
-                </a>
-              ))}
+              <a
+                href="https://www.instagram.com/payollar/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className={cn(
+                  "rounded-xl border border-white/10 bg-white/5 p-2.5 text-white/80 backdrop-blur-sm",
+                  "transition-all duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                )}
+              >
+                <Instagram className="h-5 w-5" aria-hidden />
+              </a>
             </div>
           </div>
 
@@ -139,19 +122,19 @@ export function Footer() {
             </h3>
             <ul className="space-y-4 text-sm text-white/60">
               <li className="flex gap-3">
-                <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                <Mail className="mt-0.5 h-5 w-5 shrink-0 text-white" aria-hidden />
                 <a href="mailto:hey@payollar.com" className="transition-colors hover:text-primary">
                   hey@payollar.com
                 </a>
               </li>
               <li className="flex gap-3">
-                <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                <Phone className="mt-0.5 h-5 w-5 shrink-0 text-white" aria-hidden />
                 <a href="tel:+233558207902" className="transition-colors hover:text-primary">
                   +233 (55) 820-7902
                 </a>
               </li>
               <li className="flex gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-white" aria-hidden />
                 <span className="leading-relaxed">
                   Osabu link
                   <br />

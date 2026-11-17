@@ -4,7 +4,8 @@ import { sendSupportRequestEmail, sendSupportConfirmationEmail } from "@/lib/ema
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { name, email, category, priority, subject, message } = body;
+    const { name, email, category, priority, subject, message, attachments } =
+      body;
 
     // Validation
     if (!name || !email || !category || !subject || !message) {
@@ -21,6 +22,18 @@ export async function POST(req) {
       );
     }
 
+    const safeAttachments = Array.isArray(attachments)
+      ? attachments
+          .filter((file) => file && typeof file.url === "string" && file.url)
+          .slice(0, 4)
+          .map((file) => ({
+            url: file.url,
+            name: file.name || "Attachment",
+            type: file.type || null,
+            size: file.size || null,
+          }))
+      : [];
+
     // Send email to support team
     await sendSupportRequestEmail({
       name,
@@ -29,6 +42,7 @@ export async function POST(req) {
       priority: priority || "medium",
       subject,
       message,
+      attachments: safeAttachments,
     });
 
     // Send confirmation email to user

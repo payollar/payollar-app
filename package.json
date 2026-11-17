@@ -44,6 +44,7 @@
     "clsx": "^2.1.1",
     "country-state-city": "^3.2.1",
     "date-fns": "^4.1.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.510.0",
     "metal-fx": "^2.0.11",
     "motion": "^12.38.0",
@@ -54,6 +55,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.3",
+    "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "react-spinners": "^0.17.0",
     "react-wrap-balancer": "^1.1.1",
@@ -68,6 +70,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.22",
     "@types/react": "19.1.15",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",

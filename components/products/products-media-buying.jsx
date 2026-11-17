@@ -530,12 +530,12 @@ function BillboardMarketplaceCard({ listing }) {
             </span>
           ) : null}
         </div>
-        <div className="mt-4 flex gap-2">
-          <Button asChild variant="outline" className="h-9 flex-1 rounded-full border-slate-200 text-xs font-semibold">
-            <Link href={href}>View site</Link>
-          </Button>
-          <Button asChild className="h-9 flex-1 rounded-full bg-slate-950 text-xs font-semibold text-white hover:bg-slate-800">
-            <Link href={href}>Get Quote</Link>
+        <div className="mt-4">
+          <Button
+            asChild
+            className="h-9 w-full rounded-full bg-slate-950 text-xs font-semibold text-white hover:bg-slate-800"
+          >
+            <Link href={href}>Book</Link>
           </Button>
         </div>
       </div>

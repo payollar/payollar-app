@@ -76,6 +76,9 @@ export function LandingNavbar() {
   const isHome = pathname === "/";
   const homeIsLight = isHome && landingTheme === "light";
   const isHelp = pathname?.startsWith("/help");
+  const isContactSupport = pathname?.startsWith("/contact-support");
+  const isLegalPage =
+    pathname?.startsWith("/privacy") || pathname?.startsWith("/terms");
   const isMediaAgencyAuth =
     pathname?.startsWith("/media-agency/sign-in") ||
     pathname?.startsWith("/media-agency/sign-up");
@@ -83,64 +86,73 @@ export function LandingNavbar() {
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
     pathname?.startsWith("/media") ||
+    isContactSupport ||
+    isLegalPage ||
     isMediaAgencyAuth;
-  /** Light pill on home (light theme), help, and media agency auth */
-  const useLightPill = homeIsLight || isHelp || isMediaAgencyAuth;
+  /** Light pill on home (light theme), help, contact, legal, and media agency auth */
+  const useLightPill =
+    homeIsLight ||
+    isHelp ||
+    isContactSupport ||
+    isLegalPage ||
+    isMediaAgencyAuth;
   const useDarkPill = !useLightPill;
   const linkClass = useDarkPill
-    ? "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-    : "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-slate-950";
+    ? "inline-flex h-9 items-center whitespace-nowrap rounded-full px-3 text-[13px] font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+    : "inline-flex h-9 items-center whitespace-nowrap rounded-full px-3 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-900/[0.04] hover:text-slate-950";
 
   return (
     <div className="relative w-full">
       <header
         className={cn(
-          "fixed top-4 inset-x-0 mx-auto max-w-6xl px-2 md:px-6 z-[100] transition-all duration-300 ease-in-out",
-          isOpen ? "min-h-[calc(100dvh-2rem)]" : "h-14 md:h-16"
+          "fixed top-4 inset-x-0 z-[100] mx-auto max-w-5xl px-3 transition-all duration-300 ease-in-out md:px-4",
+          isOpen ? "min-h-[calc(100dvh-2rem)]" : "h-14"
         )}
       >
         <div
           className={cn(
-            "relative flex h-full flex-col overflow-hidden rounded-xl border backdrop-blur-xl lg:rounded-full",
+            "relative flex h-full flex-col overflow-hidden rounded-2xl border backdrop-blur-xl lg:rounded-full",
             useDarkPill
               ? isLightSurface
                 ? "border-slate-900/10 bg-[#0b1220]/92 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)]"
                 : "border-white/10 bg-background/40 shadow-lg shadow-black/20"
-              : "border-slate-200/90 bg-white/95 shadow-[0_16px_48px_-24px_rgba(15,23,42,0.28)]"
+              : "border-slate-200/80 bg-white/95 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.28)]"
           )}
         >
-          <div className="flex min-h-14 w-full shrink-0 items-center justify-between px-3 md:min-h-16 md:px-4">
-            <Link
-              href="/"
-              className="group shrink-0 transition-opacity hover:opacity-90"
-            >
-              <Image
-                src="/icons/Payollar-logo.png"
-                alt="Payollar"
-                width={148}
-                height={36}
-                className={cn(
-                  "h-8 w-auto object-contain md:h-9",
-                  !useDarkPill && "brightness-0"
-                )}
-                priority
-              />
-            </Link>
+          <div className="flex h-14 w-full shrink-0 items-center px-3 sm:px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+              <Link
+                href="/"
+                className="flex h-9 shrink-0 items-center transition-opacity hover:opacity-90"
+              >
+                <Image
+                  src="/icons/Payollar-logo.png"
+                  alt="Payollar"
+                  width={132}
+                  height={32}
+                  className={cn(
+                    "h-7 w-auto object-contain",
+                    !useDarkPill && "brightness-0"
+                  )}
+                  priority
+                />
+              </Link>
 
-            <div className="absolute top-1/2 left-1/2 hidden max-w-[55%] -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 lg:flex">
-              {showMediaMenu && (
-                <Link href="/media" className={linkClass}>
-                  Media
-                </Link>
-              )}
-              {links.map((item) => (
-                <Link key={item.href} href={item.href} className={linkClass}>
-                  {item.label}
-                </Link>
-              ))}
+              <nav className="ml-1 hidden items-center gap-0.5 lg:flex">
+                {showMediaMenu && (
+                  <Link href="/media" className={linkClass}>
+                    Media
+                  </Link>
+                )}
+                {links.map((item) => (
+                  <Link key={item.href} href={item.href} className={linkClass}>
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+            <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
               {isHome ? <LandingThemeToggle /> : null}
               {!isSignedIn && (
                 <Link href="/onboarding" className="hidden sm:block">
@@ -148,7 +160,7 @@ export function LandingNavbar() {
                     variant={useLightPill ? "default" : "marketingWhite"}
                     size="sm"
                     className={cn(
-                      "hidden rounded-full md:inline-flex",
+                      "hidden h-9 rounded-full px-4 md:inline-flex",
                       useLightPill &&
                         "bg-[#0055ff] text-white hover:bg-[#003ecc]"
                     )}
@@ -157,35 +169,44 @@ export function LandingNavbar() {
                   </Button>
                 </Link>
               )}
-              {isSignedIn && dashboardNav && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "hidden h-9 rounded-full px-3.5 sm:inline-flex",
-                    useDarkPill
-                      ? "border border-white/40 bg-white/5 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] hover:!bg-white/15 hover:!text-white focus-visible:!text-white [&_svg]:text-white"
-                      : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                  asChild
-                >
-                  <Link
-                    href={dashboardNav.href}
-                    className="flex max-w-[11rem] items-center gap-1.5 truncate text-inherit md:max-w-none"
+              {isSignedIn && dashboardNav ? (
+                <>
+                  <div
+                    className={cn(
+                      "mx-1.5 hidden h-4 w-px sm:block",
+                      useDarkPill ? "bg-white/15" : "bg-slate-200"
+                    )}
+                    aria-hidden
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "hidden h-9 rounded-full px-2.5 sm:inline-flex",
+                      useDarkPill
+                        ? "text-white/85 hover:!bg-white/10 hover:!text-white focus-visible:!text-white [&_svg]:text-white"
+                        : "text-slate-600 hover:bg-slate-900/[0.04] hover:text-slate-950"
+                    )}
+                    asChild
                   >
-                    <LayoutDashboard className="size-4 shrink-0" />
-                    <span className="truncate text-xs font-medium md:text-sm">
-                      {dashboardNav.label}
-                    </span>
-                  </Link>
-                </Button>
-              )}
+                    <Link
+                      href={dashboardNav.href}
+                      className="inline-flex items-center gap-1.5 text-inherit"
+                    >
+                      <LayoutDashboard className="size-3.5 shrink-0" />
+                      <span className="text-[13px] font-medium">
+                        {dashboardNav.label}
+                      </span>
+                    </Link>
+                  </Button>
+                </>
+              ) : null}
               <div
                 className={cn(
-                  "flex items-center [&_button]:rounded-full [&_a]:rounded-full",
+                  "flex items-center [&_button]:h-9 [&_button]:rounded-full [&_button]:px-2.5 [&_a]:rounded-full",
                   useDarkPill
-                    ? "[&_button]:text-white [&_a]:text-white"
-                    : "[&_button]:text-slate-800 [&_a]:text-slate-800"
+                    ? "[&_button]:text-white/80 [&_a]:text-white/80 [&_button:hover]:bg-white/10 [&_button:hover]:text-white"
+                    : "[&_button]:text-slate-600 [&_a]:text-slate-600 [&_button:hover]:bg-slate-900/[0.04] [&_button:hover]:text-slate-950"
                 )}
               >
                 <HeaderAuthButtons />
@@ -194,7 +215,7 @@ export function LandingNavbar() {
                 size="icon"
                 variant="ghost"
                 className={cn(
-                  "rounded-full lg:hidden",
+                  "h-9 w-9 rounded-full lg:hidden",
                   useDarkPill
                     ? "text-white hover:bg-white/10"
                     : "text-slate-800 hover:bg-slate-900/5"

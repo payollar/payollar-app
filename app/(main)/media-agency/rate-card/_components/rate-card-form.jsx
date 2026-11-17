@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ListingCoverUpload } from "./listing-cover-upload";
+import { BillboardMapPicker } from "./billboard-map-picker";
 
 const fieldClass =
   "h-11 rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
@@ -228,6 +229,8 @@ export function RateCardForm({ mediaAgencyId }) {
   const [demographics, setDemographics] = useState([]);
   const [currentDemographic, setCurrentDemographic] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const copy = useMemo(
@@ -240,6 +243,10 @@ export function RateCardForm({ mediaAgencyId }) {
     // Clear type-specific chips when switching so TV dayparts don't stick on Digital
     setTimeSlots([]);
     setCurrentTimeSlot("");
+    if (nextType !== "BILLBOARD") {
+      setLatitude(null);
+      setLongitude(null);
+    }
   };
 
   const addTimeSlot = () => {
@@ -286,6 +293,8 @@ export function RateCardForm({ mediaAgencyId }) {
           timeSlots: copy.showSlots ? timeSlots : [],
           demographics,
           imageUrl: imageUrl || null,
+          latitude: listingType === "BILLBOARD" ? latitude : null,
+          longitude: listingType === "BILLBOARD" ? longitude : null,
           status: "ACTIVE",
         }),
       });
@@ -306,6 +315,8 @@ export function RateCardForm({ mediaAgencyId }) {
       setTimeSlots([]);
       setDemographics([]);
       setImageUrl("");
+      setLatitude(null);
+      setLongitude(null);
       window.location.reload();
     } catch (error) {
       console.error("Error creating listing:", error);
@@ -381,6 +392,21 @@ export function RateCardForm({ mediaAgencyId }) {
             className={fieldClass}
           />
         </div>
+
+        {listingType === "BILLBOARD" ? (
+          <div className="sm:col-span-2">
+            <BillboardMapPicker
+              value={{ latitude, longitude }}
+              onChange={({ latitude: lat, longitude: lng }) => {
+                setLatitude(lat);
+                setLongitude(lng);
+              }}
+              onLocationLabel={(label) => {
+                if (!location.trim()) setLocation(label);
+              }}
+            />
+          </div>
+        ) : null}
 
         {copy.showChannel ? (
           <div className="space-y-2">

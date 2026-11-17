@@ -45,7 +45,7 @@ const MEDIA_TYPES = [
     shortLabel: "Digital",
     buyLabel: "digital",
     href: "/products?type=DIGITAL",
-    image: "/social-media.jpg",
+    image: "/digital-media.jpg",
     description:
       "Book digital platform shows and series distributed on social channels.",
     highlight: "Shows on social platforms",
@@ -57,7 +57,7 @@ const MEDIA_TYPES = [
     shortLabel: "Outdoor",
     buyLabel: "outdoor",
     href: "/products?type=BILLBOARD",
-    image: "/billboard.jpg",
+    image: "/billboard-media.jpg",
     description:
       "High-impact outdoor advertising in prime locations across cities.",
     highlight: "High-impact city placements",

@@ -58,6 +58,8 @@ export async function POST(req) {
       name,
       network,
       location,
+      latitude,
+      longitude,
       frequency,
       description,
       reach,
@@ -67,6 +69,20 @@ export async function POST(req) {
       status,
       imageUrl,
     } = body;
+
+    const lat =
+      latitude === null || latitude === undefined || latitude === ""
+        ? null
+        : Number(latitude);
+    const lng =
+      longitude === null || longitude === undefined || longitude === ""
+        ? null
+        : Number(longitude);
+    const hasCoords =
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      Math.abs(lat) <= 90 &&
+      Math.abs(lng) <= 180;
 
     if (!listingType || !name || !location) {
       return NextResponse.json(
@@ -103,6 +119,8 @@ export async function POST(req) {
         name,
         network,
         location,
+        latitude: hasCoords ? lat : null,
+        longitude: hasCoords ? lng : null,
         frequency,
         description,
         reach,

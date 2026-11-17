@@ -22,7 +22,10 @@ export function MainWrapper({ children }) {
     pathname?.startsWith("/campaigns") ||
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
-    pathname?.startsWith("/help");
+    pathname?.startsWith("/help") ||
+    pathname?.startsWith("/contact-support") ||
+    pathname?.startsWith("/privacy") ||
+    pathname?.startsWith("/terms");
   const isMessages = pathname?.startsWith("/messages");
   const isAuthPage =
     pathname?.startsWith("/sign-in") ||

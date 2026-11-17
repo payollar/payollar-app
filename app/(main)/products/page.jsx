@@ -28,6 +28,8 @@ function serializeListing(listing) {
     name: listing.name,
     network: listing.network,
     location: listing.location,
+    latitude: listing.latitude ?? null,
+    longitude: listing.longitude ?? null,
     frequency: listing.frequency,
     description: listing.description,
     reach: listing.reach,

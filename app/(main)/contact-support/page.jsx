@@ -1,14 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  FileText,
+  HelpCircle,
+  Loader2,
+  Mail,
+  Phone,
+  Send,
+  Upload,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { UploadButton } from "@uploadthing/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,78 +29,84 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import {
-  Mail,
-  MessageSquare,
-  HelpCircle,
-  CheckCircle2,
-  Loader2,
-  Phone,
-  Clock,
-  Send,
-} from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 
+const fieldClass =
+  "h-12 rounded-2xl border-slate-200/90 bg-[#f7f8fc] px-4 text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-300 focus-visible:bg-white focus-visible:ring-0";
+
 const supportCategories = [
-  { value: "verification", label: "Account Verification" },
-  { value: "technical", label: "Technical Support" },
-  { value: "billing", label: "Billing & Payments" },
-  { value: "profile", label: "Profile Issues" },
-  { value: "booking", label: "Booking & Appointments" },
-  { value: "general", label: "General Inquiry" },
+  { value: "verification", label: "Account verification" },
+  { value: "technical", label: "Technical issue" },
+  { value: "billing", label: "Billing & payments" },
+  { value: "booking", label: "Bookings & appointments" },
+  { value: "media", label: "Media buying / listings" },
+  { value: "profile", label: "Profile & settings" },
+  { value: "general", label: "General inquiry" },
   { value: "other", label: "Other" },
 ];
 
-const priorityLevels = [
-  { value: "low", label: "Low - General question" },
-  { value: "medium", label: "Medium - Need assistance" },
-  { value: "high", label: "High - Urgent issue" },
-];
+function normalizeUploadFiles(res) {
+  const list = Array.isArray(res) ? res : res ? [res] : [];
+  return list
+    .map((file) => {
+      const url =
+        file?.url ||
+        file?.serverData?.url ||
+        (file?.key ? `https://utfs.io/f/${file.key}` : null);
+      if (!url) return null;
+      return {
+        url,
+        name: file?.name || file?.serverData?.name || "Attachment",
+        type: file?.type || file?.serverData?.type || null,
+        size: file?.size || file?.serverData?.size || null,
+      };
+    })
+    .filter(Boolean);
+}
 
 export default function ContactSupportPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [attachments, setAttachments] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     category: "",
-    priority: "medium",
     subject: "",
     message: "",
   });
 
-  // Pre-fill user data if available
   useEffect(() => {
-    if (session?.user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: session.user.name || prev.name,
-        email: session.user.email || prev.email,
-      }));
-    }
+    if (!session?.user) return;
+    setFormData((prev) => ({
+      ...prev,
+      name: session.user.name || prev.name,
+      email: session.user.email || prev.email,
+    }));
   }, [session]);
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.name || !formData.email || !formData.category || !formData.subject || !formData.message) {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.category ||
+      !formData.subject ||
+      !formData.message
+    ) {
       toast.error("Please fill in all required fields");
       return;
     }
 
     if (formData.message.length < 20) {
-      toast.error("Please provide more details in your message (at least 20 characters)");
+      toast.error("Add a bit more detail (at least 20 characters)");
       return;
     }
 
@@ -101,33 +116,22 @@ export default function ContactSupportPage() {
       const response = await fetch("/api/support/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          priority: "medium",
+          attachments,
+        }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || "Failed to submit support request");
       }
-
-      toast.success("Support request submitted successfully!");
+      toast.success("Support request submitted");
       setIsSubmitted(true);
-      
-      // Reset form after a delay
-      setTimeout(() => {
-        setFormData({
-          name: "",
-          email: "",
-          category: "",
-          priority: "medium",
-          subject: "",
-          message: "",
-        });
-        setIsSubmitted(false);
-      }, 5000);
+      setAttachments([]);
     } catch (error) {
       console.error("Error submitting support request:", error);
-      toast.error("Failed to submit support request. Please try again.");
+      toast.error("Couldn’t submit — please try again");
     } finally {
       setIsSubmitting(false);
     }
@@ -135,349 +139,370 @@ export default function ContactSupportPage() {
 
   if (isSubmitted) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-emerald-900/20">
-            <CardContent className="pt-12 pb-12">
-              <div className="text-center">
-                <div className="mx-auto p-4 bg-emerald-900/20 rounded-full mb-6 w-fit">
-                  <CheckCircle2 className="h-12 w-12 text-emerald-400" />
-                </div>
-                <CardTitle className="text-2xl font-bold text-white mb-4">
-                  Thank You for Contacting Us!
-                </CardTitle>
-                <CardDescription className="text-lg mb-6">
-                  We&apos;ve received your support request and will get back to you as soon as possible.
-                </CardDescription>
-                <div className="bg-emerald-900/10 border border-emerald-900/20 rounded-lg p-6 mb-6 text-left">
-                  <h3 className="font-semibold text-white mb-3">What happens next?</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-1">•</span>
-                      <span>You&apos;ll receive a confirmation email at <strong>{formData.email}</strong></span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-1">•</span>
-                      <span>Our support team will review your request within 24 hours</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-1">•</span>
-                      <span>We&apos;ll respond via email with a solution or follow-up questions</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-1">•</span>
-                      <span>For urgent issues, you may receive a response within a few hours</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    onClick={() => {
-                      setIsSubmitted(false);
-                      setFormData({
-                        name: "",
-                        email: "",
-                        category: "",
-                        priority: "medium",
-                        subject: "",
-                        message: "",
-                      });
-                    }}
-                    variant="outline"
-                    className="border-emerald-900/30"
-                  >
-                    Submit Another Request
-                  </Button>
-                  <Button
-                    onClick={() => router.push("/")}
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    Return to Home
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-4 py-16 sm:px-6">
+        <div className="text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-950 text-white">
+            <CheckCircle2 className="h-6 w-6" />
+          </span>
+          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">
+            Message sent
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-slate-500">
+            We’ll reply to{" "}
+            <span className="font-medium text-slate-800">{formData.email}</span>
+            . Most requests hear back within a day.
+          </p>
+          <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-full border-slate-200 bg-white px-5"
+              onClick={() => {
+                setIsSubmitted(false);
+                setAttachments([]);
+                setFormData({
+                  name: session?.user?.name || "",
+                  email: session?.user?.email || "",
+                  category: "",
+                  subject: "",
+                  message: "",
+                });
+              }}
+            >
+              Send another
+            </Button>
+            <Button
+              type="button"
+              className="h-11 rounded-full bg-slate-950 px-5 text-white hover:bg-slate-800"
+              onClick={() => router.push("/")}
+            >
+              Back to home
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto p-4 bg-emerald-900/20 rounded-full mb-4 w-fit">
-            <MessageSquare className="h-8 w-8 text-emerald-400" />
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Contact Support</h1>
-          <p className="text-muted-foreground text-lg">
-            We&apos;re here to help! Fill out the form below and we&apos;ll get back to you as soon as possible.
-          </p>
-        </div>
+    <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-28 lg:pt-6">
+      <div className="overflow-hidden rounded-[2rem] border border-white bg-white shadow-[0_20px_60px_-36px_rgba(15,23,42,0.35)]">
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
+          {/* Form pane */}
+          <div className="border-b border-slate-100 p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Support
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.15rem] sm:leading-tight">
+              Contact support
+            </h1>
+            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-slate-500">
+              Bookings, media buys, billing, or account issues — send a clear
+              note and we’ll get back to you.
+            </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Contact Information Cards */}
-          <div className="lg:col-span-1 space-y-4">
-            <Card className="border-emerald-900/20">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-emerald-400" />
-                  Email Support
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">
-                  For general inquiries and non-urgent matters
-                </p>
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="name"
+                    className="text-[13px] font-medium text-slate-600"
+                  >
+                    Full name
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                    className={fieldClass}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-[13px] font-medium text-slate-600"
+                  >
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="category"
+                  className="text-[13px] font-medium text-slate-600"
+                >
+                  Category
+                </Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => handleChange("category", value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="category" className={fieldClass}>
+                    <SelectValue placeholder="What is this about?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportCategories.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="subject"
+                  className="text-[13px] font-medium text-slate-600"
+                >
+                  Subject
+                </Label>
+                <Input
+                  id="subject"
+                  placeholder="Short summary of the issue"
+                  value={formData.subject}
+                  onChange={(e) => handleChange("subject", e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  className={fieldClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label
+                    htmlFor="message"
+                    className="text-[13px] font-medium text-slate-600"
+                  >
+                    Message
+                  </Label>
+                  <span className="text-[11px] tabular-nums text-slate-400">
+                    {formData.message.length < 20
+                      ? `${20 - formData.message.length} more needed`
+                      : "Looks good"}
+                  </span>
+                </div>
+                <Textarea
+                  id="message"
+                  placeholder="What happened, what you expected, booking IDs, or error text…"
+                  rows={6}
+                  value={formData.message}
+                  onChange={(e) => handleChange("message", e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  minLength={20}
+                  className="min-h-[150px] resize-y rounded-2xl border-slate-200/90 bg-[#f7f8fc] px-4 py-3 text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-slate-300 focus-visible:bg-white focus-visible:ring-0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-slate-600">
+                  Attachments
+                </Label>
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-[#f7f8fc] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm">
+                        <Upload className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">
+                          Screenshots or PDFs
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          Optional · JPG, PNG, PDF · up to 4 files · 8MB each
+                        </p>
+                      </div>
+                    </div>
+                    {attachments.length < 4 ? (
+                      <UploadButton
+                        endpoint="supportAttachment"
+                        onClientUploadComplete={(res) => {
+                          const next = normalizeUploadFiles(res);
+                          if (!next.length) {
+                            toast.error("Upload finished but no file URL returned");
+                            return;
+                          }
+                          setAttachments((prev) =>
+                            [...prev, ...next].slice(0, 4)
+                          );
+                          toast.success(
+                            next.length > 1 ? "Files attached" : "File attached"
+                          );
+                        }}
+                        onUploadError={(error) => {
+                          toast.error(error.message || "Upload failed");
+                        }}
+                        appearance={{
+                          button:
+                            "ut-ready:bg-slate-950 ut-uploading:cursor-not-allowed h-9 rounded-full bg-slate-950 px-4 text-xs font-semibold text-white after:bg-slate-800",
+                          allowedContent: "hidden",
+                        }}
+                      />
+                    ) : null}
+                  </div>
+
+                  {attachments.length > 0 ? (
+                    <ul className="mt-3 space-y-2">
+                      {attachments.map((file) => (
+                        <li
+                          key={`${file.url}-${file.name}`}
+                          className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-700"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate hover:underline"
+                            >
+                              {file.name}
+                            </a>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAttachments((prev) =>
+                                prev.filter((item) => item.url !== file.url)
+                              )
+                            }
+                            className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  disabled={isSubmitting}
+                  className="text-sm font-medium text-slate-500 hover:text-slate-800"
+                >
+                  Cancel
+                </button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-11 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Submit request
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* Side pane */}
+          <div className="flex flex-col justify-between bg-[#f7f8fc] p-6 sm:p-8 lg:p-10">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Other ways
+              </p>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
+                Prefer email or a call?
+              </h2>
+              <p className="mt-2 text-[15px] leading-relaxed text-slate-500">
+                Use the form for tracked requests, or reach us directly for
+                quick questions.
+              </p>
+
+              <div className="mt-8 space-y-5">
                 <a
                   href="mailto:hey@payollar.com"
-                  className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
+                  className="group flex items-start gap-3"
                 >
-                  hey@payollar.com
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                    <Mail className="h-4 w-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-950 group-hover:underline">
+                      hey@payollar.com
+                    </span>
+                    <span className="mt-0.5 block text-sm text-slate-500">
+                      Best for detailed issues
+                    </span>
+                  </span>
                 </a>
-              </CardContent>
-            </Card>
 
-            <Card className="border-emerald-900/20">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-emerald-400" />
-                  Response Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
+                <a
+                  href="tel:+233558207902"
+                  className="group flex items-start gap-3"
+                >
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                    <Phone className="h-4 w-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-950 group-hover:underline">
+                      +233 (55) 820-7902
+                    </span>
+                    <span className="mt-0.5 block text-sm text-slate-500">
+                      Weekdays, business hours
+                    </span>
+                  </span>
+                </a>
+
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                    <Clock className="h-4 w-4" />
+                  </span>
                   <div>
-                    <span className="font-medium text-white">High Priority:</span>
-                    <span className="text-muted-foreground ml-2">Within 2-4 hours</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-white">Medium Priority:</span>
-                    <span className="text-muted-foreground ml-2">Within 24 hours</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-white">Low Priority:</span>
-                    <span className="text-muted-foreground ml-2">Within 48 hours</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-emerald-900/20">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5 text-emerald-400" />
-                  Help Resources
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm"
-                    onClick={() => router.push("/help")}
-                  >
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    Help Center
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm"
-                    onClick={() => router.push("/creator/verification")}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Verification Status
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Contact Form */}
-          <div className="lg:col-span-2">
-            <Card className="border-emerald-900/20">
-              <CardHeader>
-                <CardTitle>Send us a Message</CardTitle>
-                <CardDescription>
-                  Please provide as much detail as possible so we can assist you better
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">
-                        Full Name <span className="text-red-400">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="John Doe"
-                        value={formData.name}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">
-                        Email Address <span className="text-red-400">*</span>
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">
-                        Category <span className="text-red-400">*</span>
-                      </Label>
-                      <Select
-                        value={formData.category}
-                        onValueChange={(value) => handleChange("category", value)}
-                        disabled={isSubmitting}
-                      >
-                        <SelectTrigger id="category">
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {supportCategories.map((cat) => (
-                            <SelectItem key={cat.value} value={cat.value}>
-                              {cat.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="priority">Priority Level</Label>
-                      <Select
-                        value={formData.priority}
-                        onValueChange={(value) => handleChange("priority", value)}
-                        disabled={isSubmitting}
-                      >
-                        <SelectTrigger id="priority">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {priorityLevels.map((level) => (
-                            <SelectItem key={level.value} value={level.value}>
-                              {level.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">
-                      Subject <span className="text-red-400">*</span>
-                    </Label>
-                    <Input
-                      id="subject"
-                      placeholder="Brief description of your issue"
-                      value={formData.subject}
-                      onChange={(e) => handleChange("subject", e.target.value)}
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message">
-                      Message <span className="text-red-400">*</span>
-                    </Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Please provide detailed information about your issue, question, or request..."
-                      rows={8}
-                      value={formData.message}
-                      onChange={(e) => handleChange("message", e.target.value)}
-                      required
-                      disabled={isSubmitting}
-                      minLength={20}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {formData.message.length} / 20 characters minimum
+                    <p className="text-sm font-semibold text-slate-950">
+                      Typical reply
+                    </p>
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      Within 24 hours · urgent requests sooner
                     </p>
                   </div>
-
-                  <div className="flex items-center justify-between pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.back()}
-                      disabled={isSubmitting}
-                      className="border-emerald-900/30"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Submit Request
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Additional Information */}
-            <Card className="border-emerald-900/20 mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Before You Submit</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-1">•</span>
-                    <span>
-                      Check our <a href="/help" className="text-emerald-400 hover:text-emerald-300 underline">Help Center</a> for quick answers to common questions
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-1">•</span>
-                    <span>
-                      Include any relevant screenshots or error messages if you&apos;re reporting a technical issue
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-1">•</span>
-                    <span>
-                      For account verification issues, make sure you&apos;ve completed all required profile information
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-1">•</span>
-                    <span>
-                      We typically respond within 24 hours, but urgent issues may receive faster responses
-                    </span>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
+            <div className="mt-10 space-y-4 border-t border-slate-200/80 pt-6">
+              <p className="text-sm leading-relaxed text-slate-500">
+                Include booking IDs, listing names, or screenshots when you can
+                — attachments help us resolve issues faster.
+              </p>
+              <Link
+                href="/help"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950 hover:opacity-70"
+              >
+                <HelpCircle className="h-4 w-4" />
+                Browse help center
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

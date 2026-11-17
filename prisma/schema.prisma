@@ -647,6 +647,9 @@ model MediaListing {
   name         String // Station/Channel name (e.g., "Joy FM", "TV3")
   network      String? // Network/Group name
   location     String // City, Region
+  /// Optional map pin for outdoor / billboard sites
+  latitude     Float?
+  longitude    Float?
   frequency    String? // For radio: "99.7 FM", for TV: "Channel 3"
   description  String?       @db.Text
   reach        String? // e.g., "2M+ listeners", "5M+ households"

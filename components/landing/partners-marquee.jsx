@@ -54,8 +54,8 @@ export function PartnersMarquee() {
             </span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
-            Names below are placeholder examples for illustration — not
-            affiliated stations or partners.
+    
+            not affiliated stations or partners.
           </p>
         </div>
 

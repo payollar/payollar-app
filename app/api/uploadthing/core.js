@@ -39,6 +39,24 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ file }) => {
       return { url: file.url };
     }),
+  /** Contact support screenshots / PDFs */
+  supportAttachment: f(
+    {
+      image: { maxFileSize: "8MB", maxFileCount: 4 },
+      pdf: { maxFileSize: "8MB", maxFileCount: 4 },
+    },
+    {
+      awaitServerData: false,
+    }
+  ).onUploadComplete(async ({ file }) => {
+    return {
+      url: file.url || `https://utfs.io/f/${file.key}`,
+      key: file.key,
+      type: file.type,
+      name: file.name,
+      size: file.size,
+    };
+  }),
   transmissionCertificate: f(
     {
       image: { maxFileSize: "10MB" },

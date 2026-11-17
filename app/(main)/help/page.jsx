@@ -15,8 +15,17 @@ import {
   Settings,
   FileText,
   CreditCard,
+  Building2,
+  Megaphone,
+  MessageSquare,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -25,136 +34,178 @@ const faqCategories = {
     {
       question: "What is Payollar?",
       answer:
-        "Payollar is a platform that connects clients with talented creators. Clients can book appointments, purchase digital products, apply creators to campaigns, and access various media services. Creators can offer their services, sell digital products, and apply to campaigns.",
+        "Payollar connects brands and clients with creators, and also helps you buy media — TV, radio, digital, and billboard inventory — from media agencies on the platform. Clients book talent, run campaigns, and plan media buys. Creators offer services and products. Media agencies publish listings, packages, and rate cards.",
     },
     {
       question: "How do I get started?",
       answer:
-        "After signing up, you'll be guided through an onboarding process where you'll choose your role (Client or Creator). Complete your profile setup and you're ready to start using the platform!",
+        "Sign up and complete onboarding to choose your role: Client, Creator, or Media Agency. Finish your profile, then use your dashboard. Clients can browse talents and Media Buying. Creators set availability and services. Media agencies start from Custom packages or the Get started guide in their dashboard.",
+    },
+    {
+      question: "What roles can I use on Payollar?",
+      answer:
+        "Client — book creators, run campaigns, and buy media. Creator — offer services, sell products, and apply to campaigns. Media Agency — list stations/sites, publish packages and rate cards, and manage booking requests and negotiations.",
     },
     {
       question: "Is there a mobile app?",
       answer:
-        "Currently, Payollar is available as a web application. You can access it from any device with a modern web browser. A mobile app may be available in the future.",
+        "Payollar is a web app. You can use it in a modern browser on phone, tablet, or desktop. A native mobile app may come later.",
     },
     {
       question: "How do I contact support?",
       answer:
-        "You can reach our support team at hey@payollar.com. We typically respond within 24-48 hours. For urgent matters, please include 'URGENT' in your subject line.",
+        "Use Contact Support (/contact-support) to send a message and optionally attach screenshots or PDFs. You can also email hey@payollar.com or call +233 (55) 820-7902. We usually reply within 24 hours.",
     },
   ],
   client: [
     {
-      question: "How do I book an appointment with a creator?",
+      question: "How do I book a creator?",
       answer:
-        "Navigate to the 'Browse Talents' section, find a creator you're interested in, view their profile and availability, then click 'Book Appointment' to schedule a session. You'll need sufficient credits to complete the booking.",
+        "Open Find Talents, choose a creator, check availability, then book. You’ll need enough credits for the session. After booking, join the call from your Bookings when it’s time.",
     },
     {
       question: "What are credits and how do I get them?",
       answer:
-        "Credits are the currency used on Payollar to book appointments and purchase services. New users receive 2 free credits upon signup. You can purchase additional credits through your dashboard or when booking appointments.",
+        "Credits are used for creator appointments and some services. New users typically receive starter credits. You can buy more from your client dashboard when booking or from billing settings.",
+    },
+    {
+      question: "How do I buy media (TV, radio, digital, billboard)?",
+      answer:
+        "Go to Media or Products and pick a channel. Digital listings show packages you can Get Quote on — that opens a Messages negotiation with the agency. Billboard sites use Book to view rates and request a quote. TV and radio use marketplace listings and rate cards where available.",
+    },
+    {
+      question: "What’s the difference between Digital Get Quote and Billboard Book?",
+      answer:
+        "Digital Get Quote starts a live conversation in Messages for package rates. Billboard Book opens the site page so you can review rates, availability, and continue to quote or negotiate. Both can lead to a booking request the agency reviews.",
     },
     {
       question: "How do I create a campaign?",
       answer:
-        "Go to the 'Campaigns' section in your dashboard and click 'Create Campaign'. Fill in the details including campaign type, requirements, budget, and timeline. Once published, creators can apply to your campaign.",
+        "From your client dashboard, open Campaigns and create a campaign with brief, budget, timeline, and requirements. Publish it so creators can apply. You review applications and hire from there.",
+    },
+    {
+      question: "Where do negotiations and media chats live?",
+      answer:
+        "Open Messages for media quote threads and ongoing chats. Structured offer / counter-offer flows also appear under Negotiations when a booking is being priced. Keep an eye on both when a media buy is in progress.",
     },
     {
       question: "Can I cancel an appointment?",
       answer:
-        "Yes, you can cancel appointments through your 'Bookings' section. Please note that cancellation policies may vary depending on the creator and timing of the cancellation. Check the specific booking details for more information.",
-    },
-    {
-      question: "How do video calls work?",
-      answer:
-        "When you book an appointment, a video call link is automatically generated. At the scheduled time, go to your 'Bookings' section and click 'Join Call' to start the video session with your creator.",
+        "Yes — from Bookings. Policies depend on the creator and how close you are to the start time. Check the booking details for that session’s rules.",
     },
     {
       question: "What is the Media Library?",
       answer:
-        "The Media Library stores all your purchased digital products and campaign deliverables. You can access and download your media files anytime from this section.",
+        "Your Media Library holds purchased digital products and campaign deliverables so you can download them anytime from your client dashboard.",
+    },
+  ],
+  media: [
+    {
+      question: "How do media agencies get set up?",
+      answer:
+        "Register as a Media Agency, complete Settings (agency name, contact, location), then add listings under Custom packages. Set listings to Active so they appear on the marketplace. Use Get started in the agency dashboard for a full tour.",
+    },
+    {
+      question: "What are Custom packages vs Smart rate cards?",
+      answer:
+        "Custom packages are fixed offers (name, price, duration, reach) attached to a listing — these power Digital marketplace Get Quote. Smart rate cards are detailed pricing tables (sections, rows, dayparts) you publish for buyers who need a full rate sheet. Many agencies use both.",
+    },
+    {
+      question: "How do I make a digital listing show on the marketplace?",
+      answer:
+        "Create a Digital listing, set status to Active, add at least one package, and ideally a cover image. Packages are what buyers select when they click Get Quote.",
+    },
+    {
+      question: "Can billboard listings use a map pin?",
+      answer:
+        "Yes. When media type is Billboard, open Use map on the listing form to search a place in Ghana, use your location, or click the map to drop a pin. Coordinates are saved with the listing; location text still works as usual.",
+    },
+    {
+      question: "Where do booking requests and negotiations appear?",
+      answer:
+        "Incoming interest shows in Requests. Use Negotiations for price discussions linked to a booking. Messages holds live chat from marketplace quotes. After delivery, upload Transmission certificates and Reporting as needed.",
+    },
+    {
+      question: "How do I edit or delete a listing?",
+      answer:
+        "In Custom packages, use Edit on a listing card to update details, status, placements, demographics, and map pin (for billboards). Delete removes the listing and its packages after confirmation.",
     },
   ],
   creator: [
     {
       question: "How do I get verified as a creator?",
       answer:
-        "Complete your profile with all required information including your specialty, portfolio links, experience, and upload verification documents. Our team will review your application and verify your account. This process typically takes 2-5 business days.",
+        "Complete your profile (specialty, portfolio, experience) and submit verification documents. Reviews usually take a few business days. You can check status under creator verification.",
     },
     {
-      question: "How do I set my availability?",
+      question: "How do I set availability and services?",
       answer:
-        "Go to your dashboard and navigate to the availability settings. You can set your available days and times. Make sure to keep this updated so clients can book appointments with you.",
+        "In your creator dashboard, set available days and times, then add services with rates (hourly, per session, or fixed). Keep availability current so clients can book you.",
     },
     {
-      question: "How do I create and sell digital products?",
+      question: "How do I sell digital products?",
       answer:
-        "Navigate to the 'Products' section in your creator dashboard and click 'Create Product'. Upload your digital file, set a price, add a description and cover image. Once published, clients can purchase your products.",
+        "Open Products in your creator dashboard, create a product, upload the file, set price and cover, then publish. Sales appear in your earnings flow.",
     },
     {
       question: "How do I get paid?",
       answer:
-        "You'll receive payouts for product sales and completed services. Make sure to add your bank account information in your settings. Payouts are processed according to our payment schedule, typically within 7-14 business days.",
+        "Add payout details in Settings. Earnings from completed services and product sales are paid out on the platform schedule — typically within 7–14 business days after processing.",
     },
     {
       question: "How do I apply to campaigns?",
       answer:
-        "Browse available campaigns in the 'Campaigns' section, review the requirements and budget, then click 'Apply' to submit your application. Include your portfolio, experience, and rate information.",
-    },
-    {
-      question: "Can I offer custom services?",
-      answer:
-        "Yes! Go to the 'Services' section in your dashboard to create custom service offerings. You can set rates per hour, per session, or fixed prices. Clients can then book these services directly.",
+        "Browse Campaigns, open a brief that fits, and apply with portfolio, experience, and rate. Clients review applications and shortlist talent.",
     },
   ],
   technical: [
     {
-      question: "I'm having trouble logging in. What should I do?",
+      question: "I’m having trouble signing in. What should I do?",
       answer:
-        "Try resetting your password using the 'Forgot Password' link on the sign-in page. If you continue to have issues, clear your browser cache and cookies, or try using a different browser. Contact support if problems persist.",
+        "Use Forgot Password on the sign-in page. Clear cache or try another browser if needed. Media agencies should use the media agency sign-in route. Contact support if it still fails — attach a screenshot if you can.",
     },
     {
-      question: "The video call isn't working. How do I fix it?",
+      question: "The video call isn’t working. How do I fix it?",
       answer:
-        "Ensure your browser has permission to access your camera and microphone. Try refreshing the page or using a different browser. Check your internet connection. If issues persist, contact support with details about the error.",
+        "Allow camera and microphone in the browser, refresh, and check your connection. Try another browser. If it persists, contact support with the booking ID and any error text.",
     },
     {
-      question: "I can't upload files. What's wrong?",
+      question: "I can’t upload files. What’s wrong?",
       answer:
-        "Check that your file size is within the allowed limits (typically 50MB for most files). Ensure you're using a supported file format. Try using a different browser or clearing your cache. If problems continue, contact support.",
+        "Check size and format limits (for example support attachments allow images/PDFs up to 8MB; cover images and certificates have their own limits). Use a stable connection and a modern browser. If upload finishes but nothing appears, try again or contact support.",
     },
     {
-      question: "My page is loading slowly. What can I do?",
+      question: "Why don’t I see my listing on the marketplace?",
       answer:
-        "Slow loading can be due to internet connection or browser issues. Try refreshing the page, clearing your browser cache, or using a different browser. Check your internet connection speed. If the issue persists, contact support.",
+        "Confirm the listing status is Active, you’ve added packages where required (especially Digital), and you’re looking at the correct channel filter (TV, Radio, Digital, Billboard). Draft or Inactive listings stay hidden from buyers.",
     },
   ],
 };
 
 const quickLinks = [
   {
-    title: "Getting Started Guide",
-    description: "Learn the basics of using Payollar",
+    title: "Getting started",
+    description: "Basics for every role on Payollar",
     icon: BookOpen,
     href: "#getting-started",
   },
   {
-    title: "Client Resources",
-    description: "Everything you need to know as a client",
-    icon: Users,
-    href: "#client-help",
+    title: "Buy media",
+    description: "TV, radio, digital & billboard",
+    icon: Megaphone,
+    href: "/media",
   },
   {
-    title: "Creator Resources",
-    description: "Resources for creators and talents",
-    icon: ShoppingBag,
-    href: "#creator-help",
+    title: "Media agencies",
+    description: "Listings, packages & requests",
+    icon: Building2,
+    href: "#media-help",
   },
   {
-    title: "Contact Support",
-    description: "Get help from our support team",
-    icon: Mail,
-    href: "#contact",
+    title: "Contact support",
+    description: "Message us with optional files",
+    icon: MessageSquare,
+    href: "/contact-support",
   },
 ];
 
@@ -167,7 +218,7 @@ function FAQSection({ category, title, icon: Icon }) {
   return (
     <div className="space-y-4">
       <div className="mb-2 flex items-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-800">
           <Icon className="h-5 w-5" />
         </span>
         <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
@@ -178,7 +229,7 @@ function FAQSection({ category, title, icon: Icon }) {
         {faqCategories[category].map((faq, index) => {
           const open = openIndex === index;
           return (
-            <Card key={index} className={cn(cardClass, "overflow-hidden")}>
+            <Card key={faq.question} className={cn(cardClass, "overflow-hidden")}>
               <CardHeader
                 className={cn(
                   "cursor-pointer transition-colors",
@@ -218,7 +269,7 @@ export default function HelpPage() {
       <div className="mb-6">
         <Link
           href="/"
-          className="inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-[#0055ff]"
+          className="inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to home
@@ -227,7 +278,7 @@ export default function HelpPage() {
 
       <div className="mb-10 text-center sm:mb-12">
         <div className="mb-4 inline-flex items-center justify-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-800">
             <HelpCircle className="h-6 w-6" />
           </span>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
@@ -235,8 +286,8 @@ export default function HelpPage() {
           </h1>
         </div>
         <p className="mx-auto max-w-2xl text-base text-slate-500 sm:text-lg">
-          Find answers to common questions and learn how to make the most of
-          Payollar.
+          Answers for clients, creators, and media agencies — talent bookings,
+          campaigns, and media buying.
         </p>
       </div>
 
@@ -246,12 +297,12 @@ export default function HelpPage() {
             <Card
               className={cn(
                 cardClass,
-                "h-full transition-all hover:border-[#0055ff]/30 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+                "h-full transition-all hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
               )}
             >
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef4ff] text-[#0055ff]">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800">
                     <link.icon className="h-5 w-5" />
                   </span>
                   <div>
@@ -270,57 +321,82 @@ export default function HelpPage() {
       </div>
 
       <section id="getting-started" className="mb-14 scroll-mt-28">
-        <Card className={cn(cardClass, "border-[#0055ff]/15")}>
+        <Card className={cardClass}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5 text-2xl text-slate-950">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#0055ff]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-800">
                 <BookOpen className="h-5 w-5" />
               </span>
-              Getting Started
+              Getting started
             </CardTitle>
             <CardDescription className="text-slate-500">
-              New to Payollar? Start here to learn the basics
+              Pick your path — client, creator, or media agency
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                  <Users className="h-5 w-5 text-[#0055ff]" />
-                  For Clients
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="space-y-3 rounded-2xl bg-[#f7f8fc] p-4">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                  <Users className="h-4 w-4 text-slate-500" />
+                  Clients
                 </h3>
-                <ul className="space-y-2.5 text-slate-600">
+                <ul className="space-y-2 text-sm text-slate-600">
                   {[
-                    "Complete your profile setup",
-                    "Browse available creators and talents",
-                    "Book appointments or purchase digital products",
-                    "Create campaigns to find the perfect talent",
+                    "Finish profile setup",
+                    "Browse talents or open Media",
+                    "Book creators or request media quotes",
+                    "Run campaigns when you need talent",
                   ].map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0055ff]" />
+                    <li key={item} className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                  <ShoppingBag className="h-5 w-5 text-[#0055ff]" />
-                  For Creators
+              <div className="space-y-3 rounded-2xl bg-[#f7f8fc] p-4">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                  <ShoppingBag className="h-4 w-4 text-slate-500" />
+                  Creators
                 </h3>
-                <ul className="space-y-2.5 text-slate-600">
+                <ul className="space-y-2 text-sm text-slate-600">
                   {[
-                    "Complete your creator profile",
-                    "Get verified by submitting credentials",
-                    "Set your availability and services",
-                    "Start offering services and digital products",
+                    "Complete and verify your profile",
+                    "Set availability and services",
+                    "Publish digital products",
+                    "Apply to client campaigns",
                   ].map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0055ff]" />
+                    <li key={item} className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
+              </div>
+              <div className="space-y-3 rounded-2xl bg-[#f7f8fc] p-4">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                  <Building2 className="h-4 w-4 text-slate-500" />
+                  Media agencies
+                </h3>
+                <ul className="space-y-2 text-sm text-slate-600">
+                  {[
+                    "Complete agency Settings",
+                    "Add Active listings + packages",
+                    "Publish smart rate cards if needed",
+                    "Respond in Requests & Messages",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/media-agency/get-started"
+                  className="inline-flex text-sm font-semibold text-slate-950 hover:opacity-70"
+                >
+                  Open agency guide →
+                </Link>
               </div>
             </div>
           </CardContent>
@@ -328,61 +404,79 @@ export default function HelpPage() {
       </section>
 
       <section id="client-help" className="mb-14 scroll-mt-28">
-        <FAQSection category="client" title="Client Help" icon={Users} />
+        <FAQSection category="client" title="Client help" icon={Users} />
+      </section>
+
+      <section id="media-help" className="mb-14 scroll-mt-28">
+        <FAQSection
+          category="media"
+          title="Media agency help"
+          icon={Building2}
+        />
       </section>
 
       <section id="creator-help" className="mb-14 scroll-mt-28">
-        <FAQSection category="creator" title="Creator Help" icon={ShoppingBag} />
+        <FAQSection category="creator" title="Creator help" icon={ShoppingBag} />
       </section>
 
       <section className="mb-14 scroll-mt-28">
-        <FAQSection category="general" title="General Questions" icon={HelpCircle} />
+        <FAQSection
+          category="general"
+          title="General questions"
+          icon={HelpCircle}
+        />
       </section>
 
       <section className="mb-14 scroll-mt-28">
-        <FAQSection category="technical" title="Technical Support" icon={Settings} />
+        <FAQSection
+          category="technical"
+          title="Technical support"
+          icon={Settings}
+        />
       </section>
 
       <section id="contact" className="mb-8 scroll-mt-28">
         <Card className={cn(cardClass, "overflow-hidden")}>
-          <div className="border-b border-[#0055ff]/10 bg-gradient-to-br from-[#eef4ff] to-white px-6 py-5">
+          <div className="border-b border-slate-100 bg-[#f7f8fc] px-6 py-5">
             <CardTitle className="flex items-center gap-2.5 text-2xl text-slate-950">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#0055ff] shadow-sm">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-800 shadow-sm">
                 <Mail className="h-5 w-5" />
               </span>
-              Still Need Help?
+              Still need help?
             </CardTitle>
             <CardDescription className="mt-1 text-slate-500">
-              Our support team is here to assist you
+              Send a request with optional screenshots or PDFs
             </CardDescription>
           </div>
           <CardContent className="space-y-4 pt-6">
-            <div className="space-y-2">
-              <p className="text-sm text-slate-600">
-                If you couldn&apos;t find the answer you&apos;re looking for,
-                please reach out to our support team:
-              </p>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-[#0055ff]" />
-                <a
-                  href="mailto:hey@payollar.com"
-                  className="font-medium text-[#0055ff] hover:underline"
-                >
-                  hey@payollar.com
-                </a>
-              </div>
+            <p className="text-sm text-slate-600">
+              If you couldn&apos;t find an answer here, contact support and
+              include booking IDs, listing names, or attachments when you can.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/contact-support"
+                className="inline-flex h-10 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
+              >
+                Contact support
+              </Link>
+              <a
+                href="mailto:hey@payollar.com"
+                className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                hey@payollar.com
+              </a>
             </div>
             <Separator className="bg-slate-200" />
-            <div className="space-y-2 text-sm text-slate-500">
-              <p>
-                <strong className="text-slate-700">Response Time:</strong> We
-                typically respond within 24-48 hours during business days.
-              </p>
-              <p>
-                <strong className="text-slate-700">For Urgent Matters:</strong>{" "}
-                Please include &quot;URGENT&quot; in your email subject line.
-              </p>
-            </div>
+            <p className="text-sm text-slate-500">
+              Typical reply within 24 hours. Phone:{" "}
+              <a
+                href="tel:+233558207902"
+                className="font-medium text-slate-700 hover:underline"
+              >
+                +233 (55) 820-7902
+              </a>
+            </p>
           </CardContent>
         </Card>
       </section>
@@ -391,7 +485,7 @@ export default function HelpPage() {
         <Card className={cardClass}>
           <CardHeader>
             <CardTitle className="text-xl text-slate-950">
-              Additional Resources
+              Additional resources
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -400,22 +494,22 @@ export default function HelpPage() {
                 href="/terms"
                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
-                <FileText className="h-4 w-4 text-[#0055ff]" />
+                <FileText className="h-4 w-4 text-slate-500" />
                 <span>Terms of Service</span>
               </Link>
               <Link
                 href="/privacy"
                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
-                <FileText className="h-4 w-4 text-[#0055ff]" />
+                <FileText className="h-4 w-4 text-slate-500" />
                 <span>Privacy Policy</span>
               </Link>
               <Link
                 href="/pricing"
                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
-                <CreditCard className="h-4 w-4 text-[#0055ff]" />
-                <span>Pricing Information</span>
+                <CreditCard className="h-4 w-4 text-slate-500" />
+                <span>Pricing</span>
               </Link>
             </div>
           </CardContent>

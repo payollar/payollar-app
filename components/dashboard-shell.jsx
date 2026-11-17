@@ -1,5 +1,6 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/notification-bell";
+import { DashboardTopNav } from "@/components/dashboard-top-nav";
 import { cn } from "@/lib/utils";
 
 /**
@@ -43,7 +44,8 @@ export function DashboardShell({ sidebar, children, panelAttr, railTone = "dark"
                   <span className="text-sm font-semibold text-slate-950 md:hidden">
                     Menu
                   </span>
-                  <div className="ml-auto flex items-center gap-1">
+                  <DashboardTopNav />
+                  <div className="relative z-10 ml-auto flex shrink-0 items-center gap-1">
                     <NotificationBell />
                   </div>
                 </header>

@@ -37,6 +37,8 @@ export async function PATCH(request, { params }) {
     const {
       name,
       location,
+      latitude,
+      longitude,
       reach,
       demographics,
       description,
@@ -48,6 +50,27 @@ export async function PATCH(request, { params }) {
       status,
       listingType,
     } = body;
+
+    const coordsTouched =
+      latitude !== undefined || longitude !== undefined;
+    let nextLat;
+    let nextLng;
+    if (coordsTouched) {
+      const latRaw = latitude === undefined ? owned.listing.latitude : latitude;
+      const lngRaw =
+        longitude === undefined ? owned.listing.longitude : longitude;
+      const lat =
+        latRaw === null || latRaw === "" ? null : Number(latRaw);
+      const lng =
+        lngRaw === null || lngRaw === "" ? null : Number(lngRaw);
+      const hasCoords =
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        Math.abs(lat) <= 90 &&
+        Math.abs(lng) <= 180;
+      nextLat = hasCoords ? lat : null;
+      nextLng = hasCoords ? lng : null;
+    }
 
     if (name !== undefined && !String(name).trim()) {
       return NextResponse.json(
@@ -87,6 +110,10 @@ export async function PATCH(request, { params }) {
           Array.isArray(demographics) && { demographics }),
         ...(timeSlots !== undefined &&
           Array.isArray(timeSlots) && { timeSlots }),
+        ...(coordsTouched && {
+          latitude: nextLat,
+          longitude: nextLng,
+        }),
       },
     });
 

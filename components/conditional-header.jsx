@@ -17,6 +17,9 @@ export default function ConditionalHeader() {
     pathname?.startsWith("/products") ||
     pathname?.startsWith("/rate-cards") ||
     pathname?.startsWith("/help") ||
+    pathname?.startsWith("/contact-support") ||
+    pathname?.startsWith("/privacy") ||
+    pathname?.startsWith("/terms") ||
     pathname?.startsWith("/creator") ||
     pathname?.startsWith("/client") ||
     pathname?.startsWith("/admin") ||
