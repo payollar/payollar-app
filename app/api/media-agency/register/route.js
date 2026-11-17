@@ -27,6 +27,16 @@ export async function POST(req) {
       );
     }
 
+    const existingUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        role: true,
+        mediaAgency: { select: { id: true } },
+      },
+    });
+
+    const isNewAgency = !existingUser?.mediaAgency?.id;
+
     // Ensure role is MEDIA_AGENCY
     await db.user.update({
       where: { id: session.user.id },
@@ -34,9 +44,13 @@ export async function POST(req) {
     });
 
     // Idempotent: update existing profile or create a new one
-    const existingAgency = await db.mediaAgency.findUnique({
-      where: { userId: session.user.id },
-    });
+    const existingAgency = existingUser?.mediaAgency?.id
+      ? await db.mediaAgency.findUnique({
+          where: { id: existingUser.mediaAgency.id },
+        })
+      : await db.mediaAgency.findUnique({
+          where: { userId: session.user.id },
+        });
 
     const mediaAgency = existingAgency
       ? await db.mediaAgency.update({
@@ -60,6 +74,19 @@ export async function POST(req) {
             verificationStatus: "PENDING",
           },
         });
+
+    // Email only when this request creates the agency profile (not on later edits).
+    // Google path usually emails from set-role instead when it creates the stub first.
+    if (isNewAgency) {
+      void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
+        notifyRoleSignupEmails({
+          email: email || session.user.email,
+          name: contactName || session.user.name,
+          role: "MEDIA_AGENCY",
+          agencyName,
+        })
+      );
+    }
 
     return NextResponse.json({
       success: true,

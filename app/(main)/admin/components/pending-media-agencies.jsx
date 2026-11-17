@@ -20,6 +20,8 @@ import {
   User,
   Eye,
   Clock3,
+  Loader2,
+  Send,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,7 +33,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { updateMediaAgencyStatus } from "@/actions/admin";
+import {
+  updateMediaAgencyStatus,
+  resendMediaAgencyWelcomeEmail,
+} from "@/actions/admin";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -84,6 +89,7 @@ function InfoRow({ icon: Icon, children }) {
 
 export function PendingMediaAgencies({ agencies }) {
   const [selectedAgency, setSelectedAgency] = useState(null);
+  const [resendingId, setResendingId] = useState(null);
   const router = useRouter();
 
   const {
@@ -101,6 +107,29 @@ export function PendingMediaAgencies({ agencies }) {
     formData.append("agencyId", agencyId);
     formData.append("status", status);
     await submitStatusUpdate(formData);
+  };
+
+  const handleResendWelcome = async (agency) => {
+    if (resendingId || !agency?.id) return;
+    setResendingId(agency.id);
+    try {
+      const formData = new FormData();
+      formData.append("agencyId", agency.id);
+      const result = await resendMediaAgencyWelcomeEmail(formData);
+      if (result?.success) {
+        toast.success(
+          result.previewSentTo
+            ? `Welcome email sent to ${result.sentTo}. Preview also sent to ${result.previewSentTo}.`
+            : `Welcome email sent to ${result.sentTo}.`
+        );
+      } else {
+        toast.error("Could not resend the welcome email.");
+      }
+    } catch (error) {
+      toast.error(error?.message || "Could not resend the welcome email.");
+    } finally {
+      setResendingId(null);
+    }
   };
 
   useEffect(() => {
@@ -226,15 +255,31 @@ export function PendingMediaAgencies({ agencies }) {
                     </div>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewDetails(agency)}
-                    className="h-9 shrink-0 rounded-full border-slate-200 px-3 text-slate-700 hover:bg-slate-100"
-                  >
-                    <Eye className="mr-1.5 h-4 w-4" />
-                    Review
-                  </Button>
+                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleResendWelcome(agency)}
+                      disabled={resendingId === agency.id || !agency.email}
+                      className="h-9 rounded-full border-slate-200 px-3 text-slate-700 hover:bg-slate-100"
+                    >
+                      {resendingId === agency.id ? (
+                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="mr-1.5 h-4 w-4" />
+                      )}
+                      Resend email
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(agency)}
+                      className="h-9 rounded-full border-slate-200 px-3 text-slate-700 hover:bg-slate-100"
+                    >
+                      <Eye className="mr-1.5 h-4 w-4" />
+                      Review
+                    </Button>
+                  </div>
                 </div>
               </article>
             ))}
@@ -404,14 +449,33 @@ export function PendingMediaAgencies({ agencies }) {
               </div>
 
               <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-                <Button
-                  variant="outline"
-                  onClick={handleCloseDialog}
-                  disabled={loading}
-                  className="h-10 w-full rounded-full border-slate-200 text-slate-700 sm:w-auto"
-                >
-                  Cancel
-                </Button>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                  <Button
+                    variant="outline"
+                    onClick={handleCloseDialog}
+                    disabled={loading}
+                    className="h-10 w-full rounded-full border-slate-200 text-slate-700 sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleResendWelcome(selectedAgency)}
+                    disabled={
+                      loading ||
+                      resendingId === selectedAgency.id ||
+                      !selectedAgency.email
+                    }
+                    className="h-10 w-full rounded-full border-slate-200 text-slate-700 hover:bg-slate-100 sm:w-auto"
+                  >
+                    {resendingId === selectedAgency.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
+                    Resend email
+                  </Button>
+                </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                   <Button
                     variant="outline"

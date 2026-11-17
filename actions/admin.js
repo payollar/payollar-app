@@ -3,7 +3,10 @@
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
-import { sendVerificationStatusEmail } from "@/lib/email";
+import {
+  sendVerificationStatusEmail,
+  sendRoleWelcomeEmail,
+} from "@/lib/email";
 import {
   NOTIFICATION_TYPES,
   disputeHrefForUser,
@@ -413,6 +416,89 @@ export async function updateMediaAgencyStatus(formData) {
   } catch (error) {
     console.error("Failed to update media agency status:", error);
     throw new Error(`Failed to update media agency status: ${error.message}`);
+  }
+}
+
+/**
+ * Resend the media-agency signup welcome email (agency inbox + admin preview copy).
+ */
+export async function resendMediaAgencyWelcomeEmail(formData) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const agencyId = formData.get("agencyId");
+  if (!agencyId) throw new Error("Agency ID is required");
+
+  const authResult = await getAuthUserId();
+
+  try {
+    const agency = await db.mediaAgency.findUnique({
+      where: { id: agencyId },
+      select: {
+        id: true,
+        agencyName: true,
+        contactName: true,
+        email: true,
+        user: { select: { email: true, name: true } },
+      },
+    });
+
+    if (!agency) throw new Error("Media agency not found");
+
+    const recipientEmail = agency.email || agency.user?.email;
+    if (!recipientEmail) {
+      throw new Error("This agency has no email address on file");
+    }
+
+    const recipientName =
+      agency.contactName || agency.user?.name || agency.agencyName || "there";
+
+    const agencyResult = await sendRoleWelcomeEmail(
+      recipientEmail,
+      recipientName,
+      "MEDIA_AGENCY",
+      { agencyName: agency.agencyName }
+    );
+
+    if (!agencyResult?.success) {
+      throw new Error(
+        agencyResult?.error || "Failed to send welcome email to the agency"
+      );
+    }
+
+    let previewSentTo = null;
+    if (authResult?.userId) {
+      const adminUser = await db.user.findUnique({
+        where: { id: authResult.userId },
+        select: { email: true, name: true },
+      });
+
+      if (
+        adminUser?.email &&
+        adminUser.email.toLowerCase() !== recipientEmail.toLowerCase()
+      ) {
+        const preview = await sendRoleWelcomeEmail(
+          adminUser.email,
+          adminUser.name || "Admin",
+          "MEDIA_AGENCY",
+          { agencyName: `${agency.agencyName} (preview)` }
+        );
+        if (preview?.success) {
+          previewSentTo = adminUser.email;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      sentTo: recipientEmail,
+      previewSentTo,
+    };
+  } catch (error) {
+    console.error("Failed to resend media agency welcome email:", error);
+    throw new Error(
+      error.message || "Failed to resend media agency welcome email"
+    );
   }
 }
 

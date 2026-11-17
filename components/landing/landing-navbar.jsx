@@ -89,7 +89,7 @@ export function LandingNavbar() {
     isContactSupport ||
     isLegalPage ||
     isMediaAgencyAuth;
-  /** Light pill on home (light theme), help, contact, legal, and media agency auth */
+  /** Light pill on soft light pages; dark pill elsewhere */
   const useLightPill =
     homeIsLight ||
     isHelp ||
@@ -116,7 +116,7 @@ export function LandingNavbar() {
               ? isLightSurface
                 ? "border-slate-900/10 bg-[#0b1220]/92 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)]"
                 : "border-white/10 bg-background/40 shadow-lg shadow-black/20"
-              : "border-slate-200/80 bg-white/95 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.28)]"
+              : "border-slate-200/90 bg-white/90 shadow-[0_14px_40px_-18px_rgba(15,23,42,0.22)]"
           )}
         >
           <div className="flex h-14 w-full shrink-0 items-center px-3 sm:px-4">

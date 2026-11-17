@@ -30,7 +30,7 @@ export function AuthSplitLayout({
       data-theme={isLight ? "light" : undefined}
       className={cn(
         "relative flex min-h-0 w-full flex-1 flex-col justify-center overflow-hidden",
-        isLight ? "bg-[#f4f6fb] text-slate-900" : "bg-background text-foreground",
+        isLight ? "bg-transparent text-slate-900" : "bg-background text-foreground",
         className
       )}
     >
@@ -89,14 +89,17 @@ export function AuthSplitLayout({
 
 function LightAuthBackground() {
   return (
-    <div className="pointer-events-none absolute left-0 top-0 z-0 min-h-dvh w-full overflow-hidden" aria-hidden>
+    <div
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      aria-hidden
+    >
       <div className="absolute inset-0 bg-[#f4f6fb]" />
-      <div className="absolute inset-x-0 top-0 h-[42rem] bg-gradient-to-b from-white via-[#f7f9fc] to-transparent" />
-      <div className="absolute -left-28 -top-10 h-[32rem] w-[32rem] rounded-full bg-[#0055ff]/[0.08] blur-[7.5rem]" />
-      <div className="absolute -right-20 top-24 h-[26rem] w-[26rem] rounded-full bg-sky-300/25 blur-[6.5rem]" />
-      <div className="absolute bottom-32 left-[35%] h-[20rem] w-[20rem] rounded-full bg-indigo-200/30 blur-[5.5rem]" />
+      <div className="absolute inset-x-0 top-0 h-[36rem] bg-gradient-to-b from-[#eef3fb] via-[#f4f6fb] to-transparent" />
+      <div className="absolute -left-28 -top-16 h-[34rem] w-[34rem] rounded-full bg-[#0055ff]/[0.10] blur-[7.5rem]" />
+      <div className="absolute -right-24 top-8 h-[28rem] w-[28rem] rounded-full bg-sky-300/30 blur-[6.5rem]" />
+      <div className="absolute bottom-24 left-[32%] h-[22rem] w-[22rem] rounded-full bg-indigo-200/35 blur-[5.5rem]" />
       <div
-        className="absolute inset-0 opacity-[0.35]"
+        className="absolute inset-0 opacity-[0.3]"
         style={{
           backgroundImage:
             "radial-gradient(circle, rgba(15,23,42,0.045) 1px, transparent 1px)",

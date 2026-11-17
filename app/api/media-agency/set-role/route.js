@@ -25,7 +25,7 @@ export async function POST() {
         role: true,
         name: true,
         email: true,
-        mediaAgency: { select: { id: true } },
+        mediaAgency: { select: { id: true, agencyName: true } },
       },
     });
 
@@ -43,6 +43,8 @@ export async function POST() {
       });
     }
 
+    const wasUnassigned = !user.role || user.role === "UNASSIGNED";
+
     if (user.role !== "MEDIA_AGENCY") {
       await db.user.update({
         where: { id: user.id },
@@ -51,10 +53,12 @@ export async function POST() {
     }
 
     let agencyId = user.mediaAgency?.id || null;
+    let agencyName = user.mediaAgency?.agencyName || null;
+    let createdNewAgency = false;
 
     if (!agencyId) {
       const contactName = (user.name || "").trim() || "Agency contact";
-      const agencyName =
+      agencyName =
         (user.name || "").trim() ||
         (user.email ? user.email.split("@")[0] : "My Media Agency");
 
@@ -66,9 +70,23 @@ export async function POST() {
           email: user.email,
           verificationStatus: "PENDING",
         },
-        select: { id: true },
+        select: { id: true, agencyName: true },
       });
       agencyId = agency.id;
+      agencyName = agency.agencyName;
+      createdNewAgency = true;
+    }
+
+    // First-time assignment / first agency profile only
+    if (wasUnassigned || createdNewAgency) {
+      void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
+        notifyRoleSignupEmails({
+          email: user.email,
+          name: user.name,
+          role: "MEDIA_AGENCY",
+          agencyName: agencyName || undefined,
+        })
+      );
     }
 
     return NextResponse.json({

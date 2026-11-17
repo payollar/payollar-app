@@ -10,7 +10,7 @@ export default function MediaAgencyAuthLayout({ children }) {
     <div
       data-theme="light"
       data-media-agency-auth="true"
-      className="relative min-h-0 w-full flex-1 bg-[#f4f6fb] text-slate-900"
+      className="relative min-h-0 w-full flex-1 bg-transparent text-slate-900"
     >
       {children}
     </div>

@@ -27,25 +27,22 @@ const PHASES = [
   {
     id: "setup",
     label: "Set up",
-    title: "Make buyers able to find you",
-    description:
-      "Finish your profile, publish inventory, and choose how you sell — packages, rate tables, or both.",
+    title: "Add what you sell",
+    description: "Profile, listings, prices, and your booking terms.",
     stepIds: ["settings", "custom-packages", "smart-rate-card", "terms"],
   },
   {
     id: "sell",
     label: "Sell",
-    title: "Win work from the marketplace",
-    description:
-      "Quotes and bookings land here. Negotiate terms, then keep the conversation in Messages.",
+    title: "Handle buyer interest",
+    description: "Requests, chats, price talks, and creator campaigns.",
     stepIds: ["requests", "negotiations", "messages", "campaigns"],
   },
   {
     id: "deliver",
     label: "Deliver",
-    title: "Close the loop after airtime",
-    description:
-      "Upload proof of transmission and performance so clients trust the next booking.",
+    title: "Prove the work ran",
+    description: "Certificates, reports, and your home overview.",
     stepIds: ["transmission", "reporting", "dashboard"],
   },
 ];
@@ -58,12 +55,12 @@ const STEPS = [
     title: "Settings",
     href: "/media-agency/settings",
     cta: "Open settings",
-    summary: "Your agency profile is the foundation of every listing.",
-    why: "Buyers see your agency name, contact details, and location. Incomplete profiles block listings and look untrusted.",
+    summary: "Your agency profile — name, contact, and location.",
+    for: "Update how your agency appears to buyers and keep contact details current.",
     doThis: [
-      "Confirm agency name, contact person, and email",
-      "Add city / region so marketplace filters work",
-      "Save before creating your first listing",
+      "Enter agency name and contact person",
+      "Add email and city / region",
+      "Save before you add listings",
     ],
   },
   {
@@ -73,15 +70,15 @@ const STEPS = [
     title: "Custom packages",
     href: "/media-agency/rate-card",
     cta: "Add a listing",
-    summary: "Create outlet listings and fixed packages that power Digital marketplace quotes.",
-    why: "Each listing is a station, site, or publisher. Packages (price + duration + reach) show on the marketplace and feed Get Quote → Messages.",
+    summary: "List your media and set ready-made offers buyers can buy.",
+    for: "Use this page to add a TV station, radio, website, or billboard, then attach simple packages (price, length, reach) that show on the Media marketplace.",
     doThis: [
-      "Add a listing for each outlet (TV, radio, digital, billboard…)",
-      "Set status to Active when you want it discoverable",
-      "Add at least one package buyers can request",
-      "Upload a cover image for stronger marketplace cards",
+      "Add one listing per outlet you sell",
+      "Turn status to Active so buyers can see it",
+      "Add a package with price and details",
+      "Add a cover photo if you have one",
     ],
-    tip: "Digital packages are what clients pick when they click Get Quote on Media Buying.",
+    tip: "Start with one listing and one package. You can add more later.",
   },
   {
     id: "smart-rate-card",
@@ -90,14 +87,14 @@ const STEPS = [
     title: "Smart rate card",
     href: "/media-agency/smart-rate-card",
     cta: "Open rate cards",
-    summary: "Build publishable pricing tables for stations that sell by row / spot.",
-    why: "Use this when buyers need a full rate sheet — dayparts, durations, spot prices — not just a handful of packages.",
+    summary: "Full price tables — for when one package is not enough.",
+    for: "Use this when you sell many spots or dayparts and need a detailed rate sheet instead of a few fixed packages.",
     doThis: [
-      "Create or select a station listing",
-      "Add sections and pricing tables",
-      "Publish when the card is ready for buyers",
+      "Pick or create the station listing",
+      "Add your pricing rows / sections",
+      "Publish when the card is ready",
     ],
-    tip: "Custom packages = fixed offers. Smart rate card = detailed tables. Many agencies use both.",
+    tip: "Packages = simple offers. Rate card = full price list. Use either or both.",
   },
   {
     id: "terms",
@@ -106,11 +103,11 @@ const STEPS = [
     title: "Terms & conditions",
     href: "/media-agency/terms",
     cta: "Edit terms",
-    summary: "Set the standard commercial terms attached to your bookings.",
-    why: "Clear cancellation, payment, and creative deadlines reduce back-and-forth later.",
+    summary: "Your standard rules for bookings.",
+    for: "Write payment, cancellation, and delivery rules so buyers know what they agree to.",
     doThis: [
-      "Write or paste your standard media terms",
-      "Keep a version buyers can review during negotiation",
+      "Add your usual media terms",
+      "Keep them updated when policies change",
     ],
   },
   {
@@ -120,12 +117,12 @@ const STEPS = [
     title: "Requests",
     href: "/media-agency/requests",
     cta: "View requests",
-    summary: "Incoming booking requests from marketplace and rate-card flows.",
-    why: "This is your inbox for paid interest. Pending requests need accept, decline, or negotiate.",
+    summary: "New booking requests from buyers.",
+    for: "This is your booking inbox. Accept, decline, or negotiate each request.",
     doThis: [
-      "Check Pending regularly",
-      "Open a request to see package, dates, and client details",
-      "Confirm, decline, or start a negotiation",
+      "Check Pending often",
+      "Open a request to review details",
+      "Accept, decline, or negotiate",
     ],
   },
   {
@@ -135,11 +132,11 @@ const STEPS = [
     title: "Negotiations",
     href: "/media-agency/negotiations",
     cta: "Open negotiations",
-    summary: "Price and package discussions before a booking is locked.",
-    why: "When a quote isn’t quite right, negotiate here — offers stay structured and linked to the booking.",
+    summary: "Price talks before a booking is final.",
+    for: "When a buyer wants a different price or package, handle the back-and-forth here.",
     doThis: [
-      "Respond to client offers with a counter or accept",
-      "Keep notes on agreed inventory and flight dates",
+      "Review the client’s offer",
+      "Accept or send a counter",
     ],
   },
   {
@@ -149,11 +146,11 @@ const STEPS = [
     title: "Messages",
     href: "/messages",
     cta: "Open messages",
-    summary: "Live chat threads with clients — including Digital Get Quote conversations.",
-    why: "Marketplace quotes open a media message thread so you can clarify creatives, dates, and next steps.",
+    summary: "Chat with buyers about dates, creatives, and next steps.",
+    for: "Answer questions in chat. When they are ready to book, the formal request still lives under Requests.",
     doThis: [
-      "Reply promptly when a Get Quote thread appears",
-      "Point clients to Requests once commercial terms are clear",
+      "Reply when a new chat comes in",
+      "Move to Requests when terms are clear",
     ],
   },
   {
@@ -163,11 +160,11 @@ const STEPS = [
     title: "Campaigns",
     href: "/media-agency/campaigns",
     cta: "View campaigns",
-    summary: "Post talent / influencer campaigns when you need creators, not just airtime.",
-    why: "If a client brief needs creators, run a campaign here and review applications separately from media bookings.",
+    summary: "Find creators / influencers for a brief.",
+    for: "Use this only when you need talent — not for selling airtime or billboards.",
     doThis: [
-      "Create a campaign with brief, budget, and deliverables",
-      "Review applications and shortlist talent",
+      "Post a brief with budget and needs",
+      "Review who applies",
     ],
   },
   {
@@ -177,11 +174,11 @@ const STEPS = [
     title: "Transmission certificates",
     href: "/media-agency/transmission-certificates",
     cta: "Upload a TC",
-    summary: "Proof that spots or placements ran as booked.",
-    why: "Clients and finance teams often need TCs before paying the final invoice.",
+    summary: "Proof that the media ran.",
+    for: "Upload certificates so clients can confirm spots or placements went live.",
     doThis: [
-      "Upload certificates against the right booking",
-      "Keep files named clearly by campaign / flight",
+      "Upload the file for the right booking",
+      "Name files clearly (campaign / dates)",
     ],
   },
   {
@@ -191,11 +188,11 @@ const STEPS = [
     title: "Reporting",
     href: "/media-agency/reporting",
     cta: "Add a report",
-    summary: "Post-campaign performance reports and delivery summaries.",
-    why: "Good reporting wins renewals. Attach reach, impressions, or qualitative notes buyers can share internally.",
+    summary: "Results after a campaign ends.",
+    for: "Share performance notes, numbers, or PDFs with the client after delivery.",
     doThis: [
-      "Create a report linked to the campaign window",
-      "Upload supporting PDFs or screenshots",
+      "Create a report for that campaign",
+      "Attach any supporting files",
     ],
   },
   {
@@ -205,12 +202,11 @@ const STEPS = [
     title: "Dashboard",
     href: "/media-agency",
     cta: "Go to dashboard",
-    summary: "Your daily snapshot — listings, pending requests, and recent activity.",
-    why: "Start here when you log in. Use the numbers as a to-do list, then jump into the right workspace.",
+    summary: "Your home screen when you log in.",
+    for: "See listings, pending requests, and quick links to the rest of the dashboard.",
     doThis: [
-      "Scan pending requests first",
-      "Use quick actions for packages or rate cards",
-      "Come back to this guide anytime from the sidebar",
+      "Check pending requests first",
+      "Jump to packages or rate cards as needed",
     ],
   },
 ];
@@ -260,21 +256,21 @@ export function GetStartedGuide() {
     <MediaAgencyPageShell
       eyebrow="Guide"
       title="Get started"
-      description="A short tour of the media dashboard — what each page does, and the order that usually works."
+      description="Plain answers for what each page is for — and what to do first."
     >
       <section className={cn(DASHBOARD_CARD_CLASS, "p-6 md:p-8")}>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-3">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               <Compass className="h-3.5 w-3.5" />
-              Media agency tour
+              Media agency guide
             </span>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-950 md:text-3xl">
-              Sell inventory in three moves.
+              What each page is for
             </h2>
             <p className="text-sm leading-relaxed text-slate-500 md:text-[15px]">
-              Set up what you sell, respond when buyers reach out, then prove delivery.
-              Follow the path below — jump to any page when you’re ready.
+              Set up your agency, respond to buyers, then upload proof after the work runs.
+              Skim a card below, then open that page when you’re ready.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -426,15 +422,15 @@ export function GetStartedGuide() {
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl bg-[#f7f8fc] p-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                      Why it matters
+                      What this page is for
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                      {step.why}
+                      {step.for}
                     </p>
                   </div>
                   <div className="rounded-2xl bg-[#f7f8fc] p-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                      Do this
+                      What to do
                     </p>
                     <ul className="mt-2 space-y-2">
                       {step.doThis.map((item) => (
@@ -471,10 +467,10 @@ export function GetStartedGuide() {
           >
             <div>
               <h3 className="text-base font-semibold text-slate-950">
-                Ready to publish?
+                Not sure where to start?
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Most agencies start with one Active digital listing and one package.
+                Add your profile in Settings, then create one listing with one package.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

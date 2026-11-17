@@ -83,10 +83,14 @@ export async function setUserRole(formData) {
     throw new Error("Invalid role selection");
   }
 
+  // Only send signup emails the first time a role is chosen
+  const isFirstRoleAssignment =
+    !user.role || user.role === "UNASSIGNED";
+
   try {
     // For client role - simple update
     if (role === "CLIENT") {
-      await db.user.update({
+      const updated = await db.user.update({
         where: {
           id: userId,
         },
@@ -94,6 +98,16 @@ export async function setUserRole(formData) {
           role: "CLIENT",
         },
       });
+
+      if (isFirstRoleAssignment) {
+        void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
+          notifyRoleSignupEmails({
+            email: updated.email,
+            name: updated.name,
+            role: "CLIENT",
+          })
+        );
+      }
 
       revalidatePath("/");
       return { success: true, redirect: "/" };
@@ -132,7 +146,7 @@ export async function setUserRole(formData) {
       }
 
       // Update user with all information
-      await db.user.update({
+      const updated = await db.user.update({
         where: {
           id: userId,
         },
@@ -162,6 +176,17 @@ export async function setUserRole(formData) {
             userId,
           })),
         });
+      }
+
+      if (isFirstRoleAssignment) {
+        void import("@/lib/email").then(({ notifyRoleSignupEmails }) =>
+          notifyRoleSignupEmails({
+            email: updated.email,
+            name: updated.name,
+            role: "CREATOR",
+            specialty,
+          })
+        );
       }
 
       revalidatePath("/");
