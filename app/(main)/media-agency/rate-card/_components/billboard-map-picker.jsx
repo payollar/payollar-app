@@ -23,10 +23,7 @@ const MapCanvas = dynamic(() => import("./billboard-map-canvas"), {
 async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-      {
-        headers: { Accept: "application/json" },
-      }
+      `/api/geocode/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -38,11 +35,11 @@ async function reverseGeocode(lat, lng) {
 
 async function searchPlaces(query) {
   const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=gh&q=${encodeURIComponent(query)}`,
-    { headers: { Accept: "application/json" } }
+    `/api/geocode/search?q=${encodeURIComponent(query)}`
   );
-  if (!res.ok) throw new Error("Search failed");
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Search failed");
+  return Array.isArray(data.results) ? data.results : [];
 }
 
 /**
