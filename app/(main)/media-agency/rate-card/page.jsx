@@ -7,6 +7,7 @@ import {
 } from "@/lib/media-agency-type";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
   Package,
   Plus,
@@ -15,18 +16,23 @@ import {
   Megaphone,
   Smartphone,
   Building2,
-  Clock,
+  FileText,
   Users,
+  ArrowRight,
 } from "lucide-react";
 import { RateCardForm } from "./_components/rate-card-form";
 import { ListingPackagesSection } from "./_components/listing-packages-section";
-import { ListingTimeClassesSection } from "./_components/listing-time-classes-section";
 import { CustomPackageDetailsSection } from "./_components/custom-package-details-section";
 import { ListingCoverUpload } from "./_components/listing-cover-upload";
 import { ListingCardActions } from "./_components/listing-card-actions";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/utils";
+
+function usesFixedPackages(listingType) {
+  const type = String(listingType || "").toUpperCase();
+  return type === "DIGITAL" || type === "BILLBOARD";
+}
 
 function getMediaTypeIcon(type) {
   switch (type) {
@@ -84,20 +90,25 @@ export default async function MediaAgencyRateCardPage() {
   }));
 
   const listings = mediaAgency.listings;
-  const packageCount = listings.reduce(
-    (sum, listing) => sum + (listing.packages?.length || 0),
-    0
-  );
-  const timeClassCount = listings.reduce(
-    (sum, listing) => sum + (listing.timeClasses?.length || 0),
-    0
-  );
+  const activeCount = listings.filter((l) => l.status === "ACTIVE").length;
+  const packageCount = listings.reduce((sum, listing) => {
+    if (!usesFixedPackages(listing.listingType)) return sum;
+    return sum + (listing.packages?.length || 0);
+  }, 0);
+  const showPackageStat =
+    isMediaAdmin ||
+    usesFixedPackages(scopedMediaType) ||
+    listings.some((l) => usesFixedPackages(l.listingType));
 
   return (
     <MediaAgencyPageShell
       eyebrow="Packages"
       title="Custom packages"
-      description="Create listings and package offers for TV, radio, digital, billboard, and more."
+      description={
+        showPackageStat
+          ? "Manage station and site listings. Digital and billboard packages live here; TV and radio rates are on Smart rate card."
+          : "Manage your station listings here. Build and publish TV/radio rates on Smart rate card."
+      }
       actions={
         <Button variant="black" className="rounded-full" asChild>
           <a href="#add-listing">
@@ -110,13 +121,16 @@ export default async function MediaAgencyRateCardPage() {
       <div
         className={cn(
           DASHBOARD_CARD_CLASS,
-          "grid grid-cols-3 overflow-hidden"
+          "grid overflow-hidden",
+          showPackageStat ? "grid-cols-3" : "grid-cols-2"
         )}
       >
         {[
           { label: "Listings", value: listings.length, icon: Building2 },
-          { label: "Packages", value: packageCount, icon: Package },
-          { label: "Time classes", value: timeClassCount, icon: Clock },
+          { label: "Active", value: activeCount, icon: FileText },
+          ...(showPackageStat
+            ? [{ label: "Packages", value: packageCount, icon: Package }]
+            : []),
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -337,19 +351,35 @@ export default async function MediaAgencyRateCardPage() {
                       </div>
                     )}
 
-                    <div
-                      className={cn(
-                        "grid gap-3 p-4 sm:p-5",
-                        listing.listingType === "DIGITAL" ||
-                          listing.listingType === "BILLBOARD"
-                          ? "lg:grid-cols-1"
-                          : "lg:grid-cols-2"
-                      )}
-                    >
-                      <ListingPackagesSection listing={listing} />
-                      {listing.listingType === "DIGITAL" ||
-                      listing.listingType === "BILLBOARD" ? null : (
-                        <ListingTimeClassesSection listing={listing} />
+                    <div className="p-4 sm:p-5">
+                      {usesFixedPackages(listing.listingType) ? (
+                        <ListingPackagesSection listing={listing} />
+                      ) : (
+                        <div className="rounded-2xl border border-slate-200 bg-[#f7f8fc] px-4 py-4 sm:px-5">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950">
+                                <FileText className="h-4 w-4 text-[#0055ff]" />
+                                Rates live on Smart rate card
+                              </p>
+                              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                                TV and radio pricing (ad types, dayparts, and
+                                rates) is managed on Smart rate card — not as
+                                fixed packages here.
+                              </p>
+                            </div>
+                            <Button
+                              asChild
+                              size="sm"
+                              className="h-9 shrink-0 rounded-full bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"
+                            >
+                              <Link href="/media-agency/smart-rate-card">
+                                Open Smart rate card
+                                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </article>
@@ -374,10 +404,12 @@ export default async function MediaAgencyRateCardPage() {
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">
             {isMediaAdmin
-              ? "Admin account — create listings for any media type, then add packages above."
-              : scopedMediaType
+              ? "Admin account — create listings for any media type. Digital/billboard packages stay here; TV/radio rates go on Smart rate card."
+              : usesFixedPackages(scopedMediaType)
                 ? `Fields are tailored for ${String(scopedMediaType).replaceAll("_", " ")}. Add packages on the listing above.`
-                : "Choose a media type to tailor the fields, then add packages on the listing above."}
+                : scopedMediaType
+                  ? `Fields are tailored for ${String(scopedMediaType).replaceAll("_", " ")}. After creating a listing, set rates on Smart rate card.`
+                  : "Choose a media type to tailor the fields, then finish pricing on Smart rate card (or packages for digital/billboard)."}
           </p>
         </div>
         <div className="px-5 py-5 sm:px-6">

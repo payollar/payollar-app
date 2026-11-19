@@ -706,23 +706,12 @@ export default function SmartRateCardPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
-                Media type <span className="text-[#0055ff]">*</span>
-              </Label>
-              {primaryMediaType && availableMediaTypes.length === 1 ? (
-                <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
-                  {(() => {
-                    const Icon = availableMediaTypes[0]?.icon || Building2;
-                    return <Icon className="h-4 w-4 text-[#0055ff]" />;
-                  })()}
-                  {availableMediaTypes[0]?.label ||
-                    String(primaryMediaType).replaceAll("_", " ")}
-                  <span className="text-xs font-normal text-slate-400">
-                    (your agency type)
-                  </span>
-                </div>
-              ) : (
+            {/* Locked agencies inherit type — only unrestricted/admin accounts pick here */}
+            {!primaryMediaType ? (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">
+                  Media type <span className="text-[#0055ff]">*</span>
+                </Label>
                 <div className="grid grid-cols-3 gap-2">
                   {availableMediaTypes.map((type) => {
                     const Icon = type.icon;
@@ -747,8 +736,8 @@ export default function SmartRateCardPage() {
                     );
                   })}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : null}
 
             <div className="space-y-1.5">
               <Label

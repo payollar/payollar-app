@@ -322,7 +322,7 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
       }
 
       toast.success("Media listing created successfully!");
-      setListingType("");
+      setListingType(lockedType || "");
       setName("");
       setNetwork("");
       setLocation("");
@@ -349,19 +349,20 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
       <ListingCoverUpload value={imageUrl} onChange={setImageUrl} />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="listingType" className="text-sm font-medium text-slate-700">
-            Media type <span className="text-[#0055ff]">*</span>
-          </Label>
-          {lockedType ? (
-            <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
-              {String(lockedType).replaceAll("_", " ")}
-              <span className="ml-2 text-xs font-normal text-slate-400">
-                (your agency type)
-              </span>
-            </div>
-          ) : (
-            <Select value={listingType} onValueChange={handleTypeChange} required>
+        {/* Locked agencies inherit type from signup — only admins pick type here */}
+        {!lockedType ? (
+          <div className="space-y-2">
+            <Label
+              htmlFor="listingType"
+              className="text-sm font-medium text-slate-700"
+            >
+              Media type <span className="text-[#0055ff]">*</span>
+            </Label>
+            <Select
+              value={listingType}
+              onValueChange={handleTypeChange}
+              required
+            >
               <SelectTrigger className={fieldClass}>
                 <SelectValue placeholder="Select media type" />
               </SelectTrigger>
@@ -376,10 +377,10 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
                 <SelectItem value="VIDEO_CLIPPING">Video Clipping</SelectItem>
               </SelectContent>
             </Select>
-          )}
-        </div>
+          </div>
+        ) : null}
 
-        <div className="space-y-2">
+        <div className={cn("space-y-2", lockedType && "sm:col-span-2")}>
           <Label htmlFor="name" className="text-sm font-medium text-slate-700">
             {copy.nameLabel} <span className="text-[#0055ff]">*</span>
           </Label>
