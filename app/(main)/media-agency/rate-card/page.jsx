@@ -1,6 +1,10 @@
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
+import {
+  effectiveAgencyMediaType,
+  isMediaAgencyAdminEmail,
+} from "@/lib/media-agency-type";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -62,6 +66,16 @@ export default async function MediaAgencyRateCardPage() {
   if (!mediaAgency) {
     redirect("/media-agency/settings");
   }
+
+  const isMediaAdmin =
+    isMediaAgencyAdminEmail(user.email) ||
+    isMediaAgencyAdminEmail(mediaAgency.email);
+  const scopedMediaType = effectiveAgencyMediaType({
+    email: user.email,
+    agencyEmail: mediaAgency.email,
+    primaryMediaType: mediaAgency.primaryMediaType,
+    isMediaAdmin,
+  });
 
   mediaAgency.listings = (mediaAgency.listings || []).map((l) => ({
     ...l,
@@ -345,25 +359,23 @@ export default async function MediaAgencyRateCardPage() {
         <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
           <h2 className="text-base font-semibold text-slate-950">
             Add new{" "}
-            {mediaAgency.primaryMediaType
-              ? String(mediaAgency.primaryMediaType)
-                  .replaceAll("_", " ")
-                  .toLowerCase()
+            {scopedMediaType
+              ? String(scopedMediaType).replaceAll("_", " ").toLowerCase()
               : "media"}{" "}
             listing
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            {mediaAgency.primaryMediaType
-              ? `Fields are tailored for ${String(
-                  mediaAgency.primaryMediaType
-                ).replaceAll("_", " ")}. Add packages on the listing above.`
-              : "Choose a media type to tailor the fields, then add packages on the listing above."}
+            {isMediaAdmin
+              ? "Admin account — create listings for any media type, then add packages above."
+              : scopedMediaType
+                ? `Fields are tailored for ${String(scopedMediaType).replaceAll("_", " ")}. Add packages on the listing above.`
+                : "Choose a media type to tailor the fields, then add packages on the listing above."}
           </p>
         </div>
         <div className="px-5 py-5 sm:px-6">
           <RateCardForm
             mediaAgencyId={mediaAgency.id}
-            primaryMediaType={mediaAgency.primaryMediaType}
+            primaryMediaType={scopedMediaType}
           />
         </div>
       </section>

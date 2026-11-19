@@ -67,7 +67,7 @@ function Field({ id, label, children, hint }) {
   );
 }
 
-export function MediaAgencySettingsForm({ agency }) {
+export function MediaAgencySettingsForm({ agency, isMediaAdmin = false }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [logoUrl, setLogoUrl] = useState(agency.logoUrl || "");
@@ -152,10 +152,12 @@ export function MediaAgencySettingsForm({ agency }) {
                   <StatusIcon className={cn("h-3.5 w-3.5", status.iconClass)} />
                   {status.label}
                 </div>
-                {agency.primaryMediaType ? (
+                {isMediaAdmin || agency.primaryMediaType ? (
                   <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0055ff]/15 bg-[#eef2ff] px-3 py-1 text-xs font-semibold text-[#0055ff]">
                     <FileText className="h-3.5 w-3.5" />
-                    {String(agency.primaryMediaType).replaceAll("_", " ")}
+                    {isMediaAdmin
+                      ? "All media types"
+                      : String(agency.primaryMediaType).replaceAll("_", " ")}
                   </div>
                 ) : null}
               </div>
@@ -254,16 +256,20 @@ export function MediaAgencySettingsForm({ agency }) {
 
         {/* Editable form */}
         <div className={cn(DASHBOARD_CARD_CLASS, "p-6 md:p-7")}>
-          {agency.primaryMediaType ? (
+          {isMediaAdmin || agency.primaryMediaType ? (
             <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Media type
               </p>
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {String(agency.primaryMediaType).replaceAll("_", " ")}
+                {isMediaAdmin
+                  ? "All media types"
+                  : String(agency.primaryMediaType).replaceAll("_", " ")}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Set at signup. Contact support if you need to change it.
+                {isMediaAdmin
+                  ? "Admin account — create and manage TV, radio, digital, and more."
+                  : "Set at signup. Contact support if you need to change it."}
               </p>
             </div>
           ) : null}

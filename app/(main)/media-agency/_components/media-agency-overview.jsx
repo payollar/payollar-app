@@ -174,6 +174,7 @@ export function MediaAgencyOverview({
   agencyName,
   contactName,
   primaryMediaType = null,
+  isMediaAdmin = false,
   stats,
   bookings = [],
   reports = [],
@@ -186,9 +187,11 @@ export function MediaAgencyOverview({
     (acc, c) => acc + (c.pendingApplications ?? 0),
     0
   );
-  const typeLabel = primaryMediaType
-    ? String(primaryMediaType).replaceAll("_", " ")
-    : null;
+  const typeLabel = isMediaAdmin
+    ? "All media"
+    : primaryMediaType
+      ? String(primaryMediaType).replaceAll("_", " ")
+      : null;
 
   return (
     <div className="-m-3 min-h-full w-full min-w-0 !max-w-none bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:p-5">
@@ -205,7 +208,9 @@ export function MediaAgencyOverview({
             ) : null}
           </div>
           <p className="text-sm text-slate-400">
-            {typeLabel
+            {isMediaAdmin
+              ? "Admin account — manage every media type from one dashboard."
+              : typeLabel
               ? `${typeLabel} listings, bookings, and packages at a glance.`
               : "Listings, bookings, and packages at a glance."}
           </p>

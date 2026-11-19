@@ -4,6 +4,10 @@ import { db } from "@/lib/prisma";
 import { getClientCampaigns } from "@/actions/campaigns";
 import { MediaAgencyOverview } from "./_components/media-agency-overview";
 import { CompleteAgencyProfile } from "./_components/complete-agency-profile";
+import {
+  effectiveAgencyMediaType,
+  isMediaAgencyAdminEmail,
+} from "@/lib/media-agency-type";
 
 export default async function MediaAgencyDashboard() {
   const user = await checkUser();
@@ -79,11 +83,22 @@ export default async function MediaAgencyDashboard() {
     endDate: report.endDate?.toISOString?.() || report.endDate,
   }));
 
+  const isMediaAdmin =
+    isMediaAgencyAdminEmail(user.email) ||
+    isMediaAgencyAdminEmail(mediaAgency.email);
+  const scopedMediaType = effectiveAgencyMediaType({
+    email: user.email,
+    agencyEmail: mediaAgency.email,
+    primaryMediaType: mediaAgency.primaryMediaType,
+    isMediaAdmin,
+  });
+
   return (
     <MediaAgencyOverview
       agencyName={mediaAgency.agencyName}
       contactName={mediaAgency.contactName}
-      primaryMediaType={mediaAgency.primaryMediaType}
+      primaryMediaType={scopedMediaType}
+      isMediaAdmin={isMediaAdmin}
       stats={{
         totalListings: mediaAgency._count.listings,
         activeListings: mediaAgency.listings.length,

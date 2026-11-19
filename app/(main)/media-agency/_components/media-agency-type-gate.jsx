@@ -40,6 +40,11 @@ export function MediaAgencyTypeGate({ children }) {
         }
 
         if (res.ok && data.success) {
+          // Media admins (e.g. media@payollar.com) stay multi-vertical — no gate.
+          if (data.agency?.isMediaAdmin) {
+            setNeedsType(false);
+            return;
+          }
           const hasType = Boolean(data.agency?.primaryMediaType);
           setNeedsType(!hasType);
           if (!hasType && stored) setSelected(stored);

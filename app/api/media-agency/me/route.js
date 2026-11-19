@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { checkUser } from "@/lib/checkUser";
 import {
+  effectiveAgencyMediaType,
+  isMediaAgencyAdminEmail,
   isValidMediaAgencyType,
   normalizeMediaAgencyType,
 } from "@/lib/media-agency-type";
@@ -35,7 +37,24 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ success: true, agency });
+    const isMediaAdmin =
+      isMediaAgencyAdminEmail(user.email) ||
+      isMediaAgencyAdminEmail(agency.email);
+
+    return NextResponse.json({
+      success: true,
+      agency: {
+        ...agency,
+        isMediaAdmin,
+        // null = all types (admin or unset)
+        scopedMediaType: effectiveAgencyMediaType({
+          email: user.email,
+          agencyEmail: agency.email,
+          primaryMediaType: agency.primaryMediaType,
+          isMediaAdmin,
+        }),
+      },
+    });
   } catch (error) {
     console.error("Error fetching media agency profile:", error);
     return NextResponse.json(
@@ -77,8 +96,12 @@ export async function PATCH(request) {
       );
     }
 
-    // Allow first-time set; block changing once set (keeps vertical stable)
+    const isMediaAdmin = isMediaAgencyAdminEmail(user.email);
+
+    // Allow first-time set; block changing once set (keeps vertical stable).
+    // Media admins may leave type unset / change freely for multi-vertical QA.
     if (
+      !isMediaAdmin &&
       agency.primaryMediaType &&
       agency.primaryMediaType !== primaryMediaType
     ) {

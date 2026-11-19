@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { checkUser } from "@/lib/checkUser";
 import { priceRangeFromRateCard } from "@/lib/rate-card-price-range";
+import { agencyAllowsListingType } from "@/lib/media-agency-type";
 
 /**
  * Submit media agency registration form
@@ -425,12 +426,22 @@ export async function addMediaListing(agencyId, listingData) {
   try {
     const agency = await db.mediaAgency.findUnique({
       where: { id: agencyId },
-      select: { primaryMediaType: true },
+      select: {
+        primaryMediaType: true,
+        email: true,
+        user: { select: { email: true } },
+      },
     });
     if (
-      agency?.primaryMediaType &&
-      String(listingData.listingType || "").toUpperCase() !==
-        agency.primaryMediaType
+      agency &&
+      !agencyAllowsListingType(
+        agency.primaryMediaType,
+        listingData.listingType,
+        {
+          email: agency.user?.email,
+          agencyEmail: agency.email,
+        }
+      )
     ) {
       throw new Error(
         `This agency is set up for ${String(agency.primaryMediaType).replaceAll("_", " ")} only`

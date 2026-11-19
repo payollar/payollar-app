@@ -66,6 +66,7 @@ export default function SmartRateCardPage() {
     useState(null);
 
   const availableMediaTypes = useMemo(() => {
+    // null / unset scoped type (incl. media admin) → all types
     if (!primaryMediaType) return MEDIA_TYPES;
     return MEDIA_TYPES.filter((t) => t.value === primaryMediaType);
   }, [primaryMediaType]);
@@ -73,16 +74,26 @@ export default function SmartRateCardPage() {
   const fetchListings = useCallback(async () => {
     try {
       const res = await fetch("/api/media-agency/listings");
-      const data = await res.json();
-      if (data.success) {
-        setMediaListings(data.listings || []);
-        if (data.agency?.primaryMediaType) {
-          setPrimaryMediaType(data.agency.primaryMediaType);
-          setSelectedListingType((prev) => prev || data.agency.primaryMediaType);
-        }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to load stations");
+      }
+      setMediaListings(data.listings || []);
+      // Prefer scopedMediaType (null for media admins = all types)
+      const scoped =
+        data.agency?.scopedMediaType !== undefined
+          ? data.agency.scopedMediaType
+          : data.agency?.isMediaAdmin
+            ? null
+            : data.agency?.primaryMediaType || null;
+      setPrimaryMediaType(scoped);
+      if (scoped) {
+        setSelectedListingType((prev) => prev || scoped);
       }
       return data.listings || [];
-    } catch {
+    } catch (error) {
+      console.error("Error fetching stations:", error);
+      toast.error(error.message || "Failed to load stations");
       return [];
     }
   }, []);
@@ -165,10 +176,13 @@ export default function SmartRateCardPage() {
     return { primary: map, extras };
   }, [rateCards]);
 
-  const orphanCards = useMemo(
-    () => rateCards.filter((c) => !c.listingId),
-    [rateCards]
-  );
+  // Unlinked cards, or cards whose station isn't in the loaded list (e.g. fetch failed)
+  const orphanCards = useMemo(() => {
+    const listingIds = new Set(mediaListings.map((l) => l.id));
+    return rateCards.filter(
+      (c) => !c.listingId || !listingIds.has(c.listingId)
+    );
+  }, [rateCards, mediaListings]);
 
   const selectedListing =
     mediaListings.find((l) => l.id === selectedListingId) || null;

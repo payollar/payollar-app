@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { MediaAgencySettingsForm } from "./_components/media-agency-settings-form";
 import { CompleteAgencyProfile } from "../_components/complete-agency-profile";
+import { isMediaAgencyAdminEmail } from "@/lib/media-agency-type";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +28,20 @@ export default async function MediaAgencySettingsPage() {
     );
   }
 
+  const isMediaAdmin =
+    isMediaAgencyAdminEmail(user.email) ||
+    isMediaAgencyAdminEmail(mediaAgency.email);
+
   return (
     <MediaAgencyPageShell
       eyebrow="Media"
       title="Settings"
       description="Update your profile, contact details, and how clients see your media house."
     >
-      <MediaAgencySettingsForm agency={mediaAgency} />
+      <MediaAgencySettingsForm
+        agency={mediaAgency}
+        isMediaAdmin={isMediaAdmin}
+      />
     </MediaAgencyPageShell>
   );
 }

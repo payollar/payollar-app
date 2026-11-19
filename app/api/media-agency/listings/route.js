@@ -3,7 +3,11 @@ import { db } from "@/lib/prisma";
 import { auth as betterAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { checkUser } from "@/lib/checkUser";
-import { agencyAllowsListingType } from "@/lib/media-agency-type";
+import {
+  agencyAllowsListingType,
+  effectiveAgencyMediaType,
+  isMediaAgencyAdminEmail,
+} from "@/lib/media-agency-type";
 
 export async function GET(request) {
   try {
@@ -17,6 +21,7 @@ export async function GET(request) {
       select: {
         id: true,
         agencyName: true,
+        email: true,
         primaryMediaType: true,
       },
     });
@@ -24,6 +29,16 @@ export async function GET(request) {
     if (!mediaAgency) {
       return NextResponse.json({ error: "Media agency not found" }, { status: 404 });
     }
+
+    const isMediaAdmin =
+      isMediaAgencyAdminEmail(user.email) ||
+      isMediaAgencyAdminEmail(mediaAgency.email);
+    const scopedMediaType = effectiveAgencyMediaType({
+      email: user.email,
+      agencyEmail: mediaAgency.email,
+      primaryMediaType: mediaAgency.primaryMediaType,
+      isMediaAdmin,
+    });
 
     const listings = await db.mediaListing.findMany({
       where: { agencyId: mediaAgency.id },
@@ -39,7 +54,10 @@ export async function GET(request) {
       agency: {
         id: mediaAgency.id,
         agencyName: mediaAgency.agencyName,
+        email: mediaAgency.email,
         primaryMediaType: mediaAgency.primaryMediaType,
+        isMediaAdmin,
+        scopedMediaType,
       },
     });
   } catch (error) {
@@ -127,8 +145,10 @@ export async function POST(req) {
     }
 
     if (
-      mediaAgency.primaryMediaType &&
-      !agencyAllowsListingType(mediaAgency.primaryMediaType, listingType)
+      !agencyAllowsListingType(mediaAgency.primaryMediaType, listingType, {
+        email: session.user.email,
+        agencyEmail: mediaAgency.email,
+      })
     ) {
       return NextResponse.json(
         {
