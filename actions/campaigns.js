@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { revalidatePath } from "next/cache";
 import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
+import { sendApplicationAcceptedEmail } from "@/lib/email";
 
 const CAMPAIGN_OWNER_ROLES = ["CLIENT", "MEDIA_AGENCY"];
 
@@ -801,6 +802,15 @@ export async function updateApplicationStatus(formData) {
         campaign: {
           select: {
             clientId: true,
+            title: true,
+            brand: true,
+          },
+        },
+        talent: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
           },
         },
       },
@@ -819,7 +829,11 @@ export async function updateApplicationStatus(formData) {
       },
     });
 
-    if (["ACCEPTED", "REJECTED", "REDRAWN"].includes(status)) {
+    const statusChanged = application.status !== status;
+    if (
+      statusChanged &&
+      ["ACCEPTED", "REJECTED", "REDRAWN"].includes(status)
+    ) {
       const statusLabel =
         status === "ACCEPTED"
           ? "accepted"
@@ -839,6 +853,28 @@ export async function updateApplicationStatus(formData) {
           status,
         },
       });
+    }
+
+    // Only email on a fresh accept — re-saving ACCEPTED should not spam.
+    if (
+      status === "ACCEPTED" &&
+      statusChanged &&
+      application.talent?.email
+    ) {
+      try {
+        await sendApplicationAcceptedEmail({
+          to: application.talent.email,
+          toName: application.talent.name || "Creator",
+          campaignTitle: application.campaign.title || "Campaign",
+          brandName:
+            application.campaign.brand ||
+            owner.mediaAgency?.agencyName ||
+            "Brand",
+          href: "/creator/applications",
+        });
+      } catch (e) {
+        console.error("Application accepted email failed:", e);
+      }
     }
 
     revalidateCampaignPaths();

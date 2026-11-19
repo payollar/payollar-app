@@ -20,13 +20,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
 import { cn } from "@/lib/utils";
-import { startPlannerCartNegotiation } from "@/actions/media-negotiate";
+import {
+  startPlannerCartCampaignNegotiation,
+  startPlannerCartNegotiation,
+} from "@/actions/media-negotiate";
 import {
   addMediaPlannerCartItem,
   clearMediaPlannerCart,
   stashMediaPlannerPendingCheckout,
   loadMediaPlannerCart,
   patchMediaPlannerCartItem,
+  patchMediaPlannerCartItems,
   removeMediaPlannerCartItem,
   saveMediaPlannerCart,
 } from "@/lib/media-planner-cart";
@@ -251,52 +255,67 @@ export default function MediaPlannerCartPage() {
     router.push(mediaPlannerExtendHref(channel));
   };
 
-  const negotiateRate = async (item) => {
-    if (!item) {
+  const slimNegotiatePayload = (item) => ({
+    id: item.id,
+    rateCardId: item.rateCardId,
+    rateCardBookingId: item.rateCardBookingId || null,
+    channel: item.channel || "TV",
+    mediaCampaignName: item.mediaCampaignName,
+    brandName: item.brandName || null,
+    adFormatLabel: item.adFormatLabel || null,
+    audienceLabels: item.audienceLabels || [],
+    campaignStart: item.campaignStart || null,
+    campaignEnd: item.campaignEnd || null,
+    dayCount: item.dayCount || 1,
+    slotIds: item.slotIds || [],
+    slots: Array.isArray(item.slots)
+      ? item.slots.slice(0, 20).map((slot) => ({
+          id: slot.id,
+          label: slot.label,
+          range: slot.range || "",
+          frequencyId: slot.frequencyId || null,
+          lineTotal: slot.lineTotal ?? null,
+        }))
+      : [],
+    estimatedImpressions: item.estimatedImpressions ?? null,
+    subtotal: item.subtotal || 0,
+    vat: item.vat || 0,
+    nhilGetfund: item.nhilGetfund || 0,
+    total: item.total,
+    contact: {
+      name: item.contact?.name || "",
+      email: item.contact?.email || "",
+      phone: item.contact?.phone || "",
+    },
+  });
+
+  const negotiateFlights = async (flights, { lockId } = {}) => {
+    const list = (Array.isArray(flights) ? flights : []).filter(Boolean);
+    if (list.length === 0) {
       toast.error("Select a flight to negotiate");
       return;
     }
-    if (!item.rateCardId) {
-      toast.error("This flight has no station rate card to negotiate");
+    if (list.some((item) => !item.rateCardId)) {
+      toast.error("Every flight needs a station rate card to negotiate");
       return;
     }
-    setNegotiatingId(item.id);
-    try {
-      // Send a slim payload — full cart objects can be large and previously
-      // tied negotiation ownership to the planner contact email.
-      const result = await startPlannerCartNegotiation({
-        id: item.id,
-        rateCardId: item.rateCardId,
-        rateCardBookingId: item.rateCardBookingId || null,
-        channel: item.channel || "TV",
-        mediaCampaignName: item.mediaCampaignName,
-        brandName: item.brandName || null,
-        adFormatLabel: item.adFormatLabel || null,
-        audienceLabels: item.audienceLabels || [],
-        campaignStart: item.campaignStart || null,
-        campaignEnd: item.campaignEnd || null,
-        dayCount: item.dayCount || 1,
-        slotIds: item.slotIds || [],
-        slots: Array.isArray(item.slots)
-          ? item.slots.slice(0, 20).map((slot) => ({
-              id: slot.id,
-              label: slot.label,
-              range: slot.range || "",
-              frequencyId: slot.frequencyId || null,
-              lineTotal: slot.lineTotal ?? null,
-            }))
-          : [],
-        estimatedImpressions: item.estimatedImpressions ?? null,
-        subtotal: item.subtotal || 0,
-        vat: item.vat || 0,
-        nhilGetfund: item.nhilGetfund || 0,
-        total: item.total,
-        contact: {
-          name: item.contact?.name || "",
-          email: item.contact?.email || "",
-          phone: item.contact?.phone || "",
-        },
+
+    const rateCardIds = new Set(list.map((item) => item.rateCardId));
+    if (rateCardIds.size > 1) {
+      toast.message("Negotiate one station at a time", {
+        description:
+          "Select flights from the same station, or negotiate each station separately.",
       });
+      return;
+    }
+
+    setNegotiatingId(lockId || list[0].id);
+    try {
+      const payloads = list.map(slimNegotiatePayload);
+      const result =
+        payloads.length === 1
+          ? await startPlannerCartNegotiation(payloads[0])
+          : await startPlannerCartCampaignNegotiation(payloads);
 
       if (!result?.success || !result?.href) {
         const message = result?.error || "Could not open negotiation";
@@ -311,12 +330,26 @@ export default function MediaPlannerCartPage() {
         return;
       }
 
-      patchMediaPlannerCartItem(item.id, {
+      const linkedIds = Array.isArray(result.cartItemIds)
+        ? result.cartItemIds
+        : list.map((item) => item.id);
+      patchMediaPlannerCartItems(linkedIds, {
         rateCardBookingId: result.bookingId,
         negotiationId: result.negotiationId,
-        listTotal: item.listTotal != null ? item.listTotal : item.total,
       });
-      toast.message("Opening rate negotiation with the station");
+      linkedIds.forEach((id) => {
+        const item = list.find((row) => String(row.id) === String(id));
+        if (!item) return;
+        if (item.listTotal == null) {
+          patchMediaPlannerCartItem(item.id, { listTotal: item.total });
+        }
+      });
+
+      toast.message(
+        linkedIds.length > 1
+          ? `Opening campaign negotiation for ${linkedIds.length} ad types`
+          : "Opening rate negotiation with the station"
+      );
       router.push(result.href);
     } catch (error) {
       const message = error?.message || "Could not start negotiation";
@@ -395,21 +428,11 @@ export default function MediaPlannerCartPage() {
             </div>
             <p className="mt-5 text-lg font-semibold text-slate-900">Your cart is empty</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
-              Plan a TV or radio flight, then add it here. You can stack multiple formats under one
-              campaign.
+              Browse media, pick a package or flight, then add it here under one campaign.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
               <Button asChild className="h-11 rounded-full bg-slate-950 px-5 hover:bg-slate-800">
-                <Link href="/products/tv-media">
-                  <Tv className="mr-2 h-4 w-4" />
-                  TV planner
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-11 rounded-full border-slate-200 px-5">
-                <Link href="/products/radio-media">
-                  <Radio className="mr-2 h-4 w-4" />
-                  Radio planner
-                </Link>
+                <Link href="/products">Browse media</Link>
               </Button>
             </div>
 
@@ -493,6 +516,29 @@ export default function MediaPlannerCartPage() {
                           )}
                           Add Ad Type
                         </button>
+                        {group.flights.length > 0 ? (
+                          <button
+                            type="button"
+                            disabled={negotiatingId != null}
+                            onClick={() =>
+                              negotiateFlights(group.flights, {
+                                lockId: `campaign:${group.key}`,
+                              })
+                            }
+                            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            {negotiatingId === `campaign:${group.key}` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            )}
+                            {group.flights.length > 1
+                              ? "Negotiate campaign"
+                              : group.flights[0]?.negotiationId
+                                ? "Continue negotiation"
+                                : "Negotiate rate"}
+                          </button>
+                        ) : null}
                         <Link
                           href="/products"
                           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-slate-300 bg-transparent px-3 text-xs font-semibold text-slate-500 hover:border-slate-400 hover:bg-white hover:text-slate-800"
@@ -607,7 +653,7 @@ export default function MediaPlannerCartPage() {
                                   <button
                                     type="button"
                                     disabled={negotiatingId === item.id}
-                                    onClick={() => negotiateRate(item)}
+                                    onClick={() => negotiateFlights([item])}
                                     className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
                                   >
                                     {negotiatingId === item.id ? (
@@ -617,7 +663,7 @@ export default function MediaPlannerCartPage() {
                                     )}
                                     {item.negotiationId
                                       ? "Continue negotiation"
-                                      : "Negotiate rate"}
+                                      : "Negotiate this flight"}
                                   </button>
                                 </div>
                               </div>
@@ -676,19 +722,7 @@ export default function MediaPlannerCartPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    if (selectedItems.length === 0) {
-                      toast.error("Select a flight to negotiate");
-                      return;
-                    }
-                    if (selectedItems.length > 1) {
-                      toast.message("Negotiate one flight at a time", {
-                        description: "Deselect the others, or use Negotiate rate on a single flight.",
-                      });
-                      return;
-                    }
-                    negotiateRate(selectedItems[0]);
-                  }}
+                  onClick={() => negotiateFlights(selectedItems)}
                   disabled={
                     negotiatingId != null ||
                     checkingOut ||
@@ -704,7 +738,9 @@ export default function MediaPlannerCartPage() {
                   ) : (
                     <>
                       <MessageSquare className="mr-2 h-4 w-4" />
-                      Negotiate rate
+                      {summary.count > 1
+                        ? `Negotiate selected (${summary.count})`
+                        : "Negotiate rate"}
                     </>
                   )}
                 </Button>

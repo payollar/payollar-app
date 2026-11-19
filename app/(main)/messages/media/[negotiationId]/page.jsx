@@ -14,6 +14,15 @@ export default async function MediaMessagePage({ params, searchParams }) {
   const query = await searchParams;
   const fromCart = query?.from === "cart";
   const cartItemId = typeof query?.cartItemId === "string" ? query.cartItemId : "";
+  const cartItemIds =
+    typeof query?.cartItemIds === "string"
+      ? query.cartItemIds
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : cartItemId
+        ? [cartItemId]
+        : [];
 
   let data = null;
   let chats = [];
@@ -38,7 +47,8 @@ export default async function MediaMessagePage({ params, searchParams }) {
       initialNegotiation={data.negotiation}
       negotiationPerspective={data.perspective || "CLIENT"}
       fromCart={fromCart}
-      cartItemId={cartItemId}
+      cartItemId={cartItemIds[0] || cartItemId}
+      cartItemIds={cartItemIds}
     />
   );
 }

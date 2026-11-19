@@ -173,18 +173,26 @@ function PlannerCampaignNotes({ data, collapsible }) {
   const channel =
     data.channel || (data.source === "media_planner_cart" ? "TV" : null);
 
+  const flights = Array.isArray(data.flights) ? data.flights : [];
+  const flightLabels = flights
+    .map((flight) => String(flight?.adFormatLabel || "").trim())
+    .filter(Boolean);
   const chips = [
     channel ? String(channel).toUpperCase() : null,
-    data.adFormatLabel || null,
+    flightLabels.length
+      ? `${flightLabels.length} ad type${flightLabels.length === 1 ? "" : "s"}`
+      : data.adFormatLabel || null,
     data.dayCount ? `${data.dayCount} day${data.dayCount === 1 ? "" : "s"}` : null,
     spots ? `Spots ${spots}` : null,
   ].filter(Boolean);
 
+  const campaignTotal =
+    data.listTotal != null ? data.listTotal : data.total != null ? data.total : null;
   const hasPricing =
     data.subtotal != null ||
     data.vat != null ||
     data.nhilGetfund != null ||
-    data.total != null;
+    campaignTotal != null;
 
   return (
     <SectionPanel
@@ -199,15 +207,42 @@ function PlannerCampaignNotes({ data, collapsible }) {
         <Detail label="Industry">{industries}</Detail>
         <Detail label="Broadcast days">{days}</Detail>
         <Detail label="Est. impressions">{impressions}</Detail>
-        <Detail label="Ad format">{data.adFormatLabel}</Detail>
+        <Detail label="Ad format">
+          {flightLabels.length
+            ? flightLabels.join(" · ")
+            : data.adFormatLabel}
+        </Detail>
       </div>
+
+      {flights.length > 1 ? (
+        <div className="mt-4 space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Flights in this negotiation
+          </p>
+          <ul className="space-y-1.5">
+            {flights.map((flight, index) => (
+              <li
+                key={flight.cartItemId || `${flight.adFormatLabel}-${index}`}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="truncate font-medium text-slate-800">
+                  {flight.adFormatLabel || `Flight ${index + 1}`}
+                </span>
+                <span className="shrink-0 tabular-nums text-slate-600">
+                  {money(flight.total)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {hasPricing ? (
         <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-[#f7f8fc] p-3 sm:grid-cols-4">
           <Detail label="Subtotal">{money(data.subtotal)}</Detail>
           <Detail label="VAT">{money(data.vat)}</Detail>
           <Detail label="NHIL / GETFund">{money(data.nhilGetfund)}</Detail>
-          <Detail label="Campaign total">{money(data.total)}</Detail>
+          <Detail label="Campaign total">{money(campaignTotal)}</Detail>
         </div>
       ) : null}
     </SectionPanel>
@@ -223,9 +258,11 @@ export function BookingNotes({ notes, className, collapsible = false }) {
     const isPlanner =
       data.source === "media_planner_cart" ||
       data.source === "media_planner_cart_negotiate" ||
+      data.source === "media_planner_cart_campaign_negotiate" ||
       data.channel ||
       data.audienceLabels ||
-      data.adFormatLabel;
+      data.adFormatLabel ||
+      (Array.isArray(data.flights) && data.flights.length > 0);
 
     if (isPlanner) {
       return (

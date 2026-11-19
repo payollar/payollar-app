@@ -6,8 +6,12 @@ import { revalidatePath } from "next/cache";
 import { Vonage } from "@vonage/server-sdk";
 import { addDays, addMinutes, format, isBefore, endOfDay } from "date-fns";
 import { Auth } from "@vonage/auth";
-import { sendAppointmentConfirmationEmail } from "@/lib/email";
+import {
+  sendAppointmentConfirmationEmail,
+  sendCreatorBookedEmail,
+} from "@/lib/email";
 import { ensureBookingConversation } from "@/lib/booking-chat";
+import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
 
 // Initialize Vonage Video API client
 const credentials = new Auth({
@@ -128,6 +132,17 @@ export async function bookAppointment(formData) {
       console.error("Failed to open booking chat:", chatError);
     }
 
+    const bookingHref = `/messages/${appointment.id}`;
+    await notifyUser({
+      userId: doctor.id,
+      actorId: patient.id,
+      type: NOTIFICATION_TYPES.BOOKING_STARTED,
+      title: "New booking",
+      body: `${patient.name || "A client"} booked a session with you.`,
+      href: bookingHref,
+      meta: { appointmentId: appointment.id },
+    });
+
     // Send confirmation email to client
     if (patient.email) {
       try {
@@ -142,6 +157,20 @@ export async function bookAppointment(formData) {
       } catch (emailError) {
         console.error("Failed to send appointment confirmation email:", emailError);
         // Don't throw - email failure shouldn't block appointment creation
+      }
+    }
+
+    if (doctor.email) {
+      try {
+        await sendCreatorBookedEmail({
+          to: doctor.email,
+          toName: doctor.name || "Creator",
+          clientName: patient.name || "A client",
+          contextLabel: `${format(startTime, "EEE, MMM d")} · ${format(startTime, "h:mm a")}`,
+          href: bookingHref,
+        });
+      } catch (emailError) {
+        console.error("Creator booked email failed:", emailError);
       }
     }
 

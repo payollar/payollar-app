@@ -10,6 +10,10 @@ import {
 } from "@/lib/booking-brief";
 import { decodeReportMessagePayload } from "@/lib/booking-report-message";
 import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
+import {
+  sendBookingInvoiceIssuedEmail,
+  sendCreatorBookedEmail,
+} from "@/lib/email";
 
 const personSelect = {
   id: true,
@@ -360,7 +364,7 @@ export async function startBookingChat({ doctorId, startTime, endTime, descripti
 
     const creator = await db.user.findUnique({
       where: { id: doctorId, role: "CREATOR", verificationStatus: "VERIFIED" },
-      select: { id: true },
+      select: { id: true, email: true, name: true },
     });
     if (!creator) {
       return { error: "This creator is not available to message." };
@@ -412,15 +416,29 @@ export async function startBookingChat({ doctorId, startTime, endTime, descripti
         where: { id: client.id },
         select: { name: true },
       });
+      const bookingHref = `/messages/${appointment.id}`;
       await notifyUser({
         userId: creator.id,
         actorId: client.id,
         type: NOTIFICATION_TYPES.BOOKING_STARTED,
         title: "New booking chat",
         body: `${clientUser?.name || "A client"} started a booking conversation with you.`,
-        href: `/messages/${appointment.id}`,
+        href: bookingHref,
         meta: { appointmentId: appointment.id },
       });
+      if (creator.email) {
+        try {
+          await sendCreatorBookedEmail({
+            to: creator.email,
+            toName: creator.name || "Creator",
+            clientName: clientUser?.name || "A client",
+            contextLabel: "New booking conversation",
+            href: bookingHref,
+          });
+        } catch (e) {
+          console.error("Creator booked email failed:", e);
+        }
+      }
     }
 
     revalidatePath("/messages");
@@ -476,6 +494,7 @@ export async function startCampaignApplicationChat(applicationId) {
           select: {
             id: true,
             name: true,
+            email: true,
             role: true,
           },
         },
@@ -570,19 +589,34 @@ export async function startCampaignApplicationChat(applicationId) {
     }
 
     if (isNew || messageCount === 0) {
+      const hireHref = `/messages/${appointmentId}`;
       await notifyUser({
         userId: application.talentId,
         actorId: owner.id,
         type: NOTIFICATION_TYPES.BOOKING_STARTED,
         title: "Campaign hire chat",
         body: `${owner.name || "A brand"} opened a chat about “${application.campaign.title}”.`,
-        href: `/messages/${appointmentId}`,
+        href: hireHref,
         meta: {
           appointmentId,
           applicationId: application.id,
           campaignId: application.campaign.id,
         },
       });
+      // Email only on a brand-new hire thread to avoid repeat opens.
+      if (isNew && application.talent.email) {
+        try {
+          await sendCreatorBookedEmail({
+            to: application.talent.email,
+            toName: application.talent.name || "Creator",
+            clientName: owner.name || application.campaign.brand || "A brand",
+            contextLabel: `Campaign · ${application.campaign.title}`,
+            href: hireHref,
+          });
+        } catch (e) {
+          console.error("Creator booked (campaign) email failed:", e);
+        }
+      }
     }
 
     revalidatePath("/messages");
@@ -820,18 +854,45 @@ export async function sendBookingInvoice(appointmentId, payload = {}) {
       return invoice;
     });
 
+    const amountLabel = `GH₵ ${Number(result.amount).toLocaleString("en-GH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+    const invoiceHref = `/messages/${appointmentId}`;
     await notifyUser({
       userId: conversation.clientId,
       actorId: userId,
       type: NOTIFICATION_TYPES.BOOKING_INVOICE,
       title: "New booking invoice",
-      body: `GH₵ ${Number(result.amount).toLocaleString("en-GH", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })} — open chat to review and pay.`,
-      href: `/messages/${appointmentId}`,
+      body: `${amountLabel} — open chat to review and pay.`,
+      href: invoiceHref,
       meta: { appointmentId, invoiceId: result.id },
     });
+
+    try {
+      const [clientUser, creatorUser] = await Promise.all([
+        db.user.findUnique({
+          where: { id: conversation.clientId },
+          select: { email: true, name: true },
+        }),
+        db.user.findUnique({
+          where: { id: conversation.creatorId },
+          select: { name: true },
+        }),
+      ]);
+      if (clientUser?.email) {
+        await sendBookingInvoiceIssuedEmail({
+          to: clientUser.email,
+          toName: clientUser.name || "Client",
+          creatorName: creatorUser?.name || "Your creator",
+          amountLabel,
+          invoiceTitle: title,
+          href: invoiceHref,
+        });
+      }
+    } catch (e) {
+      console.error("Booking invoice email failed:", e);
+    }
 
     revalidatePath("/messages");
     revalidatePath(`/messages/${appointmentId}`);

@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { getAuthUserId } from "@/lib/getAuthUserId";
 import { NOTIFICATION_TYPES, notifyUser } from "@/lib/notifications";
+import {
+  sendNegotiationAcceptedEmail,
+  sendNegotiationOpenedEmail,
+} from "@/lib/email";
 
 async function resolveMediaCounterpartUserId(negotiation, perspective) {
   if (perspective === "CLIENT") {
@@ -246,10 +250,59 @@ export async function ensureMediaNegotiation(sourceType, sourceId) {
       },
     },
     include: {
-      agency: { select: { id: true, agencyName: true, contactName: true } },
+      agency: {
+        select: {
+          id: true,
+          agencyName: true,
+          contactName: true,
+          email: true,
+          userId: true,
+          user: { select: { email: true, name: true } },
+        },
+      },
       messages: { orderBy: { createdAt: "asc" } },
     },
   });
+
+  // Alert the station so they open Payollar and respond.
+  if (user.role === "CLIENT") {
+    const agencyHref = `/media-agency/negotiations/${created.id}`;
+    const clientLabel = ctx.clientName || user.name || "A client";
+    const amountLabel = money(ctx.listAmount);
+    const dealTitle = ctx.title || "Media booking";
+    try {
+      if (created.agency?.userId) {
+        await notifyUser({
+          userId: created.agency.userId,
+          actorId: user.id,
+          type: NOTIFICATION_TYPES.MEDIA_STATUS,
+          title: "New negotiation request",
+          body: `${clientLabel} wants to negotiate ${dealTitle} · ${amountLabel}.`,
+          href: agencyHref,
+          meta: { negotiationId: created.id, sourceType: type, sourceId },
+        });
+      }
+      const agencyEmail =
+        created.agency?.user?.email || created.agency?.email || null;
+      if (agencyEmail) {
+        await sendNegotiationOpenedEmail({
+          to: agencyEmail,
+          toName:
+            created.agency?.user?.name ||
+            created.agency?.contactName ||
+            created.agency?.agencyName ||
+            "Station",
+          clientName: clientLabel,
+          dealTitle,
+          amountLabel,
+          packageLabel: ctx.packageLabel || null,
+          href: agencyHref,
+        });
+      }
+    } catch (notifyError) {
+      console.error("Negotiation opened station notify/email failed:", notifyError);
+    }
+  }
 
   revalidateNegotiation(created.id, type, sourceId);
   return { success: true, negotiation: shapeNegotiation(created), created: true };
@@ -649,18 +702,40 @@ export async function acceptMediaNegotiation(negotiationId, { amount } = {}) {
   });
 
   const counterpartId = await resolveMediaCounterpartUserId(n, data.perspective);
+  const dealHref =
+    data.perspective === "CLIENT"
+      ? `/media-agency/negotiations/${negotiationId}`
+      : `/messages/media/${negotiationId}`;
   await notifyUser({
     userId: counterpartId,
     actorId: user.id,
     type: NOTIFICATION_TYPES.MEDIA_STATUS,
     title: "Media deal accepted",
     body: `Agreed total: ${money(agreed)} for “${n.title || "media booking"}”.`,
-    href:
-      data.perspective === "CLIENT"
-        ? `/media-agency/negotiations/${negotiationId}`
-        : `/messages/media/${negotiationId}`,
+    href: dealHref,
     meta: { negotiationId, amount: agreed },
   });
+
+  if (counterpartId) {
+    try {
+      const counterpart = await db.user.findUnique({
+        where: { id: counterpartId },
+        select: { email: true, name: true },
+      });
+      if (counterpart?.email) {
+        await sendNegotiationAcceptedEmail({
+          to: counterpart.email,
+          toName: counterpart.name || "there",
+          counterpartName: user.name || "The other party",
+          dealTitle: n.title || "Media booking",
+          amountLabel: money(agreed),
+          href: dealHref,
+        });
+      }
+    } catch (e) {
+      console.error("Negotiation accepted email failed:", e);
+    }
+  }
 
   revalidateNegotiation(negotiationId, n.sourceType, n.sourceId);
   return getMediaNegotiation(negotiationId);
@@ -728,15 +803,37 @@ export async function approveMediaDiscount(negotiationId, { discountPct, note } 
     }
   });
 
+  const discountHref = `/messages/media/${negotiationId}`;
   await notifyUser({
     userId: n.clientUserId,
     actorId: user.id,
     type: NOTIFICATION_TYPES.MEDIA_STATUS,
     title: "Media discount approved",
     body: `Station approved ${pct}% off · ${money(agreed)}.`,
-    href: `/messages/media/${negotiationId}`,
+    href: discountHref,
     meta: { negotiationId, amount: agreed, discountPct: pct },
   });
+
+  if (n.clientUserId) {
+    try {
+      const clientUser = await db.user.findUnique({
+        where: { id: n.clientUserId },
+        select: { email: true, name: true },
+      });
+      if (clientUser?.email) {
+        await sendNegotiationAcceptedEmail({
+          to: clientUser.email,
+          toName: clientUser.name || "there",
+          counterpartName: user.name || "Station",
+          dealTitle: n.title || "Media booking",
+          amountLabel: money(agreed),
+          href: discountHref,
+        });
+      }
+    } catch (e) {
+      console.error("Negotiation discount email failed:", e);
+    }
+  }
 
   revalidateNegotiation(negotiationId, n.sourceType, n.sourceId);
   return getMediaNegotiation(negotiationId);
@@ -799,10 +896,66 @@ function parseBookingNotes(raw) {
 function isPlannerCartBookingForItem(row, cartItemId) {
   if (!row || !cartItemId) return false;
   const notes = parseBookingNotes(row.notes);
-  return (
+  if (
     notes?.source === "media_planner_cart_negotiate" &&
     notes?.cartItemId === cartItemId
+  ) {
+    return true;
+  }
+  if (notes?.source === "media_planner_cart_campaign_negotiate") {
+    const ids = Array.isArray(notes.cartItemIds) ? notes.cartItemIds.map(String) : [];
+    return ids.includes(String(cartItemId));
+  }
+  return false;
+}
+
+function isPlannerCartCampaignBooking(row, campaignKey) {
+  if (!row || !campaignKey) return false;
+  const notes = parseBookingNotes(row.notes);
+  return (
+    notes?.source === "media_planner_cart_campaign_negotiate" &&
+    String(notes.campaignKey || "") === String(campaignKey)
   );
+}
+
+function slimPlannerCartItem(cartItem) {
+  return {
+    id: String(cartItem?.id || "").trim(),
+    rateCardId: cartItem?.rateCardId || null,
+    rateCardBookingId: cartItem?.rateCardBookingId || null,
+    channel: cartItem?.channel || "TV",
+    mediaCampaignName: cartItem?.mediaCampaignName || "",
+    brandName: cartItem?.brandName || null,
+    adFormatLabel: cartItem?.adFormatLabel || null,
+    audienceLabels: Array.isArray(cartItem?.audienceLabels)
+      ? cartItem.audienceLabels.slice(0, 12)
+      : [],
+    campaignStart: cartItem?.campaignStart || null,
+    campaignEnd: cartItem?.campaignEnd || null,
+    dayCount: cartItem?.dayCount || 1,
+    slotIds: Array.isArray(cartItem?.slotIds)
+      ? cartItem.slotIds.filter(Boolean).slice(0, 40)
+      : [],
+    slots: Array.isArray(cartItem?.slots)
+      ? cartItem.slots.slice(0, 20).map((slot) => ({
+          id: slot.id,
+          label: slot.label,
+          range: slot.range || "",
+          frequencyId: slot.frequencyId || null,
+          lineTotal: slot.lineTotal ?? null,
+        }))
+      : [],
+    estimatedImpressions: cartItem?.estimatedImpressions ?? null,
+    subtotal: cartItem?.subtotal || 0,
+    vat: cartItem?.vat || 0,
+    nhilGetfund: cartItem?.nhilGetfund || 0,
+    total: cartItem?.total,
+    contact: {
+      name: cartItem?.contact?.name || "",
+      email: cartItem?.contact?.email || "",
+      phone: cartItem?.contact?.phone || "",
+    },
+  };
 }
 
 /**
@@ -1081,12 +1234,307 @@ export async function startPlannerCartNegotiation(cartItem) {
       success: true,
       bookingId: booking.id,
       negotiationId: negotiation.id,
+      cartItemIds: cartItemId ? [cartItemId] : [],
       href: `/messages/media/${negotiation.id}?from=cart&cartItemId=${encodeURIComponent(
         cartItemId || ""
       )}`,
     };
   } catch (error) {
     console.error("startPlannerCartNegotiation failed:", error);
+    const message = error?.message || "Could not start negotiation";
+    if (/unauthorized|sign in/i.test(message)) {
+      return { success: false, error: "Unauthorized" };
+    }
+    return {
+      success: false,
+      error: "Could not start negotiation. Please try again.",
+    };
+  }
+}
+
+/**
+ * Negotiate every selected cart flight under one campaign thread.
+ * All flights must share the same published rate card (same station).
+ */
+export async function startPlannerCartCampaignNegotiation(cartItems = []) {
+  try {
+    const user = await requireUser();
+    if (user.role !== "CLIENT") {
+      return { success: false, error: "Only clients can negotiate media rates" };
+    }
+    if (!user.email) {
+      return { success: false, error: "Your account needs an email to negotiate" };
+    }
+
+    const items = (Array.isArray(cartItems) ? cartItems : [])
+      .map(slimPlannerCartItem)
+      .filter((item) => item.id);
+
+    if (items.length === 0) {
+      return { success: false, error: "Select at least one flight to negotiate" };
+    }
+    if (items.length === 1) {
+      return startPlannerCartNegotiation(items[0]);
+    }
+
+    const rateCardId = items[0].rateCardId;
+    if (!rateCardId || items.some((item) => item.rateCardId !== rateCardId)) {
+      return {
+        success: false,
+        error:
+          "Select flights from the same station to negotiate them together",
+      };
+    }
+
+    const campaignName = String(items[0].mediaCampaignName || "").trim();
+    if (!campaignName) {
+      return { success: false, error: "Add a campaign name before negotiating" };
+    }
+    if (items.some((item) => String(item.mediaCampaignName || "").trim() !== campaignName)) {
+      return {
+        success: false,
+        error: "Selected flights must belong to the same campaign",
+      };
+    }
+
+    for (const item of items) {
+      if (!item.slotIds.length) {
+        return {
+          success: false,
+          error: `"${item.adFormatLabel || "A flight"}" needs at least one airtime slot`,
+        };
+      }
+      if (Math.round(Number(item.total) || 0) <= 0) {
+        return {
+          success: false,
+          error: `"${item.adFormatLabel || "A flight"}" has no quote amount`,
+        };
+      }
+    }
+
+    const listAmount = items.reduce(
+      (sum, item) => sum + Math.round(Number(item.total) || 0),
+      0
+    );
+    const contactName =
+      String(items[0].contact?.name || "").trim() ||
+      user.name ||
+      user.email.split("@")[0] ||
+      "Client";
+    const contactPhone = String(items[0].contact?.phone || "").trim() || null;
+    const contactEmail = String(items[0].contact?.email || "").trim() || null;
+    const cartItemIds = items.map((item) => item.id);
+    const campaignKey = [
+      campaignName.toLowerCase(),
+      String(items[0].brandName || "")
+        .trim()
+        .toLowerCase(),
+      String(items[0].channel || "TV").toUpperCase(),
+      rateCardId,
+    ].join("::");
+
+    const rateCard = await db.rateCard.findUnique({
+      where: { id: rateCardId },
+      select: {
+        id: true,
+        title: true,
+        agencyId: true,
+        isPublished: true,
+        agency: { select: { id: true, agencyName: true, contactName: true } },
+      },
+    });
+    if (!rateCard || !rateCard.isPublished) {
+      return { success: false, error: "Station rate card is unavailable" };
+    }
+
+    const adTypeLabels = [
+      ...new Set(
+        items
+          .map((item) => String(item.adFormatLabel || "").trim())
+          .filter(Boolean)
+      ),
+    ];
+    const packageLabel =
+      adTypeLabels.length > 0
+        ? `${adTypeLabels.join(" + ")} · ${items.length} flights`
+        : `${items.length} flights`;
+
+    let booking = null;
+    const candidates = await db.rateCardBookingItem.findMany({
+      where: {
+        rateCardId: rateCard.id,
+        agencyId: rateCard.agencyId,
+        status: "PENDING",
+        OR: [
+          { clientEmail: { equals: user.email, mode: "insensitive" } },
+          ...(contactEmail
+            ? [{ clientEmail: { equals: contactEmail, mode: "insensitive" } }]
+            : []),
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    });
+    booking =
+      candidates.find((row) => isPlannerCartCampaignBooking(row, campaignKey)) ||
+      null;
+
+    const flightNotes = items.map((item) => ({
+      cartItemId: item.id,
+      adFormatLabel: item.adFormatLabel || null,
+      dayCount: item.dayCount || 1,
+      total: Math.round(Number(item.total) || 0),
+      slotIds: item.slotIds,
+      slots: item.slots,
+      campaignStart: item.campaignStart || null,
+      campaignEnd: item.campaignEnd || null,
+    }));
+
+    const notes = JSON.stringify({
+      source: "media_planner_cart_campaign_negotiate",
+      campaignKey,
+      cartItemIds,
+      channel: items[0].channel || "TV",
+      brandName: items[0].brandName || null,
+      audienceLabels: items[0].audienceLabels || [],
+      plannerContactEmail: contactEmail,
+      flights: flightNotes,
+      listTotal: listAmount,
+      subtotal: items.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0),
+      vat: items.reduce((sum, item) => sum + (Number(item.vat) || 0), 0),
+      nhilGetfund: items.reduce(
+        (sum, item) => sum + (Number(item.nhilGetfund) || 0),
+        0
+      ),
+    });
+
+    const lead = items[0];
+    const leadRowId = lead.slotIds[0];
+    const row = await db.smartTableRow.findUnique({
+      where: { id: leadRowId },
+      include: { cells: { include: { column: true } } },
+    });
+    if (!row) {
+      return { success: false, error: "Airtime slot is no longer available" };
+    }
+
+    const snapshotData = {};
+    row.cells.forEach((cell) => {
+      snapshotData[cell.column.name] = cell.value;
+    });
+    const priceColumn = row.cells.find((cell) =>
+      ["CURRENCY", "NUMBER"].includes(cell.column.dataType)
+    );
+    const startDate = lead.campaignStart ? new Date(lead.campaignStart) : null;
+    const endDate = lead.campaignEnd
+      ? new Date(lead.campaignEnd)
+      : startDate;
+
+    if (booking) {
+      booking = await db.rateCardBookingItem.update({
+        where: { id: booking.id },
+        data: {
+          clientEmail: user.email,
+          clientName: contactName,
+          clientPhone: contactPhone,
+          snapshotDescription: packageLabel.slice(0, 200),
+          mediaCampaignName: campaignName.slice(0, 200),
+          quantity: items.length,
+          startDate:
+            startDate && !Number.isNaN(startDate.getTime()) ? startDate : null,
+          endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+          notes,
+          totalAmount: listAmount,
+        },
+      });
+    } else {
+      booking = await db.rateCardBookingItem.create({
+        data: {
+          rowId: row.id,
+          rateCardId: rateCard.id,
+          agencyId: rateCard.agencyId,
+          snapshotData,
+          snapshotPrice: priceColumn?.value
+            ? parseFloat(priceColumn.value)
+            : null,
+          snapshotUnit: "campaign estimate",
+          snapshotDescription: packageLabel.slice(0, 200),
+          mediaCampaignName: campaignName.slice(0, 200),
+          clientName: contactName,
+          clientEmail: user.email,
+          clientPhone: contactPhone,
+          quantity: items.length,
+          startDate:
+            startDate && !Number.isNaN(startDate.getTime()) ? startDate : null,
+          endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+          notes,
+          totalAmount: listAmount,
+          status: "PENDING",
+        },
+      });
+    }
+
+    const ensured = await ensureMediaNegotiation("RATE_CARD_BOOKING", booking.id);
+    const negotiation = ensured?.negotiation;
+    if (!negotiation?.id) {
+      return { success: false, error: "Could not open negotiation" };
+    }
+
+    // Keep list amount / label in sync when reopening
+    if (
+      Number(negotiation.listAmount) !== listAmount ||
+      negotiation.packageLabel !== packageLabel
+    ) {
+      await db.mediaNegotiation.update({
+        where: { id: negotiation.id },
+        data: {
+          listAmount,
+          packageLabel,
+          title: campaignName.slice(0, 200),
+        },
+      });
+    }
+
+    if (ensured.created) {
+      const flightLines = items
+        .map((item) => {
+          const label = item.adFormatLabel || "Flight";
+          return `${label}: ${money(item.total)}`;
+        })
+        .join(" · ");
+      await db.mediaNegotiationMessage.create({
+        data: {
+          negotiationId: negotiation.id,
+          senderRole: "CLIENT",
+          senderUserId: user.id,
+          type: "TEXT",
+          body: [
+            `Campaign negotiation for “${campaignName}”.`,
+            `${items.length} ad type${items.length === 1 ? "" : "s"}: ${flightLines}.`,
+            `Combined list total: ${money(listAmount)}.`,
+            "Can we discuss a package rate across these flights?",
+          ].join(" "),
+        },
+      });
+      await db.mediaNegotiation.update({
+        where: { id: negotiation.id },
+        data: { updatedAt: new Date() },
+      });
+    }
+
+    revalidatePath("/products/media-cart");
+    revalidatePath("/client/media");
+
+    const idsQuery = encodeURIComponent(cartItemIds.join(","));
+    return {
+      success: true,
+      bookingId: booking.id,
+      negotiationId: negotiation.id,
+      cartItemIds,
+      href: `/messages/media/${negotiation.id}?from=cart&cartItemIds=${idsQuery}`,
+    };
+  } catch (error) {
+    console.error("startPlannerCartCampaignNegotiation failed:", error);
     const message = error?.message || "Could not start negotiation";
     if (/unauthorized|sign in/i.test(message)) {
       return { success: false, error: "Unauthorized" };

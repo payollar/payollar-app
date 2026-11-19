@@ -29,8 +29,8 @@ import {
   sendMediaNegotiationMessage,
 } from "@/actions/media-negotiate";
 import {
-  applyNegotiatedTotalToCartItem,
-  patchMediaPlannerCartItem,
+  applyNegotiatedTotalToCartItems,
+  patchMediaPlannerCartItems,
 } from "@/lib/media-planner-cart";
 import { cn } from "@/lib/utils";
 import { ClientPageShell, clientCardClass } from "./client-page-shell";
@@ -174,6 +174,7 @@ export function MediaNegotiateWorkspace({
   cardClass = clientCardClass,
   fromCart = false,
   cartItemId = "",
+  cartItemIds = [],
   /** When true, render inside Messages (no page shell). */
   embedded = false,
 }) {
@@ -193,6 +194,15 @@ export function MediaNegotiateWorkspace({
   const syncedCartRef = useRef(false);
   const closed = ["ACCEPTED", "REJECTED", "CLOSED"].includes(negotiation.status);
   const status = statusMeta(negotiation.status);
+  const linkedCartItemIds = (
+    Array.isArray(cartItemIds) && cartItemIds.length
+      ? cartItemIds
+      : cartItemId
+        ? [cartItemId]
+        : []
+  )
+    .map(String)
+    .filter(Boolean);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -216,27 +226,43 @@ export function MediaNegotiateWorkspace({
   }, [negotiation.id]);
 
   useEffect(() => {
-    if (!fromCart || !cartItemId || perspective !== "CLIENT") return;
-    patchMediaPlannerCartItem(cartItemId, {
+    if (!fromCart || linkedCartItemIds.length === 0 || perspective !== "CLIENT") {
+      return;
+    }
+    patchMediaPlannerCartItems(linkedCartItemIds, {
       negotiationId: negotiation.id,
       rateCardBookingId: negotiation.sourceId,
     });
-  }, [fromCart, cartItemId, perspective, negotiation.id, negotiation.sourceId]);
-
-  useEffect(() => {
-    if (!fromCart || !cartItemId || perspective !== "CLIENT") return;
-    if (negotiation.status !== "ACCEPTED" || negotiation.agreedAmount == null) return;
-    if (syncedCartRef.current) return;
-    syncedCartRef.current = true;
-    applyNegotiatedTotalToCartItem(cartItemId, negotiation.agreedAmount);
-    patchMediaPlannerCartItem(cartItemId, {
-      negotiationId: negotiation.id,
-      rateCardBookingId: negotiation.sourceId,
-    });
-    toast.success("Negotiated rate saved to your cart");
   }, [
     fromCart,
-    cartItemId,
+    linkedCartItemIds.join("|"),
+    perspective,
+    negotiation.id,
+    negotiation.sourceId,
+  ]);
+
+  useEffect(() => {
+    if (!fromCart || linkedCartItemIds.length === 0 || perspective !== "CLIENT") {
+      return;
+    }
+    if (negotiation.status !== "ACCEPTED" || negotiation.agreedAmount == null) {
+      return;
+    }
+    if (syncedCartRef.current) return;
+    syncedCartRef.current = true;
+    applyNegotiatedTotalToCartItems(linkedCartItemIds, negotiation.agreedAmount);
+    patchMediaPlannerCartItems(linkedCartItemIds, {
+      negotiationId: negotiation.id,
+      rateCardBookingId: negotiation.sourceId,
+    });
+    toast.success(
+      linkedCartItemIds.length > 1
+        ? "Negotiated campaign rate saved across your flights"
+        : "Negotiated rate saved to your cart"
+    );
+  }, [
+    fromCart,
+    linkedCartItemIds.join("|"),
     perspective,
     negotiation.status,
     negotiation.agreedAmount,

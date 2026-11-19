@@ -216,6 +216,7 @@ export function MessagesWorkspace({
   negotiationPerspective = "CLIENT",
   fromCart = false,
   cartItemId = "",
+  cartItemIds = [],
   initialDraft = "",
 }) {
   const [thread, setThread] = useState(initialThread);
@@ -532,6 +533,13 @@ export function MessagesWorkspace({
             embedded
             fromCart={fromCart}
             cartItemId={cartItemId}
+            cartItemIds={
+              Array.isArray(cartItemIds) && cartItemIds.length
+                ? cartItemIds
+                : cartItemId
+                  ? [cartItemId]
+                  : []
+            }
             backHref="/messages"
             backLabel="Messages"
           />
