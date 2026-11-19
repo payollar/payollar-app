@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
+import { BillboardLocationMap } from "@/components/products/billboard-location-map";
 import {
   BILLBOARD_CUSTOM_RATE_ID,
   billboardQuoteHref,
@@ -30,6 +31,7 @@ import {
   billboardStatusClass,
   billboardWeeklyBaseRate,
   findBillboardSite,
+  liveListingToBillboardSite,
   resolveBillboardRate,
 } from "@/lib/demo-billboard-marketplace";
 import { cn } from "@/lib/utils";
@@ -278,7 +280,7 @@ function AvailabilityPanel({
         {[
           {
             title: "Hold dates",
-            body: "Request a quote to reserve the window with the media owner.",
+            body: "Open negotiation to hold the window with the media owner.",
           },
           {
             title: "Lock on accept",
@@ -331,7 +333,7 @@ function AvailabilityPanel({
             className="h-10 rounded-full bg-white px-5 text-sm font-semibold text-slate-950 hover:bg-slate-100"
           >
             <Link href={quoteHref}>
-              Get Quote
+              Negotiate
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
           </Button>
@@ -344,10 +346,52 @@ function AvailabilityPanel({
 function BillboardSiteDetail() {
   const params = useParams();
   const siteId = String(params?.siteId || "");
-  const site = useMemo(() => findBillboardSite(siteId), [siteId]);
+  const demoSite = useMemo(() => findBillboardSite(siteId), [siteId]);
+  const [liveSite, setLiveSite] = useState(null);
+  const [loadingLive, setLoadingLive] = useState(!demoSite && Boolean(siteId));
   const [tab, setTab] = useState("overview");
   const [selectedRateId, setSelectedRateId] = useState(null);
   const [customWeeks, setCustomWeeks] = useState(6);
+
+  useEffect(() => {
+    if (demoSite || !siteId) {
+      setLiveSite(null);
+      setLoadingLive(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingLive(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/media-listings/${siteId}`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data?.listing) {
+          setLiveSite(liveListingToBillboardSite(data.listing));
+        } else {
+          setLiveSite(null);
+        }
+      } catch {
+        if (!cancelled) setLiveSite(null);
+      } finally {
+        if (!cancelled) setLoadingLive(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [demoSite, siteId]);
+
+  const site = demoSite || liveSite;
+
+  if (loadingLive) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading site…
+      </div>
+    );
+  }
 
   if (!site) {
     return (
@@ -502,6 +546,12 @@ function BillboardSiteDetail() {
                   <p className="max-w-2xl text-[15px] leading-relaxed text-slate-600">
                     {site.description}
                   </p>
+
+                  <BillboardLocationMap
+                    latitude={site.latitude}
+                    longitude={site.longitude}
+                    locationLabel={site.location}
+                  />
 
                   <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                     {highlightSpecs.map((row) => {
@@ -804,7 +854,7 @@ function BillboardSiteDetail() {
                   className="h-11 w-full rounded-full bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
                 >
                   <Link href={quoteHref}>
-                    Get Quote
+                    Negotiate
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -817,7 +867,7 @@ function BillboardSiteDetail() {
                   Change package
                 </Button>
                 <p className="pt-1 text-center text-[11px] leading-relaxed text-slate-400">
-                  Next: build quote, negotiate, then book & go live.
+                  Next: negotiate terms, confirm, then book & go live.
                 </p>
               </div>
             </div>
@@ -840,7 +890,7 @@ function BillboardSiteDetail() {
             className="h-11 shrink-0 rounded-full bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800"
           >
             <Link href={quoteHref}>
-              Get Quote
+              Negotiate
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
           </Button>

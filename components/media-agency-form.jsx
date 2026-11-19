@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import useFetch from "@/hooks/use-fetch"
 import { useEffect } from "react"
 import { UploadButton } from "@uploadthing/react"
+import { BillboardMapPicker } from "@/app/(main)/media-agency/rate-card/_components/billboard-map-picker"
 
 const MEDIA_TYPES = [
   { value: "TV", label: "TV Station", icon: Tv },
@@ -38,11 +39,13 @@ export default function MediaAgencyForm() {
 
   const [listings, setListings] = useState([])
   const [showListingForm, setShowListingForm] = useState(false)
-  const [currentListing, setCurrentListing] = useState({
+  const emptyListing = {
     listingType: "",
     name: "",
     network: "",
     location: "",
+    latitude: null,
+    longitude: null,
     frequency: "",
     description: "",
     reach: "",
@@ -50,7 +53,9 @@ export default function MediaAgencyForm() {
     imageUrl: "",
     priceRange: "",
     timeSlots: [],
-  })
+  }
+
+  const [currentListing, setCurrentListing] = useState(emptyListing)
 
   const [newDemographic, setNewDemographic] = useState("")
   const [newTimeSlot, setNewTimeSlot] = useState("")
@@ -60,7 +65,14 @@ export default function MediaAgencyForm() {
   }
 
   const handleListingChange = (field, value) => {
-    setCurrentListing((prev) => ({ ...prev, [field]: value }))
+    setCurrentListing((prev) => {
+      const next = { ...prev, [field]: value }
+      if (field === "listingType" && value !== "BILLBOARD") {
+        next.latitude = null
+        next.longitude = null
+      }
+      return next
+    })
   }
 
   const addListing = () => {
@@ -68,21 +80,19 @@ export default function MediaAgencyForm() {
       toast.error("Please fill in at least listing type, name, and location")
       return
     }
+    if (
+      currentListing.listingType === "BILLBOARD" &&
+      (currentListing.latitude == null ||
+        currentListing.longitude == null ||
+        !Number.isFinite(Number(currentListing.latitude)) ||
+        !Number.isFinite(Number(currentListing.longitude)))
+    ) {
+      toast.error("Drop a map pin so buyers can find this billboard")
+      return
+    }
 
     setListings([...listings, { ...currentListing, id: Date.now() }])
-    setCurrentListing({
-      listingType: "",
-      name: "",
-      network: "",
-      location: "",
-      frequency: "",
-      description: "",
-      reach: "",
-      demographics: [],
-      imageUrl: "",
-      priceRange: "",
-      timeSlots: [],
-    })
+    setCurrentListing({ ...emptyListing })
     setShowListingForm(false)
     toast.success("Media listing added")
   }
@@ -379,6 +389,28 @@ export default function MediaAgencyForm() {
                       />
                     </div>
                   </div>
+
+                  {currentListing.listingType === "BILLBOARD" ? (
+                    <BillboardMapPicker
+                      required
+                      value={{
+                        latitude: currentListing.latitude,
+                        longitude: currentListing.longitude,
+                      }}
+                      onChange={({ latitude, longitude }) =>
+                        setCurrentListing((prev) => ({
+                          ...prev,
+                          latitude,
+                          longitude,
+                        }))
+                      }
+                      onLocationLabel={(label) => {
+                        if (!currentListing.location.trim()) {
+                          handleListingChange("location", label)
+                        }
+                      }}
+                    />
+                  ) : null}
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">

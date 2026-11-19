@@ -280,6 +280,16 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
       toast.error("Please fill in all required fields");
       return;
     }
+    if (
+      listingType === "BILLBOARD" &&
+      (latitude == null ||
+        longitude == null ||
+        !Number.isFinite(Number(latitude)) ||
+        !Number.isFinite(Number(longitude)))
+    ) {
+      toast.error("Drop a map pin so buyers can find this billboard");
+      return;
+    }
 
     setIsLoading(true);
 
@@ -306,8 +316,9 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create listing");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to create listing");
       }
 
       toast.success("Media listing created successfully!");
@@ -327,7 +338,7 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
       window.location.reload();
     } catch (error) {
       console.error("Error creating listing:", error);
-      toast.error("Failed to create media listing");
+      toast.error(error.message || "Failed to create media listing");
     } finally {
       setIsLoading(false);
     }
@@ -412,6 +423,7 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
         {listingType === "BILLBOARD" ? (
           <div className="sm:col-span-2">
             <BillboardMapPicker
+              required
               value={{ latitude, longitude }}
               onChange={({ latitude: lat, longitude: lng }) => {
                 setLatitude(lat);

@@ -5,6 +5,61 @@ import { checkUser } from "@/lib/checkUser";
 import { priceRangeFromRateCard } from "@/lib/rate-card-price-range";
 import { agencyAllowsListingType } from "@/lib/media-agency-type";
 
+function parseListingCoords(listing) {
+  const lat =
+    listing?.latitude === null ||
+    listing?.latitude === undefined ||
+    listing?.latitude === ""
+      ? null
+      : Number(listing.latitude);
+  const lng =
+    listing?.longitude === null ||
+    listing?.longitude === undefined ||
+    listing?.longitude === ""
+      ? null
+      : Number(listing.longitude);
+  const hasCoords =
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lng) <= 180;
+  return { lat: hasCoords ? lat : null, lng: hasCoords ? lng : null, hasCoords };
+}
+
+function assertBillboardHasMapPin(listing) {
+  if (String(listing?.listingType || "").toUpperCase() !== "BILLBOARD") {
+    return;
+  }
+  const { hasCoords } = parseListingCoords(listing);
+  if (!hasCoords) {
+    throw new Error(
+      "Billboard sites need a map pin so buyers can find the location"
+    );
+  }
+}
+
+function listingCreateData(listing, agencyId = null) {
+  assertBillboardHasMapPin(listing);
+  const { lat, lng, hasCoords } = parseListingCoords(listing);
+  return {
+    ...(agencyId ? { agencyId } : {}),
+    listingType: listing.listingType,
+    name: listing.name,
+    network: listing.network,
+    location: listing.location,
+    latitude: hasCoords ? lat : null,
+    longitude: hasCoords ? lng : null,
+    frequency: listing.frequency,
+    description: listing.description,
+    reach: listing.reach,
+    demographics: listing.demographics || [],
+    imageUrl: listing.imageUrl,
+    priceRange: listing.priceRange,
+    timeSlots: listing.timeSlots || [],
+    status: "ACTIVE",
+  };
+}
+
 /**
  * Submit media agency registration form
  * If user already has a MediaAgency (e.g. resubmitting for verification), updates it instead of creating.
@@ -41,6 +96,13 @@ export async function submitMediaAgencyForm(data) {
       verificationStatus: "PENDING",
     };
 
+    // Validate billboard pins before any write
+    if (Array.isArray(listings)) {
+      for (const listing of listings) {
+        assertBillboardHasMapPin(listing);
+      }
+    }
+
     // If user is authenticated, check for existing agency (unique on userId)
     if (userId) {
       const existingAgency = await db.mediaAgency.findUnique({
@@ -59,21 +121,9 @@ export async function submitMediaAgencyForm(data) {
         // Optionally add new listings if provided
         if (listings && listings.length > 0) {
           await db.mediaListing.createMany({
-            data: listings.map((listing) => ({
-              agencyId: agency.id,
-              listingType: listing.listingType,
-              name: listing.name,
-              network: listing.network,
-              location: listing.location,
-              frequency: listing.frequency,
-              description: listing.description,
-              reach: listing.reach,
-              demographics: listing.demographics || [],
-              imageUrl: listing.imageUrl,
-              priceRange: listing.priceRange,
-              timeSlots: listing.timeSlots || [],
-              status: "ACTIVE",
-            })),
+            data: listings.map((listing) =>
+              listingCreateData(listing, agency.id)
+            ),
           });
           const updated = await db.mediaAgency.findUnique({
             where: { id: agency.id },
@@ -91,22 +141,12 @@ export async function submitMediaAgencyForm(data) {
       data: {
         ...agencyData,
         userId,
-        listings: listings && listings.length > 0 ? {
-          create: listings.map((listing) => ({
-            listingType: listing.listingType,
-            name: listing.name,
-            network: listing.network,
-            location: listing.location,
-            frequency: listing.frequency,
-            description: listing.description,
-            reach: listing.reach,
-            demographics: listing.demographics || [],
-            imageUrl: listing.imageUrl,
-            priceRange: listing.priceRange,
-            timeSlots: listing.timeSlots || [],
-            status: "ACTIVE",
-          })),
-        } : undefined,
+        listings:
+          listings && listings.length > 0
+            ? {
+                create: listings.map((listing) => listingCreateData(listing)),
+              }
+            : undefined,
       },
       include: {
         listings: true,
@@ -449,21 +489,7 @@ export async function addMediaListing(agencyId, listingData) {
     }
 
     const listing = await db.mediaListing.create({
-      data: {
-        agencyId,
-        listingType: listingData.listingType,
-        name: listingData.name,
-        network: listingData.network,
-        location: listingData.location,
-        frequency: listingData.frequency,
-        description: listingData.description,
-        reach: listingData.reach,
-        demographics: listingData.demographics || [],
-        imageUrl: listingData.imageUrl,
-        priceRange: listingData.priceRange,
-        timeSlots: listingData.timeSlots || [],
-        status: "ACTIVE",
-      },
+      data: listingCreateData(listingData, agencyId),
     });
 
     return { success: true, listing };
@@ -481,12 +507,42 @@ export async function addMediaListing(agencyId, listingData) {
  */
 export async function updateMediaListing(listingId, listingData) {
   try {
+    const existing = await db.mediaListing.findUnique({
+      where: { id: listingId },
+      select: { listingType: true, latitude: true, longitude: true },
+    });
+    if (!existing) {
+      return { success: false, error: "Listing not found" };
+    }
+
+    const nextType = listingData.listingType || existing.listingType;
+    const coordsSource = {
+      listingType: nextType,
+      latitude:
+        listingData.latitude !== undefined
+          ? listingData.latitude
+          : existing.latitude,
+      longitude:
+        listingData.longitude !== undefined
+          ? listingData.longitude
+          : existing.longitude,
+    };
+    assertBillboardHasMapPin(coordsSource);
+    const { lat, lng, hasCoords } = parseListingCoords(coordsSource);
+
     const listing = await db.mediaListing.update({
       where: { id: listingId },
       data: {
         name: listingData.name,
         network: listingData.network,
         location: listingData.location,
+        ...(listingData.latitude !== undefined ||
+        listingData.longitude !== undefined
+          ? {
+              latitude: hasCoords ? lat : null,
+              longitude: hasCoords ? lng : null,
+            }
+          : {}),
         frequency: listingData.frequency,
         description: listingData.description,
         reach: listingData.reach,
@@ -495,6 +551,9 @@ export async function updateMediaListing(listingId, listingData) {
         priceRange: listingData.priceRange,
         timeSlots: listingData.timeSlots || [],
         status: listingData.status,
+        ...(listingData.listingType !== undefined && {
+          listingType: listingData.listingType,
+        }),
       },
     });
 

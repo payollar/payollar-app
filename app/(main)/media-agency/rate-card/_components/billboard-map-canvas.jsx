@@ -42,22 +42,36 @@ function Recenter({ center }) {
   return null;
 }
 
-export default function BillboardMapCanvas({ center, pin, onPick }) {
+export default function BillboardMapCanvas({
+  center,
+  pin,
+  onPick,
+  interactive = true,
+  className,
+  heightClassName = "h-[240px]",
+}) {
   const start = pin || center || { lat: 5.6037, lng: -0.187 };
+  const canPick = Boolean(interactive && onPick);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200">
+    <div
+      className={
+        className || "overflow-hidden rounded-xl border border-slate-200"
+      }
+    >
       <MapContainer
         center={[start.lat, start.lng]}
         zoom={14}
         scrollWheelZoom={false}
-        className="z-0 h-[240px] w-full"
+        dragging={canPick || interactive}
+        doubleClickZoom={canPick}
+        className={`z-0 w-full ${heightClassName}`}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapClickHandler onPick={onPick} />
+        {canPick ? <MapClickHandler onPick={onPick} /> : null}
         <Recenter center={pin || center} />
         {pin ? <Marker position={[pin.lat, pin.lng]} icon={markerIcon} /> : null}
       </MapContainer>

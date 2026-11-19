@@ -7,7 +7,11 @@ import { BadgeCheck, CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
-import { findBillboardSite } from "@/lib/demo-billboard-marketplace";
+import {
+  findBillboardSite,
+  liveListingToBillboardSite,
+} from "@/lib/demo-billboard-marketplace";
+import { startBillboardMarketplaceNegotiation } from "@/actions/media-negotiate";
 
 function money(n) {
   return `GH₵${Number(n || 0).toLocaleString("en-GH", { maximumFractionDigits: 0 })}`;
@@ -27,15 +31,106 @@ function BillboardNegotiateWorkspace() {
   const searchParams = useSearchParams();
   const siteKey = searchParams.get("site") || "";
 
-  const site = useMemo(() => findBillboardSite(siteKey), [siteKey]);
+  const demoSite = useMemo(() => findBillboardSite(siteKey), [siteKey]);
+  const [liveSite, setLiveSite] = useState(null);
+  const [loadingSite, setLoadingSite] = useState(!demoSite && Boolean(siteKey));
   const [quote, setQuote] = useState(null);
   const [offer, setOffer] = useState(null);
   const [accepted, setAccepted] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState([]);
 
+  const site = demoSite || liveSite;
+
   useEffect(() => {
-    if (!site) return;
+    if (demoSite || !siteKey) {
+      setLiveSite(null);
+      setLoadingSite(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingSite(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/media-listings/${siteKey}`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data?.listing) {
+          setLiveSite(liveListingToBillboardSite(data.listing));
+        } else {
+          setLiveSite(null);
+        }
+      } catch {
+        if (!cancelled) setLiveSite(null);
+      } finally {
+        if (!cancelled) setLoadingSite(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [demoSite, siteKey]);
+
+  // Live billboards always negotiate in dashboard Messages
+  useEffect(() => {
+    if (!site || site.isDemo) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const stored = loadQuote(site.id) || {};
+        const fallbackRate = site.rates?.[0];
+        const result = await startBillboardMarketplaceNegotiation({
+          listingId: site.id,
+          siteId: site.id,
+          isDemo: false,
+          rateId: stored.rateId || fallbackRate?.id,
+          rateLabel: stored.rateLabel || fallbackRate?.label,
+          weeks: stored.weeks || fallbackRate?.weeks,
+          total: stored.total || fallbackRate?.price || 0,
+          startDate: stored.startDate,
+          endDate: stored.endDate,
+        });
+
+        if (cancelled) return;
+        if (result?.success && result?.href) {
+          router.replace(result.href);
+          return;
+        }
+        if (
+          result?.error === "Unauthorized" ||
+          /unauthorized|sign in|client/i.test(result?.error || "")
+        ) {
+          router.replace(
+            `/sign-in?redirect_url=${encodeURIComponent(
+              `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+            )}`
+          );
+          return;
+        }
+        if (!result?.demo) {
+          toast.error(result?.error || "Could not open Messages");
+          router.replace(
+            `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          toast.error("Could not open Messages negotiation");
+          router.replace(
+            `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+          );
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [site, router]);
+
+  useEffect(() => {
+    if (!site || !site.isDemo) return;
     const stored = loadQuote(site.id);
     setQuote(stored);
 
@@ -124,6 +219,15 @@ function BillboardNegotiateWorkspace() {
     );
   };
 
+  if (loadingSite || (site && !site.isDemo)) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Opening Messages…
+      </div>
+    );
+  }
+
   if (!site) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
@@ -148,12 +252,19 @@ function BillboardNegotiateWorkspace() {
       <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Step 4 · Negotiate & book
+            Demo preview
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
             Negotiation with {site.owner?.name || "media owner"}
           </h1>
           <p className="mt-1 text-sm text-slate-500">{site.name}</p>
+          <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
+            Live billboards open your dashboard{" "}
+            <Link href="/messages" className="font-semibold underline-offset-2 hover:underline">
+              Messages
+            </Link>{" "}
+            chat when you’re signed in. This screen is a demo preview only.
+          </p>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm">

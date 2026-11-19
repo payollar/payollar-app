@@ -241,6 +241,14 @@ export default async function MediaAgencyRateCardPage() {
                             {listing.location}
                             {listing.frequency ? ` · ${listing.frequency}` : ""}
                           </p>
+                          {listing.listingType === "BILLBOARD" &&
+                          (listing.latitude == null ||
+                            listing.longitude == null) ? (
+                            <p className="mt-1.5 text-xs font-medium text-amber-700">
+                              Map pin missing — edit this site so buyers can
+                              find it on the map.
+                            </p>
+                          ) : null}
                           <div className="mt-2.5">
                             <ListingCoverUpload
                               listingId={listing.id}

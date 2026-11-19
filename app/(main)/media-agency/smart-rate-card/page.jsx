@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SmartRateCardEditor } from "./_components/smart-rate-card-editor";
+import { BillboardMapPicker } from "../rate-card/_components/billboard-map-picker";
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,8 @@ export default function SmartRateCardPage() {
   const [selectedListingType, setSelectedListingType] = useState("");
   const [primaryMediaType, setPrimaryMediaType] = useState(null);
   const [newLocation, setNewLocation] = useState("");
+  const [newLatitude, setNewLatitude] = useState(null);
+  const [newLongitude, setNewLongitude] = useState(null);
   const [creatingRatesForListingId, setCreatingRatesForListingId] =
     useState(null);
 
@@ -203,6 +206,8 @@ export default function SmartRateCardPage() {
     setNewListingName("");
     setSelectedListingType(primaryMediaType || "");
     setNewLocation("");
+    setNewLatitude(null);
+    setNewLongitude(null);
     setShowCreateForm(false);
   };
 
@@ -248,6 +253,16 @@ export default function SmartRateCardPage() {
       toast.error("Location is required");
       return;
     }
+    if (
+      selectedListingType === "BILLBOARD" &&
+      (newLatitude == null ||
+        newLongitude == null ||
+        !Number.isFinite(Number(newLatitude)) ||
+        !Number.isFinite(Number(newLongitude)))
+    ) {
+      toast.error("Drop a map pin so buyers can find this billboard");
+      return;
+    }
 
     setCreating(true);
     try {
@@ -258,6 +273,10 @@ export default function SmartRateCardPage() {
           listingType: selectedListingType,
           name: newListingName.trim(),
           location: newLocation.trim(),
+          latitude:
+            selectedListingType === "BILLBOARD" ? newLatitude : null,
+          longitude:
+            selectedListingType === "BILLBOARD" ? newLongitude : null,
           status: "ACTIVE",
         }),
       });
@@ -651,7 +670,7 @@ export default function SmartRateCardPage() {
           else openCreateForm();
         }}
       >
-        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-950 shadow-2xl shadow-slate-900/10 sm:max-w-lg [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:text-slate-500 [&>button]:hover:bg-slate-100 [&>button]:hover:text-slate-900">
+        <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto border-slate-200 bg-white p-0 text-slate-950 shadow-2xl shadow-slate-900/10 sm:max-w-lg [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:text-slate-500 [&>button]:hover:bg-slate-100 [&>button]:hover:text-slate-900">
           <DialogHeader className="space-y-3 border-b border-slate-100 px-6 pb-5 pt-6 text-left">
             <div className="flex items-start gap-3 pr-8">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#0055ff]">
@@ -742,10 +761,28 @@ export default function SmartRateCardPage() {
                 id="station-location"
                 value={newLocation}
                 onChange={(e) => setNewLocation(e.target.value)}
-                placeholder="e.g. Accra"
+                placeholder={
+                  selectedListingType === "BILLBOARD"
+                    ? "e.g. Airport Roundabout, Accra"
+                    : "e.g. Accra"
+                }
                 className={fieldClass}
               />
             </div>
+
+            {selectedListingType === "BILLBOARD" ? (
+              <BillboardMapPicker
+                required
+                value={{ latitude: newLatitude, longitude: newLongitude }}
+                onChange={({ latitude, longitude }) => {
+                  setNewLatitude(latitude);
+                  setNewLongitude(longitude);
+                }}
+                onLocationLabel={(label) => {
+                  if (!newLocation.trim()) setNewLocation(label);
+                }}
+              />
+            ) : null}
           </div>
 
           <DialogFooter className="gap-2 border-t border-slate-100 bg-[#fafbfd] px-6 py-4 sm:justify-between">

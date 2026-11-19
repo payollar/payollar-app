@@ -285,6 +285,16 @@ export function ListingCardActions({ listing }) {
       toast.error("Name and location are required");
       return;
     }
+    if (
+      listing.listingType === "BILLBOARD" &&
+      (form.latitude == null ||
+        form.longitude == null ||
+        !Number.isFinite(Number(form.latitude)) ||
+        !Number.isFinite(Number(form.longitude)))
+    ) {
+      toast.error("Drop a map pin so buyers can find this billboard");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/media-agency/listings/${listing.id}`, {
@@ -451,6 +461,7 @@ export function ListingCardActions({ listing }) {
                   {listing.listingType === "BILLBOARD" ? (
                     <div className="sm:col-span-2">
                       <BillboardMapPicker
+                        required
                         value={{
                           latitude: form.latitude,
                           longitude: form.longitude,

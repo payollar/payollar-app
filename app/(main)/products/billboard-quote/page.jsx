@@ -16,7 +16,11 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProductsChannelTopBar } from "@/components/products/products-channel-top-bar";
-import { findBillboardSite } from "@/lib/demo-billboard-marketplace";
+import {
+  findBillboardSite,
+  liveListingToBillboardSite,
+} from "@/lib/demo-billboard-marketplace";
+import { startBillboardMarketplaceNegotiation } from "@/actions/media-negotiate";
 
 function money(n) {
   return `GH₵${Number(n || 0).toLocaleString("en-GH", { maximumFractionDigits: 0 })}`;
@@ -30,13 +34,45 @@ function BillboardQuoteBuilder() {
   const searchParams = useSearchParams();
   const siteKey = searchParams.get("site") || searchParams.get("demo") || "";
 
-  const site = useMemo(() => findBillboardSite(siteKey), [siteKey]);
-  const rates = site?.rates || [];
-
+  const demoSite = useMemo(() => findBillboardSite(siteKey), [siteKey]);
+  const [liveSite, setLiveSite] = useState(null);
+  const [loadingSite, setLoadingSite] = useState(!demoSite && Boolean(siteKey));
   const [rateId, setRateId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (demoSite || !siteKey) {
+      setLiveSite(null);
+      setLoadingSite(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingSite(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/media-listings/${siteKey}`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data?.listing) {
+          setLiveSite(liveListingToBillboardSite(data.listing));
+        } else {
+          setLiveSite(null);
+        }
+      } catch {
+        if (!cancelled) setLiveSite(null);
+      } finally {
+        if (!cancelled) setLoadingSite(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [demoSite, siteKey]);
+
+  const site = demoSite || liveSite;
+  const rates = site?.rates || [];
 
   useEffect(() => {
     if (!rates.length) return;
@@ -49,19 +85,25 @@ function BillboardQuoteBuilder() {
   }, [rates, searchParams]);
 
   useEffect(() => {
-    if (!site?.availability) return;
-    setStartDate(site.availability.from || "2026-12-01");
-    setEndDate(site.availability.to || "2026-12-31");
-  }, [site]);
+    if (!site) return;
+    if (site.availability) {
+      setStartDate(site.availability.from || "2026-12-01");
+      setEndDate(site.availability.to || "2026-12-31");
+      return;
+    }
+    if (!startDate) setStartDate("2027-01-01");
+    if (!endDate) setEndDate("2027-03-31");
+  }, [site, startDate, endDate]);
 
   const selectedRate = rates.find((r) => r.id === rateId) || rates[0];
   const total = Number(selectedRate?.price) || 0;
 
-  const handleRequestQuote = async () => {
+  const handleNegotiate = async () => {
     if (!site || !selectedRate) return;
     setSubmitting(true);
 
     const payload = {
+      listingId: site.id,
       siteId: site.id,
       siteName: site.name,
       location: site.location,
@@ -73,6 +115,7 @@ function BillboardQuoteBuilder() {
       total,
       startDate,
       endDate,
+      isDemo: Boolean(site.isDemo),
       requestedAt: new Date().toISOString(),
     };
 
@@ -82,19 +125,102 @@ function BillboardQuoteBuilder() {
       /* ignore */
     }
 
-    await new Promise((r) => setTimeout(r, 450));
-    toast.success("Quote requested — opening negotiation");
-    router.push(
-      `/products/billboard-quote/negotiate?site=${encodeURIComponent(site.id)}`
+    // Live billboards → dashboard Messages (same as digital / media cart)
+    if (!site.isDemo) {
+      try {
+        const result = await startBillboardMarketplaceNegotiation(payload);
+        if (result?.success && result?.href) {
+          toast.message("Opening negotiation in Messages");
+          router.push(result.href);
+          return;
+        }
+        if (
+          result?.error === "Unauthorized" ||
+          /unauthorized|sign in|client/i.test(result?.error || "")
+        ) {
+          toast.error("Sign in as a client to negotiate in Messages");
+          router.push(
+            `/sign-in?redirect_url=${encodeURIComponent(
+              `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+            )}`
+          );
+          return;
+        }
+        if (!result?.demo) {
+          toast.error(result?.error || "Could not open Messages negotiation");
+          setSubmitting(false);
+          return;
+        }
+      } catch (error) {
+        const message = error?.message || "";
+        if (/unauthorized|sign in|client/i.test(message)) {
+          toast.error("Sign in as a client to negotiate in Messages");
+          router.push(
+            `/sign-in?redirect_url=${encodeURIComponent(
+              `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+            )}`
+          );
+          return;
+        }
+        toast.error("Could not open Messages negotiation");
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    // Demo sites: still require sign-in, then open Messages with a clear note
+    // (no real agency thread exists for demos)
+    try {
+      const result = await startBillboardMarketplaceNegotiation({
+        ...payload,
+        isDemo: true,
+      });
+      if (
+        result?.error === "Unauthorized" ||
+        /unauthorized|sign in|client/i.test(result?.error || "")
+      ) {
+        toast.error("Sign in as a client to negotiate in Messages");
+        router.push(
+          `/sign-in?redirect_url=${encodeURIComponent(
+            `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+          )}`
+        );
+        return;
+      }
+    } catch (error) {
+      const message = error?.message || "";
+      if (/unauthorized|sign in|client/i.test(message)) {
+        toast.error("Sign in as a client to negotiate in Messages");
+        router.push(
+          `/sign-in?redirect_url=${encodeURIComponent(
+            `/products/billboard-quote?site=${encodeURIComponent(site.id)}`
+          )}`
+        );
+        return;
+      }
+    }
+
+    toast.message(
+      "Demo site — open Messages for live media threads. This preview is for demo inventory only."
     );
+    router.push("/messages");
   };
+
+  if (loadingSite) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading site…
+      </div>
+    );
+  }
 
   if (!site) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
         <p className="text-lg font-semibold text-slate-950">Site not found</p>
         <p className="mt-2 text-sm text-slate-500">
-          Pick a billboard from the marketplace to build a quote.
+          Pick a billboard from the marketplace to start negotiating.
         </p>
         <Button asChild className="mt-6 rounded-full bg-slate-950 hover:bg-slate-800">
           <Link href="/products?type=BILLBOARD">Back to marketplace</Link>
@@ -106,7 +232,7 @@ function BillboardQuoteBuilder() {
   return (
     <div className="pb-16">
       <ProductsChannelTopBar
-        title="Build quote"
+        title="Negotiate"
         backHref={`/products/billboard/${site.id}`}
         backLabel="Back to site"
         variant="light"
@@ -116,13 +242,14 @@ function BillboardQuoteBuilder() {
       <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Step 3 · Check availability & build quote
+            Step 3 · Confirm dates & negotiate
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-            Build Quote & Negotiate
+            Negotiate with media owner
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Confirm duration and campaign dates, then request a quote from the media owner.
+            Confirm duration and campaign dates, then open chat in Messages with
+            the media owner.
           </p>
         </div>
 
@@ -139,7 +266,8 @@ function BillboardQuoteBuilder() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
                 <p className="font-semibold text-slate-950">{site.name}</p>
-                {site.owner?.verificationStatus === "VERIFIED" ? (
+                {(site.owner?.verificationStatus ||
+                  site.agency?.verificationStatus) === "VERIFIED" ? (
                   <BadgeCheck className="h-4 w-4 text-sky-500" />
                 ) : null}
               </div>
@@ -230,16 +358,16 @@ function BillboardQuoteBuilder() {
                 type="button"
                 className="h-11 flex-1 rounded-full bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
                 disabled={submitting || !total}
-                onClick={handleRequestQuote}
+                onClick={handleNegotiate}
               >
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Requesting…
+                    Opening…
                   </>
                 ) : (
                   <>
-                    Request Quote / Negotiate
+                    Negotiate in Messages
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -260,7 +388,9 @@ function BillboardQuoteBuilder() {
 
         <p className="mt-4 flex items-start gap-2 text-xs text-slate-500">
           <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-          After you request a quote, you can negotiate rate and dates with the media owner.
+          {site.isDemo
+            ? "Demo sites use a preview chat. Live billboards open your dashboard Messages inbox."
+            : "Opens negotiation in Messages — same inbox as your dashboard. Sign in as a client if prompted."}
         </p>
       </div>
     </div>
@@ -277,7 +407,7 @@ export default function BillboardQuotePage() {
       fallback={
         <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Loading quote builder…
+          Loading negotiation…
         </div>
       }
     >

@@ -85,6 +85,28 @@ export async function PATCH(request, { params }) {
       );
     }
 
+    const effectiveType = String(
+      listingType || owned.listing.listingType || ""
+    ).toUpperCase();
+    if (effectiveType === "BILLBOARD") {
+      const finalLat = coordsTouched ? nextLat : owned.listing.latitude;
+      const finalLng = coordsTouched ? nextLng : owned.listing.longitude;
+      const hasPin =
+        Number.isFinite(Number(finalLat)) &&
+        Number.isFinite(Number(finalLng)) &&
+        finalLat != null &&
+        finalLng != null;
+      if (!hasPin) {
+        return NextResponse.json(
+          {
+            error:
+              "Billboard sites need a map pin so buyers can find the location",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const listing = await db.mediaListing.update({
       where: { id: listingId },
       data: {

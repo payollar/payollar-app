@@ -46,17 +46,19 @@ async function searchPlaces(query) {
 }
 
 /**
- * Optional live map pin for billboard listings.
+ * Live map pin for billboard listings.
  * value: { latitude, longitude } | null
+ * required: when true, map stays open and a pin is required for buyers' map view
  */
 export function BillboardMapPicker({
   value,
   onChange,
   onLocationLabel,
+  required = false,
   className,
 }) {
   const [enabled, setEnabled] = useState(
-    () => value?.latitude != null && value?.longitude != null
+    () => required || (value?.latitude != null && value?.longitude != null)
   );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -69,8 +71,9 @@ export function BillboardMapPicker({
   }, [value]);
 
   useEffect(() => {
-    if (pin) setEnabled(true);
-  }, [pin]);
+    if (required) setEnabled(true);
+    else if (pin) setEnabled(true);
+  }, [pin, required]);
 
   const setPin = useCallback(
     async (lat, lng, { label, skipReverse = false } = {}) => {
@@ -87,6 +90,10 @@ export function BillboardMapPicker({
   );
 
   const clearPin = () => {
+    if (required) {
+      toast.message("Billboard sites need a map pin for buyers");
+      return;
+    }
     onChange?.({ latitude: null, longitude: null });
     setResults([]);
   };
@@ -134,30 +141,36 @@ export function BillboardMapPicker({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <Label className="text-sm font-medium text-slate-700">
-            Live map location
+            Map location{" "}
+            {required ? <span className="text-[#0055ff]">*</span> : null}
           </Label>
           <p className="mt-0.5 text-xs text-slate-400">
-            Optional — drop a pin so buyers can see the exact site.
+            {required
+              ? "Required — drop a pin so buyers can map this billboard site."
+              : "Optional — drop a pin so buyers can see the exact site."}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 rounded-full border-slate-200"
-          onClick={() => {
-            if (enabled) {
-              setEnabled(false);
-              clearPin();
-            } else {
-              setEnabled(true);
-              if (!pin) setPin(ACCRA.lat, ACCRA.lng, { skipReverse: true });
-            }
-          }}
-        >
-          <MapPin className="mr-1.5 h-3.5 w-3.5" />
-          {enabled ? "Hide map" : "Use map"}
-        </Button>
+        {!required ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-full border-slate-200"
+            onClick={() => {
+              if (enabled) {
+                setEnabled(false);
+                onChange?.({ latitude: null, longitude: null });
+                setResults([]);
+              } else {
+                setEnabled(true);
+                if (!pin) setPin(ACCRA.lat, ACCRA.lng, { skipReverse: true });
+              }
+            }}
+          >
+            <MapPin className="mr-1.5 h-3.5 w-3.5" />
+            {enabled ? "Hide map" : "Use map"}
+          </Button>
+        ) : null}
       </div>
 
       {enabled ? (
@@ -236,9 +249,11 @@ export function BillboardMapPicker({
             <p>
               {pin
                 ? `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)} · click map to move pin`
-                : "Click the map to drop a pin"}
+                : required
+                  ? "Search, use My location, or click the map to place your site pin"
+                  : "Click the map to drop a pin"}
             </p>
-            {pin ? (
+            {pin && !required ? (
               <button
                 type="button"
                 onClick={clearPin}

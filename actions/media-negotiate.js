@@ -1111,6 +1111,19 @@ function isDigitalMarketplaceBookingForQuote(row, quoteKey) {
   }
 }
 
+function isBillboardMarketplaceBookingForQuote(row, quoteKey) {
+  if (!row || !quoteKey) return false;
+  try {
+    const notes = row.notes ? JSON.parse(row.notes) : null;
+    return (
+      notes?.source === "billboard_marketplace_quote" &&
+      notes?.quoteKey === quoteKey
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Open Messages negotiation from Digital marketplace Get Quote.
  * Creates a PENDING media booking against the live listing, then opens
@@ -1278,6 +1291,198 @@ export async function startDigitalMarketplaceNegotiation(payload = {}) {
     };
   } catch (error) {
     console.error("startDigitalMarketplaceNegotiation failed:", error);
+    const message = error?.message || "Could not start negotiation";
+    if (/unauthorized|sign in/i.test(message)) {
+      return { success: false, error: "Unauthorized" };
+    }
+    return {
+      success: false,
+      error: "Could not start negotiation. Please try again.",
+    };
+  }
+}
+
+/**
+ * Open Messages negotiation from Billboard marketplace Negotiate.
+ * Live sites → /messages/media/{id}. Demo sites stay on the preview chat.
+ */
+export async function startBillboardMarketplaceNegotiation(payload = {}) {
+  try {
+    const user = await requireUser();
+    if (user.role !== "CLIENT") {
+      return { success: false, error: "Only clients can negotiate media rates" };
+    }
+    if (!user.email) {
+      return { success: false, error: "Your account needs an email to negotiate" };
+    }
+
+    const listingId = String(payload.listingId || payload.siteId || "").trim();
+    const isDemo = Boolean(payload.isDemo);
+    if (
+      isDemo ||
+      !listingId ||
+      listingId.startsWith("bb-") ||
+      listingId.startsWith("demo-")
+    ) {
+      return {
+        success: false,
+        demo: true,
+        error:
+          "Demo sites use a preview chat. Live billboards open negotiation in Messages.",
+      };
+    }
+
+    const listAmount = Math.round(
+      Number(payload.total || payload.estimatedTotal) || 0
+    );
+    if (listAmount <= 0) {
+      return { success: false, error: "This booking has no amount to negotiate" };
+    }
+
+    const listing = await db.mediaListing.findFirst({
+      where: {
+        id: listingId,
+        status: "ACTIVE",
+        listingType: "BILLBOARD",
+      },
+      include: {
+        agency: { select: { id: true, agencyName: true, contactName: true } },
+        packages: { select: { id: true, name: true, price: true } },
+      },
+    });
+    if (!listing?.agencyId) {
+      return { success: false, error: "Billboard site is unavailable" };
+    }
+
+    const packageId = String(payload.rateId || payload.packageId || "").trim();
+    const matchedPackage = listing.packages?.find((pkg) => pkg.id === packageId);
+    const packageName =
+      String(payload.rateLabel || payload.packageName || "").trim() ||
+      matchedPackage?.name ||
+      "Billboard package";
+    const durationLabel =
+      String(payload.rateLabel || payload.durationLabel || "").trim() || null;
+    const weeks = Number(payload.weeks) || null;
+    const startDate = String(payload.startDate || "").trim() || null;
+    const endDate = String(payload.endDate || "").trim() || null;
+    const contactName = user.name || user.email.split("@")[0] || "Client";
+
+    const quoteKey = [
+      listing.id,
+      packageId || packageName,
+      startDate || "",
+      endDate || "",
+      listAmount,
+    ].join(":");
+
+    let booking = null;
+    const candidates = await db.mediaBooking.findMany({
+      where: {
+        listingId: listing.id,
+        agencyId: listing.agencyId,
+        status: "PENDING",
+        clientEmail: { equals: user.email, mode: "insensitive" },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    booking =
+      candidates.find((row) =>
+        isBillboardMarketplaceBookingForQuote(row, quoteKey)
+      ) || null;
+
+    const notes = JSON.stringify({
+      source: "billboard_marketplace_quote",
+      quoteKey,
+      listingId: listing.id,
+      packageId: packageId || null,
+      packageName,
+      durationLabel,
+      weeks,
+      startDate,
+      endDate,
+      listTotal: listAmount,
+      location: listing.location,
+    });
+
+    if (booking) {
+      booking = await db.mediaBooking.update({
+        where: { id: booking.id },
+        data: {
+          clientName: contactName,
+          packageName,
+          packagePrice: matchedPackage?.price || listAmount,
+          duration: durationLabel,
+          slots: weeks || 1,
+          totalAmount: listAmount,
+          notes,
+        },
+      });
+    } else {
+      booking = await db.mediaBooking.create({
+        data: {
+          listingId: listing.id,
+          agencyId: listing.agencyId,
+          clientName: contactName,
+          clientEmail: user.email,
+          packageName,
+          packagePrice: matchedPackage?.price || listAmount,
+          duration: durationLabel,
+          slots: weeks || 1,
+          totalAmount: listAmount,
+          status: "PENDING",
+          notes,
+        },
+      });
+    }
+
+    const ensured = await ensureMediaNegotiation("MEDIA_BOOKING", booking.id);
+    const negotiation = ensured?.negotiation;
+    if (!negotiation?.id) {
+      return { success: false, error: "Could not open negotiation" };
+    }
+
+    if (ensured.created) {
+      const dateRange =
+        startDate && endDate ? `${startDate} – ${endDate}` : null;
+      const opener = [
+        `Billboard negotiation for ${listing.name}.`,
+        listing.location ? `Location: ${listing.location}.` : null,
+        `Package: ${packageName}.`,
+        dateRange ? `Dates: ${dateRange}.` : null,
+        `List total: ${money(listAmount)}.`,
+        "Can we discuss rate or dates for a confirmed booking?",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      await db.mediaNegotiationMessage.create({
+        data: {
+          negotiationId: negotiation.id,
+          senderRole: "CLIENT",
+          senderUserId: user.id,
+          type: "TEXT",
+          body: opener.slice(0, 2000),
+        },
+      });
+      await db.mediaNegotiation.update({
+        where: { id: negotiation.id },
+        data: { updatedAt: new Date() },
+      });
+    }
+
+    revalidatePath("/messages");
+    revalidatePath("/products");
+    revalidatePath("/client/media");
+
+    return {
+      success: true,
+      bookingId: booking.id,
+      negotiationId: negotiation.id,
+      href: `/messages/media/${negotiation.id}?from=billboard`,
+    };
+  } catch (error) {
+    console.error("startBillboardMarketplaceNegotiation failed:", error);
     const message = error?.message || "Could not start negotiation";
     if (/unauthorized|sign in/i.test(message)) {
       return { success: false, error: "Unauthorized" };

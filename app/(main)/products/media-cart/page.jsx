@@ -479,27 +479,20 @@ export default function MediaPlannerCartPage() {
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {String(group.channel || "TV").toUpperCase() === "RADIO" ? (
-                          <button
-                            type="button"
-                            onClick={() => addMoreToCampaign(group)}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
+                        <button
+                          type="button"
+                          onClick={() => addMoreToCampaign(group)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          {String(group.channel || "TV").toUpperCase() ===
+                          "RADIO" ? (
                             <Radio className="h-3.5 w-3.5" />
-                            Add radio
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => addMoreToCampaign(group)}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
+                          ) : (
                             <Tv className="h-3.5 w-3.5" />
-                            Add TV
-                          </button>
-                        )}
+                          )}
+                          Add Ad Type
+                        </button>
                         <Link
                           href="/products"
                           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-slate-300 bg-transparent px-3 text-xs font-semibold text-slate-500 hover:border-slate-400 hover:bg-white hover:text-slate-800"

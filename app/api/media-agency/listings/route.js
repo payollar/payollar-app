@@ -123,6 +123,16 @@ export async function POST(req) {
       );
     }
 
+    if (String(listingType).toUpperCase() === "BILLBOARD" && !hasCoords) {
+      return NextResponse.json(
+        {
+          error:
+            "Billboard sites need a map pin so buyers can find the location",
+        },
+        { status: 400 }
+      );
+    }
+
     // Resolve agency from body or from the signed-in user
     let mediaAgency = null;
     if (mediaAgencyId) {

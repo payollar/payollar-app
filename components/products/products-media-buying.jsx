@@ -514,6 +514,11 @@ function BillboardMarketplaceCard({ listing }) {
           ) : null}
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+          {listing.latitude != null && listing.longitude != null ? (
+            <span className="rounded-lg border border-[#0055ff]/15 bg-[#eef2ff] px-2 py-1 font-medium text-[#0055ff]">
+              Map pin
+            </span>
+          ) : null}
           {listing.size ? (
             <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
               {listing.size}
@@ -535,7 +540,7 @@ function BillboardMarketplaceCard({ listing }) {
             asChild
             className="h-9 w-full rounded-full bg-slate-950 text-xs font-semibold text-white hover:bg-slate-800"
           >
-            <Link href={href}>Book</Link>
+            <Link href={href}>Negotiate</Link>
           </Button>
         </div>
       </div>
@@ -1072,7 +1077,7 @@ export function ProductsMediaBuying({ listings = [] }) {
                       Billboard marketplace
                     </h2>
                     <p className="mt-0.5 text-sm text-slate-500">
-                      Discover outdoor sites, view rate cards, and request a quote.
+                      Discover outdoor sites, view rate cards, and negotiate with media owners.
                     </p>
                   </>
                 ) : (
