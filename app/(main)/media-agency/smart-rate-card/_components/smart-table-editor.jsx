@@ -1196,7 +1196,7 @@ export function SmartTableEditor({ table, onUpdate }) {
                     </DialogTitle>
                     <DialogDescription className="text-sm leading-relaxed text-slate-500">
                       {isTimeClass
-                        ? "Names buyers see on your public rate card — e.g. Prime Time instead of M1."
+                        ? "Names buyers see on your public rate card — start with Prime, then add Morning, Drive, etc."
                         : isDayBand
                           ? "Labels for weekday vs weekend pricing."
                           : "Update how this column appears and what values it accepts."}

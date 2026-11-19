@@ -2,6 +2,7 @@ import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import {
+  agencyUsesCustomPackages,
   agencyUsesFixedPackages,
   agencyUsesSmartRateCard,
   effectiveAgencyMediaType,
@@ -90,6 +91,14 @@ export default async function MediaAgencyRateCardPage() {
   const showSmartRateCard = agencyUsesSmartRateCard(scopedMediaType, {
     isMediaAdmin,
   });
+  const showCustomPackages = agencyUsesCustomPackages(scopedMediaType, {
+    isMediaAdmin,
+  });
+  if (!showCustomPackages) {
+    redirect(
+      showSmartRateCard ? "/media-agency/smart-rate-card" : "/media-agency"
+    );
+  }
   const packageFocused =
     isMediaAdmin ||
     agencyUsesFixedPackages(scopedMediaType) ||

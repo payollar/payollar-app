@@ -254,7 +254,10 @@ export function MediaAgencySettingsForm({ agency, isMediaAdmin = false }) {
                   <Building2 className="h-4 w-4 text-slate-400" />
                   Smart rate card
                 </Link>
-              ) : (
+              ) : null}
+              {isMediaAdmin ||
+              agency.primaryMediaType === "BILLBOARD" ||
+              agency.primaryMediaType === "DIGITAL" ? (
                 <Link
                   href="/media-agency/rate-card"
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
@@ -262,7 +265,7 @@ export function MediaAgencySettingsForm({ agency, isMediaAdmin = false }) {
                   <Building2 className="h-4 w-4 text-slate-400" />
                   Custom packages
                 </Link>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

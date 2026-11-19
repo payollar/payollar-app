@@ -211,38 +211,48 @@ const STEPS = [
   },
 ];
 
-export function GetStartedGuide({ showSmartRateCard = true }) {
-  const steps = useMemo(
-    () =>
-      showSmartRateCard
-        ? STEPS
-        : STEPS.filter((step) => step.id !== "smart-rate-card").map((step) =>
-            step.id === "custom-packages"
-              ? {
-                  ...step,
-                  for: "Add each outdoor site (name, location, map pin), then attach rate packages buyers negotiate from.",
-                  doThis: [
-                    "Add one listing per billboard / site",
-                    "Drop a map pin so buyers can find it",
-                    "Add packages (1 week, 4 weeks, etc.)",
-                    "Set status to Active",
-                  ],
-                  tip: "Billboard rates live here as packages — not on Smart rate card.",
-                }
-              : step
-          ),
-    [showSmartRateCard]
-  );
+export function GetStartedGuide({
+  showSmartRateCard = true,
+  showCustomPackages = true,
+}) {
+  const steps = useMemo(() => {
+    let next = STEPS;
+    if (!showSmartRateCard) {
+      next = next.filter((step) => step.id !== "smart-rate-card");
+    }
+    if (!showCustomPackages) {
+      next = next.filter((step) => step.id !== "custom-packages");
+    } else if (!showSmartRateCard) {
+      next = next.map((step) =>
+        step.id === "custom-packages"
+          ? {
+              ...step,
+              for: "Add each outdoor site (name, location, map pin), then attach rate packages buyers negotiate from.",
+              doThis: [
+                "Add one listing per billboard / site",
+                "Drop a map pin so buyers can find it",
+                "Add packages (1 week, 4 weeks, etc.)",
+                "Set status to Active",
+              ],
+              tip: "Billboard rates live here as packages — not on Smart rate card.",
+            }
+          : step
+      );
+    }
+    return next;
+  }, [showSmartRateCard, showCustomPackages]);
 
   const phases = useMemo(
     () =>
       PHASES.map((phase) => ({
         ...phase,
-        stepIds: phase.stepIds.filter(
-          (id) => showSmartRateCard || id !== "smart-rate-card"
-        ),
+        stepIds: phase.stepIds.filter((id) => {
+          if (!showSmartRateCard && id === "smart-rate-card") return false;
+          if (!showCustomPackages && id === "custom-packages") return false;
+          return true;
+        }),
       })),
-    [showSmartRateCard]
+    [showSmartRateCard, showCustomPackages]
   );
 
   const [activeId, setActiveId] = useState(steps[0]?.id || STEPS[0].id);
@@ -315,10 +325,16 @@ export function GetStartedGuide({ showSmartRateCard = true }) {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
             <Link
-              href="/media-agency/rate-card"
+              href={
+                showCustomPackages
+                  ? "/media-agency/rate-card"
+                  : showSmartRateCard
+                    ? "/media-agency/smart-rate-card"
+                    : "/media-agency"
+              }
               className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Add a listing
+              {showCustomPackages ? "Add a listing" : "Open rates"}
             </Link>
           </div>
         </div>
@@ -503,15 +519,25 @@ export function GetStartedGuide({ showSmartRateCard = true }) {
                 Not sure where to start?
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Add your profile in Settings, then create one listing with one package.
+                {showCustomPackages
+                  ? "Add your profile in Settings, then create one listing with one package."
+                  : "Add your profile in Settings, then publish rates on Smart rate card."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/media-agency/rate-card"
+                href={
+                  showCustomPackages
+                    ? "/media-agency/rate-card"
+                    : showSmartRateCard
+                      ? "/media-agency/smart-rate-card"
+                      : "/media-agency"
+                }
                 className="inline-flex h-10 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
               >
-                Create custom package
+                {showCustomPackages
+                  ? "Create custom package"
+                  : "Open Smart rate card"}
               </Link>
               <Link
                 href="/media-agency"

@@ -35,11 +35,19 @@ import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
-import { agencyUsesSmartRateCard } from "@/lib/media-agency-type";
+import {
+  agencyUsesCustomPackages,
+  agencyUsesSmartRateCard,
+} from "@/lib/media-agency-type";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/media-agency" },
-  { title: "Custom packages", icon: Package, href: "/media-agency/rate-card" },
+  {
+    title: "Custom packages",
+    icon: Package,
+    href: "/media-agency/rate-card",
+    customPackagesOnly: true,
+  },
   {
     title: "Smart rate card",
     icon: FileText,
@@ -64,6 +72,7 @@ export function MediaAgencySidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
   const [showSmartRateCard, setShowSmartRateCard] = useState(true);
+  const [showCustomPackages, setShowCustomPackages] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,11 +82,10 @@ export function MediaAgencySidebar() {
         const data = await res.json().catch(() => ({}));
         if (cancelled || !res.ok || !data.success) return;
         const agency = data.agency || {};
-        setShowSmartRateCard(
-          agencyUsesSmartRateCard(agency.scopedMediaType ?? agency.primaryMediaType, {
-            isMediaAdmin: agency.isMediaAdmin,
-          })
-        );
+        const opts = { isMediaAdmin: agency.isMediaAdmin };
+        const scoped = agency.scopedMediaType ?? agency.primaryMediaType;
+        setShowSmartRateCard(agencyUsesSmartRateCard(scoped, opts));
+        setShowCustomPackages(agencyUsesCustomPackages(scoped, opts));
       } catch {
         /* keep default visible until we know */
       }
@@ -89,10 +97,12 @@ export function MediaAgencySidebar() {
 
   const visibleItems = useMemo(
     () =>
-      menuItems.filter(
-        (item) => !item.smartRateOnly || showSmartRateCard
-      ),
-    [showSmartRateCard]
+      menuItems.filter((item) => {
+        if (item.smartRateOnly && !showSmartRateCard) return false;
+        if (item.customPackagesOnly && !showCustomPackages) return false;
+        return true;
+      }),
+    [showSmartRateCard, showCustomPackages]
   );
 
   const handleSignOut = async () => {

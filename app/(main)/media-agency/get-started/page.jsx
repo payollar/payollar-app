@@ -2,6 +2,7 @@ import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import {
+  agencyUsesCustomPackages,
   agencyUsesSmartRateCard,
   effectiveAgencyMediaType,
   isMediaAgencyAdminEmail,
@@ -36,6 +37,14 @@ export default async function MediaAgencyGetStartedPage() {
   const showSmartRateCard = agencyUsesSmartRateCard(scopedMediaType, {
     isMediaAdmin,
   });
+  const showCustomPackages = agencyUsesCustomPackages(scopedMediaType, {
+    isMediaAdmin,
+  });
 
-  return <GetStartedGuide showSmartRateCard={showSmartRateCard} />;
+  return (
+    <GetStartedGuide
+      showSmartRateCard={showSmartRateCard}
+      showCustomPackages={showCustomPackages}
+    />
+  );
 }

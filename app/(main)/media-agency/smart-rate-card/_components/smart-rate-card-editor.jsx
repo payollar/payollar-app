@@ -684,9 +684,9 @@ export function SmartRateCardEditor({
         <CardHeader>
           <CardTitle className="text-lg">Ad Type Sections</CardTitle>
           <p className="text-sm text-muted-foreground">
-            One table per ad type. For each time class, enter Mon–Fri and
-            Sat–Sun rates by spot length (60 / 45 / 30 / 15s). Buyers use these
-            after Buy.
+            One table per ad type. Starts with a Prime example — rename it or
+            add rows for your segments, then enter Mon–Fri / Sat–Sun rates by
+            spot length (60 / 45 / 30 / 15s).
           </p>
         </CardHeader>
         <CardContent>
@@ -870,8 +870,8 @@ export function SmartRateCardEditor({
                   No rates table yet
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Adds Mon–Fri and Sat–Sun rows for each time class, with 60 /
-                  45 / 30 / 15s rate columns.
+                  Adds Mon–Fri and Sat–Sun rows for Prime as a starter — add
+                  more segments as needed, with 60 / 45 / 30 / 15s rate columns.
                 </p>
                 <Button
                   className="mt-3 h-9 rounded-full bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"

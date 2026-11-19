@@ -176,6 +176,7 @@ export function MediaAgencyOverview({
   primaryMediaType = null,
   isMediaAdmin = false,
   showSmartRateCard = true,
+  showCustomPackages = true,
   stats,
   bookings = [],
   reports = [],
@@ -236,11 +237,17 @@ export function MediaAgencyOverview({
             ) : null}
           </Link>
           <Link
-            href="/media-agency/rate-card"
+            href={
+              showCustomPackages
+                ? "/media-agency/rate-card"
+                : showSmartRateCard
+                  ? "/media-agency/smart-rate-card"
+                  : "/media-agency"
+            }
             className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
           >
             <Plus className="h-4 w-4" />
-            Add listing
+            {showCustomPackages ? "Add listing" : "Open rates"}
           </Link>
         </div>
       </div>
@@ -270,16 +277,18 @@ export function MediaAgencyOverview({
                   Smart rate card
                 </Link>
               ) : null}
-              <Link
-                href="/media-agency/rate-card"
-                className={
-                  showSmartRateCard
-                    ? "inline-flex h-10 items-center rounded-full border border-white/25 bg-white/5 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10"
-                    : "inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
-                }
-              >
-                Custom packages
-              </Link>
+              {showCustomPackages ? (
+                <Link
+                  href="/media-agency/rate-card"
+                  className={
+                    showSmartRateCard
+                      ? "inline-flex h-10 items-center rounded-full border border-white/25 bg-white/5 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10"
+                      : "inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
+                  }
+                >
+                  Custom packages
+                </Link>
+              ) : null}
             </div>
           </section>
         </MetalCard>
@@ -294,13 +303,15 @@ export function MediaAgencyOverview({
               <Compass className="h-4 w-4 shrink-0" />
               Get started guide
             </Link>
-            <Link
-              href="/media-agency/rate-card"
-              className="flex items-center gap-3 rounded-2xl bg-[#f7f8fc] px-3 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
-            >
-              <Package className="h-4 w-4 shrink-0 text-slate-500" />
-              Custom packages
-            </Link>
+            {showCustomPackages ? (
+              <Link
+                href="/media-agency/rate-card"
+                className="flex items-center gap-3 rounded-2xl bg-[#f7f8fc] px-3 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
+              >
+                <Package className="h-4 w-4 shrink-0 text-slate-500" />
+                Custom packages
+              </Link>
+            ) : null}
             {showSmartRateCard ? (
               <Link
                 href="/media-agency/smart-rate-card"
@@ -334,7 +345,13 @@ export function MediaAgencyOverview({
           label="Active listings"
           value={stats.activeListings ?? stats.totalListings}
           hint={`${stats.totalListings} total listing${stats.totalListings === 1 ? "" : "s"}`}
-          href="/media-agency/rate-card"
+          href={
+            showCustomPackages
+              ? "/media-agency/rate-card"
+              : showSmartRateCard
+                ? "/media-agency/smart-rate-card"
+                : "/media-agency"
+          }
         />
         <StatCard
           icon={Inbox}
@@ -405,8 +422,16 @@ export function MediaAgencyOverview({
           ) : (
             <Empty
               label="No booking requests yet."
-              href="/media-agency/rate-card"
-              action="Publish a package"
+              href={
+                showCustomPackages
+                  ? "/media-agency/rate-card"
+                  : showSmartRateCard
+                    ? "/media-agency/smart-rate-card"
+                    : "/media-agency"
+              }
+              action={
+                showCustomPackages ? "Publish a package" : "Publish rates"
+              }
             />
           )}
         </section>
