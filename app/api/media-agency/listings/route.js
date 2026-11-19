@@ -100,6 +100,7 @@ export async function POST(req) {
       demographics,
       status,
       imageUrl,
+      packages: packagesInput,
     } = body;
 
     const lat =
@@ -170,6 +171,32 @@ export async function POST(req) {
       );
     }
 
+    const packageCreates = Array.isArray(packagesInput)
+      ? packagesInput
+          .map((pkg, index) => {
+            const duration = String(pkg?.duration || "").trim() || null;
+            const pkgName =
+              String(pkg?.name || "").trim() ||
+              duration ||
+              `Package ${index + 1}`;
+            const price = Number(pkg?.price);
+            if (!pkgName || !Number.isFinite(price) || price < 0) return null;
+            return {
+              name: pkgName,
+              price,
+              duration,
+              spots:
+                pkg?.spots != null && pkg.spots !== ""
+                  ? Number(pkg.spots)
+                  : null,
+              estimatedViewers:
+                String(pkg?.estimatedViewers || "").trim() || null,
+              sortOrder: index,
+            };
+          })
+          .filter(Boolean)
+      : [];
+
     const listing = await db.mediaListing.create({
       data: {
         agencyId: mediaAgency.id,
@@ -187,7 +214,11 @@ export async function POST(req) {
         demographics: demographics || [],
         imageUrl: imageUrl || null,
         status: status || "ACTIVE",
+        ...(packageCreates.length
+          ? { packages: { create: packageCreates } }
+          : {}),
       },
+      include: { packages: { orderBy: { sortOrder: "asc" } } },
     });
 
     return NextResponse.json({

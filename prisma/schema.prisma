@@ -617,6 +617,13 @@ model MediaAgency {
   logoUrl            String? // Agency logo
   /// Primary vertical chosen at signup — scopes dashboard (TV vs Radio, etc.)
   primaryMediaType   MediaType?
+  /// Shared package specials / notes shown with buyer packages (billboard, digital, etc.)
+  customPackageNotes String?           @db.Text
+  customPackageTerms String?           @db.Text
+  /// Optional booking window buyers see as availability for package inventory
+  rateCardValidFrom  DateTime?
+  rateCardValidTo    DateTime?
+  rateCardLastUpdated DateTime?
   verificationStatus MediaAgencyStatus @default(PENDING)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

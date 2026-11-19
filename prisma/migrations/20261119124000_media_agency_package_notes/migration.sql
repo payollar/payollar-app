@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "MediaAgency" ADD COLUMN IF NOT EXISTS "customPackageNotes" TEXT;
+ALTER TABLE "MediaAgency" ADD COLUMN IF NOT EXISTS "customPackageTerms" TEXT;
+ALTER TABLE "MediaAgency" ADD COLUMN IF NOT EXISTS "rateCardValidFrom" TIMESTAMP(3);
+ALTER TABLE "MediaAgency" ADD COLUMN IF NOT EXISTS "rateCardValidTo" TIMESTAMP(3);
+ALTER TABLE "MediaAgency" ADD COLUMN IF NOT EXISTS "rateCardLastUpdated" TIMESTAMP(3);

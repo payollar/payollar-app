@@ -112,6 +112,9 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
                 Package notes & terms
               </h2>
               <p className="mt-0.5 text-sm text-slate-500">{filledSummary}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Shown on billboard / digital package pages and in Negotiate.
+              </p>
               {lastUpdated && !open ? (
                 <p className="mt-1 text-xs text-slate-400">
                   Last saved {lastUpdated}
@@ -134,8 +137,8 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
           className="space-y-4 border-t border-slate-100 px-5 py-5 sm:px-6"
         >
           <p className="text-sm text-slate-500">
-            Shared notes buyers see with your packages — specials, minimums, and
-            booking terms.
+            Specials, minimums, and booking terms. Valid dates become the open
+            booking window on billboard site pages.
           </p>
 
           <div className="grid gap-4 lg:grid-cols-2">

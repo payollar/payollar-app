@@ -45,6 +45,10 @@ export async function GET(_request, { params }) {
               id: listing.agency.id,
               agencyName: listing.agency.agencyName,
               verificationStatus: listing.agency.verificationStatus,
+              customPackageNotes: listing.agency.customPackageNotes || null,
+              customPackageTerms: listing.agency.customPackageTerms || null,
+              rateCardValidFrom: listing.agency.rateCardValidFrom || null,
+              rateCardValidTo: listing.agency.rateCardValidTo || null,
             }
           : null,
         packages: (listing.packages || []).map((pkg) => ({

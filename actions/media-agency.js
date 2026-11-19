@@ -580,6 +580,10 @@ export async function getMediaListingById(id) {
             id: true,
             agencyName: true,
             verificationStatus: true,
+            customPackageNotes: true,
+            customPackageTerms: true,
+            rateCardValidFrom: true,
+            rateCardValidTo: true,
           },
         },
         packages: {

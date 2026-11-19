@@ -600,6 +600,24 @@ function BillboardSiteDetail() {
                     </button>
                   ) : null}
 
+                  {site.packageNotes || site.packageTerms ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Owner notes
+                      </p>
+                      {site.packageNotes ? (
+                        <p className="mt-1 text-sm text-slate-700">
+                          {site.packageNotes}
+                        </p>
+                      ) : null}
+                      {site.packageTerms ? (
+                        <p className="mt-1.5 text-xs text-slate-500">
+                          Terms: {site.packageTerms}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   {popularRates.length > 0 ? (
                     <div>
                       <div className="mb-2.5 flex items-baseline justify-between gap-2">
@@ -762,6 +780,23 @@ function BillboardSiteDetail() {
                       <span className="flex-1">{site.availability.label}</span>
                       <span className="text-xs font-semibold">Dates</span>
                     </button>
+                  ) : null}
+                  {site.packageNotes || site.packageTerms ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Owner notes & terms
+                      </p>
+                      {site.packageNotes ? (
+                        <p className="mt-1 text-sm text-slate-700">
+                          {site.packageNotes}
+                        </p>
+                      ) : null}
+                      {site.packageTerms ? (
+                        <p className="mt-1.5 text-xs text-slate-500">
+                          Terms: {site.packageTerms}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               ) : null}

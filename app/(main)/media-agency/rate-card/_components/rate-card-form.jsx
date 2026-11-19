@@ -14,10 +14,27 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ListingCoverUpload } from "./listing-cover-upload";
 import { BillboardMapPicker } from "./billboard-map-picker";
+import { agencyUsesFixedPackages } from "@/lib/media-agency-type";
+
+const DURATION_PRESETS = {
+  BILLBOARD: ["1 week", "4 weeks", "12 weeks"],
+  DIGITAL: ["1 week", "2 weeks", "1 month"],
+};
+
+function emptyPackageRow(listingType) {
+  return {
+    id:
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `pkg-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    duration: listingType === "DIGITAL" ? "1 week" : "4 weeks",
+    price: "",
+  };
+}
 
 const fieldClass =
   "h-11 rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
@@ -234,6 +251,7 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
   const [imageUrl, setImageUrl] = useState("");
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
+  const [packageRows, setPackageRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -244,6 +262,17 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
     () => TYPE_COPY[listingType] || DEFAULT_COPY,
     [listingType]
   );
+  const usesPackages = agencyUsesFixedPackages(listingType);
+
+  useEffect(() => {
+    if (!usesPackages) {
+      setPackageRows([]);
+      return;
+    }
+    setPackageRows((rows) =>
+      rows.length ? rows : [emptyPackageRow(listingType)]
+    );
+  }, [listingType, usesPackages]);
 
   const handleTypeChange = (nextType) => {
     setListingType(nextType);
@@ -253,6 +282,11 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
     if (nextType !== "BILLBOARD") {
       setLatitude(null);
       setLongitude(null);
+    }
+    if (agencyUsesFixedPackages(nextType)) {
+      setPackageRows([emptyPackageRow(nextType)]);
+    } else {
+      setPackageRows([]);
     }
   };
 
@@ -291,6 +325,32 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
       return;
     }
 
+    const packages = usesPackages
+      ? packageRows
+          .map((row) => ({
+            name: String(row.duration || "").trim(),
+            duration: String(row.duration || "").trim() || null,
+            price: row.price === "" ? null : Number(row.price),
+          }))
+          .filter(
+            (pkg) =>
+              pkg.duration &&
+              pkg.price != null &&
+              Number.isFinite(pkg.price) &&
+              pkg.price >= 0
+          )
+      : [];
+
+    if (usesPackages && packages.length === 0) {
+      const hasPartial = packageRows.some(
+        (row) => String(row.duration || "").trim() || row.price !== ""
+      );
+      if (hasPartial) {
+        toast.error("Each package needs a duration and price");
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -313,6 +373,7 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
           latitude: listingType === "BILLBOARD" ? latitude : null,
           longitude: listingType === "BILLBOARD" ? longitude : null,
           status: "ACTIVE",
+          packages,
         }),
       });
 
@@ -321,7 +382,11 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
         throw new Error(data.error || "Failed to create listing");
       }
 
-      toast.success("Media listing created successfully!");
+      toast.success(
+        packages.length
+          ? `Listing created with ${packages.length} package${packages.length === 1 ? "" : "s"}`
+          : "Media listing created successfully!"
+      );
       setListingType(lockedType || "");
       setName("");
       setNetwork("");
@@ -335,6 +400,11 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
       setImageUrl("");
       setLatitude(null);
       setLongitude(null);
+      setPackageRows(
+        agencyUsesFixedPackages(lockedType)
+          ? [emptyPackageRow(lockedType)]
+          : []
+      );
       window.location.reload();
     } catch (error) {
       console.error("Error creating listing:", error);
@@ -484,6 +554,145 @@ export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
           ) : null}
         </div>
       </div>
+
+      {usesPackages ? (
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-[#fafbfd] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <Label className="text-sm font-medium text-slate-700">
+                Duration packages
+              </Label>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {listingType === "BILLBOARD"
+                  ? "Flight lengths buyers can negotiate — e.g. 1 week, 4 weeks."
+                  : "Placement durations buyers can negotiate — e.g. 1 week, 1 month."}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-full border-slate-200"
+              onClick={() =>
+                setPackageRows((rows) => [...rows, emptyPackageRow(listingType)])
+              }
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Add duration
+            </Button>
+          </div>
+
+          {(DURATION_PRESETS[listingType] || []).length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {(DURATION_PRESETS[listingType] || []).map((preset) => {
+                const used = packageRows.some(
+                  (row) =>
+                    String(row.duration || "").trim().toLowerCase() ===
+                    preset.toLowerCase()
+                );
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    disabled={used}
+                    onClick={() =>
+                      setPackageRows((rows) => {
+                        const kept = rows.filter(
+                          (r) =>
+                            String(r.duration || "").trim() || r.price !== ""
+                        );
+                        return [
+                          ...kept,
+                          {
+                            ...emptyPackageRow(listingType),
+                            duration: preset,
+                          },
+                        ];
+                      })
+                    }
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition",
+                      used
+                        ? "cursor-not-allowed bg-slate-100 text-slate-400 ring-slate-200"
+                        : "bg-white text-slate-700 ring-slate-200 hover:bg-[#eef2ff] hover:text-[#0055ff] hover:ring-[#0055ff]/30"
+                    )}
+                  >
+                    + {preset}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <div className="space-y-2">
+            {packageRows.map((row) => (
+              <div
+                key={row.id}
+                className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_140px_auto] sm:items-end"
+              >
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-600">Duration</Label>
+                  <Input
+                    value={row.duration}
+                    onChange={(e) =>
+                      setPackageRows((rows) =>
+                        rows.map((r) =>
+                          r.id === row.id
+                            ? { ...r, duration: e.target.value }
+                            : r
+                        )
+                      )
+                    }
+                    placeholder={
+                      listingType === "BILLBOARD" ? "4 weeks" : "1 week"
+                    }
+                    className={cn(fieldClass, "h-10")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-600">Price (₵)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={row.price}
+                    onChange={(e) =>
+                      setPackageRows((rows) =>
+                        rows.map((r) =>
+                          r.id === row.id ? { ...r, price: e.target.value } : r
+                        )
+                      )
+                    }
+                    placeholder={listingType === "BILLBOARD" ? "12000" : "8500"}
+                    className={cn(fieldClass, "h-10")}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  disabled={packageRows.length <= 1}
+                  onClick={() =>
+                    setPackageRows((rows) =>
+                      rows.length <= 1
+                        ? rows
+                        : rows.filter((r) => r.id !== row.id)
+                    )
+                  }
+                  aria-label="Remove duration package"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400">
+            Optional now — you can also add packages on the listing card after
+            create.
+          </p>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-sm font-medium text-slate-700">

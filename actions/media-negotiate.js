@@ -1346,7 +1346,15 @@ export async function startBillboardMarketplaceNegotiation(payload = {}) {
         listingType: "BILLBOARD",
       },
       include: {
-        agency: { select: { id: true, agencyName: true, contactName: true } },
+        agency: {
+          select: {
+            id: true,
+            agencyName: true,
+            contactName: true,
+            customPackageNotes: true,
+            customPackageTerms: true,
+          },
+        },
         packages: { select: { id: true, name: true, price: true } },
       },
     });
@@ -1366,6 +1374,8 @@ export async function startBillboardMarketplaceNegotiation(payload = {}) {
     const startDate = String(payload.startDate || "").trim() || null;
     const endDate = String(payload.endDate || "").trim() || null;
     const contactName = user.name || user.email.split("@")[0] || "Client";
+    const ownerNotes = String(listing.agency?.customPackageNotes || "").trim();
+    const ownerTerms = String(listing.agency?.customPackageTerms || "").trim();
 
     const quoteKey = [
       listing.id,
@@ -1403,6 +1413,8 @@ export async function startBillboardMarketplaceNegotiation(payload = {}) {
       endDate,
       listTotal: listAmount,
       location: listing.location,
+      ownerNotes: ownerNotes || null,
+      ownerTerms: ownerTerms || null,
     });
 
     if (booking) {
@@ -1451,6 +1463,8 @@ export async function startBillboardMarketplaceNegotiation(payload = {}) {
         `Package: ${packageName}.`,
         dateRange ? `Dates: ${dateRange}.` : null,
         `List total: ${money(listAmount)}.`,
+        ownerNotes ? `Owner notes: ${ownerNotes}` : null,
+        ownerTerms ? `Terms: ${ownerTerms}` : null,
         "Can we discuss rate or dates for a confirmed booking?",
       ]
         .filter(Boolean)
