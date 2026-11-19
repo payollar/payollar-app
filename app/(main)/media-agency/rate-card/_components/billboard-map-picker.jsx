@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import dynamic from "next/dynamic";
-import { MapPin, Navigation, Search, X } from "lucide-react";
+import { Loader2, MapPin, Navigation, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 const ACCRA = { lat: 5.6037, lng: -0.187 };
+const DEBOUNCE_MS = 350;
 
 const MapCanvas = dynamic(() => import("./billboard-map-canvas"), {
   ssr: false,
@@ -33,10 +41,10 @@ async function reverseGeocode(lat, lng) {
   }
 }
 
-async function searchPlaces(query) {
-  const res = await fetch(
-    `/api/geocode/search?q=${encodeURIComponent(query)}`
-  );
+async function searchPlaces(query, { suggest = false, signal } = {}) {
+  const params = new URLSearchParams({ q: query });
+  if (suggest) params.set("suggest", "1");
+  const res = await fetch(`/api/geocode/search?${params}`, { signal });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Search failed");
   return Array.isArray(data.results) ? data.results : [];
@@ -54,13 +62,21 @@ export function BillboardMapPicker({
   required = false,
   className,
 }) {
+  const listId = useId();
+  const wrapRef = useRef(null);
+  const abortRef = useRef(null);
+  const skipDebounceRef = useRef(false);
+
   const [enabled, setEnabled] = useState(
     () => required || (value?.latitude != null && value?.longitude != null)
   );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [noHits, setNoHits] = useState(false);
 
   const pin = useMemo(() => {
     if (value?.latitude == null || value?.longitude == null) return null;
@@ -71,6 +87,14 @@ export function BillboardMapPicker({
     if (required) setEnabled(true);
     else if (pin) setEnabled(true);
   }, [pin, required]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   const setPin = useCallback(
     async (lat, lng, { label, skipReverse = false } = {}) => {
@@ -86,6 +110,82 @@ export function BillboardMapPicker({
     [onChange, onLocationLabel]
   );
 
+  const pickResult = useCallback(
+    (hit) => {
+      const lat = Number(hit.lat);
+      const lng = Number(hit.lon);
+      skipDebounceRef.current = true;
+      setPin(lat, lng, { label: hit.display_name });
+      setQuery(hit.display_name?.split(",")[0] || query);
+      setResults([]);
+      setOpen(false);
+      setActiveIndex(-1);
+      setNoHits(false);
+    },
+    [query, setPin]
+  );
+
+  const runSearch = useCallback(async (raw, { suggest = true } = {}) => {
+    const q = String(raw || "").trim();
+    if (q.length < 2) {
+      abortRef.current?.abort();
+      setResults([]);
+      setSearching(false);
+      setNoHits(false);
+      setOpen(false);
+      return;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setSearching(true);
+    setNoHits(false);
+
+    try {
+      const hits = await searchPlaces(q, {
+        suggest,
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      setResults(hits);
+      setActiveIndex(hits.length ? 0 : -1);
+      setOpen(true);
+      setNoHits(hits.length === 0);
+      if (!suggest && !hits.length) {
+        toast.message("No places found — try a nearby landmark");
+      }
+    } catch (err) {
+      if (err?.name === "AbortError") return;
+      setResults([]);
+      setOpen(true);
+      setNoHits(true);
+      if (!suggest) toast.error("Could not search places right now");
+    } finally {
+      if (!controller.signal.aborted) setSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (skipDebounceRef.current) {
+      skipDebounceRef.current = false;
+      return;
+    }
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      setNoHits(false);
+      setOpen(false);
+      setSearching(false);
+      return;
+    }
+
+    const t = setTimeout(() => {
+      runSearch(q, { suggest: true });
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [query, runSearch]);
+
   const clearPin = () => {
     if (required) {
       toast.message("Billboard sites need a map pin for buyers");
@@ -93,22 +193,7 @@ export function BillboardMapPicker({
     }
     onChange?.({ latitude: null, longitude: null });
     setResults([]);
-  };
-
-  const handleSearch = async (e) => {
-    e?.preventDefault?.();
-    const q = query.trim();
-    if (!q) return;
-    setSearching(true);
-    try {
-      const hits = await searchPlaces(q);
-      setResults(Array.isArray(hits) ? hits : []);
-      if (!hits?.length) toast.message("No places found — try a nearby landmark");
-    } catch {
-      toast.error("Could not search places right now");
-    } finally {
-      setSearching(false);
-    }
+    setOpen(false);
   };
 
   const useMyLocation = () => {
@@ -132,6 +217,9 @@ export function BillboardMapPicker({
       { enableHighAccuracy: true, timeout: 12000 }
     );
   };
+
+  const showDropdown =
+    open && (searching || results.length > 0 || noHits);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -158,6 +246,7 @@ export function BillboardMapPicker({
                 setEnabled(false);
                 onChange?.({ latitude: null, longitude: null });
                 setResults([]);
+                setOpen(false);
               } else {
                 setEnabled(true);
                 if (!pin) setPin(ACCRA.lat, ACCRA.lng, { skipReverse: true });
@@ -173,31 +262,119 @@ export function BillboardMapPicker({
       {enabled ? (
         <div className="space-y-3 rounded-2xl border border-slate-200 bg-[#f7f8fc] p-3 sm:p-4">
           <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <div className="relative min-w-0 flex-1" ref={wrapRef}>
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search place in Ghana…"
-                className="h-10 rounded-xl border-slate-200 bg-white pl-9 shadow-none"
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setOpen(true);
+                }}
+                onFocus={() => {
+                  if (results.length || noHits || query.trim().length >= 2) {
+                    setOpen(true);
+                  }
+                }}
+                placeholder="Start typing a place in Ghana…"
+                role="combobox"
+                aria-expanded={showDropdown}
+                aria-controls={listId}
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  activeIndex >= 0
+                    ? `${listId}-option-${activeIndex}`
+                    : undefined
+                }
+                className="h-10 rounded-xl border-slate-200 bg-white pl-9 pr-9 shadow-none"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "ArrowDown") {
                     e.preventDefault();
-                    handleSearch();
+                    if (!results.length) return;
+                    setOpen(true);
+                    setActiveIndex((i) =>
+                      i < results.length - 1 ? i + 1 : 0
+                    );
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    if (!results.length) return;
+                    setOpen(true);
+                    setActiveIndex((i) =>
+                      i > 0 ? i - 1 : results.length - 1
+                    );
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (open && activeIndex >= 0 && results[activeIndex]) {
+                      pickResult(results[activeIndex]);
+                    } else {
+                      runSearch(query, { suggest: false });
+                    }
+                  } else if (e.key === "Escape") {
+                    setOpen(false);
                   }
                 }}
               />
+              {searching ? (
+                <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
+              ) : query ? (
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    skipDebounceRef.current = true;
+                    setQuery("");
+                    setResults([]);
+                    setOpen(false);
+                    setNoHits(false);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+
+              {showDropdown ? (
+                <ul
+                  id={listId}
+                  role="listbox"
+                  className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-56 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-200/60"
+                >
+                  {searching && results.length === 0 ? (
+                    <li className="px-3 py-2.5 text-sm text-slate-400">
+                      Searching…
+                    </li>
+                  ) : null}
+                  {!searching && noHits && results.length === 0 ? (
+                    <li className="px-3 py-2.5 text-sm text-slate-400">
+                      No places found — try a landmark or area name
+                    </li>
+                  ) : null}
+                  {results.map((hit, index) => (
+                    <li
+                      key={`${hit.place_id}`}
+                      id={`${listId}-option-${index}`}
+                      role="option"
+                      aria-selected={index === activeIndex}
+                    >
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm",
+                          index === activeIndex
+                            ? "bg-[#eef2ff] text-slate-950"
+                            : "text-slate-700 hover:bg-slate-50"
+                        )}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={() => pickResult(hit)}
+                      >
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="line-clamp-2">{hit.display_name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 rounded-xl border-slate-200 bg-white"
-                disabled={searching}
-                onClick={handleSearch}
-              >
-                {searching ? "Searching…" : "Search"}
-              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -211,31 +388,6 @@ export function BillboardMapPicker({
             </div>
           </div>
 
-          {results.length > 0 ? (
-            <ul className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              {results.map((hit) => (
-                <li key={`${hit.place_id}`}>
-                  <button
-                    type="button"
-                    className="flex w-full items-start gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-sm last:border-0 hover:bg-slate-50"
-                    onClick={() => {
-                      const lat = Number(hit.lat);
-                      const lng = Number(hit.lon);
-                      setPin(lat, lng, { label: hit.display_name });
-                      setResults([]);
-                      setQuery(hit.display_name?.split(",")[0] || query);
-                    }}
-                  >
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    <span className="line-clamp-2 text-slate-700">
-                      {hit.display_name}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
           <MapCanvas
             center={pin || ACCRA}
             pin={pin}
@@ -247,7 +399,7 @@ export function BillboardMapPicker({
               {pin
                 ? `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)} · click map to move pin`
                 : required
-                  ? "Search, use My location, or click the map to place your site pin"
+                  ? "Type to search, use My location, or click the map to place your site pin"
                   : "Click the map to drop a pin"}
             </p>
             {pin && !required ? (

@@ -86,12 +86,15 @@ async function nominatimSearch(q) {
 }
 
 /**
- * GET /api/geocode/search?q=... — proxy Nominatim (avoids browser CORS).
+ * GET /api/geocode/search?q=...&suggest=1
+ * suggest=1 → fast single-pass for typeahead (no slow fallback chain).
  */
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = String(searchParams.get("q") || "").trim();
+    const suggest = searchParams.get("suggest") === "1";
+
     if (!q || q.length < 2) {
       return NextResponse.json(
         { error: "Enter at least 2 characters" },
@@ -99,12 +102,17 @@ export async function GET(request) {
       );
     }
 
+    const variants = queryVariants(q);
+    const toTry = suggest ? variants.slice(0, 2) : variants;
+
     let results = [];
-    for (const variant of queryVariants(q)) {
-      results = await nominatimSearch(variant);
+    for (let i = 0; i < toTry.length; i++) {
+      results = await nominatimSearch(toTry[i]);
       if (results.length) break;
-      // Nominatim usage policy: max ~1 req/sec
-      await new Promise((r) => setTimeout(r, 1100));
+      // Nominatim usage policy: max ~1 req/sec (skip wait for last try)
+      if (!suggest && i < toTry.length - 1) {
+        await new Promise((r) => setTimeout(r, 1100));
+      }
     }
 
     return NextResponse.json({ results });
