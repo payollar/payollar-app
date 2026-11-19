@@ -1753,7 +1753,7 @@ export function SmartTableEditor({ table, onUpdate }) {
         </div>
       )}
 
-      {/* Add Row Button - Like Notion's "New page" */}
+      {/* Add another rates row (segment × day band) */}
       <div className="border-t p-3 bg-muted/5">
         <Button
           variant="ghost"
@@ -1761,7 +1761,7 @@ export function SmartTableEditor({ table, onUpdate }) {
           onClick={handleAddRow}
         >
           <Plus className="h-4 w-4 mr-2" />
-          New page
+          Add rate row
         </Button>
       </div>
     </div>

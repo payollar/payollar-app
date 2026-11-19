@@ -76,6 +76,8 @@ export function SmartRateCardEditor({
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState("");
   const [linkingListing, setLinkingListing] = useState(false);
+  const [customAdTypeName, setCustomAdTypeName] = useState("");
+  const [addingAdTypeKey, setAddingAdTypeKey] = useState(null);
 
   useEffect(() => {
     fetchRateCard();
@@ -240,6 +242,60 @@ export function SmartRateCardEditor({
       toast.error(error.message || "Failed to link listing");
     } finally {
       setLinkingListing(false);
+    }
+  };
+
+  const addAdTypeSection = async ({
+    title,
+    adTypeId,
+    lockKey,
+    successLabel,
+  }) => {
+    const sectionTitle = String(title || "").trim();
+    if (!sectionTitle) {
+      toast.error("Enter a name for this ad type");
+      return false;
+    }
+    const existing = new Set(
+      (rateCard?.sections || []).map((s) =>
+        String(s.title || "")
+          .trim()
+          .toLowerCase()
+      )
+    );
+    if (existing.has(sectionTitle.toLowerCase())) {
+      toast.error(`“${sectionTitle}” is already on this rate card`);
+      return false;
+    }
+
+    setAddingAdTypeKey(lockKey || sectionTitle);
+    try {
+      const response = await fetch(
+        `/api/media-agency/rate-cards/${rateCardId}/sections`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: sectionTitle,
+            templateKey: getAdTypeTimeClassTemplateKey(adTypeId || "custom"),
+          }),
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`${successLabel || sectionTitle} section added`);
+        await fetchRateCard();
+        if (onUpdate) onUpdate();
+        return true;
+      }
+      toast.error(data.error || "Failed to add section");
+      return false;
+    } catch (error) {
+      console.error("Error adding ad type section:", error);
+      toast.error("Failed to add section");
+      return false;
+    } finally {
+      setAddingAdTypeKey(null);
     }
   };
 
@@ -680,72 +736,169 @@ export function SmartRateCardEditor({
       </Card>
 
       {/* Add Ad Type Section — one rates sheet per ad type */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Ad Type Sections</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            One table per ad type. Starts with a Prime example — rename it or
-            add rows for your segments, then enter Mon–Fri / Sat–Sun rates by
-            spot length (60 / 45 / 30 / 15s).
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {(() => {
-              const listingType = rateCard.listingType || "TV";
-              const adTypeIds = listingType === "RADIO" ? RADIO_AD_TYPE_IDS : TV_AD_TYPE_IDS;
-              const adTypes = getAdTypesForMediaType(listingType.toLowerCase());
-              const existingSectionTitles = new Set(
-                rateCard.sections?.map((s) => s.title.toLowerCase()) || []
-              );
-              return adTypeIds.map((adTypeId) => {
-                const adType = adTypes.find((a) => a.id === adTypeId);
-                const label = adType?.label || adTypeId;
-                const sectionTitle = label;
-                const alreadyExists = existingSectionTitles.has(sectionTitle.toLowerCase());
-                return (
-                  <Button
-                    key={adTypeId}
-                    variant="outline"
-                    size="sm"
-                    disabled={alreadyExists}
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(
-                          `/api/media-agency/rate-cards/${rateCardId}/sections`,
-                          {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              title: sectionTitle,
-                              templateKey: getAdTypeTimeClassTemplateKey(adTypeId),
-                            }),
-                          }
-                        );
-                        const data = await response.json();
-                        if (data.success) {
-                          toast.success(`${label} section added`);
-                          await fetchRateCard();
-                          if (onUpdate) onUpdate();
-                        } else {
-                          toast.error(data.error || "Failed to add section");
+      {(() => {
+        const listingType = rateCard.listingType || "TV";
+        const adTypeIds =
+          listingType === "RADIO" ? RADIO_AD_TYPE_IDS : TV_AD_TYPE_IDS;
+        const adTypes = getAdTypesForMediaType(listingType.toLowerCase());
+        const existingSectionTitles = new Set(
+          (rateCard.sections || []).map((s) =>
+            String(s.title || "")
+              .trim()
+              .toLowerCase()
+          )
+        );
+        const addedCount = rateCard.sections?.length || 0;
+        const availableCount = adTypeIds.filter((id) => {
+          const label =
+            adTypes.find((a) => a.id === id)?.label || id;
+          return !existingSectionTitles.has(String(label).toLowerCase());
+        }).length;
+
+        return (
+          <Card className="overflow-hidden border-slate-200/90 shadow-sm">
+            <CardHeader className="space-y-3 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white pb-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <CardTitle className="text-lg tracking-tight">
+                    Ad Type Sections
+                  </CardTitle>
+                  <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
+                    Add one rates table per format you sell. Each starts with a
+                    Prime example — rename segments or add rows, then enter
+                    Mon–Fri / Sat–Sun rates by spot length (60 / 45 / 30 / 15s).
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600"
+                  >
+                    {addedCount} on card
+                  </Badge>
+                  {availableCount > 0 ? (
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-slate-200 px-2.5 py-0.5 text-[11px] font-medium text-slate-500"
+                    >
+                      {availableCount} ready to add
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5 pt-5">
+              <div>
+                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Standard formats
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {adTypeIds.map((adTypeId) => {
+                    const adType = adTypes.find((a) => a.id === adTypeId);
+                    const label = adType?.label || adTypeId;
+                    const alreadyExists = existingSectionTitles.has(
+                      String(label).toLowerCase()
+                    );
+                    const busy = addingAdTypeKey === adTypeId;
+                    return (
+                      <button
+                        key={adTypeId}
+                        type="button"
+                        title={adType?.fullName || adType?.description || label}
+                        disabled={alreadyExists || Boolean(addingAdTypeKey)}
+                        onClick={() =>
+                          addAdTypeSection({
+                            title: label,
+                            adTypeId,
+                            lockKey: adTypeId,
+                            successLabel: label,
+                          })
                         }
-                      } catch (error) {
-                        console.error("Error adding ad type section:", error);
-                        toast.error("Failed to add section");
-                      }
+                        className={[
+                          "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition",
+                          alreadyExists
+                            ? "cursor-default border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-white text-slate-700 shadow-sm hover:border-[#0055ff]/40 hover:bg-[#0055ff]/5 hover:text-[#0055ff]",
+                          busy ? "opacity-70" : "",
+                          !alreadyExists && addingAdTypeKey
+                            ? "opacity-50"
+                            : "",
+                        ].join(" ")}
+                      >
+                        {alreadyExists ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        {busy ? "Adding…" : label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-[#f7f8fc] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="text-sm font-semibold text-slate-800">
+                      Custom ad type
+                    </p>
+                    <p className="text-xs leading-relaxed text-slate-500">
+                      For formats that aren’t listed — e.g. Brand Day,
+                      Roadblock, or a station-specific package.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    value={customAdTypeName}
+                    onChange={(e) => setCustomAdTypeName(e.target.value)}
+                    placeholder="Name your ad type…"
+                    className="h-10 flex-1 rounded-xl border-slate-200 bg-white"
+                    disabled={Boolean(addingAdTypeKey)}
+                    onKeyDown={async (e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      const ok = await addAdTypeSection({
+                        title: customAdTypeName,
+                        adTypeId: "custom",
+                        lockKey: "custom",
+                        successLabel: customAdTypeName.trim(),
+                      });
+                      if (ok) setCustomAdTypeName("");
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    className="h-10 shrink-0 rounded-xl bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"
+                    disabled={
+                      !customAdTypeName.trim() || Boolean(addingAdTypeKey)
+                    }
+                    onClick={async () => {
+                      const ok = await addAdTypeSection({
+                        title: customAdTypeName,
+                        adTypeId: "custom",
+                        lockKey: "custom",
+                        successLabel: customAdTypeName.trim(),
+                      });
+                      if (ok) setCustomAdTypeName("");
                     }}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    {label}
-                    {alreadyExists && " ✓"}
+                    {addingAdTypeKey === "custom" ? (
+                      "Adding…"
+                    ) : (
+                      <>
+                        <Plus className="mr-1.5 h-4 w-4" />
+                        Add custom
+                      </>
+                    )}
                   </Button>
-                );
-              });
-            })()}
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Sections */}
       {rateCard.sections?.map((section) => (
@@ -893,9 +1046,7 @@ export function SmartRateCardEditor({
                       matched?.id ||
                       TV_AD_TYPE_IDS.find((id) => id === titleSlug) ||
                       RADIO_AD_TYPE_IDS.find((id) => id === titleSlug) ||
-                      (listingType === "RADIO"
-                        ? RADIO_AD_TYPE_IDS[0] || "jingle"
-                        : "tvc");
+                      "custom";
                     try {
                       const response = await fetch(
                         `/api/media-agency/rate-cards/${rateCardId}/sections/${section.id}/tables`,

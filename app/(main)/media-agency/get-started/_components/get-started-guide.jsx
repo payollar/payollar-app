@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
+  ChevronDown,
   Compass,
   FileCheck,
   FileText,
@@ -56,11 +57,12 @@ const STEPS = [
     href: "/media-agency/settings",
     cta: "Open settings",
     summary: "Your agency profile — name, contact, and location.",
-    for: "Update how your agency appears to buyers and keep contact details current.",
+    for: "Update how your agency appears to buyers and keep contact details current. Your primary media type (TV, radio, billboard, digital) shapes which pricing tools you see.",
     doThis: [
       "Enter agency name and contact person",
       "Add email and city / region",
-      "Save before you add listings",
+      "Confirm your primary media type",
+      "Save before you add listings or rates",
     ],
   },
   {
@@ -70,15 +72,15 @@ const STEPS = [
     title: "Custom packages",
     href: "/media-agency/rate-card",
     cta: "Add a listing",
-    summary: "List your media and set ready-made offers buyers can buy.",
-    for: "Use this page to add a TV station, radio, website, or billboard, then attach simple packages (price, length, reach) that show on the Media marketplace.",
+    summary: "Listings and fixed packages for billboard & digital.",
+    for: "Add each site or placement, then attach ready-made packages (price, duration, reach) that buyers pick or negotiate from on the Media marketplace.",
     doThis: [
-      "Add one listing per outlet you sell",
-      "Turn status to Active so buyers can see it",
-      "Add a package with price and details",
-      "Add a cover photo if you have one",
+      "Add one listing per site / placement you sell",
+      "Attach duration packages (e.g. 1 week, 4 weeks)",
+      "Set status to Active so buyers can see it",
+      "Optional: add agency package notes / terms once",
     ],
-    tip: "Start with one listing and one package. You can add more later.",
+    tip: "TV and radio stations use Smart rate card instead — Custom packages stays in the menu for billboard and digital.",
   },
   {
     id: "smart-rate-card",
@@ -87,14 +89,38 @@ const STEPS = [
     title: "Smart rate card",
     href: "/media-agency/smart-rate-card",
     cta: "Open rate cards",
-    summary: "Full price tables — for when one package is not enough.",
-    for: "Use this when you sell many spots or dayparts and need a detailed rate sheet instead of a few fixed packages.",
+    summary: "TV / radio price sheets by ad type and daypart.",
+    for: "Build one rates table per ad format (TVC, LPM, Sponsorship, or your own Custom type). Each table starts with a Prime example — add segments and fill Mon–Fri / Sat–Sun rates by spot length.",
     doThis: [
-      "Pick or create the station listing",
-      "Add your pricing rows / sections",
+      "Create or link the station listing",
+      "Under Ad Type Sections, add the formats you sell",
+      "Use Custom if your format isn’t in the list",
+      "Fill rates, then use Add rate row for more segments",
       "Publish when the card is ready",
     ],
-    tip: "Packages = simple offers. Rate card = full price list. Use either or both.",
+    tipsTitle: "How Smart rate card works",
+    tips: [
+      {
+        title: "One section per ad type",
+        body: "Standard chips (TVC, LPM, Sponsorship, …) each add one named section. Use Custom to name your own format — e.g. Brand Day or Roadblock.",
+      },
+      {
+        title: "Prime is a starter segment",
+        body: "New tables seed Mon–Fri and Sat–Sun rows for Prime. Rename the segment or add Morning, Drive, Late Night — whatever you sell.",
+      },
+      {
+        title: "Fill rates by spot length",
+        body: "Enter prices under 60 / 45 / 30 / 15 secs for each day band. Buyers and the planner primarily use the 30s rate when building flights.",
+      },
+      {
+        title: "Add more rows as you grow",
+        body: "Use Add rate row at the bottom of the table for another segment × day-band line. Delete Table only if you want to rebuild that sheet.",
+      },
+      {
+        title: "Publish when ready",
+        body: "Keep the card unpublished while you edit. Publish so buyers can see rates and open negotiations from the marketplace or cart.",
+      },
+    ],
   },
   {
     id: "terms",
@@ -118,11 +144,11 @@ const STEPS = [
     href: "/media-agency/requests",
     cta: "View requests",
     summary: "New booking requests from buyers.",
-    for: "This is your booking inbox. Accept, decline, or negotiate each request.",
+    for: "This is your booking inbox — paid planner flights, package requests, and pending quotes. Open a request to review flights, notes, and status.",
     doThis: [
       "Check Pending often",
       "Open a request to review details",
-      "Accept, decline, or negotiate",
+      "Accept, decline, or continue in Negotiations",
     ],
   },
   {
@@ -133,11 +159,13 @@ const STEPS = [
     href: "/media-agency/negotiations",
     cta: "Open negotiations",
     summary: "Price talks before a booking is final.",
-    for: "When a buyer wants a different price or package, handle the back-and-forth here.",
+    for: "When a buyer opens a negotiation from the cart or marketplace, you get an email and an in-app alert. Review the offer, counter, approve a discount, or accept the deal here.",
     doThis: [
-      "Review the client’s offer",
-      "Accept or send a counter",
+      "Open new requests from email or Notifications",
+      "Review the client’s ask and list total",
+      "Accept, counter, or approve a discount %",
     ],
+    tip: "You’ll be notified as soon as a buyer starts a new negotiation — open it from the alert or this page.",
   },
   {
     id: "messages",
@@ -147,10 +175,10 @@ const STEPS = [
     href: "/messages",
     cta: "Open messages",
     summary: "Chat with buyers about dates, creatives, and next steps.",
-    for: "Answer questions in chat. When they are ready to book, the formal request still lives under Requests.",
+    for: "Answer questions in chat. Formal price talks for media live under Negotiations; confirmed bookings show under Requests.",
     doThis: [
       "Reply when a new chat comes in",
-      "Move to Requests when terms are clear",
+      "Keep rate changes in Negotiations so totals stay clear",
     ],
   },
   {
@@ -165,6 +193,7 @@ const STEPS = [
     doThis: [
       "Post a brief with budget and needs",
       "Review who applies",
+      "Accept a creator to hire them",
     ],
   },
   {
@@ -203,10 +232,10 @@ const STEPS = [
     href: "/media-agency",
     cta: "Go to dashboard",
     summary: "Your home screen when you log in.",
-    for: "See listings, pending requests, and quick links to the rest of the dashboard.",
+    for: "See pending requests, negotiations, and quick links to the tools for your media type.",
     doThis: [
-      "Check pending requests first",
-      "Jump to packages or rate cards as needed",
+      "Check pending requests and negotiations first",
+      "Jump to Smart rate card or Custom packages as needed",
     ],
   },
 ];
@@ -227,14 +256,29 @@ export function GetStartedGuide({
         step.id === "custom-packages"
           ? {
               ...step,
-              for: "Add each outdoor site (name, location, map pin), then attach rate packages buyers negotiate from.",
+              summary: "Sites, durations, and packages buyers can request.",
+              for: "Add each outdoor or digital site (name, location, map pin where relevant), then attach duration packages buyers pick or negotiate from.",
               doThis: [
-                "Add one listing per billboard / site",
-                "Drop a map pin so buyers can find it",
+                "Add one listing per site / placement",
+                "Drop a map pin so buyers can find billboards",
                 "Add packages (1 week, 4 weeks, etc.)",
+                "Optional: fill Package notes for the whole agency",
                 "Set status to Active",
               ],
-              tip: "Billboard rates live here as packages — not on Smart rate card.",
+              tip: "Billboard and digital rates live here as packages — not on Smart rate card.",
+            }
+          : step
+      );
+    }
+    if (showSmartRateCard && !showCustomPackages) {
+      next = next.map((step) =>
+        step.id === "dashboard"
+          ? {
+              ...step,
+              doThis: [
+                "Check pending requests and negotiations first",
+                "Jump to Smart rate card when prices need updating",
+              ],
             }
           : step
       );
@@ -495,7 +539,30 @@ export function GetStartedGuide({
                   </div>
                 </div>
 
-                {step.tip ? (
+                {Array.isArray(step.tips) && step.tips.length > 0 ? (
+                  <details className="group mt-4 overflow-hidden rounded-2xl bg-[#f7f8fc] open:bg-[#f4f6fb]">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm text-slate-700 [&::-webkit-details-marker]:hidden">
+                      <Sparkles className="h-4 w-4 shrink-0 text-slate-500" />
+                      <span className="min-w-0 flex-1 font-semibold text-slate-950">
+                        {step.tipsTitle || "Tips"}
+                      </span>
+                      <span className="hidden text-xs font-medium text-slate-400 sm:inline">
+                        {step.tips.length} tips
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+                    </summary>
+                    <div className="space-y-3 border-t border-slate-200/70 px-4 py-3">
+                      {step.tips.map((item) => (
+                        <div key={item.title} className="text-sm text-slate-600">
+                          <p className="font-semibold text-slate-900">
+                            {item.title}
+                          </p>
+                          <p className="mt-0.5 leading-relaxed">{item.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ) : step.tip ? (
                   <div className="mt-4 flex items-start gap-2 rounded-2xl bg-[#f7f8fc] px-4 py-3 text-sm text-slate-700">
                     <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                     <p>
@@ -519,25 +586,33 @@ export function GetStartedGuide({
                 Not sure where to start?
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                {showCustomPackages
+                {showCustomPackages && !showSmartRateCard
                   ? "Add your profile in Settings, then create one listing with one package."
-                  : "Add your profile in Settings, then publish rates on Smart rate card."}
+                  : showSmartRateCard && !showCustomPackages
+                    ? "Add your profile in Settings, then add Ad Type Sections and publish your rate card."
+                    : showCustomPackages
+                      ? "Add your profile in Settings, then create one listing with one package."
+                      : "Add your profile in Settings, then publish rates on Smart rate card."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
                 href={
-                  showCustomPackages
+                  showCustomPackages && !showSmartRateCard
                     ? "/media-agency/rate-card"
                     : showSmartRateCard
                       ? "/media-agency/smart-rate-card"
-                      : "/media-agency"
+                      : showCustomPackages
+                        ? "/media-agency/rate-card"
+                        : "/media-agency"
                 }
                 className="inline-flex h-10 items-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"
               >
-                {showCustomPackages
+                {showCustomPackages && !showSmartRateCard
                   ? "Create custom package"
-                  : "Open Smart rate card"}
+                  : showSmartRateCard
+                    ? "Open Smart rate card"
+                    : "Create custom package"}
               </Link>
               <Link
                 href="/media-agency"
