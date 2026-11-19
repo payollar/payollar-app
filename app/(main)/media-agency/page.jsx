@@ -5,6 +5,7 @@ import { getClientCampaigns } from "@/actions/campaigns";
 import { MediaAgencyOverview } from "./_components/media-agency-overview";
 import { CompleteAgencyProfile } from "./_components/complete-agency-profile";
 import {
+  agencyUsesSmartRateCard,
   effectiveAgencyMediaType,
   isMediaAgencyAdminEmail,
 } from "@/lib/media-agency-type";
@@ -92,6 +93,9 @@ export default async function MediaAgencyDashboard() {
     primaryMediaType: mediaAgency.primaryMediaType,
     isMediaAdmin,
   });
+  const showSmartRateCard = agencyUsesSmartRateCard(scopedMediaType, {
+    isMediaAdmin,
+  });
 
   return (
     <MediaAgencyOverview
@@ -99,6 +103,7 @@ export default async function MediaAgencyDashboard() {
       contactName={mediaAgency.contactName}
       primaryMediaType={scopedMediaType}
       isMediaAdmin={isMediaAdmin}
+      showSmartRateCard={showSmartRateCard}
       stats={{
         totalListings: mediaAgency._count.listings,
         activeListings: mediaAgency.listings.length,

@@ -65,7 +65,7 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save");
-      toast.success("Custom package details updated");
+      toast.success("Agency notes updated");
       router.refresh();
     } catch (err) {
       toast.error(err.message || "Failed to save details");
@@ -85,10 +85,11 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
           </span>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-slate-950">
-              Agency package defaults
+              Agency notes & terms
             </h2>
             <p className="mt-0.5 text-sm text-slate-500">
-              Notes and terms shown when buyers build a custom package.
+              Shared notes buyers see with your packages — specials, minimums,
+              and booking terms.
             </p>
           </div>
         </div>
@@ -111,7 +112,7 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
               onChange={(e) =>
                 setForm((f) => ({ ...f, customPackageNotes: e.target.value }))
               }
-              placeholder="e.g. Minimum 5 spots for custom packages. Contact us for slot mixes."
+              placeholder="e.g. Q1 promo: 10% off 8-week buys. Minimum 4 weeks for billboard sites."
               rows={4}
               className={cn(fieldClass, "min-h-[108px] resize-y")}
             />
@@ -179,7 +180,7 @@ export function CustomPackageDetailsSection({ mediaAgency }) {
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            Save defaults
+            Save notes
           </Button>
         </div>
       </form>

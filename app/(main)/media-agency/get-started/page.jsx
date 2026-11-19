@@ -1,5 +1,11 @@
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/prisma";
+import {
+  agencyUsesSmartRateCard,
+  effectiveAgencyMediaType,
+  isMediaAgencyAdminEmail,
+} from "@/lib/media-agency-type";
 import { GetStartedGuide } from "./_components/get-started-guide";
 
 export const metadata = {
@@ -14,5 +20,22 @@ export default async function MediaAgencyGetStartedPage() {
     redirect("/");
   }
 
-  return <GetStartedGuide />;
+  const agency = await db.mediaAgency.findUnique({
+    where: { userId: user.id },
+    select: { email: true, primaryMediaType: true },
+  });
+  const isMediaAdmin =
+    isMediaAgencyAdminEmail(user.email) ||
+    isMediaAgencyAdminEmail(agency?.email);
+  const scopedMediaType = effectiveAgencyMediaType({
+    email: user.email,
+    agencyEmail: agency?.email,
+    primaryMediaType: agency?.primaryMediaType,
+    isMediaAdmin,
+  });
+  const showSmartRateCard = agencyUsesSmartRateCard(scopedMediaType, {
+    isMediaAdmin,
+  });
+
+  return <GetStartedGuide showSmartRateCard={showSmartRateCard} />;
 }

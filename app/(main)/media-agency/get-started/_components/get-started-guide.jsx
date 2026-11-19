@@ -211,19 +211,52 @@ const STEPS = [
   },
 ];
 
-export function GetStartedGuide() {
-  const [activeId, setActiveId] = useState(STEPS[0].id);
-  const [activePhase, setActivePhase] = useState(PHASES[0].id);
+export function GetStartedGuide({ showSmartRateCard = true }) {
+  const steps = useMemo(
+    () =>
+      showSmartRateCard
+        ? STEPS
+        : STEPS.filter((step) => step.id !== "smart-rate-card").map((step) =>
+            step.id === "custom-packages"
+              ? {
+                  ...step,
+                  for: "Add each outdoor site (name, location, map pin), then attach rate packages buyers negotiate from.",
+                  doThis: [
+                    "Add one listing per billboard / site",
+                    "Drop a map pin so buyers can find it",
+                    "Add packages (1 week, 4 weeks, etc.)",
+                    "Set status to Active",
+                  ],
+                  tip: "Billboard rates live here as packages — not on Smart rate card.",
+                }
+              : step
+          ),
+    [showSmartRateCard]
+  );
+
+  const phases = useMemo(
+    () =>
+      PHASES.map((phase) => ({
+        ...phase,
+        stepIds: phase.stepIds.filter(
+          (id) => showSmartRateCard || id !== "smart-rate-card"
+        ),
+      })),
+    [showSmartRateCard]
+  );
+
+  const [activeId, setActiveId] = useState(steps[0]?.id || STEPS[0].id);
+  const [activePhase, setActivePhase] = useState(phases[0]?.id || PHASES[0].id);
 
   const stepsById = useMemo(
-    () => Object.fromEntries(STEPS.map((step) => [step.id, step])),
-    []
+    () => Object.fromEntries(steps.map((step) => [step.id, step])),
+    [steps]
   );
 
   useEffect(() => {
-    const nodes = STEPS.map((step) => document.getElementById(`guide-${step.id}`)).filter(
-      Boolean
-    );
+    const nodes = steps
+      .map((step) => document.getElementById(`guide-${step.id}`))
+      .filter(Boolean);
     if (!nodes.length) return;
 
     const observer = new IntersectionObserver(
@@ -291,7 +324,7 @@ export function GetStartedGuide() {
         </div>
 
         <div className="mt-8 grid gap-3 md:grid-cols-3">
-          {PHASES.map((phase, index) => {
+          {phases.map((phase, index) => {
             const active = activePhase === phase.id;
             return (
               <button
@@ -340,7 +373,7 @@ export function GetStartedGuide() {
               On this page
             </p>
             <nav className="space-y-4">
-              {PHASES.map((phase) => (
+              {phases.map((phase) => (
                 <div key={phase.id}>
                   <p className="px-2 pb-1 text-xs font-semibold text-slate-500">
                     {phase.label}
@@ -377,7 +410,7 @@ export function GetStartedGuide() {
         </aside>
 
         <div className="space-y-4">
-          {STEPS.map((step, index) => {
+          {steps.map((step, index) => {
             const Icon = step.icon;
             const active = activeId === step.id;
             return (
@@ -401,7 +434,7 @@ export function GetStartedGuide() {
                           Step {index + 1}
                         </span>
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                          {PHASES.find((p) => p.id === step.phase)?.label}
+                          {phases.find((p) => p.id === step.phase)?.label}
                         </span>
                       </div>
                       <h3 className="text-lg font-semibold tracking-tight text-slate-950">

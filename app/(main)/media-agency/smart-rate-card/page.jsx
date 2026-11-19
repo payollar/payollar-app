@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,7 @@ import { BillboardMapPicker } from "../rate-card/_components/billboard-map-picke
 import { MediaAgencyPageShell } from "../_components/media-agency-page-shell";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/utils";
+import { agencyUsesSmartRateCard } from "@/lib/media-agency-type";
 
 const fieldClass =
   "h-10 rounded-xl border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
@@ -52,6 +54,7 @@ function TypeIcon({ type, className }) {
 }
 
 export default function SmartRateCardPage() {
+  const router = useRouter();
   const [rateCards, setRateCards] = useState([]);
   const [mediaListings, setMediaListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,6 +92,12 @@ export default function SmartRateCardPage() {
           : data.agency?.isMediaAdmin
             ? null
             : data.agency?.primaryMediaType || null;
+      const isAdmin = Boolean(data.agency?.isMediaAdmin);
+      if (!agencyUsesSmartRateCard(scoped, { isMediaAdmin: isAdmin })) {
+        toast.message("Billboard and digital rates live on Custom packages");
+        router.replace("/media-agency/rate-card");
+        return [];
+      }
       setPrimaryMediaType(scoped);
       if (scoped) {
         setSelectedListingType((prev) => prev || scoped);
@@ -99,7 +108,7 @@ export default function SmartRateCardPage() {
       toast.error(error.message || "Failed to load stations");
       return [];
     }
-  }, []);
+  }, [router]);
 
   const fetchRateCards = useCallback(async () => {
     try {

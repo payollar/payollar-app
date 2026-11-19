@@ -175,6 +175,7 @@ export function MediaAgencyOverview({
   contactName,
   primaryMediaType = null,
   isMediaAdmin = false,
+  showSmartRateCard = true,
   stats,
   bookings = [],
   reports = [],
@@ -261,15 +262,21 @@ export function MediaAgencyOverview({
               Publish packages, manage booking requests, and keep rate cards current for clients.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Link
-                href="/media-agency/smart-rate-card"
-                className="inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
-              >
-                Smart rate card
-              </Link>
+              {showSmartRateCard ? (
+                <Link
+                  href="/media-agency/smart-rate-card"
+                  className="inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
+                >
+                  Smart rate card
+                </Link>
+              ) : null}
               <Link
                 href="/media-agency/rate-card"
-                className="inline-flex h-10 items-center rounded-full border border-white/25 bg-white/5 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10"
+                className={
+                  showSmartRateCard
+                    ? "inline-flex h-10 items-center rounded-full border border-white/25 bg-white/5 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10"
+                    : "inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
+                }
               >
                 Custom packages
               </Link>
@@ -294,13 +301,15 @@ export function MediaAgencyOverview({
               <Package className="h-4 w-4 shrink-0 text-slate-500" />
               Custom packages
             </Link>
-            <Link
-              href="/media-agency/smart-rate-card"
-              className="flex items-center gap-3 rounded-2xl bg-[#f7f8fc] px-3 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
-            >
-              <FileText className="h-4 w-4 shrink-0 text-slate-500" />
-              Smart rate card
-            </Link>
+            {showSmartRateCard ? (
+              <Link
+                href="/media-agency/smart-rate-card"
+                className="flex items-center gap-3 rounded-2xl bg-[#f7f8fc] px-3 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
+              >
+                <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                Smart rate card
+              </Link>
+            ) : null}
             <Link
               href="/media-agency/requests"
               className="flex items-center gap-3 rounded-2xl bg-[#f7f8fc] px-3 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"

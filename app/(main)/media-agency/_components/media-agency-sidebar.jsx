@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,11 +35,17 @@ import { signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
+import { agencyUsesSmartRateCard } from "@/lib/media-agency-type";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/media-agency" },
   { title: "Custom packages", icon: Package, href: "/media-agency/rate-card" },
-  { title: "Smart rate card", icon: FileText, href: "/media-agency/smart-rate-card" },
+  {
+    title: "Smart rate card",
+    icon: FileText,
+    href: "/media-agency/smart-rate-card",
+    smartRateOnly: true,
+  },
   { title: "Requests", icon: Inbox, href: "/media-agency/requests" },
   { title: "Negotiations", icon: Percent, href: "/media-agency/negotiations" },
   { title: "Campaigns", icon: Megaphone, href: "/media-agency/campaigns" },
@@ -56,6 +63,37 @@ const menuItems = [
 export function MediaAgencySidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const [showSmartRateCard, setShowSmartRateCard] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/media-agency/me");
+        const data = await res.json().catch(() => ({}));
+        if (cancelled || !res.ok || !data.success) return;
+        const agency = data.agency || {};
+        setShowSmartRateCard(
+          agencyUsesSmartRateCard(agency.scopedMediaType ?? agency.primaryMediaType, {
+            isMediaAdmin: agency.isMediaAdmin,
+          })
+        );
+      } catch {
+        /* keep default visible until we know */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleItems = useMemo(
+    () =>
+      menuItems.filter(
+        (item) => !item.smartRateOnly || showSmartRateCard
+      ),
+    [showSmartRateCard]
+  );
 
   const handleSignOut = async () => {
     try {
@@ -108,7 +146,7 @@ export function MediaAgencySidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
+              {visibleItems.map((item) => {
                 const isActive =
                   pathname === item.href ||
                   (item.href !== "/media-agency" && pathname?.startsWith(item.href));

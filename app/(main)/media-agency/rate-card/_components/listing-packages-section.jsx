@@ -21,6 +21,7 @@ export function ListingPackagesSection({ listing }) {
   const router = useRouter();
   const packages = listing.packages || [];
   const isDigital = listing.listingType === "DIGITAL";
+  const isBillboard = listing.listingType === "BILLBOARD";
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -100,8 +101,10 @@ export function ListingPackagesSection({ listing }) {
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
             {isDigital
-              ? "These packages show on the Digital marketplace and power Get Quote"
-              : "Ready-made buys clients can pick on your media page"}
+              ? "Shown on the Digital marketplace — buyers start Negotiate from these offers"
+              : isBillboard
+                ? "Shown on the billboard map — buyers Negotiate from Messages"
+                : "Ready-made buys clients can pick on your media page"}
           </p>
         </div>
         {!isAdding ? (
@@ -151,8 +154,10 @@ export function ListingPackagesSection({ listing }) {
       ) : !isAdding ? (
         <p className="mt-3 rounded-xl bg-[#f8fafc] px-3 py-4 text-center text-xs text-slate-400">
           {isDigital
-            ? "No packages yet — add homepage, article, or newsletter offers for the Digital marketplace."
-            : "No packages yet — add one for quick client checkout."}
+            ? "No packages yet — add homepage, article, or newsletter offers."
+            : isBillboard
+              ? "No packages yet — add a duration + rate (e.g. 4 weeks) so buyers can negotiate."
+              : "No packages yet — add one so buyers can negotiate."}
         </p>
       ) : null}
 
@@ -171,7 +176,11 @@ export function ListingPackagesSection({ listing }) {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder={
-                  isDigital ? "Homepage takeover" : "Morning Show Package"
+                  isDigital
+                    ? "Homepage takeover"
+                    : isBillboard
+                      ? "4-week face"
+                      : "Morning Show Package"
                 }
                 required
                 className={fieldClass}
@@ -185,7 +194,9 @@ export function ListingPackagesSection({ listing }) {
                 step="0.01"
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                placeholder={isDigital ? "8500" : "3500"}
+                placeholder={
+                  isDigital ? "8500" : isBillboard ? "12000" : "3500"
+                }
                 required
                 className={fieldClass}
               />
@@ -195,26 +206,40 @@ export function ListingPackagesSection({ listing }) {
               <Input
                 value={form.duration}
                 onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
-                placeholder={isDigital ? "1 week" : "30 seconds"}
+                placeholder={
+                  isDigital
+                    ? "1 week"
+                    : isBillboard
+                      ? "4 weeks"
+                      : "30 seconds"
+                }
                 className={fieldClass}
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-slate-600">
-                {isDigital ? "Units / placements" : "Spots"}
+                {isDigital
+                  ? "Units / placements"
+                  : isBillboard
+                    ? "Faces / units"
+                    : "Spots"}
               </Label>
               <Input
                 type="number"
                 min="0"
                 value={form.spots}
                 onChange={(e) => setForm((f) => ({ ...f, spots: e.target.value }))}
-                placeholder={isDigital ? "1" : "5"}
+                placeholder={isDigital || isBillboard ? "1" : "5"}
                 className={fieldClass}
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs text-slate-600">
-                {isDigital ? "Estimated reach / impressions" : "Estimated viewers"}
+                {isDigital
+                  ? "Estimated reach / impressions"
+                  : isBillboard
+                    ? "Estimated daily traffic"
+                    : "Estimated viewers"}
               </Label>
               <Input
                 value={form.estimatedViewers}
@@ -222,7 +247,11 @@ export function ListingPackagesSection({ listing }) {
                   setForm((f) => ({ ...f, estimatedViewers: e.target.value }))
                 }
                 placeholder={
-                  isDigital ? "e.g. 100K weekly views" : "e.g. 2.5M+ viewers"
+                  isDigital
+                    ? "e.g. 100K weekly views"
+                    : isBillboard
+                      ? "e.g. 45K vehicles / day"
+                      : "e.g. 2.5M+ viewers"
                 }
                 className={fieldClass}
               />
