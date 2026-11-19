@@ -423,6 +423,20 @@ export async function getMediaAgencyByUserId(userId) {
  */
 export async function addMediaListing(agencyId, listingData) {
   try {
+    const agency = await db.mediaAgency.findUnique({
+      where: { id: agencyId },
+      select: { primaryMediaType: true },
+    });
+    if (
+      agency?.primaryMediaType &&
+      String(listingData.listingType || "").toUpperCase() !==
+        agency.primaryMediaType
+    ) {
+      throw new Error(
+        `This agency is set up for ${String(agency.primaryMediaType).replaceAll("_", " ")} only`
+      );
+    }
+
     const listing = await db.mediaListing.create({
       data: {
         agencyId,

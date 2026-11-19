@@ -46,6 +46,7 @@ export async function POST(request, { params }) {
       isVisibleOnFrontend = true,
       isRequiredForBooking = false,
       config,
+      seedTimeRangesFromTimeClass = false,
     } = body;
 
     if (!name || !dataType) {
@@ -65,6 +66,19 @@ export async function POST(request, { params }) {
       finalDisplayOrder = maxColumn ? maxColumn.displayOrder + 1 : 0;
     }
 
+    // Make room when inserting after Time Class (shift later columns)
+    if (typeof displayOrder === "number") {
+      await db.smartTableColumn.updateMany({
+        where: {
+          tableId,
+          displayOrder: { gte: finalDisplayOrder },
+        },
+        data: {
+          displayOrder: { increment: 1 },
+        },
+      });
+    }
+
     const column = await db.smartTableColumn.create({
       data: {
         tableId: tableId,
@@ -77,7 +91,84 @@ export async function POST(request, { params }) {
       },
     });
 
-    return NextResponse.json({ success: true, column }, { status: 201 });
+    let seeded = 0;
+    const role =
+      config && typeof config === "object" && !Array.isArray(config)
+        ? config.role
+        : null;
+
+    if (seedTimeRangesFromTimeClass || role === "time_range") {
+      const { defaultTimeRangeForSegment } = await import(
+        "@/lib/rate-card-time-range"
+      );
+      const columns = await db.smartTableColumn.findMany({
+        where: { tableId },
+        select: { id: true, name: true, config: true },
+      });
+      const timeClassCol = columns.find((c) => {
+        const r =
+          c.config && typeof c.config === "object" && !Array.isArray(c.config)
+            ? c.config.role
+            : null;
+        return (
+          r === "time_class" ||
+          /time\s*class|segment|daypart/i.test(c.name || "")
+        );
+      });
+
+      if (timeClassCol) {
+        const rows = await db.smartTableRow.findMany({
+          where: { tableId },
+          include: {
+            cells: {
+              where: { columnId: timeClassCol.id },
+              select: { value: true },
+            },
+          },
+        });
+
+        for (const row of rows) {
+          const segment = row.cells?.[0]?.value || "";
+          const range = defaultTimeRangeForSegment(segment);
+          if (!range) continue;
+
+          const existing = await db.smartTableCell.findUnique({
+            where: {
+              rowId_columnId: {
+                rowId: row.id,
+                columnId: column.id,
+              },
+            },
+            select: { value: true },
+          });
+          // Don't overwrite agency-entered times
+          if (existing?.value && String(existing.value).trim()) continue;
+
+          await db.smartTableCell.upsert({
+            where: {
+              rowId_columnId: {
+                rowId: row.id,
+                columnId: column.id,
+              },
+            },
+            create: {
+              rowId: row.id,
+              columnId: column.id,
+              value: range,
+            },
+            update: {
+              value: range,
+            },
+          });
+          seeded += 1;
+        }
+      }
+    }
+
+    return NextResponse.json(
+      { success: true, column, seeded },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating column:", error);
     return NextResponse.json(

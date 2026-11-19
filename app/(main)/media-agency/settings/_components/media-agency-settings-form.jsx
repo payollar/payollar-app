@@ -142,14 +142,22 @@ export function MediaAgencySettingsForm({ agency }) {
                 {form.agencyName || "Your media"}
               </h2>
               <p className="mt-1 text-sm text-slate-500">{agency.email}</p>
-              <div
-                className={cn(
-                  "mt-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
-                  status.className
-                )}
-              >
-                <StatusIcon className={cn("h-3.5 w-3.5", status.iconClass)} />
-                {status.label}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
+                    status.className
+                  )}
+                >
+                  <StatusIcon className={cn("h-3.5 w-3.5", status.iconClass)} />
+                  {status.label}
+                </div>
+                {agency.primaryMediaType ? (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-[#0055ff]/15 bg-[#eef2ff] px-3 py-1 text-xs font-semibold text-[#0055ff]">
+                    <FileText className="h-3.5 w-3.5" />
+                    {String(agency.primaryMediaType).replaceAll("_", " ")}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -246,6 +254,19 @@ export function MediaAgencySettingsForm({ agency }) {
 
         {/* Editable form */}
         <div className={cn(DASHBOARD_CARD_CLASS, "p-6 md:p-7")}>
+          {agency.primaryMediaType ? (
+            <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Media type
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                {String(agency.primaryMediaType).replaceAll("_", " ")}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Set at signup. Contact support if you need to change it.
+              </p>
+            </div>
+          ) : null}
           <div className="mb-6 flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-950">

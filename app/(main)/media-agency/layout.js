@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { MediaAgencySidebar } from "./_components/media-agency-sidebar";
+import { MediaAgencyTypeGate } from "./_components/media-agency-type-gate";
 import { checkUser } from "@/lib/checkUser";
 import { redirect } from "next/navigation";
 
@@ -24,7 +25,7 @@ export default async function MediaAgencyDashboardLayout({ children }) {
       sidebar={<MediaAgencySidebar />}
       panelAttr="data-media-agency-dashboard-nav"
     >
-      {children}
+      <MediaAgencyTypeGate>{children}</MediaAgencyTypeGate>
     </DashboardShell>
   );
 }

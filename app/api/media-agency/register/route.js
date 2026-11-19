@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { auth as betterAuth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { normalizeMediaAgencyType } from "@/lib/media-agency-type";
 
 export async function POST(req) {
   try {
@@ -19,10 +20,18 @@ export async function POST(req) {
 
     const body = await req.json();
     const { agencyName, contactName, email, phone, website } = body;
+    const primaryMediaType = normalizeMediaAgencyType(body.primaryMediaType);
 
     if (!agencyName || !contactName || !email) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    if (!primaryMediaType) {
+      return NextResponse.json(
+        { error: "Select your media type (TV, Radio, etc.)" },
         { status: 400 }
       );
     }
@@ -61,6 +70,9 @@ export async function POST(req) {
             email,
             phone: phone || null,
             website: website || null,
+            // Keep existing type if already set; otherwise apply signup choice
+            primaryMediaType:
+              existingAgency.primaryMediaType || primaryMediaType,
           },
         })
       : await db.mediaAgency.create({
@@ -71,6 +83,7 @@ export async function POST(req) {
             email,
             phone: phone || null,
             website: website || null,
+            primaryMediaType,
             verificationStatus: "PENDING",
           },
         });

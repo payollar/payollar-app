@@ -344,15 +344,27 @@ export default async function MediaAgencyRateCardPage() {
       >
         <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
           <h2 className="text-base font-semibold text-slate-950">
-            Add new media listing
+            Add new{" "}
+            {mediaAgency.primaryMediaType
+              ? String(mediaAgency.primaryMediaType)
+                  .replaceAll("_", " ")
+                  .toLowerCase()
+              : "media"}{" "}
+            listing
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Choose a media type to tailor the fields, then add packages on the
-            listing above.
+            {mediaAgency.primaryMediaType
+              ? `Fields are tailored for ${String(
+                  mediaAgency.primaryMediaType
+                ).replaceAll("_", " ")}. Add packages on the listing above.`
+              : "Choose a media type to tailor the fields, then add packages on the listing above."}
           </p>
         </div>
         <div className="px-5 py-5 sm:px-6">
-          <RateCardForm mediaAgencyId={mediaAgency.id} />
+          <RateCardForm
+            mediaAgencyId={mediaAgency.id}
+            primaryMediaType={mediaAgency.primaryMediaType}
+          />
         </div>
       </section>
     </MediaAgencyPageShell>

@@ -60,15 +60,27 @@ export default function SmartRateCardPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newListingName, setNewListingName] = useState("");
   const [selectedListingType, setSelectedListingType] = useState("");
+  const [primaryMediaType, setPrimaryMediaType] = useState(null);
   const [newLocation, setNewLocation] = useState("");
   const [creatingRatesForListingId, setCreatingRatesForListingId] =
     useState(null);
+
+  const availableMediaTypes = useMemo(() => {
+    if (!primaryMediaType) return MEDIA_TYPES;
+    return MEDIA_TYPES.filter((t) => t.value === primaryMediaType);
+  }, [primaryMediaType]);
 
   const fetchListings = useCallback(async () => {
     try {
       const res = await fetch("/api/media-agency/listings");
       const data = await res.json();
-      if (data.success) setMediaListings(data.listings || []);
+      if (data.success) {
+        setMediaListings(data.listings || []);
+        if (data.agency?.primaryMediaType) {
+          setPrimaryMediaType(data.agency.primaryMediaType);
+          setSelectedListingType((prev) => prev || data.agency.primaryMediaType);
+        }
+      }
       return data.listings || [];
     } catch {
       return [];
@@ -175,9 +187,14 @@ export default function SmartRateCardPage() {
 
   const resetCreateForm = () => {
     setNewListingName("");
-    setSelectedListingType("");
+    setSelectedListingType(primaryMediaType || "");
     setNewLocation("");
     setShowCreateForm(false);
+  };
+
+  const openCreateForm = () => {
+    setSelectedListingType(primaryMediaType || selectedListingType || "");
+    setShowCreateForm(true);
   };
 
   const createRateCardForListing = async (listing, titleOverride = null) => {
@@ -344,7 +361,7 @@ export default function SmartRateCardPage() {
         <Button
           variant="black"
           className="rounded-full"
-          onClick={() => setShowCreateForm(true)}
+          onClick={openCreateForm}
         >
           <Plus className="mr-1.5 h-4 w-4" />
           New station
@@ -370,7 +387,7 @@ export default function SmartRateCardPage() {
           </p>
           <Button
             className="mt-4 h-9 rounded-full bg-[#0055ff] px-4 text-white hover:bg-[#0046d4]"
-            onClick={() => setShowCreateForm(true)}
+            onClick={openCreateForm}
           >
             <Plus className="mr-1.5 h-4 w-4" />
             New station
@@ -617,7 +634,7 @@ export default function SmartRateCardPage() {
         open={showCreateForm}
         onOpenChange={(open) => {
           if (!open) resetCreateForm();
-          else setShowCreateForm(true);
+          else openCreateForm();
         }}
       >
         <DialogContent className="max-h-[90vh] gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-950 shadow-2xl shadow-slate-900/10 sm:max-w-lg [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:text-slate-500 [&>button]:hover:bg-slate-100 [&>button]:hover:text-slate-900">
@@ -660,30 +677,44 @@ export default function SmartRateCardPage() {
               <Label className="text-sm font-medium text-slate-700">
                 Media type <span className="text-[#0055ff]">*</span>
               </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {MEDIA_TYPES.map((type) => {
-                  const Icon = type.icon;
-                  const active = selectedListingType === type.value;
-                  return (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => setSelectedListingType(type.value)}
-                      className={cn(
-                        "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-center transition",
-                        active
-                          ? "border-[#0055ff] bg-white text-[#0055ff] shadow-sm ring-2 ring-[#0055ff]/15"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" strokeWidth={1.9} />
-                      <span className="text-[11px] font-semibold leading-tight">
-                        {type.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {primaryMediaType && availableMediaTypes.length === 1 ? (
+                <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
+                  {(() => {
+                    const Icon = availableMediaTypes[0]?.icon || Building2;
+                    return <Icon className="h-4 w-4 text-[#0055ff]" />;
+                  })()}
+                  {availableMediaTypes[0]?.label ||
+                    String(primaryMediaType).replaceAll("_", " ")}
+                  <span className="text-xs font-normal text-slate-400">
+                    (your agency type)
+                  </span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {availableMediaTypes.map((type) => {
+                    const Icon = type.icon;
+                    const active = selectedListingType === type.value;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => setSelectedListingType(type.value)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-center transition",
+                          active
+                            ? "border-[#0055ff] bg-white text-[#0055ff] shadow-sm ring-2 ring-[#0055ff]/15"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={1.9} />
+                        <span className="text-[11px] font-semibold leading-tight">
+                          {type.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">

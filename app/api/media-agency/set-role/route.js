@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { auth as betterAuth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { normalizeMediaAgencyType } from "@/lib/media-agency-type";
 
 /**
  * Google / OAuth media-agency entry: set MEDIA_AGENCY role and ensure a profile exists
  * so the user can open the dashboard without a dead-end.
  */
-export async function POST() {
+export async function POST(request) {
   try {
     const headersList = await headers();
     const session = await betterAuth.api.getSession({
@@ -18,6 +19,14 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    let primaryMediaType = null;
+    try {
+      const body = await request.json();
+      primaryMediaType = normalizeMediaAgencyType(body?.primaryMediaType);
+    } catch {
+      // empty body is fine
+    }
+
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -25,7 +34,9 @@ export async function POST() {
         role: true,
         name: true,
         email: true,
-        mediaAgency: { select: { id: true, agencyName: true } },
+        mediaAgency: {
+          select: { id: true, agencyName: true, primaryMediaType: true },
+        },
       },
     });
 
@@ -54,6 +65,7 @@ export async function POST() {
 
     let agencyId = user.mediaAgency?.id || null;
     let agencyName = user.mediaAgency?.agencyName || null;
+    let agencyPrimaryType = user.mediaAgency?.primaryMediaType || null;
     let createdNewAgency = false;
 
     if (!agencyId) {
@@ -68,13 +80,22 @@ export async function POST() {
           agencyName,
           contactName,
           email: user.email,
+          primaryMediaType: primaryMediaType || null,
           verificationStatus: "PENDING",
         },
-        select: { id: true, agencyName: true },
+        select: { id: true, agencyName: true, primaryMediaType: true },
       });
       agencyId = agency.id;
       agencyName = agency.agencyName;
+      agencyPrimaryType = agency.primaryMediaType;
       createdNewAgency = true;
+    } else if (!agencyPrimaryType && primaryMediaType) {
+      const updated = await db.mediaAgency.update({
+        where: { id: agencyId },
+        data: { primaryMediaType },
+        select: { primaryMediaType: true },
+      });
+      agencyPrimaryType = updated.primaryMediaType;
     }
 
     // First-time assignment / first agency profile only
@@ -101,6 +122,7 @@ export async function POST() {
       role: "MEDIA_AGENCY",
       hasMediaAgency: true,
       agencyId,
+      primaryMediaType: agencyPrimaryType,
     });
   } catch (error) {
     console.error("Error setting media agency role:", error);

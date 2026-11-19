@@ -182,9 +182,23 @@ function VerifyEmailContent() {
     try {
       if (isMediaAgency) {
         try {
+          let storedType = null;
+          try {
+            const { readStoredMediaAgencyType } = await import(
+              "@/lib/media-agency-type"
+            );
+            storedType = readStoredMediaAgencyType();
+          } catch {
+            // ignore
+          }
+
           const setRoleResponse = await fetch("/api/media-agency/set-role", {
             method: "POST",
             credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              storedType ? { primaryMediaType: storedType } : {}
+            ),
           });
 
           if (setRoleResponse.ok) {
@@ -193,6 +207,17 @@ function VerifyEmailContent() {
               setRoleData.role === "MEDIA_AGENCY" ||
               setRoleData.hasMediaAgency
             ) {
+              try {
+                const { clearStoredMediaAgencyType } = await import(
+                  "@/lib/media-agency-type"
+                );
+                // Keep stored type if agency still needs the dashboard gate
+                if (setRoleData.primaryMediaType) {
+                  clearStoredMediaAgencyType();
+                }
+              } catch {
+                // ignore
+              }
               toast.success("Email verified — opening your media dashboard");
               router.replace("/media-agency");
               return;

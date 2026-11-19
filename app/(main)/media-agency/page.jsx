@@ -83,6 +83,7 @@ export default async function MediaAgencyDashboard() {
     <MediaAgencyOverview
       agencyName={mediaAgency.agencyName}
       contactName={mediaAgency.contactName}
+      primaryMediaType={mediaAgency.primaryMediaType}
       stats={{
         totalListings: mediaAgency._count.listings,
         activeListings: mediaAgency.listings.length,

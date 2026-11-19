@@ -34,6 +34,9 @@ import {
   Search,
   Maximize2,
   Copy,
+  ChevronDown,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,6 +60,13 @@ import {
   tableNeedsProgramsColumn,
   tableNeedsImpressionsColumn,
 } from "@/lib/rate-card-programs";
+import {
+  TIME_RANGE_COLUMN_PAYLOAD,
+  isTimeRangeColumn,
+  nextTimeRangeDisplayOrder,
+  tableNeedsTimeRangeColumn,
+} from "@/lib/rate-card-time-range";
+import { TimeRangeCell } from "./time-range-cell";
 
 const COLUMN_DATA_TYPES = [
   { value: "TEXT", label: "Text", icon: Type },
@@ -100,11 +110,150 @@ export function SmartTableEditor({ table, onUpdate }) {
   const [newColumnType, setNewColumnType] = useState("TEXT");
   const [newColumnOptions, setNewColumnOptions] = useState("");
   const [editingColumn, setEditingColumn] = useState(null);
+  /** @type {[{ id: string, original: string, value: string }]} */
+  const [editingColumnOptions, setEditingColumnOptions] = useState([]);
+  const [savingColumn, setSavingColumn] = useState(false);
+  const [showColumnAdvanced, setShowColumnAdvanced] = useState(false);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [pendingUpdates, setPendingUpdates] = useState(new Map()); // Track pending cell updates
   const inputRef = useRef(null);
 
-  // Existing time-class tables: add Programs / Impressions columns if missing
+  const openColumnEditor = (column) => {
+    const opts = Array.isArray(column?.config?.options)
+      ? column.config.options.map((opt, idx) => {
+          const value = String(opt ?? "").trim();
+          return {
+            id: `${column.id}-opt-${idx}-${value || "empty"}`,
+            original: value,
+            value,
+          };
+        })
+      : [];
+    setEditingColumnOptions(opts);
+    setShowColumnAdvanced(false);
+    setEditingColumn({ ...column });
+  };
+
+  const closeColumnEditor = () => {
+    setEditingColumn(null);
+    setEditingColumnOptions([]);
+    setSavingColumn(false);
+    setShowColumnAdvanced(false);
+  };
+
+  const handleSaveColumn = async () => {
+    if (!editingColumn) return;
+    try {
+      setSavingColumn(true);
+
+      const prevConfig =
+        editingColumn.config &&
+        typeof editingColumn.config === "object" &&
+        !Array.isArray(editingColumn.config)
+          ? editingColumn.config
+          : {};
+
+      let config = { ...prevConfig };
+      let optionRenames = [];
+
+      if (editingColumn.dataType === "DROPDOWN") {
+        const cleaned = editingColumnOptions
+          .map((o) => ({
+            ...o,
+            value: String(o.value || "").trim(),
+          }))
+          .filter((o) => o.value.length > 0);
+
+        const values = cleaned.map((o) => o.value);
+        const unique = new Set(values);
+        if (unique.size !== values.length) {
+          toast.error("Option names must be unique");
+          setSavingColumn(false);
+          return;
+        }
+
+        optionRenames = cleaned
+          .filter((o) => o.original && o.value && o.original !== o.value)
+          .map((o) => ({ from: o.original, to: o.value }));
+
+        config = {
+          ...prevConfig,
+          options: values,
+        };
+      }
+
+      const response = await fetch(
+        `/api/media-agency/rate-cards/tables/columns/${editingColumn.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: editingColumn.name,
+            dataType: editingColumn.dataType,
+            isVisibleOnFrontend: editingColumn.isVisibleOnFrontend,
+            isRequiredForBooking: editingColumn.isRequiredForBooking,
+            config,
+            optionRenames,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(
+          data.renamed > 0
+            ? `Saved · ${data.renamed} label${data.renamed === 1 ? "" : "s"} updated on the rate card`
+            : "Saved"
+        );
+        closeColumnEditor();
+        if (onUpdate) onUpdate();
+      } else {
+        toast.error(data.error || "Failed to update column");
+      }
+    } catch (error) {
+      console.error("Error updating column:", error);
+      toast.error("Failed to update column");
+    } finally {
+      setSavingColumn(false);
+    }
+  };
+
+  const handleDeleteColumn = async () => {
+    if (!editingColumn) return;
+    if (
+      !confirm(
+        "Delete this column? All cell data in this column will be lost."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setSavingColumn(true);
+      const response = await fetch(
+        `/api/media-agency/rate-cards/tables/columns/${editingColumn.id}`,
+        { method: "DELETE" }
+      );
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Column deleted");
+        closeColumnEditor();
+        if (onUpdate) onUpdate();
+      } else {
+        toast.error(data.error || "Failed to delete column");
+      }
+    } catch (error) {
+      console.error("Error deleting column:", error);
+      toast.error("Failed to delete column");
+    } finally {
+      setSavingColumn(false);
+    }
+  };
+
+  // Existing time-class tables: add Time range / Programs / Impressions if missing
+  const needsTimeRangeColumn = table
+    ? tableNeedsTimeRangeColumn(table.columns || [])
+    : false;
   const needsProgramsColumn = table
     ? tableNeedsProgramsColumn(table.columns || [])
     : false;
@@ -114,16 +263,46 @@ export function SmartTableEditor({ table, onUpdate }) {
 
   useEffect(() => {
     if (!table?.id) return;
-    if (!needsProgramsColumn && !needsImpressionsColumn) return;
+    if (
+      !needsTimeRangeColumn &&
+      !needsProgramsColumn &&
+      !needsImpressionsColumn
+    ) {
+      return;
+    }
 
     const cols = table.columns || [];
     const tableId = table.id;
+    const timeRangeLock = `${tableId}:time-range`;
     const programsLock = `${tableId}:programs`;
     const impressionsLock = `${tableId}:impressions`;
 
     (async () => {
       let needRefresh = false;
       try {
+        if (needsTimeRangeColumn && !ensureColumnInFlight.has(timeRangeLock)) {
+          ensureColumnInFlight.add(timeRangeLock);
+          try {
+            const displayOrder = nextTimeRangeDisplayOrder(cols);
+            const response = await fetch(
+              `/api/media-agency/rate-cards/tables/${tableId}/columns`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...TIME_RANGE_COLUMN_PAYLOAD,
+                  seedTimeRangesFromTimeClass: true,
+                  ...(displayOrder != null ? { displayOrder } : {}),
+                }),
+              }
+            );
+            const data = await response.json();
+            if (data.success) needRefresh = true;
+          } finally {
+            ensureColumnInFlight.delete(timeRangeLock);
+          }
+        }
+
         if (needsProgramsColumn && !ensureColumnInFlight.has(programsLock)) {
           ensureColumnInFlight.add(programsLock);
           try {
@@ -167,12 +346,18 @@ export function SmartTableEditor({ table, onUpdate }) {
         if (needRefresh) onUpdate?.();
       } catch (error) {
         console.error("Error ensuring slot guidance columns:", error);
+        ensureColumnInFlight.delete(timeRangeLock);
         ensureColumnInFlight.delete(programsLock);
         ensureColumnInFlight.delete(impressionsLock);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh when missing columns change
-  }, [table?.id, needsProgramsColumn, needsImpressionsColumn]);
+  }, [
+    table?.id,
+    needsTimeRangeColumn,
+    needsProgramsColumn,
+    needsImpressionsColumn,
+  ]);
 
   useEffect(() => {
     if (table) {
@@ -649,6 +834,20 @@ export function SmartTableEditor({ table, onUpdate }) {
       setEditingCellValue("");
     };
 
+    // Time range: compact cell + floating picker (never expands the column)
+    if (isTimeRangeColumn(column)) {
+      return (
+        <TimeRangeCell
+          value={value || ""}
+          emptyHint={getColumnEmptyHint(column) || "Choose time range"}
+          isEditing={isEditing}
+          onStartEdit={startEditing}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      );
+    }
+
     // Render based on column type
     if (isEditing) {
       switch (column.dataType) {
@@ -959,179 +1158,315 @@ export function SmartTableEditor({ table, onUpdate }) {
       </div>
 
       {/* Column Settings Dialog */}
-      {editingColumn && (
-        <Dialog open={!!editingColumn} onOpenChange={() => setEditingColumn(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Column: {editingColumn.name}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Column Name</Label>
-                <Input
-                  value={editingColumn.name}
-                  onChange={(e) =>
-                    setEditingColumn({ ...editingColumn, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Data Type</Label>
-                <Select
-                  value={editingColumn.dataType}
-                  onValueChange={(value) =>
-                    setEditingColumn({ ...editingColumn, dataType: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[110]">
-                    {COLUMN_DATA_TYPES.map((type) => {
-                      const Icon = type.icon;
-                      return (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" />
-                            {type.label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              {editingColumn.dataType === "DROPDOWN" && (
-                <div>
-                  <Label>Dropdown Options (comma-separated)</Label>
-                  <Input
-                    value={
-                      editingColumn.config?.options
-                        ? Array.isArray(editingColumn.config.options)
-                          ? editingColumn.config.options.join(", ")
-                          : ""
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const options = e.target.value
-                        .split(",")
-                        .map((opt) => opt.trim())
-                        .filter((opt) => opt.length > 0);
-                      setEditingColumn({
-                        ...editingColumn,
-                        config: options.length > 0 ? { options } : null,
-                      });
-                    }}
-                    placeholder="e.g., Option 1, Option 2, Option 3"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Separate options with commas
-                  </p>
+      {editingColumn && (() => {
+        const role = editingColumn.config?.role;
+        const isTimeClass = role === "time_class";
+        const isDayBand = role === "day_band";
+        const isDropdown = editingColumn.dataType === "DROPDOWN";
+        const renameCount = editingColumnOptions.filter(
+          (o) =>
+            o.original &&
+            String(o.value || "").trim() &&
+            o.original !== String(o.value || "").trim()
+        ).length;
+        const HeaderIcon = isTimeClass ? Clock : isDayBand ? Layers : List;
+        const fieldClass =
+          "h-10 rounded-xl border-slate-200 bg-white text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20";
+
+        return (
+          <Dialog
+            open={!!editingColumn}
+            onOpenChange={(open) => {
+              if (!open) closeColumnEditor();
+            }}
+          >
+            <DialogContent className="max-h-[90vh] gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-950 shadow-2xl shadow-slate-900/10 sm:max-w-md [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:text-slate-500 [&>button]:hover:bg-slate-100 [&>button]:hover:text-slate-900">
+              <DialogHeader className="space-y-3 border-b border-slate-100 px-6 pb-5 pt-6 text-left">
+                <div className="flex items-start gap-3 pr-8">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#0055ff]">
+                    <HeaderIcon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <DialogTitle className="text-xl font-semibold tracking-tight text-slate-950">
+                      {isTimeClass
+                        ? "Edit segments"
+                        : isDayBand
+                          ? "Edit day bands"
+                          : `Edit column`}
+                    </DialogTitle>
+                    <DialogDescription className="text-sm leading-relaxed text-slate-500">
+                      {isTimeClass
+                        ? "Names buyers see on your public rate card — e.g. Prime Time instead of M1."
+                        : isDayBand
+                          ? "Labels for weekday vs weekend pricing."
+                          : "Update how this column appears and what values it accepts."}
+                    </DialogDescription>
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={editingColumn.isVisibleOnFrontend}
-                  onCheckedChange={(checked) =>
-                    setEditingColumn({
-                      ...editingColumn,
-                      isVisibleOnFrontend: checked,
-                    })
-                  }
-                />
-                <Label>Visible on frontend</Label>
+              </DialogHeader>
+
+              <div className="max-h-[min(60vh,520px)] space-y-5 overflow-y-auto px-6 py-5">
+                {isDropdown && (
+                  <div className="space-y-3">
+                    <div className="flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">
+                          {isTimeClass
+                            ? "Segment names"
+                            : isDayBand
+                              ? "Day bands"
+                              : "Options"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {editingColumnOptions.length}{" "}
+                          {editingColumnOptions.length === 1
+                            ? "name"
+                            : "names"}
+                          {renameCount > 0
+                            ? ` · ${renameCount} renaming`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80">
+                      {editingColumnOptions.length === 0 ? (
+                        <p className="px-4 py-8 text-center text-sm text-slate-500">
+                          No names yet. Add what buyers should pick from.
+                        </p>
+                      ) : (
+                        <ul className="divide-y divide-slate-200">
+                          {editingColumnOptions.map((opt, idx) => {
+                            const trimmed = String(opt.value || "").trim();
+                            const renamed =
+                              opt.original &&
+                              trimmed &&
+                              opt.original !== trimmed;
+                            return (
+                              <li
+                                key={opt.id}
+                                className="flex items-center gap-2.5 bg-white px-3 py-2.5"
+                              >
+                                <span
+                                  className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-lg border px-1.5 text-[11px] font-semibold ${getDropdownColor(idx)}`}
+                                >
+                                  {idx + 1}
+                                </span>
+                                <div className="min-w-0 flex-1 space-y-1">
+                                  <Input
+                                    value={opt.value}
+                                    onChange={(e) => {
+                                      const next = [...editingColumnOptions];
+                                      next[idx] = {
+                                        ...opt,
+                                        value: e.target.value,
+                                      };
+                                      setEditingColumnOptions(next);
+                                    }}
+                                    placeholder={
+                                      isTimeClass
+                                        ? "e.g. Prime Time"
+                                        : "Option name"
+                                    }
+                                    className="h-9 rounded-lg border-slate-200 bg-white shadow-none focus-visible:border-[#0055ff] focus-visible:ring-[#0055ff]/20"
+                                    autoFocus={idx === 0 && isTimeClass}
+                                  />
+                                  {renamed && (
+                                    <p className="truncate px-0.5 text-[11px] text-slate-400">
+                                      Was “{opt.original}”
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                                  onClick={() =>
+                                    setEditingColumnOptions((prev) =>
+                                      prev.filter((o) => o.id !== opt.id)
+                                    )
+                                  }
+                                  aria-label="Remove"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                      <div className="border-t border-slate-200 bg-slate-50 px-3 py-2.5">
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-[#0055ff]/40 hover:bg-[#eef2ff]/50 hover:text-[#0055ff]"
+                          onClick={() =>
+                            setEditingColumnOptions((prev) => [
+                              ...prev,
+                              {
+                                id: `new-${Date.now()}-${prev.length}`,
+                                original: "",
+                                value: "",
+                              },
+                            ])
+                          }
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add{" "}
+                          {isTimeClass
+                            ? "segment"
+                            : isDayBand
+                              ? "day band"
+                              : "option"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isTimeClass && (
+                      <p className="text-xs leading-relaxed text-slate-500">
+                        Saving renames every matching row and updates public
+                        filters automatically.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    onClick={() => setShowColumnAdvanced((v) => !v)}
+                    aria-expanded={showColumnAdvanced}
+                  >
+                    <span>Column settings</span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-slate-400 transition-transform ${
+                        showColumnAdvanced ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {showColumnAdvanced && (
+                    <div className="space-y-4 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-slate-700">
+                          Column name
+                        </Label>
+                        <Input
+                          value={editingColumn.name}
+                          onChange={(e) =>
+                            setEditingColumn({
+                              ...editingColumn,
+                              name: e.target.value,
+                            })
+                          }
+                          className={fieldClass}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-slate-700">
+                          Data type
+                        </Label>
+                        <Select
+                          value={editingColumn.dataType}
+                          onValueChange={(value) =>
+                            setEditingColumn({
+                              ...editingColumn,
+                              dataType: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger className={fieldClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[110]">
+                            {COLUMN_DATA_TYPES.map((type) => {
+                              const Icon = type.icon;
+                              return (
+                                <SelectItem key={type.value} value={type.value}>
+                                  <div className="flex items-center gap-2">
+                                    <Icon className="h-4 w-4" />
+                                    {type.label}
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            Visible to buyers
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Show this column on the public rate card
+                          </p>
+                        </div>
+                        <Switch
+                          checked={editingColumn.isVisibleOnFrontend}
+                          onCheckedChange={(checked) =>
+                            setEditingColumn({
+                              ...editingColumn,
+                              isVisibleOnFrontend: checked,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            Required for booking
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Buyers must pick a value before checkout
+                          </p>
+                        </div>
+                        <Switch
+                          checked={editingColumn.isRequiredForBooking}
+                          onCheckedChange={(checked) =>
+                            setEditingColumn({
+                              ...editingColumn,
+                              isRequiredForBooking: checked,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={editingColumn.isRequiredForBooking}
-                  onCheckedChange={(checked) =>
-                    setEditingColumn({
-                      ...editingColumn,
-                      isRequiredForBooking: checked,
-                    })
-                  }
-                />
-                <Label>Required for booking</Label>
-              </div>
-              <div className="flex gap-2 pt-4 border-t">
-                <Button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(
-                        `/api/media-agency/rate-cards/tables/columns/${editingColumn.id}`,
-                        {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            name: editingColumn.name,
-                            dataType: editingColumn.dataType,
-                            isVisibleOnFrontend: editingColumn.isVisibleOnFrontend,
-                            isRequiredForBooking: editingColumn.isRequiredForBooking,
-                            config: editingColumn.config,
-                          }),
-                        }
-                      );
 
-                      const data = await response.json();
-                      if (data.success) {
-                        toast.success("Column updated");
-                        setEditingColumn(null);
-                        if (onUpdate) onUpdate();
-                      } else {
-                        toast.error(data.error || "Failed to update column");
-                      }
-                    } catch (error) {
-                      console.error("Error updating column:", error);
-                      toast.error("Failed to update column");
-                    }
-                  }}
+              <div className="flex items-center gap-3 border-t border-slate-100 bg-white px-6 py-4">
+                <button
+                  type="button"
+                  disabled={savingColumn}
+                  onClick={handleDeleteColumn}
+                  className="mr-auto text-sm font-medium text-rose-600 transition hover:text-rose-700 disabled:opacity-50"
                 >
-                  Save
-                </Button>
+                  Delete column
+                </button>
                 <Button
-                  variant="destructive"
-                  onClick={async () => {
-                    if (
-                      !confirm(
-                        "Are you sure you want to delete this column? All cell data in this column will be lost."
-                      )
-                    ) {
-                      return;
-                    }
-
-                    try {
-                      const response = await fetch(
-                        `/api/media-agency/rate-cards/tables/columns/${editingColumn.id}`,
-                        {
-                          method: "DELETE",
-                        }
-                      );
-
-                      const data = await response.json();
-                      if (data.success) {
-                        toast.success("Column deleted");
-                        setEditingColumn(null);
-                        if (onUpdate) onUpdate();
-                      } else {
-                        toast.error(data.error || "Failed to delete column");
-                      }
-                    } catch (error) {
-                      console.error("Error deleting column:", error);
-                      toast.error("Failed to delete column");
-                    }
-                  }}
+                  type="button"
+                  variant="outline"
+                  disabled={savingColumn}
+                  onClick={closeColumnEditor}
+                  className="h-10 rounded-full border-slate-200 bg-white px-5 text-slate-700 hover:bg-slate-50"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-                <Button variant="outline" onClick={() => setEditingColumn(null)}>
                   Cancel
                 </Button>
+                <Button
+                  type="button"
+                  disabled={savingColumn}
+                  onClick={handleSaveColumn}
+                  className="h-10 rounded-full bg-[#0055ff] px-5 text-white hover:bg-[#0046d4]"
+                >
+                  {savingColumn ? "Saving…" : "Save changes"}
+                </Button>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1174,15 +1509,26 @@ export function SmartTableEditor({ table, onUpdate }) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
+                            className={`h-5 w-5 p-0 transition-opacity ml-auto ${
+                              column.config?.role === "time_class"
+                                ? "opacity-70 hover:opacity-100"
+                                : "opacity-0 group-hover:opacity-100"
+                            }`}
+                            title={
+                              column.config?.role === "time_class"
+                                ? "Edit segment names"
+                                : "Column options"
+                            }
                           >
                             <MoreHorizontal className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingColumn(column)}>
+                          <DropdownMenuItem onClick={() => openColumnEditor(column)}>
                             <Settings className="h-4 w-4 mr-2" />
-                            Edit Column
+                            {column.config?.role === "time_class"
+                              ? "Edit segments…"
+                              : "Edit Column"}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDuplicateColumn(column)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -215,8 +215,11 @@ function ChipField({
   );
 }
 
-export function RateCardForm({ mediaAgencyId }) {
-  const [listingType, setListingType] = useState("");
+export function RateCardForm({ mediaAgencyId, primaryMediaType = null }) {
+  const lockedType = primaryMediaType
+    ? String(primaryMediaType).toUpperCase()
+    : null;
+  const [listingType, setListingType] = useState(lockedType || "");
   const [name, setName] = useState("");
   const [network, setNetwork] = useState("");
   const [location, setLocation] = useState("");
@@ -232,6 +235,10 @@ export function RateCardForm({ mediaAgencyId }) {
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (lockedType) setListingType(lockedType);
+  }, [lockedType]);
 
   const copy = useMemo(
     () => TYPE_COPY[listingType] || DEFAULT_COPY,
@@ -335,21 +342,30 @@ export function RateCardForm({ mediaAgencyId }) {
           <Label htmlFor="listingType" className="text-sm font-medium text-slate-700">
             Media type <span className="text-[#0055ff]">*</span>
           </Label>
-          <Select value={listingType} onValueChange={handleTypeChange} required>
-            <SelectTrigger className={fieldClass}>
-              <SelectValue placeholder="Select media type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="TV">TV</SelectItem>
-              <SelectItem value="RADIO">Radio</SelectItem>
-              <SelectItem value="BILLBOARD">Billboard</SelectItem>
-              <SelectItem value="DIGITAL">Digital</SelectItem>
-              <SelectItem value="INFLUENCER_MARKETING">
-                Influencer Marketing
-              </SelectItem>
-              <SelectItem value="VIDEO_CLIPPING">Video Clipping</SelectItem>
-            </SelectContent>
-          </Select>
+          {lockedType ? (
+            <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
+              {String(lockedType).replaceAll("_", " ")}
+              <span className="ml-2 text-xs font-normal text-slate-400">
+                (your agency type)
+              </span>
+            </div>
+          ) : (
+            <Select value={listingType} onValueChange={handleTypeChange} required>
+              <SelectTrigger className={fieldClass}>
+                <SelectValue placeholder="Select media type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TV">TV</SelectItem>
+                <SelectItem value="RADIO">Radio</SelectItem>
+                <SelectItem value="BILLBOARD">Billboard</SelectItem>
+                <SelectItem value="DIGITAL">Digital</SelectItem>
+                <SelectItem value="INFLUENCER_MARKETING">
+                  Influencer Marketing
+                </SelectItem>
+                <SelectItem value="VIDEO_CLIPPING">Video Clipping</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="space-y-2">

@@ -173,6 +173,7 @@ function Empty({ label, href, action }) {
 export function MediaAgencyOverview({
   agencyName,
   contactName,
+  primaryMediaType = null,
   stats,
   bookings = [],
   reports = [],
@@ -185,16 +186,28 @@ export function MediaAgencyOverview({
     (acc, c) => acc + (c.pendingApplications ?? 0),
     0
   );
+  const typeLabel = primaryMediaType
+    ? String(primaryMediaType).replaceAll("_", " ")
+    : null;
 
   return (
     <div className="-m-3 min-h-full w-full min-w-0 !max-w-none bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold text-slate-950 md:text-xl">
-            Welcome, {welcomeName}
-          </h1>
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <h1 className="truncate text-lg font-semibold text-slate-950 md:text-xl">
+              Welcome, {welcomeName}
+            </h1>
+            {typeLabel ? (
+              <span className="inline-flex items-center rounded-full border border-[#0055ff]/15 bg-[#eef2ff] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#0055ff]">
+                {typeLabel}
+              </span>
+            ) : null}
+          </div>
           <p className="text-sm text-slate-400">
-            Listings, bookings, and packages at a glance.
+            {typeLabel
+              ? `${typeLabel} listings, bookings, and packages at a glance.`
+              : "Listings, bookings, and packages at a glance."}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">

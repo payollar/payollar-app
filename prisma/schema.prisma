@@ -615,6 +615,8 @@ model MediaAgency {
   country            String            @default("Ghana")
   description        String?           @db.Text
   logoUrl            String? // Agency logo
+  /// Primary vertical chosen at signup — scopes dashboard (TV vs Radio, etc.)
+  primaryMediaType   MediaType?
   verificationStatus MediaAgencyStatus @default(PENDING)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -631,6 +633,7 @@ model MediaAgency {
   campaignAssets MediaCampaignAsset[]
 
   @@index([verificationStatus, createdAt])
+  @@index([primaryMediaType])
 }
 
 enum MediaAgencyStatus {

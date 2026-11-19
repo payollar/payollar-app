@@ -48,6 +48,7 @@ export async function PATCH(request, { params }) {
       isVisibleOnFrontend,
       isRequiredForBooking,
       config,
+      optionRenames,
     } = body;
 
     const updateData = {};
@@ -56,14 +57,70 @@ export async function PATCH(request, { params }) {
     if (displayOrder !== undefined) updateData.displayOrder = Number(displayOrder);
     if (isVisibleOnFrontend !== undefined) updateData.isVisibleOnFrontend = Boolean(isVisibleOnFrontend);
     if (isRequiredForBooking !== undefined) updateData.isRequiredForBooking = Boolean(isRequiredForBooking);
-    if (config !== undefined) updateData.config = config;
 
-    const updatedColumn = await db.smartTableColumn.update({
-      where: { id: columnId },
-      data: updateData,
+    // Merge config so role (time_class / day_band / etc.) is never wiped by options edits
+    if (config !== undefined) {
+      const prev =
+        column.config && typeof column.config === "object" && !Array.isArray(column.config)
+          ? column.config
+          : {};
+      if (config === null) {
+        updateData.config = null;
+      } else if (typeof config === "object" && !Array.isArray(config)) {
+        updateData.config = { ...prev, ...config };
+      } else {
+        updateData.config = config;
+      }
+    }
+
+    const renames = Array.isArray(optionRenames)
+      ? optionRenames
+          .map((r) => ({
+            from: String(r?.from ?? "").trim(),
+            to: String(r?.to ?? "").trim(),
+          }))
+          .filter((r) => r.from && r.to && r.from !== r.to)
+      : [];
+
+    // Reject colliding renames (two sources → same target, or target already another option)
+    if (renames.length > 0) {
+      const targets = new Set();
+      for (const r of renames) {
+        if (targets.has(r.to)) {
+          return NextResponse.json(
+            { error: `Duplicate rename target "${r.to}"` },
+            { status: 400 }
+          );
+        }
+        targets.add(r.to);
+      }
+    }
+
+    const updatedColumn = await db.$transaction(async (tx) => {
+      const col = await tx.smartTableColumn.update({
+        where: { id: columnId },
+        data: updateData,
+      });
+
+      // Cascade dropdown label renames into cell values so public rate card stays in sync
+      for (const { from, to } of renames) {
+        await tx.smartTableCell.updateMany({
+          where: {
+            columnId,
+            value: from,
+          },
+          data: { value: to },
+        });
+      }
+
+      return col;
     });
 
-    return NextResponse.json({ success: true, column: updatedColumn });
+    return NextResponse.json({
+      success: true,
+      column: updatedColumn,
+      renamed: renames.length,
+    });
   } catch (error) {
     console.error("Error updating column:", error);
     return NextResponse.json(

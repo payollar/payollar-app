@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { signUp, signInWithGoogle } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,12 @@ import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { authLinkClass } from "@/components/auth/auth-ui";
 import { AuthLegalAgreementText } from "@/components/legal/legal-document-modal";
 import { cn } from "@/lib/utils";
+import { MediaTypePicker } from "@/components/media/media-type-picker";
+import {
+  clearStoredMediaAgencyType,
+  mediaAgencyTypeMeta,
+  storeMediaAgencyType,
+} from "@/lib/media-agency-type";
 
 const fieldLabel =
   "text-[13px] font-medium tracking-tight text-slate-700";
@@ -39,6 +45,7 @@ export default function MediaAgencySignUpPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [primaryMediaType, setPrimaryMediaType] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -49,14 +56,29 @@ export default function MediaAgencySignUpPage() {
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
   const passwordMismatch = confirmPassword && password !== confirmPassword;
   const passwordLongEnough = password.length >= 8;
+  const typeMeta = useMemo(
+    () => mediaAgencyTypeMeta(primaryMediaType),
+    [primaryMediaType]
+  );
 
   const clearError = () => {
     if (formError) setFormError("");
   };
 
+  const selectMediaType = (type) => {
+    setPrimaryMediaType(type);
+    storeMediaAgencyType(type);
+    clearError();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
+
+    if (!primaryMediaType) {
+      setFormError("Choose your media type (TV, Radio, etc.).");
+      return;
+    }
 
     if (!agencyName.trim() || !contactName.trim() || !email.trim() || !password || !confirmPassword) {
       setFormError("Fill in all required fields.");
@@ -91,6 +113,7 @@ export default function MediaAgencySignUpPage() {
         {
           onSuccess: async () => {
             toast.success("Account created — setting up your agency…");
+            storeMediaAgencyType(primaryMediaType);
 
             // Brief pause so the session cookie is available for the register call
             await new Promise((resolve) => setTimeout(resolve, 400));
@@ -106,6 +129,7 @@ export default function MediaAgencySignUpPage() {
                   email: email.trim(),
                   phone: phone.trim(),
                   website: website.trim(),
+                  primaryMediaType,
                 }),
               });
 
@@ -113,6 +137,8 @@ export default function MediaAgencySignUpPage() {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || "Failed to create media agency profile");
               }
+
+              clearStoredMediaAgencyType();
 
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new Event("storage"));
@@ -201,7 +227,31 @@ export default function MediaAgencySignUpPage() {
           <section className="space-y-4">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                Agency details
+                1 · Media type
+              </h2>
+              <span className="text-[11px] text-slate-400">* required</span>
+            </div>
+            <div className="space-y-2">
+              <Label className={fieldLabel}>
+                What do you sell? <span className="text-red-500">*</span>
+              </Label>
+              <p className="text-xs leading-relaxed text-slate-500">
+                This locks your dashboard to one vertical — TV agencies won’t see
+                radio tools, and vice versa.
+              </p>
+              <MediaTypePicker
+                value={primaryMediaType}
+                onChange={selectMediaType}
+                disabled={isLoading}
+                tone="auth"
+              />
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                2 · Agency details
               </h2>
               <span className="text-[11px] text-slate-400">* required</span>
             </div>
@@ -216,7 +266,10 @@ export default function MediaAgencySignUpPage() {
                   id="agencyName"
                   type="text"
                   autoComplete="organization"
-                  placeholder="Station, network, or platform name"
+                  placeholder={
+                    typeMeta?.agencyPlaceholder ||
+                    "Station, network, or platform name"
+                  }
                   value={agencyName}
                   onChange={(e) => {
                     setAgencyName(e.target.value);
@@ -330,7 +383,7 @@ export default function MediaAgencySignUpPage() {
 
           <section className="space-y-4">
             <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-              Account security
+              3 · Account security
             </h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -474,8 +527,13 @@ export default function MediaAgencySignUpPage() {
           className="h-11 w-full rounded-xl border-slate-200 bg-white text-[15px] font-semibold text-slate-800 hover:bg-slate-50"
           onClick={async () => {
             try {
+              if (!primaryMediaType) {
+                setFormError("Choose your media type before continuing with Google.");
+                return;
+              }
               setIsLoading(true);
               setFormError("");
+              storeMediaAgencyType(primaryMediaType);
               await signInWithGoogle("/verify-email?source=google&media_agency=true");
             } catch (error) {
               console.error("Google sign-in error:", error);

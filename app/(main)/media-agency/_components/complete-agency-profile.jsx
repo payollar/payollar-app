@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, Loader2, Mail, Phone, User, Globe } from "lucide-react";
@@ -8,8 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaAgencyPageShell } from "./media-agency-page-shell";
+import { MediaTypePicker } from "@/components/media/media-type-picker";
 import { DASHBOARD_CARD_CLASS } from "@/lib/dashboard-theme";
 import { cn } from "@/lib/utils";
+import {
+  clearStoredMediaAgencyType,
+  mediaAgencyTypeMeta,
+  readStoredMediaAgencyType,
+  storeMediaAgencyType,
+} from "@/lib/media-agency-type";
 
 const inputClass =
   "h-11 rounded-xl border-slate-200 bg-white pl-10 text-slate-900 shadow-none focus-visible:border-slate-950/40 focus-visible:ring-slate-950/15";
@@ -25,6 +32,9 @@ export function CompleteAgencyProfile({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [primaryMediaType, setPrimaryMediaType] = useState(
+    () => readStoredMediaAgencyType() || ""
+  );
   const [form, setForm] = useState({
     agencyName: "",
     contactName: defaultContactName || "",
@@ -32,6 +42,11 @@ export function CompleteAgencyProfile({
     phone: "",
     website: "",
   });
+
+  const typeMeta = useMemo(
+    () => mediaAgencyTypeMeta(primaryMediaType),
+    [primaryMediaType]
+  );
 
   const update = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -42,6 +57,11 @@ export function CompleteAgencyProfile({
     e.preventDefault();
     setError("");
 
+    if (!primaryMediaType) {
+      setError("Choose your media type (TV, Radio, etc.).");
+      return;
+    }
+
     if (!form.agencyName.trim() || !form.contactName.trim() || !form.email.trim()) {
       setError("Agency name, contact person, and email are required.");
       return;
@@ -49,6 +69,7 @@ export function CompleteAgencyProfile({
 
     setIsLoading(true);
     try {
+      storeMediaAgencyType(primaryMediaType);
       const response = await fetch("/api/media-agency/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +79,7 @@ export function CompleteAgencyProfile({
           email: form.email.trim(),
           phone: form.phone.trim(),
           website: form.website.trim(),
+          primaryMediaType,
         }),
       });
 
@@ -66,6 +88,7 @@ export function CompleteAgencyProfile({
         throw new Error(data.error || "Could not create your agency profile");
       }
 
+      clearStoredMediaAgencyType();
       toast.success("Agency profile ready");
       router.replace("/media-agency");
       router.refresh();
@@ -82,10 +105,10 @@ export function CompleteAgencyProfile({
     <MediaAgencyPageShell
       eyebrow="Media agency"
       title="Finish setup"
-      description="Add your agency details to open the media dashboard."
+      description="Choose your media type and agency details to open the dashboard."
     >
       <div className={cn(DASHBOARD_CARD_CLASS, "mx-auto max-w-lg p-6 sm:p-8")}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {error ? (
             <div
               role="alert"
@@ -96,6 +119,23 @@ export function CompleteAgencyProfile({
           ) : null}
 
           <div className="space-y-2">
+            <Label>What do you sell?</Label>
+            <p className="text-xs text-slate-500">
+              Locks your dashboard to one vertical (TV won’t see radio tools).
+            </p>
+            <MediaTypePicker
+              value={primaryMediaType}
+              onChange={(type) => {
+                setPrimaryMediaType(type);
+                storeMediaAgencyType(type);
+                if (error) setError("");
+              }}
+              disabled={isLoading}
+              tone="dashboard"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="agencyName">Agency / station name</Label>
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -104,7 +144,7 @@ export function CompleteAgencyProfile({
                 value={form.agencyName}
                 onChange={update("agencyName")}
                 className={inputClass}
-                placeholder="e.g. Joy FM"
+                placeholder={typeMeta?.agencyPlaceholder || "e.g. Joy FM"}
                 required
                 disabled={isLoading}
               />
@@ -137,7 +177,6 @@ export function CompleteAgencyProfile({
                 value={form.email}
                 onChange={update("email")}
                 className={inputClass}
-                placeholder="you@station.com"
                 required
                 disabled={isLoading}
               />
@@ -151,11 +190,9 @@ export function CompleteAgencyProfile({
                 <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   id="phone"
-                  type="tel"
                   value={form.phone}
                   onChange={update("phone")}
                   className={inputClass}
-                  placeholder="+233…"
                   disabled={isLoading}
                 />
               </div>
@@ -166,7 +203,6 @@ export function CompleteAgencyProfile({
                 <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   id="website"
-                  type="url"
                   value={form.website}
                   onChange={update("website")}
                   className={inputClass}
@@ -179,17 +215,13 @@ export function CompleteAgencyProfile({
 
           <Button
             type="submit"
-            className="mt-2 h-11 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
+            className="h-11 w-full rounded-full bg-[#0055ff] text-white hover:bg-[#0046d4]"
             disabled={isLoading}
           >
             {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              "Open dashboard"
-            )}
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Open media dashboard
           </Button>
         </form>
       </div>

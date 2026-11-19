@@ -3,6 +3,7 @@ import { db } from "@/lib/prisma";
 import { auth as betterAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { checkUser } from "@/lib/checkUser";
+import { agencyAllowsListingType } from "@/lib/media-agency-type";
 
 export async function GET(request) {
   try {
@@ -13,6 +14,11 @@ export async function GET(request) {
 
     const mediaAgency = await db.mediaAgency.findUnique({
       where: { userId: user.id },
+      select: {
+        id: true,
+        agencyName: true,
+        primaryMediaType: true,
+      },
     });
 
     if (!mediaAgency) {
@@ -27,7 +33,15 @@ export async function GET(request) {
       ],
     });
 
-    return NextResponse.json({ success: true, listings });
+    return NextResponse.json({
+      success: true,
+      listings,
+      agency: {
+        id: mediaAgency.id,
+        agencyName: mediaAgency.agencyName,
+        primaryMediaType: mediaAgency.primaryMediaType,
+      },
+    });
   } catch (error) {
     console.error("Error fetching media listings:", error);
     return NextResponse.json(
@@ -110,6 +124,20 @@ export async function POST(req) {
           { status: 404 }
         );
       }
+    }
+
+    if (
+      mediaAgency.primaryMediaType &&
+      !agencyAllowsListingType(mediaAgency.primaryMediaType, listingType)
+    ) {
+      return NextResponse.json(
+        {
+          error: `This agency is set up for ${String(
+            mediaAgency.primaryMediaType
+          ).replaceAll("_", " ")} only`,
+        },
+        { status: 400 }
+      );
     }
 
     const listing = await db.mediaListing.create({
