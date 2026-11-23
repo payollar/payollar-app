@@ -402,14 +402,65 @@ export async function updateMediaAgencyStatus(formData) {
   }
 
   try {
-    await db.mediaAgency.update({
-      where: {
-        id: agencyId,
-      },
-      data: {
-        verificationStatus: status,
+    const agency = await db.mediaAgency.findUnique({
+      where: { id: agencyId },
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        contactName: true,
+        agencyName: true,
+        user: { select: { email: true, name: true } },
       },
     });
+
+    if (!agency) throw new Error("Media agency not found");
+
+    await db.$transaction([
+      db.mediaAgency.update({
+        where: { id: agencyId },
+        data: { verificationStatus: status },
+      }),
+      // Keep All users table in sync — it reads User.verificationStatus
+      ...(agency.userId
+        ? [
+            db.user.update({
+              where: { id: agency.userId },
+              data: { verificationStatus: status },
+            }),
+          ]
+        : []),
+    ]);
+
+    if (agency.userId) {
+      await notifyUser({
+        userId: agency.userId,
+        type: NOTIFICATION_TYPES.VERIFICATION_STATUS,
+        title:
+          status === "VERIFIED"
+            ? "Your media agency is verified"
+            : "Verification was not approved",
+        body:
+          status === "VERIFIED"
+            ? "Your media agency profile is live — you can manage listings and bookings."
+            : "Your verification was rejected. Update your profile and try again.",
+        href: status === "VERIFIED" ? "/creator" : "/creator/verification",
+        meta: { status, kind: "MEDIA_AGENCY" },
+      });
+    }
+
+    const notifyEmail = agency.email || agency.user?.email;
+    if (notifyEmail) {
+      try {
+        await sendVerificationStatusEmail(
+          notifyEmail,
+          agency.contactName || agency.user?.name || agency.agencyName || "there",
+          status
+        );
+      } catch (emailError) {
+        console.error("Failed to send media agency verification email:", emailError);
+      }
+    }
 
     revalidatePath("/admin");
     return { success: true };
@@ -609,6 +660,13 @@ export async function getAllUsers(options = {}) {
           description: true,
           portfolioUrls: true,
           credits: true,
+          mediaAgency: {
+            select: {
+              id: true,
+              agencyName: true,
+              verificationStatus: true,
+            },
+          },
           _count: {
             select: {
               clientAppointments: true,
@@ -621,6 +679,28 @@ export async function getAllUsers(options = {}) {
       }),
       db.user.count({ where }),
     ]);
+
+    // Repair stale User.verificationStatus for media agencies approved
+    // only on MediaAgency (All users previously ignored that field).
+    const staleAgencyUsers = users.filter(
+      (u) =>
+        u.role === "MEDIA_AGENCY" &&
+        u.mediaAgency?.verificationStatus &&
+        u.mediaAgency.verificationStatus !== u.verificationStatus
+    );
+    if (staleAgencyUsers.length > 0) {
+      await Promise.all(
+        staleAgencyUsers.map((u) =>
+          db.user.update({
+            where: { id: u.id },
+            data: { verificationStatus: u.mediaAgency.verificationStatus },
+          })
+        )
+      );
+      for (const u of staleAgencyUsers) {
+        u.verificationStatus = u.mediaAgency.verificationStatus;
+      }
+    }
 
     return {
       users,
@@ -652,8 +732,9 @@ export async function getUserStats() {
       admins,
       unassigned,
       verifiedCreators,
-      pendingCreators,
+      pendingCreatorsOnly,
       rejectedCreators,
+      pendingAgencies,
     ] = await Promise.all([
       db.user.count(),
       db.user.count({ where: { role: "CLIENT" } }),
@@ -669,7 +750,10 @@ export async function getUserStats() {
       db.user.count({
         where: { role: "CREATOR", verificationStatus: "REJECTED" },
       }),
+      db.mediaAgency.count({ where: { verificationStatus: "PENDING" } }),
     ]);
+
+    const pendingCreators = pendingCreatorsOnly + pendingAgencies;
 
     return {
       totalUsers,
@@ -679,6 +763,8 @@ export async function getUserStats() {
       unassigned,
       verifiedCreators,
       pendingCreators,
+      pendingCreatorsOnly,
+      pendingAgencies,
       rejectedCreators,
     };
   } catch (error) {

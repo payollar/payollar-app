@@ -93,7 +93,6 @@ export async function submitMediaAgencyForm(data) {
       city,
       region,
       country: country || "Ghana",
-      verificationStatus: "PENDING",
     };
 
     // Validate billboard pins before any write
@@ -112,10 +111,15 @@ export async function submitMediaAgencyForm(data) {
 
       if (existingAgency) {
         const priorStatus = existingAgency.verificationStatus;
+        // Keep verified agencies verified; otherwise re-queue for review
+        const nextStatus = priorStatus === "VERIFIED" ? "VERIFIED" : "PENDING";
         // Update existing agency instead of creating
         const agency = await db.mediaAgency.update({
           where: { id: existingAgency.id },
-          data: agencyData,
+          data: {
+            ...agencyData,
+            verificationStatus: nextStatus,
+          },
           include: { listings: true },
         });
 
@@ -133,10 +137,10 @@ export async function submitMediaAgencyForm(data) {
           });
         }
 
-        // Don't re-alert while already waiting in the PENDING queue.
-        if (priorStatus !== "PENDING") {
+        // Only alert when newly entering (or re-entering) the PENDING queue
+        if (nextStatus === "PENDING" && priorStatus !== "PENDING") {
           await notifyMediaAgencyVerificationPending(resultAgency, {
-            resubmitted: priorStatus === "REJECTED" || priorStatus === "VERIFIED",
+            resubmitted: priorStatus === "REJECTED",
           });
         }
         return { success: true, agency: resultAgency };
@@ -147,6 +151,7 @@ export async function submitMediaAgencyForm(data) {
     const agency = await db.mediaAgency.create({
       data: {
         ...agencyData,
+        verificationStatus: "PENDING",
         userId,
         listings:
           listings && listings.length > 0

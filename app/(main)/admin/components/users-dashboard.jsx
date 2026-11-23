@@ -16,6 +16,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -29,10 +30,17 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Check,
   Clock3,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  updateDoctorStatus,
+  updateMediaAgencyStatus,
+} from "@/actions/admin";
 
 const PANEL =
   "rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
@@ -106,7 +114,22 @@ function ActivityLines({ user, compact = false }) {
       </div>
     );
   }
+  if (user.role === "MEDIA_AGENCY") {
+    return (
+      <div className={cn("text-slate-600", compact ? "space-y-0.5 text-xs" : "space-y-1 text-sm")}>
+        <p>{user.mediaAgency?.agencyName || "Media agency"}</p>
+      </div>
+    );
+  }
   return <span className="text-xs text-slate-400">No activity</span>;
+}
+
+/** Prefer MediaAgency status for media users (source of truth for approval). */
+function getDisplayVerificationStatus(user) {
+  if (user?.role === "MEDIA_AGENCY" && user.mediaAgency?.verificationStatus) {
+    return user.mediaAgency.verificationStatus;
+  }
+  return user?.verificationStatus || null;
 }
 
 export function UsersDashboard({ initialUsers, initialStats, initialPagination }) {
@@ -118,6 +141,7 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
   const [verificationFilter, setVerificationFilter] = useState("ALL");
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [imageErrors, setImageErrors] = useState(new Set());
 
@@ -164,11 +188,47 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
     setImageErrors((prev) => new Set(prev).add(id));
   };
 
+  const handleUpdateVerification = async (user, status) => {
+    if (!user || statusUpdating) return;
+    setStatusUpdating(true);
+    try {
+      const formData = new FormData();
+      if (user.role === "MEDIA_AGENCY") {
+        const agencyId = user.mediaAgency?.id;
+        if (!agencyId) {
+          toast.error("No media agency profile linked to this user.");
+          return;
+        }
+        formData.append("agencyId", agencyId);
+        formData.append("status", status);
+        await updateMediaAgencyStatus(formData);
+      } else if (user.role === "CREATOR") {
+        formData.append("doctorId", user.id);
+        formData.append("status", status);
+        await updateDoctorStatus(formData);
+      } else {
+        toast.error("Verification actions are only for creators and media agencies.");
+        return;
+      }
+
+      toast.success(
+        status === "VERIFIED" ? "User approved successfully" : "User rejected"
+      );
+      setSelectedUser(null);
+      await fetchUsers(currentPage, searchTerm, roleFilter, verificationFilter);
+    } catch (error) {
+      toast.error(error?.message || "Failed to update verification status");
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
   const getRoleBadge = (role) => {
     const variants = {
       ADMIN: "border-violet-200 bg-violet-50 text-violet-700",
       CREATOR: "border-sky-200 bg-sky-50 text-sky-700",
       CLIENT: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      MEDIA_AGENCY: "border-indigo-200 bg-indigo-50 text-indigo-700",
       UNASSIGNED: "border-slate-200 bg-slate-50 text-slate-600",
     };
     return variants[role] || variants.UNASSIGNED;
@@ -346,15 +406,17 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                           </Badge>
                         </td>
                         <td className="px-4 py-3.5">
-                          {user.verificationStatus ? (
+                          {getDisplayVerificationStatus(user) ? (
                             <Badge
                               variant="outline"
                               className={cn(
                                 "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                                getVerificationBadge(user.verificationStatus)
+                                getVerificationBadge(
+                                  getDisplayVerificationStatus(user)
+                                )
                               )}
                             >
-                              {user.verificationStatus}
+                              {getDisplayVerificationStatus(user)}
                             </Badge>
                           ) : (
                             <span className="text-sm text-slate-400">—</span>
@@ -421,15 +483,17 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                       >
                         {user.role}
                       </Badge>
-                      {user.verificationStatus ? (
+                      {getDisplayVerificationStatus(user) ? (
                         <Badge
                           variant="outline"
                           className={cn(
                             "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                            getVerificationBadge(user.verificationStatus)
+                            getVerificationBadge(
+                              getDisplayVerificationStatus(user)
+                            )
                           )}
                         >
-                          {user.verificationStatus}
+                          {getDisplayVerificationStatus(user)}
                         </Badge>
                       ) : null}
                     </div>
@@ -522,15 +586,17 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                     >
                       {selectedUser.role}
                     </Badge>
-                    {selectedUser.verificationStatus ? (
+                    {getDisplayVerificationStatus(selectedUser) ? (
                       <Badge
                         variant="outline"
                         className={cn(
                           "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                          getVerificationBadge(selectedUser.verificationStatus)
+                          getVerificationBadge(
+                            getDisplayVerificationStatus(selectedUser)
+                          )
                         )}
                       >
-                        {selectedUser.verificationStatus}
+                        {getDisplayVerificationStatus(selectedUser)}
                       </Badge>
                     ) : null}
                   </div>
@@ -616,6 +682,17 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                 </div>
               ) : null}
 
+              {selectedUser.role === "MEDIA_AGENCY" && selectedUser.mediaAgency ? (
+                <div className="space-y-2 border-t border-slate-100 pt-4">
+                  <h3 className="text-sm font-semibold text-slate-950">
+                    Media agency
+                  </h3>
+                  <p className="text-sm text-slate-700">
+                    {selectedUser.mediaAgency.agencyName || "—"}
+                  </p>
+                </div>
+              ) : null}
+
               <div className="space-y-4 border-t border-slate-100 pt-4">
                 <h3 className="text-sm font-semibold text-slate-950">Activity</h3>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -653,6 +730,42 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                 </div>
               </div>
             </div>
+
+            {(selectedUser.role === "CREATOR" ||
+              selectedUser.role === "MEDIA_AGENCY") &&
+            getDisplayVerificationStatus(selectedUser) !== "VERIFIED" ? (
+              <DialogFooter className="flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                <Button
+                  variant="outline"
+                  disabled={statusUpdating}
+                  onClick={() =>
+                    handleUpdateVerification(selectedUser, "REJECTED")
+                  }
+                  className="w-full rounded-full border-rose-200 text-rose-700 hover:bg-rose-50 sm:w-auto"
+                >
+                  {statusUpdating ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="mr-1.5 h-4 w-4" />
+                  )}
+                  Reject
+                </Button>
+                <Button
+                  disabled={statusUpdating}
+                  onClick={() =>
+                    handleUpdateVerification(selectedUser, "VERIFIED")
+                  }
+                  className="w-full rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:w-auto"
+                >
+                  {statusUpdating ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1.5 h-4 w-4" />
+                  )}
+                  Approve
+                </Button>
+              </DialogFooter>
+            ) : null}
           </DialogContent>
         </Dialog>
       ) : null}
