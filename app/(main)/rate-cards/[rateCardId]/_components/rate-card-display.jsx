@@ -32,6 +32,10 @@ import {
   normalizeDayBand,
 } from "@/lib/tv-airtime-slots";
 import { cn } from "@/lib/utils";
+import {
+  formatSmartTableMoney,
+  getRateCardCurrency,
+} from "@/lib/smart-table-currency";
 
 // Helper to read a semantic "role" from a SmartTableColumn config JSON.
 // We use this to identify special columns like time classes.
@@ -332,12 +336,19 @@ export function RateCardDisplay({
     if (selectedCells.size === 0) setIsPeriodCalcOpen(false);
   }, [selectedCells.size]);
 
+  const cardCurrency = useMemo(
+    () => getRateCardCurrency(rateCard),
+    [rateCard]
+  );
+
+  const money = (value) => formatSmartTableMoney(value, cardCurrency);
+
   const formatCellValue = (value, column) => {
     if (!value) return "-";
 
     switch (column.dataType) {
       case "CURRENCY":
-        return `₵${parseFloat(value).toLocaleString()}`;
+        return formatSmartTableMoney(parseFloat(value), column);
       case "NUMBER":
         return parseFloat(value).toLocaleString();
       case "BOOLEAN":
@@ -1167,7 +1178,7 @@ export function RateCardDisplay({
                   <div>
                     <Label className="text-sm font-medium">Cost per spot</Label>
                     <p className="text-xl font-bold text-primary mt-1">
-                      ₵{costPerSpot.toLocaleString()}
+                      {money(costPerSpot)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {selectedCellsData.some((d) => ["CURRENCY", "NUMBER"].includes(d.column.dataType) && parseFloat(d.value) > 0)
@@ -1273,25 +1284,25 @@ export function RateCardDisplay({
                     <div className="space-y-2 mt-2 text-sm">
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span>₵{periodTotal.toLocaleString()}</span>
+                        <span>{money(periodTotal)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">VAT (15%)</span>
-                        <span>₵{(periodTotal * VAT_RATE).toLocaleString()}</span>
+                        <span>{money((periodTotal * VAT_RATE))}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">NHIL & GETFund (5%)</span>
-                        <span>₵{(periodTotal * NHIL_GETFUND_RATE).toLocaleString()}</span>
+                        <span>{money((periodTotal * NHIL_GETFUND_RATE))}</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-lg font-bold mt-2 pt-2 border-t">
                       <span>Total</span>
                       <span className="text-2xl text-primary">
-                        ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
+                        {money((periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)))}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      ₵{costPerSpot.toLocaleString()} × {numSpots} spots
+                      {money(costPerSpot)} × {numSpots} spots
                     </p>
                   </div>
                 </>
@@ -1626,7 +1637,7 @@ export function RateCardDisplay({
                   {item.total > 0 && (
                     <div className="mt-3 pt-3 border-t flex justify-between items-center">
                       <span className="text-sm font-medium">Subtotal:</span>
-                      <span className="font-bold">₵{item.total.toLocaleString()}</span>
+                      <span className="font-bold">{money(item.total)}</span>
                     </div>
                   )}
                 </Card>
@@ -1637,21 +1648,21 @@ export function RateCardDisplay({
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Subtotal:</span>
-                    <span>₵{cartSubtotal.toLocaleString()}</span>
+                    <span>{money(cartSubtotal)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">VAT (15%):</span>
-                    <span>₵{cartVat.toLocaleString()}</span>
+                    <span>{money(cartVat)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">NHIL & GETFund (5%):</span>
-                    <span>₵{cartNhilGetfund.toLocaleString()}</span>
+                    <span>{money(cartNhilGetfund)}</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center text-lg pt-2 border-t">
                   <span className="font-bold">Total:</span>
                   <span className="text-2xl font-bold text-primary">
-                    ₵{cartTotal.toLocaleString()}
+                    {money(cartTotal)}
                   </span>
                 </div>
                 <Button
@@ -1740,7 +1751,7 @@ export function RateCardDisplay({
                   <div className="text-sm">
                     <span className="text-slate-500">Estimate </span>
                     <span className="text-base font-semibold tabular-nums text-[#0055ff] sm:text-lg">
-                      ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
+                      {money((periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)))}
                     </span>
                     <span className="ml-1 text-xs text-slate-400">incl. taxes</span>
                   </div>
@@ -1865,7 +1876,7 @@ export function RateCardDisplay({
                         </div>
                         {price && !isNaN(price) && (
                           <div className="font-bold text-lg ml-4">
-                            ₵{price.toLocaleString()}
+                            {money(price)}
                           </div>
                         )}
                       </div>
@@ -1877,27 +1888,27 @@ export function RateCardDisplay({
                     {numSpots > 1 && (
                       <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
                         <span>Cost per spot × {numSpots} spots</span>
-                        <span>₵{costPerSpot.toLocaleString()} × {numSpots}</span>
+                        <span>{money(costPerSpot)} × {numSpots}</span>
                       </div>
                     )}
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Subtotal:</span>
-                        <span>₵{periodTotal.toLocaleString()}</span>
+                        <span>{money(periodTotal)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">VAT (15%):</span>
-                        <span>₵{(periodTotal * VAT_RATE).toLocaleString()}</span>
+                        <span>{money((periodTotal * VAT_RATE))}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">NHIL & GETFund (5%):</span>
-                        <span>₵{(periodTotal * NHIL_GETFUND_RATE).toLocaleString()}</span>
+                        <span>{money((periodTotal * NHIL_GETFUND_RATE))}</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-lg pt-2 border-t mt-2">
                       <span className="font-bold">Total:</span>
                       <span className="text-2xl font-bold text-primary">
-                        ₵{(periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)).toLocaleString()}
+                        {money((periodTotal * (1 + VAT_RATE + NHIL_GETFUND_RATE)))}
                       </span>
                     </div>
                   </div>

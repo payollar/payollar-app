@@ -66,6 +66,13 @@ import {
   nextTimeRangeDisplayOrder,
   tableNeedsTimeRangeColumn,
 } from "@/lib/rate-card-time-range";
+import {
+  SMART_TABLE_CURRENCIES,
+  getColumnCurrency,
+  getTableCurrency,
+  formatSmartTableMoney,
+  currencyConfigPatch,
+} from "@/lib/smart-table-currency";
 import { TimeRangeCell } from "./time-range-cell";
 
 const COLUMN_DATA_TYPES = [
@@ -93,6 +100,18 @@ const getColumnIcon = (dataType) => {
   return type?.icon || Type;
 };
 
+function CurrencyColumnGlyph({ column, className = "h-3.5 w-3.5" }) {
+  const { symbol } = getColumnCurrency(column);
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center text-[11px] font-semibold leading-none text-muted-foreground ${className}`}
+      aria-hidden
+    >
+      {symbol}
+    </span>
+  );
+}
+
 const getDropdownColor = (index) => {
   return DROPDOWN_COLORS[index % DROPDOWN_COLORS.length];
 };
@@ -116,7 +135,11 @@ export function SmartTableEditor({ table, onUpdate }) {
   const [showColumnAdvanced, setShowColumnAdvanced] = useState(false);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [pendingUpdates, setPendingUpdates] = useState(new Map()); // Track pending cell updates
+  const [savingCurrency, setSavingCurrency] = useState(false);
   const inputRef = useRef(null);
+
+  const tableCurrency = getTableCurrency({ columns });
+  const currencyColumns = columns.filter((c) => c.dataType === "CURRENCY");
 
   const openColumnEditor = (column) => {
     const opts = Array.isArray(column?.config?.options)
@@ -139,6 +162,69 @@ export function SmartTableEditor({ table, onUpdate }) {
     setEditingColumnOptions([]);
     setSavingColumn(false);
     setShowColumnAdvanced(false);
+  };
+
+  /** Apply one currency to every CURRENCY column (secs / rate columns). */
+  const handleTableCurrencyChange = async (code) => {
+    if (!code || savingCurrency) return;
+    const patch = currencyConfigPatch(code);
+    if (patch.currencyCode === tableCurrency.code && currencyColumns.length > 0) {
+      return;
+    }
+    if (currencyColumns.length === 0) {
+      toast.error("Add a currency column first");
+      return;
+    }
+
+    setSavingCurrency(true);
+    try {
+      const results = await Promise.all(
+        currencyColumns.map(async (column) => {
+          const prevConfig =
+            column.config && typeof column.config === "object" && !Array.isArray(column.config)
+              ? column.config
+              : {};
+          const response = await fetch(
+            `/api/media-agency/rate-cards/tables/columns/${column.id}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                config: { ...prevConfig, ...patch },
+              }),
+            }
+          );
+          return response.json();
+        })
+      );
+
+      if (results.some((r) => !r?.success)) {
+        toast.error("Could not update currency on all columns");
+        if (onUpdate) onUpdate();
+        return;
+      }
+
+      setColumns((prev) =>
+        prev.map((col) => {
+          if (col.dataType !== "CURRENCY") return col;
+          const prevConfig =
+            col.config && typeof col.config === "object" && !Array.isArray(col.config)
+              ? col.config
+              : {};
+          return {
+            ...col,
+            config: { ...prevConfig, ...patch },
+          };
+        })
+      );
+      toast.success(`Currency set to ${patch.currencyCode} (${patch.currencySymbol})`);
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error("Error updating table currency:", error);
+      toast.error("Failed to update currency");
+    } finally {
+      setSavingCurrency(false);
+    }
   };
 
   const handleSaveColumn = async () => {
@@ -179,6 +265,14 @@ export function SmartTableEditor({ table, onUpdate }) {
         config = {
           ...prevConfig,
           options: values,
+        };
+      }
+
+      if (editingColumn.dataType === "CURRENCY") {
+        const currency = getColumnCurrency(editingColumn);
+        config = {
+          ...(config || prevConfig),
+          ...currencyConfigPatch(currency.code),
         };
       }
 
@@ -444,7 +538,7 @@ export function SmartTableEditor({ table, onUpdate }) {
       return;
     }
 
-    // Build config for dropdown columns
+    // Build config for dropdown / currency columns
     let config = null;
     if (newColumnType === "DROPDOWN" && newColumnOptions.trim()) {
       const options = newColumnOptions
@@ -454,6 +548,8 @@ export function SmartTableEditor({ table, onUpdate }) {
       if (options.length > 0) {
         config = { options };
       }
+    } else if (newColumnType === "CURRENCY") {
+      config = currencyConfigPatch(tableCurrency.code);
     }
 
     try {
@@ -942,12 +1038,16 @@ export function SmartTableEditor({ table, onUpdate }) {
         );
       }
 
-        default:
+        default: {
           // Always use editingCellValue if we're editing, otherwise use the current value
           const inputValue = isEditing 
             ? (editingCellValue !== null && editingCellValue !== undefined ? editingCellValue : (value || ""))
             : (value || "");
-          return (
+          const currencyPrefix =
+            column.dataType === "CURRENCY"
+              ? getColumnCurrency(column).symbol
+              : null;
+          const numberInput = (
             <Input
               ref={inputRef}
               value={inputValue}
@@ -987,6 +1087,18 @@ export function SmartTableEditor({ table, onUpdate }) {
               placeholder={getColumnEmptyHint(column) || ""}
             />
           );
+          if (currencyPrefix) {
+            return (
+              <div className="flex min-h-[36px] items-center gap-1 px-2">
+                <span className="shrink-0 text-sm font-medium text-muted-foreground">
+                  {currencyPrefix}
+                </span>
+                <div className="min-w-0 flex-1">{numberInput}</div>
+              </div>
+            );
+          }
+          return numberInput;
+        }
       }
     }
 
@@ -1041,7 +1153,9 @@ export function SmartTableEditor({ table, onUpdate }) {
             className="px-3 py-2 min-h-[36px] flex items-center cursor-text hover:bg-muted/30 rounded text-sm"
             onClick={startEditing}
           >
-            {!isNaN(numValue) ? `₵${numValue.toLocaleString()}` : value}
+            {!isNaN(numValue)
+              ? formatSmartTableMoney(numValue, column)
+              : value}
           </div>
         );
 
@@ -1116,6 +1230,34 @@ export function SmartTableEditor({ table, onUpdate }) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {currencyColumns.length > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                Currency
+              </span>
+              <Select
+                value={tableCurrency.code}
+                onValueChange={handleTableCurrencyChange}
+                disabled={savingCurrency}
+              >
+                <SelectTrigger className="h-8 w-[118px] border-slate-200 bg-white text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SMART_TABLE_CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-5 font-semibold tabular-nums">
+                          {c.symbol}
+                        </span>
+                        <span>{c.code}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
           <Button
             variant="ghost"
             size="sm"
@@ -1393,6 +1535,50 @@ export function SmartTableEditor({ table, onUpdate }) {
                           </SelectContent>
                         </Select>
                       </div>
+                      {editingColumn.dataType === "CURRENCY" ? (
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Currency symbol
+                          </Label>
+                          <Select
+                            value={getColumnCurrency(editingColumn).code}
+                            onValueChange={(code) => {
+                              const prevConfig =
+                                editingColumn.config &&
+                                typeof editingColumn.config === "object" &&
+                                !Array.isArray(editingColumn.config)
+                                  ? editingColumn.config
+                                  : {};
+                              setEditingColumn({
+                                ...editingColumn,
+                                config: {
+                                  ...prevConfig,
+                                  ...currencyConfigPatch(code),
+                                },
+                              });
+                            }}
+                          >
+                            <SelectTrigger className={fieldClass}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="z-[110]">
+                              {SMART_TABLE_CURRENCIES.map((c) => (
+                                <SelectItem key={c.code} value={c.code}>
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-5 font-semibold">
+                                      {c.symbol}
+                                    </span>
+                                    {c.label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-slate-500">
+                            Shown on secs / rate column headers and cell amounts
+                          </p>
+                        </div>
+                      ) : null}
                       <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                         <div>
                           <p className="text-sm font-medium text-slate-800">
@@ -1499,7 +1685,11 @@ export function SmartTableEditor({ table, onUpdate }) {
                     className="px-3 py-2 text-left text-xs font-medium text-muted-foreground min-w-[150px]"
                   >
                     <div className="flex items-center gap-2 group">
-                      <Icon className="h-3.5 w-3.5" />
+                      {column.dataType === "CURRENCY" ? (
+                        <CurrencyColumnGlyph column={column} />
+                      ) : (
+                        <Icon className="h-3.5 w-3.5" />
+                      )}
                       <span className="font-medium">{column.name}</span>
                       {column.isRequiredForBooking && (
                         <span className="text-red-500 text-xs">*</span>
