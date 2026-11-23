@@ -289,6 +289,31 @@ export async function createDispute(formData) {
     meta: { disputeId: dispute.id, appointmentId },
   });
 
+  try {
+    const { sendAdminAlertEmail } = await import("@/lib/email");
+    await sendAdminAlertEmail({
+      subject: `New booking dispute — ${subject}`,
+      headline: "New booking dispute",
+      intro: "A booking dispute needs admin review.",
+      replyTo: user.email || undefined,
+      tag: "dispute-filed",
+      ctaLabel: "Open admin",
+      ctaPath: "/admin?tab=disputes",
+      details: [
+        { label: "Filed by", value: user.name || user.email || "User" },
+        { label: "Email", value: user.email || "—" },
+        { label: "Subject", value: subject },
+        { label: "Priority", value: priority },
+        { label: "Dispute ID", value: dispute.id },
+      ],
+    });
+  } catch (emailError) {
+    console.error(
+      "Dispute admin email failed:",
+      emailError?.message || emailError
+    );
+  }
+
   revalidatePath("/creator/disputes");
   revalidatePath("/client/disputes");
   revalidatePath("/admin");

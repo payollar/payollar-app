@@ -184,21 +184,34 @@ export async function setUserRole(formData) {
         });
       }
 
-      if (isFirstRoleAssignment) {
-        try {
-          const { notifyRoleSignupEmails } = await import("@/lib/email");
+      try {
+        const {
+          notifyRoleSignupEmails,
+          sendVerificationReviewNeededEmail,
+        } = await import("@/lib/email");
+        if (isFirstRoleAssignment) {
+          // Welcome user + admin signup alert (covers first verification queue)
           await notifyRoleSignupEmails({
             email: updated.email,
             name: updated.name,
             role: "CREATOR",
             specialty,
           });
-        } catch (emailError) {
-          console.error(
-            "CREATOR welcome email failed:",
-            emailError?.message || emailError
-          );
+        } else {
+          // Resubmit / profile update back to PENDING — alert admins again
+          await sendVerificationReviewNeededEmail({
+            kind: "CREATOR",
+            name: updated.name,
+            email: updated.email,
+            specialty,
+            resubmitted: true,
+          });
         }
+      } catch (emailError) {
+        console.error(
+          "CREATOR verification/admin email failed:",
+          emailError?.message || emailError
+        );
       }
 
       revalidatePath("/");

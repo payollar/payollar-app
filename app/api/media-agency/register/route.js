@@ -61,6 +61,10 @@ export async function POST(req) {
           where: { userId: session.user.id },
         });
 
+    const priorStatus = existingAgency?.verificationStatus || null;
+    const nextStatus =
+      priorStatus === "VERIFIED" ? "VERIFIED" : "PENDING";
+
     const mediaAgency = existingAgency
       ? await db.mediaAgency.update({
           where: { id: existingAgency.id },
@@ -73,6 +77,8 @@ export async function POST(req) {
             // Keep existing type if already set; otherwise apply signup choice
             primaryMediaType:
               existingAgency.primaryMediaType || primaryMediaType,
+            // Keep verified agencies verified; otherwise re-queue for admin review
+            verificationStatus: nextStatus,
           },
         })
       : await db.mediaAgency.create({
@@ -102,6 +108,26 @@ export async function POST(req) {
       } catch (emailError) {
         console.error(
           "MEDIA_AGENCY welcome email failed:",
+          emailError?.message || emailError
+        );
+      }
+    } else if (nextStatus === "PENDING" && priorStatus === "REJECTED") {
+      // Only alert again on true resubmit after rejection.
+      // PENDING → PENDING (e.g. set-role stub then register) already notified at signup.
+      try {
+        const { sendVerificationReviewNeededEmail } = await import(
+          "@/lib/email"
+        );
+        await sendVerificationReviewNeededEmail({
+          kind: "MEDIA_AGENCY",
+          name: contactName || session.user.name,
+          email: email || session.user.email,
+          agencyName,
+          resubmitted: true,
+        });
+      } catch (emailError) {
+        console.error(
+          "MEDIA_AGENCY verification email failed:",
           emailError?.message || emailError
         );
       }

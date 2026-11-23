@@ -111,6 +111,7 @@ export async function submitMediaAgencyForm(data) {
       });
 
       if (existingAgency) {
+        const priorStatus = existingAgency.verificationStatus;
         // Update existing agency instead of creating
         const agency = await db.mediaAgency.update({
           where: { id: existingAgency.id },
@@ -119,20 +120,26 @@ export async function submitMediaAgencyForm(data) {
         });
 
         // Optionally add new listings if provided
+        let resultAgency = agency;
         if (listings && listings.length > 0) {
           await db.mediaListing.createMany({
             data: listings.map((listing) =>
               listingCreateData(listing, agency.id)
             ),
           });
-          const updated = await db.mediaAgency.findUnique({
+          resultAgency = await db.mediaAgency.findUnique({
             where: { id: agency.id },
             include: { listings: true },
           });
-          return { success: true, agency: updated };
         }
 
-        return { success: true, agency };
+        // Don't re-alert while already waiting in the PENDING queue.
+        if (priorStatus !== "PENDING") {
+          await notifyMediaAgencyVerificationPending(resultAgency, {
+            resubmitted: priorStatus === "REJECTED" || priorStatus === "VERIFIED",
+          });
+        }
+        return { success: true, agency: resultAgency };
       }
     }
 
@@ -153,6 +160,7 @@ export async function submitMediaAgencyForm(data) {
       },
     });
 
+    await notifyMediaAgencyVerificationPending(agency, { resubmitted: false });
     return { success: true, agency };
   } catch (error) {
     console.error("Error submitting media agency form:", error);
@@ -160,6 +168,25 @@ export async function submitMediaAgencyForm(data) {
       success: false,
       error: error.message || "Failed to submit media agency form",
     };
+  }
+}
+
+async function notifyMediaAgencyVerificationPending(agency, { resubmitted }) {
+  if (!agency) return;
+  try {
+    const { sendVerificationReviewNeededEmail } = await import("@/lib/email");
+    await sendVerificationReviewNeededEmail({
+      kind: "MEDIA_AGENCY",
+      name: agency.contactName,
+      email: agency.email,
+      agencyName: agency.agencyName,
+      resubmitted: Boolean(resubmitted),
+    });
+  } catch (emailError) {
+    console.error(
+      "Media agency verification email failed:",
+      emailError?.message || emailError
+    );
   }
 }
 
