@@ -357,9 +357,9 @@ export async function getVerifiedMediaAgencies() {
         verificationStatus: "VERIFIED",
       },
       include: {
+        // Include all statuses so admin can pause / resume / archive listings.
         listings: {
-          where: { status: "ACTIVE" },
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ status: "asc" }, { createdAt: "desc" }],
         },
         user: {
           select: {
@@ -503,7 +503,8 @@ export async function resendMediaAgencyWelcomeEmail(formData) {
 }
 
 /**
- * Updates a media listing's status
+ * Updates a media listing's status.
+ * ACTIVE = live on marketplace, INACTIVE = paused/hidden, ARCHIVED = removed from use.
  */
 export async function updateMediaListingStatus(formData) {
   const isAdmin = await verifyAdmin();
@@ -512,22 +513,33 @@ export async function updateMediaListingStatus(formData) {
   const listingId = formData.get("listingId");
   const status = formData.get("status");
 
-  if (!listingId || !["ACTIVE", "INACTIVE", "ARCHIVED"].includes(status)) {
+  if (
+    !listingId ||
+    !["ACTIVE", "INACTIVE", "ARCHIVED", "DRAFT"].includes(status)
+  ) {
     throw new Error("Invalid input");
   }
 
   try {
-    await db.mediaListing.update({
+    const listing = await db.mediaListing.update({
       where: {
         id: listingId,
       },
       data: {
         status: status,
       },
+      select: {
+        id: true,
+        agencyId: true,
+        name: true,
+        status: true,
+        listingType: true,
+      },
     });
 
     revalidatePath("/admin");
-    return { success: true };
+    revalidatePath("/admin?tab=media-agencies");
+    return { success: true, listing };
   } catch (error) {
     console.error("Failed to update media listing status:", error);
     throw new Error(`Failed to update media listing status: ${error.message}`);

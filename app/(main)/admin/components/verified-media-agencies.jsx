@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,10 @@ import {
   Eye,
   User,
   BadgeCheck,
+  Pause,
+  Play,
+  Archive,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -29,6 +33,8 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { updateMediaListingStatus } from "@/actions/admin";
+import { toast } from "sonner";
 
 const PANEL =
   "rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
@@ -40,6 +46,24 @@ const MEDIA_TYPE_ICONS = {
   DIGITAL: Smartphone,
   INFLUENCER_MARKETING: Users,
   VIDEO_CLIPPING: Video,
+};
+
+const STATUS_STYLES = {
+  ACTIVE:
+    "border-emerald-200 bg-emerald-50 text-emerald-700",
+  INACTIVE:
+    "border-amber-200 bg-amber-50 text-amber-800",
+  DRAFT:
+    "border-slate-200 bg-slate-50 text-slate-600",
+  ARCHIVED:
+    "border-rose-200 bg-rose-50 text-rose-700",
+};
+
+const STATUS_LABELS = {
+  ACTIVE: "Live",
+  INACTIVE: "Paused",
+  DRAFT: "Draft",
+  ARCHIVED: "Archived",
 };
 
 function AgencyAvatar({ agency }) {
@@ -75,8 +99,89 @@ function InfoRow({ icon: Icon, children }) {
   );
 }
 
-export function VerifiedMediaAgencies({ agencies }) {
+function listingCounts(listings = []) {
+  return listings.reduce(
+    (acc, listing) => {
+      const status = String(listing.status || "DRAFT").toUpperCase();
+      if (status === "ACTIVE") acc.live += 1;
+      else if (status === "INACTIVE") acc.paused += 1;
+      else if (status === "ARCHIVED") acc.archived += 1;
+      else acc.draft += 1;
+      return acc;
+    },
+    { live: 0, paused: 0, draft: 0, archived: 0 }
+  );
+}
+
+function StatusBadge({ status }) {
+  const key = String(status || "DRAFT").toUpperCase();
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+        STATUS_STYLES[key] || STATUS_STYLES.DRAFT
+      )}
+    >
+      {STATUS_LABELS[key] || key}
+    </Badge>
+  );
+}
+
+export function VerifiedMediaAgencies({ agencies: agenciesProp }) {
+  const [agencies, setAgencies] = useState(agenciesProp || []);
   const [selectedAgency, setSelectedAgency] = useState(null);
+  const [updatingListingId, setUpdatingListingId] = useState(null);
+
+  useEffect(() => {
+    setAgencies(agenciesProp || []);
+  }, [agenciesProp]);
+
+  useEffect(() => {
+    if (!selectedAgency) return;
+    const fresh = agencies.find((agency) => agency.id === selectedAgency.id);
+    if (fresh) setSelectedAgency(fresh);
+  }, [agencies, selectedAgency?.id]);
+
+  const applyListingStatus = (agencyId, listingId, status) => {
+    setAgencies((prev) =>
+      prev.map((agency) => {
+        if (agency.id !== agencyId) return agency;
+        return {
+          ...agency,
+          listings: (agency.listings || []).map((listing) =>
+            listing.id === listingId ? { ...listing, status } : listing
+          ),
+        };
+      })
+    );
+  };
+
+  const handleListingStatus = async (agencyId, listingId, status) => {
+    if (updatingListingId) return;
+    setUpdatingListingId(listingId);
+    try {
+      const formData = new FormData();
+      formData.append("listingId", listingId);
+      formData.append("status", status);
+      const result = await updateMediaListingStatus(formData);
+      if (!result?.success) {
+        throw new Error("Could not update listing status");
+      }
+      applyListingStatus(agencyId, listingId, status);
+      const labels = {
+        ACTIVE: "Listing is live on the marketplace again",
+        INACTIVE: "Listing paused — hidden from buyers",
+        ARCHIVED: "Listing archived",
+        DRAFT: "Listing set to draft",
+      };
+      toast.success(labels[status] || "Listing status updated");
+    } catch (error) {
+      toast.error(error?.message || "Failed to update listing status");
+    } finally {
+      setUpdatingListingId(null);
+    }
+  };
 
   return (
     <section className={cn(PANEL, "overflow-hidden")}>
@@ -86,7 +191,7 @@ export function VerifiedMediaAgencies({ agencies }) {
             Verified agencies
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Approved media agencies and their active listings.
+            Pause a listing to hide it from the marketplace without deleting it.
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-600">
@@ -108,15 +213,15 @@ export function VerifiedMediaAgencies({ agencies }) {
               No verified agencies yet
             </p>
             <p className="mt-1 max-w-sm text-sm text-slate-500">
-              Approved agencies will appear here with their listings and booking
-              activity.
+              Approved agencies will appear here with their listings so you can
+              pause or restore marketplace visibility.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {agencies.map((agency) => {
-              const listingCount =
-                agency._count?.listings || agency.listings?.length || 0;
+              const listings = agency.listings || [];
+              const counts = listingCounts(listings);
               const bookingCount = agency._count?.bookings || 0;
 
               return (
@@ -149,7 +254,9 @@ export function VerifiedMediaAgencies({ agencies }) {
                           <InfoRow icon={Mail}>{agency.email}</InfoRow>
                           <InfoRow icon={Phone}>{agency.phone}</InfoRow>
                           <InfoRow icon={MapPin}>
-                            {[agency.city, agency.region].filter(Boolean).join(", ")}
+                            {[agency.city, agency.region]
+                              .filter(Boolean)
+                              .join(", ")}
                           </InfoRow>
                           {agency.website ? (
                             <div className="flex min-w-0 items-center gap-2 text-sm">
@@ -167,10 +274,14 @@ export function VerifiedMediaAgencies({ agencies }) {
                         </div>
 
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-                            Listings:{" "}
-                            <span className="font-semibold text-slate-950">
-                              {listingCount}
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                            Live:{" "}
+                            <span className="font-semibold">{counts.live}</span>
+                          </span>
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">
+                            Paused:{" "}
+                            <span className="font-semibold">
+                              {counts.paused}
                             </span>
                           </span>
                           <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
@@ -181,9 +292,9 @@ export function VerifiedMediaAgencies({ agencies }) {
                           </span>
                         </div>
 
-                        {agency.listings?.length > 0 ? (
+                        {listings.length > 0 ? (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {agency.listings.map((listing) => {
+                            {listings.slice(0, 6).map((listing) => {
                               const Icon =
                                 MEDIA_TYPE_ICONS[listing.listingType] ||
                                 Building2;
@@ -191,15 +302,38 @@ export function VerifiedMediaAgencies({ agencies }) {
                                 <Badge
                                   key={listing.id}
                                   variant="outline"
-                                  className="rounded-full border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700"
+                                  className={cn(
+                                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                                    STATUS_STYLES[
+                                      String(listing.status || "DRAFT").toUpperCase()
+                                    ] || STATUS_STYLES.DRAFT
+                                  )}
                                 >
                                   <Icon className="mr-1 h-3 w-3" />
                                   {listing.name}
+                                  <span className="ml-1 opacity-70">
+                                    ·{" "}
+                                    {STATUS_LABELS[
+                                      String(listing.status || "DRAFT").toUpperCase()
+                                    ] || listing.status}
+                                  </span>
                                 </Badge>
                               );
                             })}
+                            {listings.length > 6 ? (
+                              <Badge
+                                variant="outline"
+                                className="rounded-full border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600"
+                              >
+                                +{listings.length - 6} more
+                              </Badge>
+                            ) : null}
                           </div>
-                        ) : null}
+                        ) : (
+                          <p className="mt-3 text-xs text-slate-400">
+                            No listings published yet.
+                          </p>
+                        )}
 
                         <p className="mt-3 text-xs text-slate-400">
                           Verified {format(new Date(agency.updatedAt), "PPp")}
@@ -214,7 +348,7 @@ export function VerifiedMediaAgencies({ agencies }) {
                       className="h-9 shrink-0 rounded-full border-slate-200 px-3 text-slate-700 hover:bg-slate-100"
                     >
                       <Eye className="mr-1.5 h-4 w-4" />
-                      Details
+                      Manage listings
                     </Button>
                   </div>
                 </article>
@@ -254,9 +388,8 @@ export function VerifiedMediaAgencies({ agencies }) {
                       {selectedAgency.agencyName}
                     </DialogTitle>
                     <DialogDescription className="mt-1 text-sm text-slate-500">
-                      {selectedAgency.user?.name ||
-                        selectedAgency.user?.email ||
-                        selectedAgency.email}
+                      Pause hides a listing from buyers. Unpause makes it live
+                      again.
                     </DialogDescription>
                     <Badge
                       variant="outline"
@@ -275,7 +408,10 @@ export function VerifiedMediaAgencies({ agencies }) {
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {[
-                      { label: "Contact person", value: selectedAgency.contactName },
+                      {
+                        label: "Contact person",
+                        value: selectedAgency.contactName,
+                      },
                       { label: "Email", value: selectedAgency.email },
                       { label: "Phone", value: selectedAgency.phone },
                       {
@@ -315,25 +451,42 @@ export function VerifiedMediaAgencies({ agencies }) {
                       </div>
                     ) : null}
                   </div>
-                  {selectedAgency.description ? (
-                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs text-slate-500">Description</p>
-                      <p className="mt-1 whitespace-pre-line text-sm text-slate-700">
-                        {selectedAgency.description}
-                      </p>
-                    </div>
-                  ) : null}
                 </div>
 
-                {selectedAgency.listings?.length > 0 ? (
-                  <div className="space-y-3 border-t border-slate-100 pt-4">
-                    <h3 className="text-sm font-semibold text-slate-950">
-                      Active media listings ({selectedAgency.listings.length})
-                    </h3>
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <div className="flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-950">
+                        Media listings
+                      </h3>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Paused listings stay in the agency dashboard but are
+                        hidden from Media marketplace buyers.
+                      </p>
+                    </div>
+                    {selectedAgency.listings?.length ? (
+                      <span className="text-xs font-medium text-slate-500">
+                        {selectedAgency.listings.length} total
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {!selectedAgency.listings?.length ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      This agency has no listings yet.
+                    </div>
+                  ) : (
                     <div className="space-y-3">
                       {selectedAgency.listings.map((listing) => {
                         const Icon =
                           MEDIA_TYPE_ICONS[listing.listingType] || Building2;
+                        const status = String(
+                          listing.status || "DRAFT"
+                        ).toUpperCase();
+                        const busy = updatingListingId === listing.id;
+                        const isLive = status === "ACTIVE";
+                        const isPaused = status === "INACTIVE";
+
                         return (
                           <div
                             key={listing.id}
@@ -348,13 +501,18 @@ export function VerifiedMediaAgencies({ agencies }) {
                                     fill
                                     className="object-cover"
                                     sizes="64px"
-                                    unoptimized={listing.imageUrl?.startsWith("http")}
+                                    unoptimized={listing.imageUrl?.startsWith(
+                                      "http"
+                                    )}
                                   />
                                 </div>
-                              ) : null}
+                              ) : (
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+                                  <Icon className="h-5 w-5" />
+                                </div>
+                              )}
                               <div className="min-w-0 flex-1">
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                                  <Icon className="h-4 w-4 text-slate-700" />
                                   <h4 className="text-sm font-semibold text-slate-950">
                                     {listing.name}
                                   </h4>
@@ -364,26 +522,90 @@ export function VerifiedMediaAgencies({ agencies }) {
                                   >
                                     {listing.listingType}
                                   </Badge>
-                                  {listing.status ? (
-                                    <Badge
-                                      variant="outline"
-                                      className="rounded-full border-emerald-200 bg-emerald-50 text-[11px] font-semibold text-emerald-700"
-                                    >
-                                      {listing.status}
-                                    </Badge>
-                                  ) : null}
+                                  <StatusBadge status={status} />
                                 </div>
                                 <div className="space-y-1 text-sm text-slate-600">
                                   {listing.network ? (
                                     <p>Network: {listing.network}</p>
                                   ) : null}
-                                  <p>Location: {listing.location}</p>
-                                  {listing.frequency ? (
-                                    <p>Frequency: {listing.frequency}</p>
+                                  {listing.location ? (
+                                    <p>Location: {listing.location}</p>
                                   ) : null}
-                                  {listing.reach ? <p>Reach: {listing.reach}</p> : null}
+                                  {listing.reach ? (
+                                    <p>Reach: {listing.reach}</p>
+                                  ) : null}
                                   {listing.priceRange ? (
                                     <p>Price range: {listing.priceRange}</p>
+                                  ) : null}
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {isLive ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        handleListingStatus(
+                                          selectedAgency.id,
+                                          listing.id,
+                                          "INACTIVE"
+                                        )
+                                      }
+                                      className="h-8 rounded-full border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                                    >
+                                      {busy ? (
+                                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <Pause className="mr-1.5 h-3.5 w-3.5" />
+                                      )}
+                                      Pause listing
+                                    </Button>
+                                  ) : null}
+                                  {isPaused ||
+                                  status === "DRAFT" ||
+                                  status === "ARCHIVED" ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        handleListingStatus(
+                                          selectedAgency.id,
+                                          listing.id,
+                                          "ACTIVE"
+                                        )
+                                      }
+                                      className="h-8 rounded-full border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                                    >
+                                      {busy ? (
+                                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <Play className="mr-1.5 h-3.5 w-3.5" />
+                                      )}
+                                      Unpause / make live
+                                    </Button>
+                                  ) : null}
+                                  {status !== "ARCHIVED" ? (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        handleListingStatus(
+                                          selectedAgency.id,
+                                          listing.id,
+                                          "ARCHIVED"
+                                        )
+                                      }
+                                      className="h-8 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-700"
+                                    >
+                                      <Archive className="mr-1.5 h-3.5 w-3.5" />
+                                      Archive
+                                    </Button>
                                   ) : null}
                                 </div>
                               </div>
@@ -392,8 +614,8 @@ export function VerifiedMediaAgencies({ agencies }) {
                         );
                       })}
                     </div>
-                  </div>
-                ) : null}
+                  )}
+                </div>
               </div>
             </>
           ) : null}

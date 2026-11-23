@@ -161,6 +161,18 @@ function AdminPageContent() {
   if (tab === "media-agencies") {
     const pending = data?.pendingAgencies?.agencies || [];
     const verified = data?.verifiedAgencies?.agencies || [];
+    const listingStats = verified.reduce(
+      (acc, agency) => {
+        for (const listing of agency.listings || []) {
+          const status = String(listing.status || "").toUpperCase();
+          acc.total += 1;
+          if (status === "ACTIVE") acc.live += 1;
+          else if (status === "INACTIVE") acc.paused += 1;
+        }
+        return acc;
+      },
+      { total: 0, live: 0, paused: 0 }
+    );
     return (
       <div className="-m-3 min-h-full space-y-4 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:space-y-5 md:p-5">
         <div>
@@ -168,10 +180,11 @@ function AdminPageContent() {
             Media agencies
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Review registrations and manage verified media partners.
+            Review registrations, then pause or restore listings on verified
+            partners.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
             <p className="text-xs font-medium text-slate-500">Pending</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
@@ -184,18 +197,25 @@ function AdminPageContent() {
             <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
               {verified.length}
             </p>
-            <p className="mt-1 text-xs text-slate-400">Live on platform</p>
+            <p className="mt-1 text-xs text-slate-400">Approved agencies</p>
           </section>
           <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium text-slate-500">Total listings</p>
+            <p className="text-xs font-medium text-slate-500">Live listings</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
-              {[...pending, ...verified].reduce(
-                (sum, agency) =>
-                  sum + (agency.listings?.length || agency._count?.listings || 0),
-                0
-              )}
+              {listingStats.live}
             </p>
-            <p className="mt-1 text-xs text-slate-400">Across all agencies</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Visible on marketplace
+            </p>
+          </section>
+          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-medium text-slate-500">Paused listings</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+              {listingStats.paused}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Hidden from buyers · {listingStats.total} total
+            </p>
           </section>
         </div>
         <PendingMediaAgencies agencies={pending} />
