@@ -29,6 +29,93 @@ function money(value) {
   return `GH₵ ${Number(value || 0).toLocaleString("en-GH", { maximumFractionDigits: 0 })}`;
 }
 
+function MediaAgenciesAdmin({ pending, verified }) {
+  const [verifiedAgencies, setVerifiedAgencies] = useState(verified || []);
+
+  useEffect(() => {
+    setVerifiedAgencies(verified || []);
+  }, [verified]);
+
+  const listingStats = verifiedAgencies.reduce(
+    (acc, agency) => {
+      for (const listing of agency.listings || []) {
+        const status = String(listing.status || "").toUpperCase();
+        acc.total += 1;
+        if (status === "ACTIVE") acc.live += 1;
+        else if (status === "INACTIVE") acc.paused += 1;
+      }
+      return acc;
+    },
+    { total: 0, live: 0, paused: 0 }
+  );
+
+  const mediaStatCards = [
+    {
+      label: "Pending",
+      value: pending.length,
+      hint: "Awaiting review",
+      accent: "bg-amber-500",
+    },
+    {
+      label: "Verified",
+      value: verifiedAgencies.length,
+      hint: "Approved agencies",
+      accent: "bg-emerald-500",
+    },
+    {
+      label: "Live listings",
+      value: listingStats.live,
+      hint: "Visible on marketplace",
+      accent: "bg-[#0055ff]",
+    },
+    {
+      label: "Paused listings",
+      value: listingStats.paused,
+      hint: `${listingStats.total} listings total`,
+      accent: "bg-slate-400",
+    },
+  ];
+
+  return (
+    <div className="-m-3 min-h-full space-y-4 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:space-y-5 md:p-5">
+      <div>
+        <h1 className="text-lg font-semibold tracking-tight text-slate-950 md:text-xl">
+          Media agencies
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-slate-500">
+          Approve new partners, then pause any listing that should come off the
+          marketplace without deleting it.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {mediaStatCards.map((card) => (
+          <section
+            key={card.label}
+            className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-slate-500">{card.label}</p>
+              <span
+                className={`h-2 w-2 rounded-full ${card.accent}`}
+                aria-hidden
+              />
+            </div>
+            <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">
+              {card.value}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">{card.hint}</p>
+          </section>
+        ))}
+      </div>
+      <PendingMediaAgencies agencies={pending} />
+      <VerifiedMediaAgencies
+        agencies={verifiedAgencies}
+        onAgenciesChange={setVerifiedAgencies}
+      />
+    </div>
+  );
+}
+
 function AdminPageContent() {
   const searchParams = useSearchParams();
   const tab = searchParams?.get("tab") || "dashboard";
@@ -159,68 +246,11 @@ function AdminPageContent() {
   }
 
   if (tab === "media-agencies") {
-    const pending = data?.pendingAgencies?.agencies || [];
-    const verified = data?.verifiedAgencies?.agencies || [];
-    const listingStats = verified.reduce(
-      (acc, agency) => {
-        for (const listing of agency.listings || []) {
-          const status = String(listing.status || "").toUpperCase();
-          acc.total += 1;
-          if (status === "ACTIVE") acc.live += 1;
-          else if (status === "INACTIVE") acc.paused += 1;
-        }
-        return acc;
-      },
-      { total: 0, live: 0, paused: 0 }
-    );
     return (
-      <div className="-m-3 min-h-full space-y-4 bg-[#f4f6fb] p-3 text-slate-900 md:-m-6 md:space-y-5 md:p-5">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-950 md:text-xl">
-            Media agencies
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Review registrations, then pause or restore listings on verified
-            partners.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium text-slate-500">Pending</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
-              {pending.length}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">Awaiting review</p>
-          </section>
-          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium text-slate-500">Verified</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
-              {verified.length}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">Approved agencies</p>
-          </section>
-          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium text-slate-500">Live listings</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
-              {listingStats.live}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Visible on marketplace
-            </p>
-          </section>
-          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium text-slate-500">Paused listings</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
-              {listingStats.paused}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Hidden from buyers · {listingStats.total} total
-            </p>
-          </section>
-        </div>
-        <PendingMediaAgencies agencies={pending} />
-        <VerifiedMediaAgencies agencies={verified} />
-      </div>
+      <MediaAgenciesAdmin
+        pending={data?.pendingAgencies?.agencies || []}
+        verified={data?.verifiedAgencies?.agencies || []}
+      />
     );
   }
 
