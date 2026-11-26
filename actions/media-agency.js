@@ -67,6 +67,7 @@ function listingCreateData(listing, agencyId = null) {
 export async function submitMediaAgencyForm(data) {
   try {
     const {
+      agencyName: submittedAgencyName,
       contactName,
       email,
       phone,
@@ -85,8 +86,13 @@ export async function submitMediaAgencyForm(data) {
       // User not authenticated, continue without userId
     }
 
+    const trimmedAgencyName = String(submittedAgencyName || "").trim();
+    if (!trimmedAgencyName) {
+      return { success: false, error: "Agency name is required" };
+    }
+
     const agencyData = {
-      agencyName: contactName || "Media Agency",
+      agencyName: trimmedAgencyName,
       contactName,
       email,
       phone,

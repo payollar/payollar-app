@@ -625,6 +625,11 @@ export async function getAllUsers(options = {}) {
         { name: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
         { specialty: { contains: search, mode: "insensitive" } },
+        {
+          mediaAgency: {
+            agencyName: { contains: search, mode: "insensitive" },
+          },
+        },
       ];
     }
 

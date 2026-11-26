@@ -117,7 +117,7 @@ function ActivityLines({ user, compact = false }) {
   if (user.role === "MEDIA_AGENCY") {
     return (
       <div className={cn("text-slate-600", compact ? "space-y-0.5 text-xs" : "space-y-1 text-sm")}>
-        <p>{user.mediaAgency?.agencyName || "Media agency"}</p>
+        <p>Media agency</p>
       </div>
     );
   }
@@ -378,7 +378,11 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                               <p className="truncate text-sm font-semibold text-slate-950">
                                 {user.name || "No name"}
                               </p>
-                              {user.specialty ? (
+                              {user.role === "MEDIA_AGENCY" ? (
+                                <p className="truncate text-xs font-medium text-indigo-600">
+                                  {user.mediaAgency?.agencyName || "No agency name"}
+                                </p>
+                              ) : user.specialty ? (
                                 <p className="truncate text-xs text-slate-500">
                                   {user.specialty}
                                 </p>
@@ -467,7 +471,11 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                         <p className="mt-0.5 truncate text-xs text-slate-500">
                           {user.email}
                         </p>
-                        {user.specialty ? (
+                        {user.role === "MEDIA_AGENCY" ? (
+                          <p className="mt-1 text-xs font-medium text-indigo-600">
+                            {user.mediaAgency?.agencyName || "No agency name"}
+                          </p>
+                        ) : user.specialty ? (
                           <p className="mt-1 text-xs text-slate-500">{user.specialty}</p>
                         ) : null}
                       </div>
@@ -573,6 +581,11 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                   <DialogTitle className="text-lg font-semibold text-slate-950 sm:text-2xl">
                     {selectedUser.name || "No name"}
                   </DialogTitle>
+                  {selectedUser.role === "MEDIA_AGENCY" ? (
+                    <p className="mt-0.5 text-sm font-medium text-indigo-600">
+                      {selectedUser.mediaAgency?.agencyName || "No agency name"}
+                    </p>
+                  ) : null}
                   <DialogDescription className="mt-1 break-all text-sm text-slate-500">
                     {selectedUser.email}
                   </DialogDescription>

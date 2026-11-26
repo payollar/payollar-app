@@ -29,6 +29,7 @@ export default function MediaAgencyForm() {
   const { loading, data, fn: submitForm } = useFetch(submitMediaAgencyForm)
   
   const [formData, setFormData] = useState({
+    agencyName: "",
     contactName: "",
     email: "",
     phone: "",
@@ -138,7 +139,7 @@ export default function MediaAgencyForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.contactName || !formData.email) {
+    if (!formData.agencyName.trim() || !formData.contactName || !formData.email) {
       toast.error("Please fill in all required fields")
       return
     }
@@ -202,6 +203,19 @@ export default function MediaAgencyForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="agencyName">
+                Agency name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="agencyName"
+                placeholder="Station, network, or platform name"
+                value={formData.agencyName}
+                onChange={(e) => handleInputChange("agencyName", e.target.value)}
+                required
+              />
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contactName">
