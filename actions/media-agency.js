@@ -88,7 +88,7 @@ export async function submitMediaAgencyForm(data) {
 
     const trimmedAgencyName = String(submittedAgencyName || "").trim();
     if (!trimmedAgencyName) {
-      return { success: false, error: "Agency name is required" };
+      return { success: false, error: "Company name is required" };
     }
 
     const agencyData = {
@@ -222,7 +222,7 @@ export async function updateMediaAgencySettings(data) {
     const agencyName = String(data?.agencyName || "").trim();
     const contactName = String(data?.contactName || "").trim();
     if (!agencyName || !contactName) {
-      return { success: false, error: "Agency name and contact person are required" };
+      return { success: false, error: "Company name and contact person are required" };
     }
 
     const updated = await db.mediaAgency.update({

@@ -251,14 +251,14 @@ export default function MediaAgencySignUpPage() {
           <section className="space-y-4">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                2 · Agency details
+                2 · Company details
               </h2>
               <span className="text-[11px] text-slate-400">* required</span>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="agencyName" className={fieldLabel}>
-                Agency name <span className="text-red-500">*</span>
+                Company name <span className="text-red-500">*</span>
               </Label>
               <div className="group relative">
                 <Building2 className={fieldIcon} />

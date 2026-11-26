@@ -103,7 +103,7 @@ const faqCategories = {
     {
       question: "How do media agencies get set up?",
       answer:
-        "Register as a Media Agency, complete Settings (agency name, contact, location), then add listings under Custom packages. Set listings to Active so they appear on the marketplace. Use Get started in the agency dashboard for a full tour.",
+        "Register as a Media Agency, complete Settings (company name, contact, location), then add listings under Custom packages. Set listings to Active so they appear on the marketplace. Use Get started in the agency dashboard for a full tour.",
     },
     {
       question: "What are Custom packages vs Smart rate cards?",

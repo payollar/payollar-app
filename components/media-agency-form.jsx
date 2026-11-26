@@ -205,7 +205,7 @@ export default function MediaAgencyForm() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="agencyName">
-                Agency name <span className="text-destructive">*</span>
+                Company name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="agencyName"

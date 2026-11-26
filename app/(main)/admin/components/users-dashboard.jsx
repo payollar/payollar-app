@@ -33,6 +33,7 @@ import {
   Check,
   Clock3,
   Loader2,
+  Building2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -379,8 +380,12 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                                 {user.name || "No name"}
                               </p>
                               {user.role === "MEDIA_AGENCY" ? (
-                                <p className="truncate text-xs font-medium text-indigo-600">
-                                  {user.mediaAgency?.agencyName || "No agency name"}
+                                <p className="flex min-w-0 items-center gap-1 text-xs text-slate-600">
+                                  <Building2 className="h-3 w-3 shrink-0 text-slate-400" />
+                                  <span className="shrink-0 text-slate-400">Company:</span>
+                                  <span className="truncate font-medium text-slate-900">
+                                    {user.mediaAgency?.agencyName || "No company name"}
+                                  </span>
                                 </p>
                               ) : user.specialty ? (
                                 <p className="truncate text-xs text-slate-500">
@@ -472,8 +477,12 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                           {user.email}
                         </p>
                         {user.role === "MEDIA_AGENCY" ? (
-                          <p className="mt-1 text-xs font-medium text-indigo-600">
-                            {user.mediaAgency?.agencyName || "No agency name"}
+                          <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
+                            <Building2 className="h-3 w-3 shrink-0 text-slate-400" />
+                            <span className="text-slate-400">Company:</span>
+                            <span className="truncate font-medium text-slate-900">
+                              {user.mediaAgency?.agencyName || "No company name"}
+                            </span>
                           </p>
                         ) : user.specialty ? (
                           <p className="mt-1 text-xs text-slate-500">{user.specialty}</p>
@@ -581,11 +590,6 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                   <DialogTitle className="text-lg font-semibold text-slate-950 sm:text-2xl">
                     {selectedUser.name || "No name"}
                   </DialogTitle>
-                  {selectedUser.role === "MEDIA_AGENCY" ? (
-                    <p className="mt-0.5 text-sm font-medium text-indigo-600">
-                      {selectedUser.mediaAgency?.agencyName || "No agency name"}
-                    </p>
-                  ) : null}
                   <DialogDescription className="mt-1 break-all text-sm text-slate-500">
                     {selectedUser.email}
                   </DialogDescription>
@@ -635,6 +639,17 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                     {selectedUser.emailVerified ? "Yes" : "No"}
                   </p>
                 </div>
+                {selectedUser.role === "MEDIA_AGENCY" ? (
+                  <div className="sm:col-span-2">
+                    <h4 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      <Building2 className="h-3.5 w-3.5" />
+                      Company name
+                    </h4>
+                    <p className="text-base font-semibold text-slate-950">
+                      {selectedUser.mediaAgency?.agencyName || "No company name on file"}
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               {selectedUser.role === "CREATOR" ? (
@@ -692,17 +707,6 @@ export function UsersDashboard({ initialUsers, initialStats, initialPagination }
                       </div>
                     ) : null}
                   </div>
-                </div>
-              ) : null}
-
-              {selectedUser.role === "MEDIA_AGENCY" && selectedUser.mediaAgency ? (
-                <div className="space-y-2 border-t border-slate-100 pt-4">
-                  <h3 className="text-sm font-semibold text-slate-950">
-                    Media agency
-                  </h3>
-                  <p className="text-sm text-slate-700">
-                    {selectedUser.mediaAgency.agencyName || "—"}
-                  </p>
                 </div>
               ) : null}
 

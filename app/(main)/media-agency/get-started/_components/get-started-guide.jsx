@@ -59,7 +59,7 @@ const STEPS = [
     summary: "Your agency profile — name, contact, and location.",
     for: "Update how your agency appears to buyers and keep contact details current. Your primary media type (TV, radio, billboard, digital) shapes which pricing tools you see.",
     doThis: [
-      "Enter agency name and contact person",
+      "Enter company name and contact person",
       "Add email and city / region",
       "Confirm your primary media type",
       "Save before you add listings or rates",

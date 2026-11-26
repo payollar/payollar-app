@@ -356,7 +356,7 @@ export function MediaAgencySettingsForm({ agency, isMediaAdmin = false }) {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field id="agencyName" label="Agency name">
+              <Field id="agencyName" label="Company name">
                 <Input
                   id="agencyName"
                   value={form.agencyName}

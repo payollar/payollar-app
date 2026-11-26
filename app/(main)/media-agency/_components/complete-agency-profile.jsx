@@ -63,7 +63,7 @@ export function CompleteAgencyProfile({
     }
 
     if (!form.agencyName.trim() || !form.contactName.trim() || !form.email.trim()) {
-      setError("Agency name, contact person, and email are required.");
+      setError("Company name, contact person, and email are required.");
       return;
     }
 
@@ -105,7 +105,7 @@ export function CompleteAgencyProfile({
     <MediaAgencyPageShell
       eyebrow="Media agency"
       title="Finish setup"
-      description="Choose your media type and agency details to open the dashboard."
+      description="Choose your media type and company details to open the dashboard."
     >
       <div className={cn(DASHBOARD_CARD_CLASS, "mx-auto max-w-lg p-6 sm:p-8")}>
         <form onSubmit={handleSubmit} className="space-y-5">
